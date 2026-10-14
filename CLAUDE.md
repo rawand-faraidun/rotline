@@ -1,8 +1,9 @@
 # Rotline
 
-The full project brief is in `docs/BRIEF.md`. Read all of it before doing anything else, then start Stage A as section 14 describes.
+The full project brief is in `docs/BRIEF.md`. Read all of it before doing anything else.
 The brand pack is in `/brand`; read `/brand/README.md` before building any interface.
 
-- Design documents, the brief and anything else that describes the project live in `docs/`.
-- Notes meant only for the owner (open questions, setup checklists) and Stage A spikes are local-only and listed in `.gitignore`.
+- `docs/` describes the project itself (architecture, netcode, data model, game design, interface), written in general terms, not tied to a specific host or provider.
+- `planning/` is local and git-ignored: research, decisions, open questions, milestones, infrastructure plans. Read it for context; never commit it.
+- Server provisioning (Ansible, production Compose files) lives outside this repository, in a folder the owner chooses.
 - This repository is set up for Claude Code only: no `AGENTS.md`, `.agents/` or copies for other tools.
