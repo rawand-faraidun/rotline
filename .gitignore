@@ -1,0 +1,43 @@
+# owner-only notes, never committed
+docs/10-open-questions.md
+docs/owner/
+
+# stage A throwaway experiments
+spikes/
+
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+build/
+out/
+.vite/
+.astro/
+*.tsbuildinfo
+
+# turbo
+.turbo/
+
+# tests
+coverage/
+playwright-report/
+test-results/
+
+# caches
+.cache/
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs
+logs/
+*.log
+pnpm-debug.log*
+
+# os / editor
+.DS_Store
+Thumbs.db

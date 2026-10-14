@@ -1,0 +1,11 @@
+:root {
+  --color-rot-black: #0D100E;
+  --color-surface: #1B211C;
+  --color-bone: #ECE8DC;
+  --color-rot-lime: #B8F23C;
+  --color-muted: #A9AD9E;
+  --color-alert: #FF5630;
+  --color-warning: #FFC02E;
+  --font-display: 'Saira Stencil One', 'Arial Narrow', sans-serif;
+  --font-ui: 'Chakra Petch', 'Segoe UI', sans-serif;
+}
