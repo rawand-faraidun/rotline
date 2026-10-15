@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # test-only value; real secrets never live in workflows
+  BETTER_AUTH_SECRET: ci-test-value-ci-test-value-ci-test-value
+  PUBLIC_ORIGIN: http://localhost:4321
+
+jobs:
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm biome ci .
+      - name: Dockerfiles
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          recursive: true
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
+  typecheck:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter @rotline/web brand
+      - run: pnpm typecheck
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run test -- --coverage
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-trixie
+        env:
+          POSTGRES_DB: rotline
+          POSTGRES_USER: rotline
+          POSTGRES_PASSWORD: rotline
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U rotline -d rotline" --health-interval 5s --health-timeout 3s --health-retries 20
+      oauth-mock:
+        image: ghcr.io/navikt/mock-oauth2-server:6.0.7
+        ports: ['8090:8080']
+    env:
+      DATABASE_URL: postgresql://rotline:rotline@localhost:5432/rotline
+      DATABASE_DIRECT_URL: postgresql://rotline:rotline@localhost:5432/rotline
+      AUTH_TEST_PROVIDER_ISSUER: http://localhost:8090/rotline
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm db:migrate
+      - run: pnpm turbo run test:integration
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Dependency audit
+        run: pnpm audit --prod --audit-level high
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configuration scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          skip-dirs: node_modules,**/node_modules
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+
+  images:
+    name: Build images and end-to-end tests
+    needs: [lint, typecheck, unit, integration, security]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build images
+        run: |
+          docker buildx build --load -f apps/api/Dockerfile -t rotline-api:ci .
+          docker buildx build --load -f apps/web/Dockerfile -t rotline-web:ci .
+          docker buildx build --load -f packages/db/Dockerfile -t rotline-migrate:ci .
+      - name: Scan images
+        run: |
+          for image in rotline-api:ci rotline-web:ci rotline-migrate:ci; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.0 image \
+              --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed "$image"
+          done
+      - name: Start the stack
+        run: |
+          docker run -d --name postgres -p 5432:5432 -e POSTGRES_DB=rotline -e POSTGRES_USER=rotline -e POSTGRES_PASSWORD=rotline postgres:18.6-trixie
+          docker run -d --name oauth-mock -p 8090:8080 ghcr.io/navikt/mock-oauth2-server:6.0.7
+          until docker exec postgres pg_isready -U rotline -d rotline; do sleep 1; done
+          docker run --rm --network host -e DATABASE_DIRECT_URL=postgresql://rotline:rotline@localhost:5432/rotline rotline-migrate:ci
+          # host networking: the API reaches the OAuth mock at the same address the browser uses
+          docker run -d --name api --network host \
+            -e NODE_ENV=test -e DATABASE_URL=postgresql://rotline:rotline@localhost:5432/rotline \
+            -e PUBLIC_ORIGIN=http://localhost:8080 -e BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
+            -e AUTH_TEST_PROVIDER_ISSUER=http://localhost:8090/rotline rotline-api:ci
+          gateway=$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')
+          docker run -d --name web -p 8080:8080 -e API_UPSTREAM=http://$gateway:3100 rotline-web:ci
+          for i in $(seq 1 30); do curl -sf http://localhost:8080/api/health && break; sleep 2; done
+          curl -sf http://localhost:8080/api/health
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter @rotline/web exec playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: pnpm --filter @rotline/web test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:8080
+          E2E_STATIC: '1'
+          CI: 'true'
+      - if: failure()
+        run: docker logs api; docker logs web
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
