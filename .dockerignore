@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/.turbo
+**/.astro
+**/generated
+**/coverage
+**/test-results
+**/playwright-report
+.git
+.env
+.env.*
+!.env.example
+planning
+spikes
+apps/web/public/brand

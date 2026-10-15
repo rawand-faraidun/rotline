@@ -40,3 +40,9 @@ pnpm-debug.log*
 # os / editor
 .DS_Store
 Thumbs.db
+
+# generated code
+**/generated/
+
+# copied from /brand at build time
+apps/web/public/brand/

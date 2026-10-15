@@ -1,0 +1,84 @@
+{
+	"$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		},
+		"formatter": {
+			"enabled": true,
+			"quoteStyle": "double"
+		}
+	},
+	"linter": {
+		"rules": {
+			"correctness": {
+				"noNodejsModules": "error",
+				"noProcessGlobal": "error",
+				"noGlobalDirnameFilename": "error"
+			},
+			"style": {
+				"noRestrictedGlobals": {
+					"level": "error",
+					"options": {
+						"deniedGlobals": {
+							"Buffer": "Browser code has no Buffer; use Uint8Array or TextEncoder.",
+							"global": "Browser code has no `global`; use globalThis."
+						}
+					}
+				},
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"paths": {
+							"@rotline/db": "Browser code must not import the database package.",
+							"@rotline/api": {
+								"allowImportNames": ["AppType"],
+								"message": "Browser code may only import the AppType from @rotline/api."
+							}
+						}
+					}
+				}
+			},
+			"suspicious": {
+				"noArrayIndexKey": "warn"
+			},
+			"nursery": {
+				"useSortedClasses": {
+					"level": "warn",
+					"fix": "safe",
+					"options": {
+						"attributes": ["classList"],
+						"functions": ["clsx", "cva", "cn"]
+					}
+				}
+			},
+			"a11y": {
+				"noSvgWithoutTitle": "info"
+			}
+		},
+		"domains": {
+			"react": "recommended"
+		}
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": {
+					"level": "on",
+					"options": {
+						"groups": [
+							[":NODE:", ":BUN:"],
+							["react", "react/**"],
+							["@rotline/*", "@rotline/**"],
+							[":PACKAGE:", ":PACKAGE_WITH_PROTOCOL:"],
+							":ALIAS:",
+							":PATH:",
+							"**/*.css"
+						],
+						"identifierOrder": "natural"
+					}
+				}
+			}
+		}
+	}
+}

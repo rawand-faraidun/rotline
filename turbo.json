@@ -1,0 +1,56 @@
+{
+	"$schema": "https://turborepo.com/schema.json",
+	"globalPassThroughEnv": [
+		"CI",
+		"NODE_ENV",
+		"DATABASE_URL",
+		"DATABASE_DIRECT_URL",
+		"VALKEY_URL",
+		"PUBLIC_ORIGIN",
+		"API_PORT",
+		"API_PROXY_TARGET",
+		"BETTER_AUTH_SECRET",
+		"GITHUB_CLIENT_ID",
+		"GITHUB_CLIENT_SECRET",
+		"GOOGLE_CLIENT_ID",
+		"GOOGLE_CLIENT_SECRET",
+		"AUTH_TEST_PROVIDER_ISSUER",
+		"AUTH_TEST_PROVIDER_CLIENT_ID",
+		"AUTH_TEST_PROVIDER_CLIENT_SECRET",
+		"E2E_BASE_URL",
+		"E2E_STATIC",
+		"LOG_LEVEL"
+	],
+	"tasks": {
+		"build": {
+			"dependsOn": ["^build", "generate"],
+			"outputs": ["dist/**"]
+		},
+		"generate": {
+			"cache": false
+		},
+		"dev": {
+			"dependsOn": ["generate"],
+			"cache": false,
+			"persistent": true
+		},
+		"typecheck": {
+			"dependsOn": ["generate", "transit"]
+		},
+		"transit": {
+			"dependsOn": ["^transit"]
+		},
+		"test": {
+			"dependsOn": ["generate"],
+			"outputs": ["coverage/**"]
+		},
+		"test:integration": {
+			"dependsOn": ["generate"],
+			"cache": false
+		},
+		"test:e2e": {
+			"dependsOn": ["build"],
+			"cache": false
+		}
+	}
+}

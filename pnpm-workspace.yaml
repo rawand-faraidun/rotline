@@ -1,0 +1,38 @@
+packages:
+  - apps/*
+  - packages/*
+  - tooling/*
+
+engineStrict: true
+
+allowBuilds:
+  esbuild: true
+  lefthook: true
+  prisma: true
+  '@prisma/engines': true
+
+catalog:
+  '@types/node': ^26.6.5
+  typescript: ^6.0.3
+  zod: ^4.6.7
+  vitest: ^5.0.4
+  '@vitest/coverage-v8': ^5.0.4
+  react: ^19.3.1
+  react-dom: ^19.3.1
+  '@types/react': ^19.3.0
+  '@types/react-dom': ^19.3.0
+
+minimumReleaseAgeExclude:
+  - '@better-auth/core@1.7.8'
+  - '@better-auth/drizzle-adapter@1.7.8'
+  - '@better-auth/kysely-adapter@1.7.8'
+  - '@better-auth/memory-adapter@1.7.8'
+  - '@better-auth/mongo-adapter@1.7.8'
+  - '@better-auth/prisma-adapter@1.7.8'
+  - '@better-auth/telemetry@1.7.8'
+  - better-auth@1.7.8
+
+# security fixes for transitive dependencies of the Prisma CLI
+overrides:
+  deepmerge-ts: ^8.0.0
+  mysql2: ^3.22.0
