@@ -21,5 +21,7 @@ await build({
 	target: 'node26',
 	sourcemap: true,
 	external: [...external].flatMap(name => [name, `${name}/*`]),
-	banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" }
+	banner: {
+		js: "import { createRequire as __bundleRequire } from 'node:module'; const require = __bundleRequire(import.meta.url);"
+	}
 })

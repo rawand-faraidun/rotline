@@ -19,6 +19,10 @@ const schema = z.object({
 	AUTH_TEST_PROVIDER_ISSUER: optional,
 	AUTH_TEST_PROVIDER_CLIENT_ID: optional,
 	AUTH_TEST_PROVIDER_CLIENT_SECRET: optional,
+	/** base64 DER (PKCS#8) Ed25519 key that signs game connection tickets */
+	GAME_TICKET_PRIVATE_KEY: z.string().min(40),
+	/** the game-server instance new rooms are placed on (one instance until the room registry exists) */
+	GAME_INSTANCE_ID: z.string().min(1).default('local-1'),
 	LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')
 })
 

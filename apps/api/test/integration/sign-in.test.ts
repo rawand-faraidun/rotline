@@ -1,4 +1,6 @@
+import { createPublicKey } from 'node:crypto'
 import { createDatabase } from '@rotline/db'
+import { loadPrivateKey, verifyTicket } from '@rotline/ticket'
 import { pino } from 'pino'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../src/app.ts'
@@ -123,6 +125,28 @@ describe('sign-in and player creation', () => {
 			body: JSON.stringify({ name: 'RotlineAdmin', avatarStyle: 'lorelei', avatarSeed: 'seed-3' })
 		})
 		expect(response.status).toBe(422)
+	})
+
+	it('issues a signed solo game ticket only to players', async () => {
+		const jar = await signIn('erin')
+		const before = await call(jar, '/api/game/solo', { method: 'POST' })
+		expect(before.status).toBe(404)
+		await call(jar, '/api/player', {
+			method: 'POST',
+			body: JSON.stringify({ name: `Erin${run.slice(0, 6)}`, avatarStyle: 'pixelbot', avatarSeed: 'e' })
+		})
+		const response = await call(jar, '/api/game/solo', { method: 'POST' })
+		expect(response.status).toBe(200)
+		const body = (await response.json()) as { ticket: string; room: string; path: string }
+		const publicKey = createPublicKey(loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY))
+		const check = verifyTicket(publicKey, body.ticket)
+		expect(check.ok && check.payload).toMatchObject({
+			room: body.room,
+			mode: 'solo',
+			inst: env.GAME_INSTANCE_ID,
+			name: `Erin${run.slice(0, 6)}`
+		})
+		expect(body.path).toBe('/game')
 	})
 
 	it('rejects requests without a session', async () => {
