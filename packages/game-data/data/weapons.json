@@ -1,0 +1,47 @@
+[
+	{
+		"id": "p9-service",
+		"name": "P9 Service",
+		"slot": "pistol",
+		"damageType": "ballistic",
+		"damage": 22,
+		"pellets": 1,
+		"fireRate": 300,
+		"automatic": false,
+		"magazine": 12,
+		"maxReserve": null,
+		"reloadSeconds": 1.2,
+		"spreadDegrees": 2,
+		"range": 26
+	},
+	{
+		"id": "vex-9",
+		"name": "Vex-9",
+		"slot": "main",
+		"damageType": "ballistic",
+		"damage": 14,
+		"pellets": 1,
+		"fireRate": 900,
+		"automatic": true,
+		"magazine": 32,
+		"maxReserve": 256,
+		"reloadSeconds": 1.8,
+		"spreadDegrees": 5,
+		"range": 22
+	},
+	{
+		"id": "k-71",
+		"name": "K-71",
+		"slot": "main",
+		"damageType": "ballistic",
+		"damage": 24,
+		"pellets": 1,
+		"fireRate": 600,
+		"automatic": true,
+		"magazine": 30,
+		"maxReserve": 210,
+		"reloadSeconds": 2.2,
+		"spreadDegrees": 2.5,
+		"range": 30
+	}
+]

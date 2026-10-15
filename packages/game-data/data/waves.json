@@ -1,0 +1,14 @@
+{
+	"firstWaveDelaySeconds": 3,
+	"breakSeconds": 6,
+	"spawnPerSecond": 4,
+	"maxAlive": 120,
+	"waves": [
+		{ "drudge": 16, "bolter": 0, "swell": 0 },
+		{ "drudge": 24, "bolter": 6, "swell": 0 },
+		{ "drudge": 30, "bolter": 10, "swell": 2 },
+		{ "drudge": 40, "bolter": 14, "swell": 4 },
+		{ "drudge": 50, "bolter": 20, "swell": 6 }
+	],
+	"growthPerWave": 1.2
+}

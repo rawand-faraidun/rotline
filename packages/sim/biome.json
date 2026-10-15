@@ -1,0 +1,35 @@
+{
+	"$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
+	"root": false,
+	"extends": ["@rotline/biome-config/base", "@rotline/biome-config/node"],
+	"overrides": [
+		{
+			"includes": ["src/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedGlobals": {
+							"level": "error",
+							"options": {
+								"deniedGlobals": {
+									"Date": "The simulation is deterministic: use the tick, never wall-clock time.",
+									"performance": "The simulation is deterministic: use the tick, never wall-clock time.",
+									"setTimeout": "The simulation has no timers: schedule by tick.",
+									"setInterval": "The simulation has no timers: schedule by tick."
+								}
+							}
+						},
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"node:crypto": "The simulation must run in the browser too; use the seeded Rng."
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	]
+}

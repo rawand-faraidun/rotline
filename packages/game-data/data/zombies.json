@@ -1,0 +1,50 @@
+[
+	{
+		"id": "drudge",
+		"name": "Drudge",
+		"health": 60,
+		"speed": 1.2,
+		"radius": 0.38,
+		"meleeDamage": 10,
+		"meleeRange": 0.55,
+		"meleeCooldownSeconds": 1.2,
+		"score": 10,
+		"tint": "#8a9089",
+		"scale": 1,
+		"deathBurst": null
+	},
+	{
+		"id": "bolter",
+		"name": "Bolter",
+		"health": 35,
+		"speed": 4.2,
+		"radius": 0.32,
+		"meleeDamage": 8,
+		"meleeRange": 0.5,
+		"meleeCooldownSeconds": 0.8,
+		"score": 15,
+		"tint": "#b46a5e",
+		"scale": 0.9,
+		"deathBurst": null
+	},
+	{
+		"id": "swell",
+		"name": "Swell",
+		"health": 150,
+		"speed": 1,
+		"radius": 0.55,
+		"meleeDamage": 12,
+		"meleeRange": 0.6,
+		"meleeCooldownSeconds": 1.5,
+		"score": 30,
+		"tint": "#7fa04a",
+		"scale": 1.35,
+		"deathBurst": {
+			"damage": 60,
+			"radius": 3,
+			"poolDamagePerSecond": 10,
+			"poolRadius": 2,
+			"poolSeconds": 8
+		}
+	}
+]
