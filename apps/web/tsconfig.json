@@ -1,0 +1,8 @@
+{
+	"extends": "@rotline/tsconfig/web",
+	"compilerOptions": {
+		"types": ["vite/client"]
+	},
+	"include": [".astro/types.d.ts", "src", "scripts", "e2e", "*.config.ts"],
+	"exclude": ["dist"]
+}

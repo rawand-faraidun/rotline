@@ -1,0 +1,13 @@
+---
+import { App } from '../../app/app.tsx'
+import Base from '../../layouts/base.astro'
+
+// The app routes on the client; these are the paths pre-built as entry points.
+export function getStaticPaths() {
+	return [{ params: { path: undefined } }, { params: { path: 'welcome' } }, { params: { path: 'lobby' } }]
+}
+---
+
+<Base title="Rotline">
+	<App client:only="react" />
+</Base>

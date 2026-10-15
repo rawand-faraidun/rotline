@@ -1,0 +1,42 @@
+{
+	"name": "@rotline/web",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"brand": "node scripts/copy-brand.ts",
+		"dev": "node scripts/copy-brand.ts && astro dev",
+		"build": "node scripts/copy-brand.ts && astro build",
+		"preview": "astro preview",
+		"typecheck": "astro check",
+		"test:e2e": "playwright test"
+	},
+	"dependencies": {
+		"@astrojs/react": "^7.0.1",
+		"@dicebear/core": "^10.7.0",
+		"@dicebear/styles": "^10.6.0",
+		"@fontsource/chakra-petch": "^5.3.0",
+		"@fontsource/saira-stencil-one": "^5.3.0",
+		"@rotline/constants": "workspace:*",
+		"@rotline/ui": "workspace:*",
+		"@tanstack/react-query": "^5.104.2",
+		"@tanstack/react-router": "^1.170.44",
+		"astro": "^7.3.8",
+		"hono": "^4.13.13",
+		"react": "catalog:",
+		"react-dom": "catalog:"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.10",
+		"@playwright/test": "^1.64.1",
+		"@rotline/api": "workspace:*",
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"@tailwindcss/vite": "^4.3.3",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"tailwindcss": "^4.3.3",
+		"typescript": "catalog:"
+	}
+}

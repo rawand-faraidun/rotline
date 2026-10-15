@@ -1,0 +1,19 @@
+{
+	"$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
+	"root": false,
+	"extends": ["@rotline/biome-config/base", "@rotline/biome-config/web"],
+	"overrides": [
+		{
+			"includes": ["scripts/**", "*.config.ts", "e2e/**"],
+			"linter": {
+				"rules": {
+					"correctness": { "noNodejsModules": "off", "noProcessGlobal": "off", "noGlobalDirnameFilename": "off" }
+				}
+			}
+		},
+		{
+			"includes": ["**/*.astro"],
+			"linter": { "rules": { "correctness": { "noUnusedVariables": "off", "noUnusedImports": "off" } } }
+		}
+	]
+}

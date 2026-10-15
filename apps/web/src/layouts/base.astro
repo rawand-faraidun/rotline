@@ -1,0 +1,29 @@
+---
+import '../styles/global.css'
+import { en } from '../i18n/en.ts'
+
+type Props = { title?: string; description?: string }
+const { title = en.meta.title, description = en.meta.description } = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+		<link rel="icon" href="/brand/svg/favicon.svg" type="image/svg+xml" />
+		<link rel="icon" href="/brand/png/favicon.ico" sizes="any" />
+		<link rel="apple-touch-icon" href="/brand/png/apple-touch-icon.png" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<meta name="theme-color" content="#0D100E" />
+		<meta property="og:title" content="Rotline" />
+		<meta property="og:description" content="Hold the line against the rot." />
+		<meta property="og:image" content="/brand/png/rotline-social-card.png" />
+		<meta name="twitter:card" content="summary_large_image" />
+	</head>
+	<body class="min-h-dvh bg-rot-black text-bone">
+		<slot />
+	</body>
+</html>

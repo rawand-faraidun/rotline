@@ -1,0 +1,23 @@
+---
+import { Badge, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
+import { en } from '../i18n/en.ts'
+import Base from './base.astro'
+
+type Props = { title: string; paragraphs: readonly string[] }
+const { title, paragraphs } = Astro.props
+---
+
+<Base title={`${title} · Rotline`}>
+	<main class="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-12">
+		<a href="/" class="w-fit">
+			<img src="/brand/svg/rotline-logo-horizontal.svg" alt={en.nav.home} width="148" height="32" class="h-8 w-auto" />
+		</a>
+		<Panel>
+			<PanelHeader>
+				<PanelTitle>{title}</PanelTitle>
+				<Badge tone="warning">{en.legal.draft}</Badge>
+			</PanelHeader>
+			{paragraphs.map(paragraph => <p class="text-bone/85 leading-relaxed">{paragraph}</p>)}
+		</Panel>
+	</main>
+</Base>

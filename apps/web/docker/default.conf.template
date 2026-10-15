@@ -1,0 +1,46 @@
+server {
+	listen 8080;
+	server_name _;
+	root /usr/share/nginx/html;
+
+	gzip on;
+	gzip_types text/css application/javascript application/json image/svg+xml application/manifest+json;
+	gzip_min_length 512;
+
+	add_header X-Content-Type-Options nosniff always;
+	add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+	# content-hashed build output never changes
+	location /_astro/ {
+		add_header Cache-Control "public, max-age=31536000, immutable";
+		try_files $uri =404;
+	}
+
+	location /brand/ {
+		add_header Cache-Control "public, max-age=86400";
+		try_files $uri =404;
+	}
+
+	# resolve the API at request time, so nginx starts even before the API does
+	resolver ${DNS_RESOLVER} valid=10s ipv6=off;
+	set $api_upstream ${API_UPSTREAM};
+
+	location /api/ {
+		proxy_pass $api_upstream;
+		proxy_http_version 1.1;
+		proxy_set_header Host $http_host;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+	}
+
+	# the app routes on the client
+	location /play {
+		add_header Cache-Control "no-cache";
+		try_files $uri $uri.html /play.html;
+	}
+
+	location / {
+		add_header Cache-Control "no-cache";
+		try_files $uri $uri.html $uri/ =404;
+	}
+}

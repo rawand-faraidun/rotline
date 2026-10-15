@@ -1,0 +1,66 @@
+---
+import { buttonVariants, Panel } from '@rotline/ui'
+import { en } from '../i18n/en.ts'
+import Base from '../layouts/base.astro'
+
+const t = en.landing
+---
+
+<Base>
+	<div class="hazard h-2 w-full opacity-80" aria-hidden="true"></div>
+	<header class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+		<img src="/brand/svg/rotline-logo-horizontal.svg" alt="Rotline" width="148" height="32" class="h-8 w-auto" />
+		<a href="/play" class={buttonVariants({ variant: 'secondary', size: 'sm' })}>{en.nav.play}</a>
+	</header>
+
+	<main>
+		<section class="relative overflow-hidden">
+			<div
+				class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_120%,rgb(184_242_60/0.12),transparent_60%),radial-gradient(ellipse_at_10%_0%,rgb(236_232_220/0.06),transparent_50%)]"
+				aria-hidden="true"
+			>
+			</div>
+			<div class="relative mx-auto flex max-w-6xl flex-col items-start gap-8 px-6 pt-16 pb-24 md:pt-28 md:pb-36">
+				<p class="cut cut-sm bg-surface px-3 py-1 font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">{t.kicker}</p>
+				<h1>
+					<img
+						src="/brand/svg/rotline-logo-horizontal-slogan.svg"
+						alt="Rotline — Hold the line against the rot."
+						width="720"
+						height="220"
+						class="h-auto w-full max-w-2xl"
+						fetchpriority="high"
+					/>
+				</h1>
+				<p class="max-w-xl text-bone/85 text-lg leading-relaxed">{t.lead}</p>
+				<div class="flex flex-col items-start gap-3">
+					<a href="/play" class={buttonVariants({ size: 'lg' })}>{t.cta}</a>
+					<p class="text-muted text-sm">{t.ctaHint}</p>
+				</div>
+			</div>
+			<div class="relative h-px w-full bg-gradient-to-r from-transparent via-rot-lime/60 to-transparent" aria-hidden="true"></div>
+		</section>
+
+		<section class="mx-auto grid max-w-6xl gap-6 px-6 py-20 md:grid-cols-3">
+			{
+				t.features.map((feature, index) => (
+					<Panel>
+						<span class="font-display text-4xl text-rot-lime/80">0{index + 1}</span>
+						<h2 class="font-bold text-bone text-xl uppercase tracking-wide">{feature.title}</h2>
+						<p class="text-muted leading-relaxed">{feature.body}</p>
+					</Panel>
+				))
+			}
+		</section>
+	</main>
+
+	<footer class="border-line border-t border-dashed">
+		<div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-muted text-sm">
+			<p>{t.footer}</p>
+			<nav class="flex gap-6 uppercase tracking-widest">
+				<a class="hover:text-rot-lime" href="/privacy">{en.nav.privacy}</a>
+				<a class="hover:text-rot-lime" href="/terms">{en.nav.terms}</a>
+			</nav>
+		</div>
+	</footer>
+</Base>

@@ -1,0 +1,159 @@
+/* Rotline interface theme. Imported after `tailwindcss` by every app. */
+@source "./";
+
+@theme {
+	--color-rot-black: #0d100e;
+	--color-surface: #1b211c;
+	--color-surface-raised: #232b24;
+	--color-bone: #ece8dc;
+	--color-rot-lime: #b8f23c;
+	--color-muted: #a9ad9e;
+	--color-alert: #ff5630;
+	--color-warning: #ffc02e;
+	--color-line: #3a443b;
+
+	--font-display: "Saira Stencil One", "Arial Narrow", sans-serif;
+	--font-ui: "Chakra Petch", "Segoe UI", sans-serif;
+	--font-sans: var(--font-ui);
+
+	/* No curves anywhere */
+	--radius-xs: 0;
+	--radius-sm: 0;
+	--radius-md: 0;
+	--radius-lg: 0;
+	--radius-xl: 0;
+	--radius-2xl: 0;
+	--radius-3xl: 0;
+	--radius-4xl: 0;
+
+	--ease-snap: steps(4, end);
+	--animate-blink: blink 1s steps(2, start) infinite;
+
+	@keyframes blink {
+		to {
+			visibility: hidden;
+		}
+	}
+}
+
+/*
+ * Cut corners: top-left and bottom-right chamfered at 45°.
+ * `cut` clips the element; `frame` also draws a border that follows the cut,
+ * using --frame-color for the border and --frame-fill for the inside.
+ */
+@utility cut {
+	clip-path: polygon(
+		var(--cut, 8px) 0,
+		100% 0,
+		100% calc(100% - var(--cut, 8px)),
+		calc(100% - var(--cut, 8px)) 100%,
+		0 100%,
+		0 var(--cut, 8px)
+	);
+}
+
+@utility cut-sm {
+	--cut: 5px;
+}
+
+@utility cut-lg {
+	--cut: 14px;
+}
+
+@utility frame {
+	position: relative;
+	isolation: isolate;
+	clip-path: polygon(
+		var(--cut, 8px) 0,
+		100% 0,
+		100% calc(100% - var(--cut, 8px)),
+		calc(100% - var(--cut, 8px)) 100%,
+		0 100%,
+		0 var(--cut, 8px)
+	);
+	background: var(--frame-color, var(--color-line));
+
+	&::before {
+		content: "";
+		position: absolute;
+		inset: var(--frame-width, 1px);
+		z-index: -1;
+		background-color: var(--frame-fill, var(--color-surface));
+		background-image: var(--grain);
+		clip-path: polygon(
+			calc(var(--cut, 8px) - 0.5px) 0,
+			100% 0,
+			100% calc(100% - var(--cut, 8px) + 0.5px),
+			calc(100% - var(--cut, 8px) + 0.5px) 100%,
+			0 100%,
+			0 calc(var(--cut, 8px) - 0.5px)
+		);
+	}
+}
+
+/* Diagonal hazard stripes for danger and warnings */
+@utility hazard {
+	background-image: repeating-linear-gradient(
+		-45deg,
+		var(--hazard-a, var(--color-warning)) 0 8px,
+		var(--hazard-b, var(--color-rot-black)) 8px 16px
+	);
+}
+
+/* Corner brackets around a selected item */
+@utility brackets {
+	position: relative;
+
+	&::after {
+		content: "";
+		position: absolute;
+		inset: -4px;
+		pointer-events: none;
+		--b: 2px;
+		--l: 10px;
+		background:
+			linear-gradient(var(--color-rot-lime), var(--color-rot-lime)) top left / var(--l) var(--b),
+			linear-gradient(var(--color-rot-lime), var(--color-rot-lime)) top left / var(--b) var(--l),
+			linear-gradient(var(--color-rot-lime), var(--color-rot-lime)) bottom right / var(--l) var(--b),
+			linear-gradient(var(--color-rot-lime), var(--color-rot-lime)) bottom right / var(--b) var(--l);
+		background-repeat: no-repeat;
+	}
+}
+
+@layer base {
+	:root {
+		/* faint grain so flat panels feel worn */
+		--grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.93 0 0 0 0 0.91 0 0 0 0 0.86 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+		color-scheme: dark;
+	}
+
+	html {
+		background-color: var(--color-rot-black);
+		color: var(--color-bone);
+		font-family: var(--font-ui);
+		-webkit-font-smoothing: antialiased;
+	}
+
+	::selection {
+		background: var(--color-rot-lime);
+		color: var(--color-rot-black);
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-rot-lime);
+		outline-offset: 3px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			/* biome-ignore lint/complexity/noImportantStyles: reduced motion must win over every component animation */
+			animation-duration: 0.01ms !important;
+			/* biome-ignore lint/complexity/noImportantStyles: reduced motion must win over every component animation */
+			animation-iteration-count: 1 !important;
+			/* biome-ignore lint/complexity/noImportantStyles: reduced motion must win over every component animation */
+			transition-duration: 0.01ms !important;
+		}
+	}
+}

@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@import "@rotline/ui/styles.css";
+@import "@fontsource/saira-stencil-one/latin-400.css";
+@import "@fontsource/chakra-petch/latin-500.css";
+@import "@fontsource/chakra-petch/latin-700.css";
+
+@source "../../../../packages/ui/src";
