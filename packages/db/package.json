@@ -1,0 +1,25 @@
+{
+	"name": "@rotline/db",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": "./src/index.ts",
+	"scripts": {
+		"generate": "prisma generate",
+		"migrate:dev": "prisma migrate dev",
+		"migrate:deploy": "prisma migrate deploy",
+		"migrate:status": "prisma migrate status",
+		"typecheck": "tsc"
+	},
+	"dependencies": {
+		"@prisma/adapter-pg": "^7.10.0",
+		"@prisma/client": "^7.10.0",
+		"prisma": "^7.10.0"
+	},
+	"devDependencies": {
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"@types/node": "catalog:",
+		"typescript": "catalog:"
+	}
+}

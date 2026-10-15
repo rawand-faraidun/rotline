@@ -1,0 +1,7 @@
+{
+	"extends": "@rotline/tsconfig/node",
+	"compilerOptions": {
+		"types": []
+	},
+	"include": ["src"]
+}

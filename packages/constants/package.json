@@ -1,0 +1,15 @@
+{
+	"name": "@rotline/constants",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc"
+	},
+	"devDependencies": {
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"typescript": "catalog:"
+	}
+}

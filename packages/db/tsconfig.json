@@ -1,0 +1,4 @@
+{
+	"extends": "@rotline/tsconfig/node",
+	"include": ["src", "prisma.config.ts"]
+}
