@@ -47,6 +47,19 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	await page.reload()
 	await expect(page).toHaveURL(/\/play\/lobby$/)
 
+	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition
+	await page.getByRole('button', { name: /deploy solo/i }).click()
+	await expect(page).toHaveURL(/\/play\/mission$/)
+	await expect(page.getByText(/^wave$/i)).toBeVisible({ timeout: 45_000 })
+	const magazine = page.locator('li', { hasText: 'Vex-9' }).locator('[data-slot="magazine"]')
+	await expect(magazine).toHaveText('32')
+	await page.mouse.move(900, 300)
+	await page.mouse.down()
+	await expect(magazine).not.toHaveText('32', { timeout: 10_000 })
+	await page.mouse.up()
+	await page.keyboard.press('Escape')
+	await expect(page).toHaveURL(/\/play\/lobby$/)
+
 	await page.getByRole('button', { name: /sign out/i }).click()
 	await expect(page).toHaveURL(/\/play$/)
 	await expect(page.getByRole('button', { name: /test account/i })).toBeVisible()

@@ -17,6 +17,7 @@
 		"@dicebear/styles": "^10.6.0",
 		"@fontsource/chakra-petch": "^5.3.0",
 		"@fontsource/saira-stencil-one": "^5.3.0",
+		"@rotline/client": "workspace:*",
 		"@rotline/constants": "workspace:*",
 		"@rotline/ui": "workspace:*",
 		"@tanstack/react-query": "^5.104.2",

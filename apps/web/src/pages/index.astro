@@ -1,5 +1,6 @@
 ---
 import { buttonVariants, Panel } from '@rotline/ui'
+import pkg from '../../package.json'
 import { en } from '../i18n/en.ts'
 import Base from '../layouts/base.astro'
 
@@ -56,7 +57,7 @@ const t = en.landing
 
 	<footer class="border-line border-t border-dashed">
 		<div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-muted text-sm">
-			<p>{t.footer}</p>
+			<p>{t.footer} <span class="text-muted/60">v{pkg.version}</span></p>
 			<nav class="flex gap-6 uppercase tracking-widest">
 				<a class="hover:text-rot-lime" href="/privacy">{en.nav.privacy}</a>
 				<a class="hover:text-rot-lime" href="/terms">{en.nav.terms}</a>

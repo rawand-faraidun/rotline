@@ -24,6 +24,7 @@ server {
 	# resolve the API at request time, so nginx starts even before the API does
 	resolver ${DNS_RESOLVER} valid=10s ipv6=off;
 	set $api_upstream ${API_UPSTREAM};
+	set $game_upstream ${GAME_UPSTREAM};
 
 	location /api/ {
 		proxy_pass $api_upstream;
@@ -31,6 +32,16 @@ server {
 		proxy_set_header Host $http_host;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 		proxy_set_header X-Forwarded-Proto $scheme;
+	}
+
+	# game connections (WebSocket)
+	location = /game {
+		proxy_pass $game_upstream;
+		proxy_http_version 1.1;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection "upgrade";
+		proxy_set_header Host $http_host;
+		proxy_read_timeout 120s;
 	}
 
 	# the app routes on the client

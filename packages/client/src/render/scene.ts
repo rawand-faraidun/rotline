@@ -1,0 +1,125 @@
+import type { MapDef } from '@rotline/game-data'
+import * as THREE from 'three'
+
+/** Camera height and tilt: high and almost straight down, pulled back enough to see the horde coming. */
+const CAMERA_HEIGHT = 32
+const CAMERA_BACK = 8.5
+/** How far the camera leans toward where the player aims, in metres. */
+const AIM_LEAN = 3.5
+
+function groundTexture(): THREE.CanvasTexture {
+	const size = 256
+	const canvas = document.createElement('canvas')
+	canvas.width = canvas.height = size
+	const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+	const image = ctx.createImageData(size, size)
+	let seed = 7
+	for (let i = 0; i < size * size; i++) {
+		seed = (seed * 1664525 + 1013904223) >>> 0
+		const v = 84 + (seed / 4294967296) * 28
+		image.data.set([v, v * 1.02, v * 0.92, 255], i * 4)
+	}
+	ctx.putImageData(image, 0, 0)
+	// faint 2 m grid lines, like worn paint on concrete
+	ctx.strokeStyle = 'rgba(236,232,220,0.05)'
+	ctx.lineWidth = 2
+	ctx.strokeRect(0, 0, size, size)
+	const texture = new THREE.CanvasTexture(canvas)
+	texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+	texture.colorSpace = THREE.SRGBColorSpace
+	texture.anisotropy = 4
+	return texture
+}
+
+export class Stage {
+	readonly renderer: THREE.WebGLRenderer
+	readonly scene = new THREE.Scene()
+	readonly camera: THREE.PerspectiveCamera
+	readonly ground: THREE.Mesh
+	private readonly sun: THREE.DirectionalLight
+	private readonly cameraTarget = new THREE.Vector3()
+	private readonly canvas: HTMLCanvasElement
+
+	constructor(canvas: HTMLCanvasElement, map: MapDef) {
+		this.canvas = canvas
+		this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
+		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+		this.renderer.shadowMap.enabled = true
+		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+		this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+		this.scene.background = new THREE.Color(0x0d100e)
+		this.scene.fog = new THREE.Fog(0x0d100e, 50, 90)
+
+		this.camera = new THREE.PerspectiveCamera(38, 1, 1, 200)
+
+		this.scene.add(new THREE.HemisphereLight(0xc4ccd2, 0x2a3129, 1.6))
+		this.sun = new THREE.DirectionalLight(0xfff1dd, 2.4)
+		this.sun.castShadow = true
+		this.sun.shadow.mapSize.set(2048, 2048)
+		Object.assign(this.sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 90 })
+		this.sun.shadow.bias = -0.0006
+		this.scene.add(this.sun, this.sun.target)
+
+		const texture = groundTexture()
+		texture.repeat.set(map.width / 4, map.height / 4)
+		this.ground = new THREE.Mesh(
+			new THREE.PlaneGeometry(map.width, map.height),
+			new THREE.MeshStandardMaterial({ map: texture, roughness: 0.95 })
+		)
+		this.ground.rotation.x = -Math.PI / 2
+		this.ground.position.set(map.width / 2, 0, map.height / 2)
+		this.ground.receiveShadow = true
+		this.scene.add(this.ground)
+
+		const walls = new THREE.InstancedMesh(
+			new THREE.BoxGeometry(1, 1, 1),
+			new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 }),
+			map.walls.length
+		)
+		const matrix = new THREE.Matrix4()
+		const height = 2.4
+		for (const [i, wall] of map.walls.entries()) {
+			matrix.compose(
+				new THREE.Vector3(wall.x + wall.w / 2, height / 2, wall.y + wall.h / 2),
+				new THREE.Quaternion(),
+				new THREE.Vector3(wall.w, height, wall.h)
+			)
+			walls.setMatrixAt(i, matrix)
+		}
+		walls.castShadow = walls.receiveShadow = true
+		this.scene.add(walls)
+		this.resize()
+	}
+
+	resize(): void {
+		const width = this.canvas.clientWidth || window.innerWidth
+		const height = this.canvas.clientHeight || window.innerHeight
+		this.renderer.setSize(width, height, false)
+		this.camera.aspect = width / height
+		this.camera.updateProjectionMatrix()
+	}
+
+	/** Follows the player, leaning toward the aim point. */
+	follow(x: number, y: number, aimX: number, aimY: number, dtSeconds: number): void {
+		const lean = Math.min(1, Math.hypot(aimX - x, aimY - y) / 12)
+		const angle = Math.atan2(aimY - y, aimX - x)
+		const tx = x + Math.cos(angle) * AIM_LEAN * lean
+		const ty = y + Math.sin(angle) * AIM_LEAN * lean
+		const k = 1 - Math.exp(-8 * dtSeconds)
+		this.cameraTarget.x += (tx - this.cameraTarget.x) * k
+		this.cameraTarget.z += (ty - this.cameraTarget.z) * k
+		if (this.cameraTarget.lengthSq() === 0) this.cameraTarget.set(tx, 0, ty)
+		this.camera.position.set(this.cameraTarget.x, CAMERA_HEIGHT, this.cameraTarget.z + CAMERA_BACK)
+		this.camera.lookAt(this.cameraTarget.x, 0, this.cameraTarget.z)
+		this.sun.position.set(this.cameraTarget.x + 14, 34, this.cameraTarget.z + 8)
+		this.sun.target.position.set(this.cameraTarget.x, 0, this.cameraTarget.z)
+	}
+
+	render(): void {
+		this.renderer.render(this.scene, this.camera)
+	}
+
+	dispose(): void {
+		this.renderer.dispose()
+	}
+}

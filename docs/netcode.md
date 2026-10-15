@@ -21,7 +21,7 @@ If a tick runs late, the server runs the missed ticks back to back (up to 3) ins
 
 - **WebSocket** works everywhere and is always available.
 - **WebTransport** is used when the browser supports it: snapshots and inputs travel as unreliable datagrams, everything else on a reliable stream. A lost datagram never delays the ones behind it, which keeps remote entities smooth on lossy connections; on WebSocket (TCP), one lost packet holds up everything behind it.
-- The protocol is built for unreliable delivery either way: snapshots are deltas against a snapshot the client acknowledged, inputs are sent redundantly, and one-off events are reliable.
+- Inputs are sent redundantly and one-off events are reliable. On WebSocket each snapshot is a delta against the previous one sent on that connection; with datagrams, snapshots become deltas against the last snapshot the client acknowledged (every input already carries that acknowledgement).
 
 ## Messages
 
@@ -44,7 +44,7 @@ Reload, weapon swap, interact and abilities are bits in the `input` button field
 | Type | Contents | Delivery |
 |---|---|---|
 | `welcome` | room, your entity id, map, game-data version, server tick, full snapshot | reliable |
-| `snapshot` | snapshot id, baseline id, tick, last processed input, your full state, other players, changed zombies, removals, changed HUD values | unreliable |
+| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state, other players, acid pools, changed zombies, removals | unreliable |
 | `event` | batched one-off events: shots, hits, kills, explosions, pickups, buffs, objective updates, mutation alerts, downed, revived | reliable |
 | `mission` | checkpoint reached, mission result | reliable |
 | `ping` | server time | unreliable |
@@ -54,9 +54,9 @@ Reload, weapon swap, interact and abilities are bits in the `input` button field
 
 - Each zombie record is a varint id (relative to the previous id), a flag byte, and only the fields that changed: position as a 1-byte delta per axis for small moves (1/64 m steps) or 2 bytes absolute; facing in 1 byte; health in 1 byte; type in 1 byte when the zombie first appears.
 - A zombie that died or left the interest radius is its id plus a flag.
-- If a client has acknowledged nothing for one second, it gets a full snapshot.
+- A client that connects or reconnects gets a full snapshot first.
 
-With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 9–10 KB/s per player.
+With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 9–10 KB/s per player; with the whole horde of 300 in view and moving, about 21 KB/s. A full room's tick, including encoding four snapshots, costs about 0.12 ms.
 
 ## Prediction and reconciliation
 

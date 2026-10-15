@@ -1,0 +1,7 @@
+{
+	"extends": "@rotline/tsconfig/web",
+	"compilerOptions": {
+		"types": []
+	},
+	"include": ["src", "test"]
+}

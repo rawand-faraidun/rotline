@@ -86,7 +86,27 @@ export const en = {
 			empty: 'No missions are open yet. The horde is gathering.',
 			signOut: 'Sign out',
 			classes: { assault: 'Assault', medic: 'Medic', heavy: 'Heavy' },
-			slotOpen: 'Open slot'
+			slotOpen: 'Open slot',
+			deploy: 'Deploy solo',
+			deployHint: 'Hold the yard against wave after wave.'
+		},
+		mission: {
+			loading: 'Deploying',
+			leave: 'Leave',
+			wave: 'Wave',
+			kills: 'Kills',
+			score: 'Score',
+			health: 'Health',
+			reloading: 'Reloading',
+			unlimited: '∞',
+			down: 'You are down',
+			backIn: 'Back in {seconds} s',
+			ping: '{ms} ms',
+			fps: '{fps} fps',
+			lost: 'Connection lost',
+			kicked: 'Removed from the mission',
+			backToLobby: 'Back to lobby',
+			controls: 'WASD move · mouse aim · click fire · R reload · 1 2 3 weapons · Q swap · Esc leave'
 		}
 	}
 } as const

@@ -64,7 +64,10 @@ export function LobbyScreen() {
 						<PanelTitle>{t.salvage}</PanelTitle>
 						<span className="font-display text-3xl text-rot-lime tabular-nums">{player.salvage}</span>
 					</PanelHeader>
-					<p className="text-muted">{t.empty}</p>
+					<p className="text-muted">{t.deployHint}</p>
+					<Button size="lg" onClick={() => void navigate({ to: '/play/mission' })}>
+						{t.deploy}
+					</Button>
 				</Panel>
 			</div>
 		</Shell>

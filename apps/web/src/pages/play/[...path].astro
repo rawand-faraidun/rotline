@@ -4,7 +4,12 @@ import Base from '../../layouts/base.astro'
 
 // The app routes on the client; these are the paths pre-built as entry points.
 export function getStaticPaths() {
-	return [{ params: { path: undefined } }, { params: { path: 'welcome' } }, { params: { path: 'lobby' } }]
+	return [
+		{ params: { path: undefined } },
+		{ params: { path: 'welcome' } },
+		{ params: { path: 'lobby' } },
+		{ params: { path: 'mission' } }
+	]
 }
 ---
 

@@ -10,6 +10,7 @@ import {
 import { fetchMe, fetchProviders } from '../lib/api.ts'
 import { ErrorScreen } from './screens/error-screen.tsx'
 import { LobbyScreen } from './screens/lobby-screen.tsx'
+import { MissionScreen } from './screens/mission-screen.tsx'
 import { SignInScreen } from './screens/sign-in-screen.tsx'
 import { WelcomeScreen } from './screens/welcome-screen.tsx'
 
@@ -69,8 +70,18 @@ const lobbyRoute = createRoute({
 	component: LobbyScreen
 })
 
+const missionRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/play/mission',
+	beforeLoad: async ({ context }) => {
+		const target = await destination(context.queryClient)
+		if (target !== '/play/lobby') throw redirect({ to: target })
+	},
+	component: MissionScreen
+})
+
 const router = createRouter({
-	routeTree: rootRoute.addChildren([signInRoute, welcomeRoute, lobbyRoute]),
+	routeTree: rootRoute.addChildren([signInRoute, welcomeRoute, lobbyRoute, missionRoute]),
 	context: { queryClient },
 	defaultPreload: 'intent'
 })

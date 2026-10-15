@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
 
 const apiTarget = process.env.API_PROXY_TARGET ?? `http://localhost:${process.env.API_PORT ?? 3100}`
+const gameTarget = process.env.GAME_PROXY_TARGET ?? `ws://localhost:${process.env.GAME_PORT ?? 3200}`
 
 // Static output: the reverse proxy serves these files and routes /api to the API.
 export default defineConfig({
@@ -16,7 +17,10 @@ export default defineConfig({
 	vite: {
 		plugins: [tailwindcss()],
 		server: {
-			proxy: { '/api': { target: apiTarget, changeOrigin: false } }
+			proxy: {
+				'/api': { target: apiTarget, changeOrigin: false },
+				'/game': { target: gameTarget, ws: true }
+			}
 		}
 	}
 })

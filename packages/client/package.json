@@ -1,0 +1,24 @@
+{
+	"name": "@rotline/client",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@rotline/game-data": "workspace:*",
+		"@rotline/protocol": "workspace:*",
+		"@rotline/sim": "workspace:*",
+		"three": "^0.186.1"
+	},
+	"devDependencies": {
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"@types/three": "^0.186.0",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}
