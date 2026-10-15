@@ -24,6 +24,8 @@ jobs:
             dockerfile: apps/web/Dockerfile
           - name: migrate
             dockerfile: packages/db/Dockerfile
+          - name: game
+            dockerfile: apps/game-server/Dockerfile
     steps:
       - uses: actions/checkout@v7
         with:

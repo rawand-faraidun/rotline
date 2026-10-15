@@ -22,7 +22,13 @@ Requirements: Node.js 26 (`nvm use`), pnpm 11, Docker.
    pnpm db:migrate
    ```
 
-3. Run the API and the website:
+3. Create the game-ticket keys once (they sign the connection from the website to the game server):
+
+   ```sh
+   pnpm --silent --filter @rotline/ticket keys >> .env
+   ```
+
+4. Run the API, the game server and the website:
 
    ```sh
    pnpm dev
@@ -30,11 +36,13 @@ Requirements: Node.js 26 (`nvm use`), pnpm 11, Docker.
 
    Open <http://localhost:4321>. Without GitHub or Google credentials in `.env`, sign in with the **Test account** button: the fake provider accepts any username.
 
+   In a mission: WASD to move, the mouse to aim, click to fire, R to reload, 1 2 3 for weapons, Q to swap, Esc to leave.
+
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `pnpm dev` | API on port 3100 and the website on port 4321 (the website proxies `/api`) |
+| `pnpm dev` | API on port 3100, game server on 3200 and the website on 4321 (the website proxies `/api` and `/game`) |
 | `pnpm lint` | Biome checks |
 | `pnpm typecheck` | Type checks every package |
 | `pnpm test` | Unit tests |
@@ -42,12 +50,20 @@ Requirements: Node.js 26 (`nvm use`), pnpm 11, Docker.
 | `pnpm --filter @rotline/web test:e2e` | Browser tests against a running site |
 | `pnpm build` | Production builds |
 | `pnpm db:migrate` | Applies database migrations (uses `DATABASE_DIRECT_URL`) |
+| `pnpm changeset` | Describes a change for the next release (see below) |
+| `pnpm --filter @rotline/game-server bench` | Server tick benchmark with full rooms |
 
 ## Layout
 
 ```
-apps/api        HTTP API: sign-in (Better Auth), player profile
+apps/api        HTTP API: sign-in (Better Auth), player profile, game tickets
+apps/game-server  Authoritative game server (uWebSockets.js, 30 Hz)
 apps/web        Static pages (Astro) and the game's React app
+packages/sim    Deterministic game simulation shared by server and browser
+packages/protocol  Binary messages and snapshot encoding
+packages/client  3D renderer, input, prediction and interpolation (three.js)
+packages/game-data  Weapons, zombies, maps and waves as validated data
+packages/ticket  Signed game connection tickets
 packages/db     Prisma schema, migrations and client
 packages/ui     Interface components in the Rotline style
 packages/constants  Shared rules and constants
@@ -55,6 +71,12 @@ tooling/        Shared Biome and TypeScript presets
 brand/          Logo, icons, colours and fonts
 docs/           Project documentation
 ```
+
+## Releases
+
+Versions are managed with [Changesets](https://github.com/changesets/changesets). With a change that players or operators would notice, run `pnpm changeset`, choose patch, minor or major, and describe it in a line or two; commit the file it creates. All `@rotline/*` packages share one version: the game's version.
+
+On `main`, the Version workflow keeps a "Version packages" pull request up to date. Merging it bumps the version, writes the changelogs, tags `vX.Y.Z` and publishes versioned images and a GitHub release.
 
 ## Documentation
 

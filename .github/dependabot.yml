@@ -18,7 +18,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: docker
-    directories: [/apps/api, /apps/web, /packages/db]
+    directories: [/apps/api, /apps/game-server, /apps/web, /packages/db]
     schedule:
       interval: weekly
     groups:

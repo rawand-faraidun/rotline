@@ -15,10 +15,14 @@
 		"test:integration": "turbo run test:integration",
 		"test:e2e": "turbo run test:e2e",
 		"db:migrate": "pnpm --filter @rotline/db migrate:deploy",
-		"verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+		"verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+		"changeset": "changeset",
+		"version-packages": "changeset version",
+		"release:tag": "node scripts/tag-release.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.15",
+		"@changesets/cli": "^3.0.3",
 		"@rotline/biome-config": "workspace:*",
 		"@rotline/tsconfig": "workspace:*",
 		"lefthook": "^2.2.2",

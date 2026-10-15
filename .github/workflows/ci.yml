@@ -72,6 +72,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
+      - name: Game ticket keys for this run
+        run: pnpm --silent --filter @rotline/ticket keys >> "$GITHUB_ENV"
       - run: pnpm db:migrate
       - run: pnpm turbo run test:integration
 
@@ -113,12 +115,18 @@ jobs:
           docker buildx build --load -f apps/api/Dockerfile -t rotline-api:ci .
           docker buildx build --load -f apps/web/Dockerfile -t rotline-web:ci .
           docker buildx build --load -f packages/db/Dockerfile -t rotline-migrate:ci .
+          docker buildx build --load -f apps/game-server/Dockerfile -t rotline-game:ci .
       - name: Scan images
         run: |
-          for image in rotline-api:ci rotline-web:ci rotline-migrate:ci; do
+          for image in rotline-api:ci rotline-web:ci rotline-migrate:ci rotline-game:ci; do
             docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.0 image \
               --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed "$image"
           done
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: Game ticket keys for this run
+        run: node packages/ticket/src/generate-keys.ts >> "$GITHUB_ENV"
       - name: Start the stack
         run: |
           docker run -d --name postgres -p 5432:5432 -e POSTGRES_DB=rotline -e POSTGRES_USER=rotline -e POSTGRES_PASSWORD=rotline postgres:18.6-trixie
@@ -129,9 +137,11 @@ jobs:
           docker run -d --name api --network host \
             -e NODE_ENV=test -e DATABASE_URL=postgresql://rotline:rotline@localhost:5432/rotline \
             -e PUBLIC_ORIGIN=http://localhost:8080 -e BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
-            -e AUTH_TEST_PROVIDER_ISSUER=http://localhost:8090/rotline rotline-api:ci
+            -e AUTH_TEST_PROVIDER_ISSUER=http://localhost:8090/rotline \
+            -e GAME_TICKET_PRIVATE_KEY=$GAME_TICKET_PRIVATE_KEY -e GAME_INSTANCE_ID=ci-1 rotline-api:ci
+          docker run -d --name game --network host -e GAME_TICKET_PUBLIC_KEY=$GAME_TICKET_PUBLIC_KEY -e GAME_INSTANCE_ID=ci-1 rotline-game:ci
           gateway=$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')
-          docker run -d --name web -p 8080:8080 -e API_UPSTREAM=http://$gateway:3100 rotline-web:ci
+          docker run -d --name web -p 8080:8080 -e API_UPSTREAM=http://$gateway:3100 -e GAME_UPSTREAM=http://$gateway:3200 rotline-web:ci
           for i in $(seq 1 30); do curl -sf http://localhost:8080/api/health && break; sleep 2; done
           curl -sf http://localhost:8080/api/health
       - uses: ./.github/actions/setup
@@ -143,7 +153,7 @@ jobs:
           E2E_STATIC: '1'
           CI: 'true'
       - if: failure()
-        run: docker logs api; docker logs web
+        run: docker logs api; docker logs game; docker logs web
       - if: failure()
         uses: actions/upload-artifact@v7
         with:

@@ -1,0 +1,17 @@
+---
+"@rotline/web": minor
+"@rotline/api": minor
+"@rotline/game-server": minor
+"@rotline/client": minor
+"@rotline/sim": minor
+"@rotline/protocol": minor
+"@rotline/game-data": minor
+"@rotline/ticket": minor
+---
+
+First playable build:
+
+- Sign in with GitHub or Google, pick a player name and a generated avatar, and wait in the lobby.
+- Deploy into a solo mission on The Yard: move, aim and shoot with the Vex-9, K-71 and the P9 pistol (unlimited reserve), reload and switch weapons.
+- Waves of Drudges, Bolters and Swells find their way around walls; Swells burst and leave acid pools.
+- The server decides every hit and kill; your own movement and shooting respond instantly through prediction.

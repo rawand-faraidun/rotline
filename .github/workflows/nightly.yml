@@ -27,3 +27,12 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm audit --audit-level moderate
+
+  benchmark:
+    name: Server tick benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Full rooms (4 players, 300 zombies)
+        run: pnpm --filter @rotline/game-server bench 8 900 | tee -a "$GITHUB_STEP_SUMMARY"
