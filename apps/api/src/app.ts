@@ -1,0 +1,48 @@
+import { Hono } from 'hono'
+import { secureHeaders } from 'hono/secure-headers'
+import { enabledProviders } from './auth.ts'
+import type { AppEnv, Services } from './context.ts'
+import { playerRoutes } from './routes/player.ts'
+
+export function createApp(services: Services) {
+	const { auth, db, env, log } = services
+
+	const api = new Hono<AppEnv>()
+		.basePath('/api')
+		.use(secureHeaders())
+		// cookies are SameSite=Lax; also refuse state-changing requests from other origins
+		.use(async (c, next) => {
+			const safe = c.req.method === 'GET' || c.req.method === 'HEAD' || c.req.method === 'OPTIONS'
+			const requestOrigin = c.req.header('origin')
+			if (!safe && requestOrigin !== undefined && requestOrigin !== env.PUBLIC_ORIGIN) {
+				return c.json({ error: 'forbidden-origin' }, 403)
+			}
+			await next()
+		})
+		.use(async (c, next) => {
+			const session = await auth.api.getSession({ headers: c.req.raw.headers })
+			c.set('user', session ? { id: session.user.id, email: session.user.email } : null)
+			await next()
+		})
+		.on(['GET', 'POST'], '/auth/*', c => auth.handler(c.req.raw))
+		.get('/config', c => c.json({ providers: enabledProviders(env) }, 200))
+		.get('/health', async c => {
+			try {
+				await db.$queryRaw`select 1`
+				return c.json({ status: 'ok' as const }, 200)
+			} catch (error) {
+				log.error({ err: error }, 'health check failed')
+				return c.json({ status: 'error' as const }, 503)
+			}
+		})
+		.route('/', playerRoutes(services))
+
+	api.onError((error, c) => {
+		log.error({ err: error, path: c.req.path }, 'unhandled error')
+		return c.json({ error: 'internal' }, 500)
+	})
+
+	return api
+}
+
+export type App = ReturnType<typeof createApp>
