@@ -1,0 +1,34 @@
+{
+	"name": "@rotline/game-server",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "node --env-file-if-exists=../../.env --watch src/index.ts",
+		"build": "node scripts/build.ts",
+		"start": "node dist/index.js",
+		"bench": "node src/bench.ts",
+		"typecheck": "tsc",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@rotline/game-data": "workspace:*",
+		"@rotline/protocol": "workspace:*",
+		"@rotline/sim": "workspace:*",
+		"@rotline/ticket": "workspace:*",
+		"pino": "^10.4.0",
+		"uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.71.0",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"@types/node": "catalog:",
+		"@types/ws": "^8.18.1",
+		"esbuild": "^0.28.2",
+		"pino-pretty": "^13.2.0",
+		"typescript": "catalog:",
+		"vitest": "catalog:",
+		"ws": "^8.22.0"
+	}
+}
