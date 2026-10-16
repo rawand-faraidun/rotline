@@ -5,7 +5,8 @@ export default defineConfig({
 		include: ['test/unit/**/*.test.ts'],
 		coverage: {
 			provider: 'v8',
-			include: ['src/lib/**', 'src/env.ts'],
+			// database-bound modules (ledger, build, routes, rewards) are covered by the integration tests
+			include: ['src/lib/player-name.ts', 'src/env.ts'],
 			thresholds: { lines: 90, branches: 85 }
 		}
 	}

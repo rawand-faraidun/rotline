@@ -1,4 +1,4 @@
-import { maps } from '@rotline/game-data'
+import { type Build, economy, maps, zombies } from '@rotline/game-data'
 import { SnapshotEncoder, Writer, writeEvents, writePing, writeRoster, writeWelcome } from '@rotline/protocol'
 import { type PlayerInput, type SimEvent, World } from '@rotline/sim'
 
@@ -20,10 +20,24 @@ export type Connection = {
 	close(): void
 }
 
+/** What a player earned since their last report, flushed at each wave cleared and when they leave. */
+type Earnings = { xp: number; salvage: number; score: number; kills: number; reports: number }
+
+export type RewardSink = (report: {
+	grantKey: string
+	userId: string
+	class: Build['class']
+	xp: number
+	salvage: number
+	kills: number
+}) => void
+
 type Member = {
 	userId: string
 	name: string
 	slot: number
+	build: Build
+	earnings: Earnings
 	connection: Connection | null
 	encoder: SnapshotEncoder
 	queue: PlayerInput[]
@@ -45,9 +59,11 @@ export class Room {
 	private pendingEvents: SimEvent[] = []
 	private readonly inputs = new Map<number, PlayerInput>()
 	emptySince = 0
+	private readonly onReward: RewardSink
 
-	constructor(id: string, mode: 'squad', seed: number, flowPhase: number) {
+	constructor(id: string, mode: 'squad', seed: number, flowPhase: number, onReward: RewardSink = () => {}) {
 		this.id = id
+		this.onReward = onReward
 		this.mode = mode
 		this.capacity = 4
 		this.world = new World({ seed, map: maps.yard as NonNullable<typeof maps.yard>, flowPhase })
@@ -64,18 +80,21 @@ export class Room {
 	}
 
 	/** Attaches a connection for a player, reusing their character if they are reconnecting. */
-	join(userId: string, name: string, connection: Connection): { ok: true; slot: number } | { ok: false } {
+	/** A reconnecting player keeps their character and the build they started with. */
+	join(userId: string, name: string, build: Build, connection: Connection): { ok: true; slot: number } | { ok: false } {
 		let member = this.members.get(userId)
 		if (!member) {
 			if (this.members.size >= this.capacity) return { ok: false }
 			const used = new Set([...this.members.values()].map(existing => existing.slot))
 			let slot = 1
 			while (used.has(slot)) slot++
-			this.world.addPlayer(slot)
+			this.world.addPlayer(slot, build)
 			member = {
 				userId,
 				name,
 				slot,
+				build,
+				earnings: { xp: 0, salvage: 0, score: 0, kills: 0, reports: 0 },
 				connection: null,
 				encoder: new SnapshotEncoder(slot),
 				queue: [],
@@ -94,7 +113,7 @@ export class Room {
 		}
 		member.connection = connection
 		member.disconnectedAt = 0
-		connection.send(writeWelcome(this.writer, member.slot, this.world.map.id, this.world.tick))
+		connection.send(writeWelcome(this.writer, member.slot, this.world.map.id, this.world.tick, member.build))
 		this.broadcastRoster()
 		return { ok: true, slot: member.slot }
 	}
@@ -157,7 +176,18 @@ export class Room {
 			if (next) this.inputs.set(member.slot, next)
 		}
 		this.world.step(this.inputs)
-		for (const event of this.world.events) this.pendingEvents.push(event)
+		for (const event of this.world.events) {
+			this.pendingEvents.push(event)
+			if (event.type === 'kill') this.credit(event.by, event.zombieType)
+			// a new wave means the last one was cleared: everyone still here is paid and reported
+			else if (event.type === 'wave' && event.wave > 1) {
+				for (const member of this.members.values()) {
+					member.earnings.xp += economy.rewards.waveClear.xp
+					member.earnings.salvage += economy.rewards.waveClear.salvage
+					this.report(member)
+				}
+			}
+		}
 
 		if (this.world.tick % SNAPSHOT_EVERY === 0) {
 			const events = this.pendingEvents.length > 0 ? writeEvents(this.writer, this.pendingEvents) : null
@@ -180,6 +210,7 @@ export class Room {
 				member.disconnectedAt > 0 &&
 				now - member.disconnectedAt > RECONNECT_GRACE_SECONDS * 1000
 			) {
+				this.report(member)
 				this.world.removePlayer(member.slot)
 				this.members.delete(userId)
 				this.broadcastRoster()
@@ -187,6 +218,45 @@ export class Room {
 		}
 		if (this.members.size === 0 && this.emptySince === 0) this.emptySince = now
 		if (this.members.size > 0) this.emptySince = 0
+	}
+
+	private credit(slot: number, zombieType: number): void {
+		const zombie = zombies[zombieType]
+		if (!zombie) return
+		for (const member of this.members.values()) {
+			if (member.slot !== slot) continue
+			member.earnings.xp += zombie.xp
+			member.earnings.salvage += zombie.salvage
+			member.earnings.score += zombie.score
+			member.earnings.kills++
+		}
+	}
+
+	/** Sends what a member earned since the last report; fractions carry over to the next one. */
+	private report(member: Member): void {
+		const earnings = member.earnings
+		const xpTotal = earnings.xp + earnings.score / economy.rewards.scorePerXp
+		const xp = Math.floor(xpTotal)
+		const salvage = Math.floor(earnings.salvage)
+		if (xp === 0 && salvage === 0 && earnings.kills === 0) return
+		this.onReward({
+			grantKey: `${this.id}:${member.userId}:${earnings.reports}`,
+			userId: member.userId,
+			class: member.build.class,
+			xp,
+			salvage,
+			kills: earnings.kills
+		})
+		earnings.reports++
+		earnings.xp = xpTotal - xp
+		earnings.salvage -= salvage
+		earnings.score = 0
+		earnings.kills = 0
+	}
+
+	/** Reports everyone's earnings (the room is closing or the server is shutting down). */
+	reportAll(): void {
+		for (const member of this.members.values()) this.report(member)
 	}
 
 	closeAll(): void {

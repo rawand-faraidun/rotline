@@ -6,6 +6,7 @@ import { adminRoutes } from './routes/admin.ts'
 import { friendRoutes } from './routes/friends.ts'
 import { partyRoutes } from './routes/party.ts'
 import { playerRoutes } from './routes/player.ts'
+import { progressRoutes } from './routes/progress.ts'
 
 export function createApp(services: Services) {
 	const { auth, db, env, log } = services
@@ -42,6 +43,7 @@ export function createApp(services: Services) {
 		.route('/', partyRoutes(services))
 		.route('/', friendRoutes(services))
 		.route('/', adminRoutes(services))
+		.route('/', progressRoutes(services))
 
 	api.onError((error, c) => {
 		log.error({ err: error, path: c.req.path }, 'unhandled error')

@@ -1,4 +1,5 @@
 import { generateKeyPairSync, randomUUID } from 'node:crypto'
+import { starterBuild } from '@rotline/game-data'
 import {
 	KickReason,
 	Reader,
@@ -36,6 +37,7 @@ function ticket(overrides: Partial<{ sub: string; room: string; inst: string }> 
 		room: `squad-${randomUUID()}`,
 		inst: 'test-1',
 		mode: 'squad',
+		build: starterBuild(),
 		...overrides
 	}).ticket
 }

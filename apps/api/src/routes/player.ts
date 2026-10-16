@@ -4,6 +4,7 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import type { AppEnv, Services } from '../context.ts'
+import { grantStarterKit } from '../lib/build.ts'
 import { checkPlayerName, playerNameKey } from '../lib/player-name.ts'
 
 const createPlayer = z.object({
@@ -52,14 +53,19 @@ export function playerRoutes({ db }: Services) {
 			const problem = checkPlayerName(input.name)
 			if (problem) return c.json({ error: 'invalid-name' as const, problem }, 422)
 			try {
-				const player = await db.player.create({
-					data: {
-						userId: user.id,
-						name: input.name,
-						nameKey: playerNameKey(input.name),
-						avatarStyle: input.avatarStyle,
-						avatarSeed: input.avatarSeed
-					}
+				// the player, their three classes and the starter kit arrive together
+				const player = await db.$transaction(async tx => {
+					const created = await tx.player.create({
+						data: {
+							userId: user.id,
+							name: input.name,
+							nameKey: playerNameKey(input.name),
+							avatarStyle: input.avatarStyle,
+							avatarSeed: input.avatarSeed
+						}
+					})
+					await grantStarterKit(tx, user.id)
+					return created
 				})
 				return c.json({ player: toProfile(player) }, 201)
 			} catch (error) {

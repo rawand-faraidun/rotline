@@ -22,6 +22,7 @@
 		"@rotline/auth": "workspace:*",
 		"@rotline/constants": "workspace:*",
 		"@rotline/db": "workspace:*",
+		"@rotline/game-data": "workspace:*",
 		"@rotline/state": "workspace:*",
 		"@rotline/ticket": "workspace:*",
 		"better-auth": "^1.7.8",

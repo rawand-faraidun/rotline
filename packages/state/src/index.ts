@@ -3,6 +3,7 @@ export { notify, type PlayerEvent, userChannel } from './notify.ts'
 export { PARTY_SIZE, type Party, PartyError, type PartyState, PartyStore } from './parties.ts'
 export { clearPresence, getPresence, type Presence, type PresenceStatus, setPresence } from './presence.ts'
 export { announceInstance, type InstanceInfo, liveInstances, pickInstance, roomExists, touchRoom } from './registry.ts'
+export { type ClassName, publishReward, REWARDS_STREAM, type RewardReport } from './rewards.ts'
 export {
 	DEFAULT_CAPACITY,
 	IDLE_RELEASE_SECONDS,

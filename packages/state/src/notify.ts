@@ -7,6 +7,8 @@ export type PlayerEvent =
 	| { type: 'invite'; from: string; code: string }
 	| { type: 'presence'; userId: string; status: string; detail: string }
 	| { type: 'seat'; status: 'admitted' | 'lost' | 'idle-warning' }
+	/** XP, levels or Salvage changed (rewards from a mission) */
+	| { type: 'progress' }
 
 export const userChannel = (userId: string) => `user:${userId}`
 

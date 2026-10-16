@@ -9,7 +9,7 @@ import {
 	writeKick
 } from '@rotline/protocol'
 import { DT } from '@rotline/sim'
-import { announceInstance, createValkey, touchRoom, type Valkey } from '@rotline/state'
+import { announceInstance, createValkey, publishReward, touchRoom, type Valkey } from '@rotline/state'
 import { loadPublicKey, NonceStore, verifyTicket } from '@rotline/ticket'
 import type { Logger } from 'pino'
 import type { GameEnv } from './env.ts'
@@ -77,7 +77,7 @@ export class GameServer {
 		})
 		this.app.ws<SocketData>('/game', {
 			compression: uws.DISABLED,
-			maxPayloadLength: 4096,
+			maxPayloadLength: 8192,
 			idleTimeout: 30,
 			sendPingsAutomatically: true,
 			upgrade: (response, request, context) => {
@@ -176,6 +176,8 @@ export class GameServer {
 		this.timer = null
 		if (this.registryTimer) clearInterval(this.registryTimer)
 		this.registryTimer = null
+		// report what everyone earned before the connection to Valkey closes
+		for (const room of this.rooms.values()) room.reportAll()
 		void this.valkey?.quit()
 		for (const room of this.rooms.values()) room.closeAll()
 		if (this.listenSocket) uws.us_listen_socket_close(this.listenSocket)
@@ -231,7 +233,12 @@ export class GameServer {
 				this.kick(socket, KickReason.roomFull)
 				return
 			}
-			room = new Room(payload.room, payload.mode, this.roomSeed++, this.rooms.size)
+			room = new Room(payload.room, payload.mode, this.roomSeed++, this.rooms.size, report => {
+				if (!this.valkey) return
+				publishReward(this.valkey, report).catch(error =>
+					this.log.error({ err: error, grantKey: report.grantKey }, 'reward report failed')
+				)
+			})
 			this.rooms.set(payload.room, room)
 			this.log.info({ room: room.id, mode: room.mode }, 'room created')
 		}
@@ -251,7 +258,7 @@ export class GameServer {
 				socket.end()
 			}
 		}
-		const joined = room.join(payload.sub, payload.name, connection)
+		const joined = room.join(payload.sub, payload.name, payload.build, connection)
 		if (!joined.ok) {
 			this.kick(socket, KickReason.roomFull)
 			return
@@ -300,6 +307,7 @@ export class GameServer {
 		for (const [id, room] of this.rooms) {
 			room.tick(wall)
 			if (room.emptySince > 0 && wall - room.emptySince > EMPTY_ROOM_MS) {
+				room.reportAll()
 				this.rooms.delete(id)
 				this.log.info({ room: id }, 'room closed')
 				if (this.draining && this.rooms.size === 0) this.onDrained?.()

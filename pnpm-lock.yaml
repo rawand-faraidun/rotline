@@ -87,6 +87,9 @@ importers:
       '@rotline/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@rotline/game-data':
+        specifier: workspace:*
+        version: link:../../packages/game-data
       '@rotline/state':
         specifier: workspace:*
         version: link:../../packages/state
@@ -561,6 +564,9 @@ importers:
 
   packages/ticket:
     dependencies:
+      '@rotline/game-data':
+        specifier: workspace:*
+        version: link:../game-data
       zod:
         specifier: 'catalog:'
         version: 4.6.7

@@ -1,0 +1,167 @@
+import { type Database, LedgerReason, PlayerClass, Prisma } from '@rotline/db'
+import { createValkey, notify, REWARDS_STREAM, type RewardReport, type Valkey } from '@rotline/state'
+import type { Logger } from 'pino'
+import { z } from 'zod'
+import { changeSalvage } from './lib/ledger.ts'
+
+const GROUP = 'api'
+/** Reports a crashed consumer left unacknowledged are taken over after this long. */
+const CLAIM_IDLE_MS = 60_000
+
+const report = z.object({
+	grantKey: z.string().min(1).max(200),
+	userId: z.uuid(),
+	class: z.enum(PlayerClass),
+	xp: z.number().int().min(0).max(1_000_000),
+	salvage: z.number().int().min(0).max(1_000_000),
+	kills: z.number().int().min(0)
+})
+
+/**
+ * Applies one reward report in one transaction: the grant key is recorded first, so a report
+ * delivered twice changes nothing the second time. Returns false for a repeat.
+ */
+export async function grantReward(db: Database, valkey: Valkey | null, input: RewardReport): Promise<boolean> {
+	try {
+		await db.$transaction(async tx => {
+			await tx.rewardGrant.create({
+				data: {
+					grantKey: input.grantKey,
+					playerId: input.userId,
+					class: input.class,
+					xp: BigInt(input.xp),
+					salvage: BigInt(input.salvage)
+				}
+			})
+			if (input.xp > 0) {
+				await tx.classProgress.upsert({
+					where: { playerId_class: { playerId: input.userId, class: input.class } },
+					create: { playerId: input.userId, class: input.class, xp: BigInt(input.xp) },
+					update: { xp: { increment: BigInt(input.xp) } }
+				})
+			}
+			if (input.salvage > 0) {
+				await changeSalvage(
+					tx,
+					input.userId,
+					input.salvage,
+					LedgerReason.mission,
+					{ type: 'grant', id: input.grantKey },
+					input.grantKey
+				)
+			}
+		})
+	} catch (error) {
+		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return false
+		throw error
+	}
+	if (valkey) await notify(valkey, [input.userId], { type: 'progress' })
+	return true
+}
+
+/**
+ * Reads reward reports from the Valkey stream as part of a consumer group shared by every API
+ * instance, grants them, and acknowledges each only after its transaction committed.
+ */
+export class RewardWorker {
+	private readonly db: Database
+	private readonly valkey: Valkey
+	private readonly log: Logger
+	private readonly consumer: string
+	private readonly stream: string
+	private readonly reader: Valkey
+	private running = false
+	private lastClaim = 0
+	private readonly done: Promise<void>
+	private resolveDone: () => void = () => {}
+
+	constructor(db: Database, valkey: Valkey, valkeyUrl: string, log: Logger, consumer: string, stream = REWARDS_STREAM) {
+		this.db = db
+		this.valkey = valkey
+		this.log = log
+		this.consumer = consumer
+		this.stream = stream
+		this.reader = createValkey(valkeyUrl, `rotline-api-rewards-${consumer}`)
+		this.done = new Promise(resolve => {
+			this.resolveDone = resolve
+		})
+	}
+
+	async start(): Promise<void> {
+		try {
+			await this.reader.xgroup('CREATE', this.stream, GROUP, '0', 'MKSTREAM')
+		} catch (error) {
+			if (!String(error).includes('BUSYGROUP')) throw error
+		}
+		this.running = true
+		void this.loop()
+	}
+
+	async stop(): Promise<void> {
+		this.running = false
+		this.reader.disconnect()
+		await this.done
+	}
+
+	private async loop(): Promise<void> {
+		while (this.running) {
+			try {
+				if (Date.now() - this.lastClaim > CLAIM_IDLE_MS / 2) {
+					this.lastClaim = Date.now()
+					const claimed = (await this.reader.xautoclaim(
+						this.stream,
+						GROUP,
+						this.consumer,
+						CLAIM_IDLE_MS,
+						'0-0',
+						'COUNT',
+						50
+					)) as [string, [string, string[]][]]
+					await this.handle(claimed[1])
+				}
+				const result = (await this.reader.xreadgroup(
+					'GROUP',
+					GROUP,
+					this.consumer,
+					'COUNT',
+					50,
+					'BLOCK',
+					2000,
+					'STREAMS',
+					this.stream,
+					'>'
+				)) as [string, [string, string[]][]][] | null
+				if (result) for (const [, entries] of result) await this.handle(entries)
+			} catch (error) {
+				if (!this.running) break
+				this.log.error({ err: error }, 'reward stream read failed')
+				await new Promise(resolve => setTimeout(resolve, 1000))
+			}
+		}
+		this.resolveDone()
+	}
+
+	private async handle(entries: [string, string[]][]): Promise<void> {
+		for (const [id, fields] of entries) {
+			const raw = fields[fields.indexOf('report') + 1]
+			const parsed = report.safeParse(raw ? JSON.parse(raw) : null)
+			if (!parsed.success) {
+				this.log.error({ id }, 'malformed reward report dropped')
+				await this.valkey.xack(this.stream, GROUP, id)
+				continue
+			}
+			try {
+				await grantReward(this.db, this.valkey, parsed.data)
+				await this.valkey.xack(this.stream, GROUP, id)
+			} catch (error) {
+				// a player who no longer exists cannot be paid; anything else is retried later
+				if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+					this.log.warn({ grantKey: parsed.data.grantKey }, 'reward for a deleted player dropped')
+					await this.valkey.xack(this.stream, GROUP, id)
+				} else {
+					this.log.error({ err: error, grantKey: parsed.data.grantKey }, 'reward grant failed; will retry')
+				}
+			}
+		}
+	}
+}

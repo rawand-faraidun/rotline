@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { friendIds } from '@rotline/db'
+import { buildProblem, levelFromXp } from '@rotline/game-data'
 import { notify, type Party, PartyError, pickInstance, roomExists, setPresence } from '@rotline/state'
 import { loadPrivateKey, signTicket } from '@rotline/ticket'
 import { zValidator } from '@hono/zod-validator'
@@ -7,6 +8,7 @@ import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { z } from 'zod'
 import type { AppEnv, Services } from '../context.ts'
+import { loadBuild } from '../lib/build.ts'
 import { recordRecentPlayers } from './friends.ts'
 
 /** Path the browser connects to for the game (same origin; the reverse proxy routes it). */
@@ -25,7 +27,7 @@ const errorStatus = {
 } as const
 
 export function partyRoutes(services: Services) {
-	const { db, env, parties, seats, valkey, events } = services
+	const { db, env, log, parties, seats, valkey, events } = services
 	const key = loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY)
 
 	/** Parties stuck "in mission" after their room closed go back to the lobby. */
@@ -40,7 +42,14 @@ export function partyRoutes(services: Services) {
 	async function view(party: Party, you: string) {
 		const players = await db.player.findMany({
 			where: { userId: { in: party.members } },
-			select: { userId: true, name: true, avatarStyle: true, avatarSeed: true, activeClass: true }
+			select: {
+				userId: true,
+				name: true,
+				avatarStyle: true,
+				avatarSeed: true,
+				activeClass: true,
+				classes: { select: { class: true, xp: true } }
+			}
 		})
 		const byId = new Map(players.map(player => [player.userId, player]))
 		const members = party.members.flatMap(id => {
@@ -53,6 +62,7 @@ export function partyRoutes(services: Services) {
 					avatarStyle: player.avatarStyle,
 					avatarSeed: player.avatarSeed,
 					activeClass: player.activeClass,
+					level: levelFromXp(Number(player.classes.find(entry => entry.class === player.activeClass)?.xp ?? 0)).level,
 					ready: id === party.leader || party.ready.includes(id),
 					leader: id === party.leader
 				}
@@ -145,12 +155,18 @@ export function partyRoutes(services: Services) {
 			if (party.state !== 'mission') return c.json({ error: 'no-mission' as const }, 409)
 			// only players holding a seat may play; everyone else waits in the queue
 			if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
+			const build = await loadBuild(db, user.id)
+			if (!build || buildProblem(build)) {
+				log.error({ userId: user.id, problem: build && buildProblem(build) }, 'invalid build')
+				return c.json({ error: 'invalid-build' as const }, 409)
+			}
 			const { ticket, payload } = signTicket(key, {
 				sub: user.id,
 				name: player.name,
 				room: party.room,
 				inst: party.instance,
-				mode: 'squad'
+				mode: 'squad',
+				build
 			})
 			return c.json({ ticket, room: payload.room, path: GAME_PATH, expiresAt: payload.exp }, 200)
 		})

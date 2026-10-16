@@ -106,7 +106,178 @@ model Player {
   recentPlayers  RecentPlayer[] @relation("recent_owner")
   recentlySeenBy RecentPlayer[] @relation("recent_other")
 
+  classes    ClassProgress[]
+  skills     SkillAllocation[]
+  abilities  AbilitySlot[]
+  inventory  InventoryItem[]
+  duplicates ItemDuplicate[]
+  loadout    Loadout?
+
   @@map("player")
+}
+
+// Progression: per class. Level and skill points are derived from the XP total and the game data.
+
+model ClassProgress {
+  playerId String      @map("player_id") @db.Uuid
+  class    PlayerClass
+  xp       BigInt      @default(0)
+  player   Player      @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@id([playerId, class])
+  @@map("class_progress")
+}
+
+model SkillAllocation {
+  playerId String      @map("player_id") @db.Uuid
+  class    PlayerClass
+  // node ids are unique across classes; the class is kept for respec
+  nodeId   String      @map("node_id")
+  rank     Int
+  player   Player      @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@id([playerId, class, nodeId])
+  @@map("skill_allocation")
+}
+
+model AbilitySlot {
+  playerId  String      @map("player_id") @db.Uuid
+  class     PlayerClass
+  slot      Int
+  abilityId String      @map("ability_id")
+  player    Player      @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@id([playerId, class, slot])
+  @@map("ability_slot")
+}
+
+// Inventory: one copy of each item per player (no rarity). Shared by all classes.
+
+enum ItemSource {
+  starter
+  shop
+  drop
+
+  @@map("item_source")
+}
+
+model InventoryItem {
+  playerId     String     @map("player_id") @db.Uuid
+  itemId       String     @map("item_id")
+  upgradeLevel Int        @default(0) @map("upgrade_level")
+  // chosen perk ids, one per perk level reached
+  perks        String[]   @default([])
+  source       ItemSource
+  acquiredAt   DateTime   @default(now()) @map("acquired_at") @db.Timestamptz
+  player       Player     @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  asMain1    Loadout[] @relation("loadout_main_1")
+  asMain2    Loadout[] @relation("loadout_main_2")
+  asPistol   Loadout[] @relation("loadout_pistol")
+  asArmour   Loadout[] @relation("loadout_armour")
+  asUtility1 Loadout[] @relation("loadout_utility_1")
+  asUtility2 Loadout[] @relation("loadout_utility_2")
+
+  @@id([playerId, itemId])
+  @@map("inventory_item")
+}
+
+/// A found copy of an item the player already owns; its only use is to be discarded for Salvage.
+model ItemDuplicate {
+  id       String   @id @default(uuid(7)) @db.Uuid
+  playerId String   @map("player_id") @db.Uuid
+  itemId   String   @map("item_id")
+  matchId  String?  @map("match_id")
+  foundAt  DateTime @default(now()) @map("found_at") @db.Timestamptz
+  player   Player   @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("item_duplicate")
+}
+
+/// What the player takes into a mission; shared by all classes. Points at owned items.
+model Loadout {
+  playerId String  @id @map("player_id") @db.Uuid
+  main1    String  @map("main_1")
+  main2    String  @map("main_2")
+  pistol   String
+  armour   String?
+  utility1 String? @map("utility_1")
+  utility2 String? @map("utility_2")
+  player   Player  @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  main1Item    InventoryItem  @relation("loadout_main_1", fields: [playerId, main1], references: [playerId, itemId], onDelete: Restrict)
+  main2Item    InventoryItem  @relation("loadout_main_2", fields: [playerId, main2], references: [playerId, itemId], onDelete: Restrict)
+  pistolItem   InventoryItem  @relation("loadout_pistol", fields: [playerId, pistol], references: [playerId, itemId], onDelete: Restrict)
+  armourItem   InventoryItem? @relation("loadout_armour", fields: [playerId, armour], references: [playerId, itemId], onDelete: Restrict)
+  utility1Item InventoryItem? @relation("loadout_utility_1", fields: [playerId, utility1], references: [playerId, itemId], onDelete: Restrict)
+  utility2Item InventoryItem? @relation("loadout_utility_2", fields: [playerId, utility2], references: [playerId, itemId], onDelete: Restrict)
+
+  @@map("loadout")
+}
+
+// Economy: every Salvage change is a ledger row, written in the same transaction as what it paid for.
+
+enum LedgerReason {
+  kill
+  wave
+  objective
+  mission
+  score
+  contract
+  discard
+  purchase
+  upgrade
+  perk
+  respec
+  admin
+
+  @@map("ledger_reason")
+}
+
+/// Append-only (a trigger rejects UPDATE and DELETE). `player.salvage` is a cache of the running balance.
+model LedgerEntry {
+  id           BigInt       @id @default(autoincrement())
+  // no foreign key: rows outlive a deleted account (re-pointed to a tombstone id)
+  playerId     String       @map("player_id") @db.Uuid
+  amount       BigInt
+  balanceAfter BigInt       @map("balance_after")
+  reason       LedgerReason
+  refType      String?      @map("ref_type")
+  refId        String?      @map("ref_id")
+  // makes rewards idempotent: a retried grant cannot pay twice
+  grantKey     String?      @unique @map("grant_key")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  purchase     Purchase?
+
+  @@index([playerId, id(sort: Desc)])
+  @@map("ledger_entry")
+}
+
+model Purchase {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  playerId      String      @map("player_id") @db.Uuid
+  sku           String
+  price         BigInt
+  ledgerEntryId BigInt      @unique @map("ledger_entry_id")
+  ledgerEntry   LedgerEntry @relation(fields: [ledgerEntryId], references: [id])
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([playerId])
+  @@map("purchase")
+}
+
+/// One row per reward report from a game server; the key makes XP and Salvage grants idempotent.
+model RewardGrant {
+  grantKey  String      @id @map("grant_key")
+  playerId  String      @map("player_id") @db.Uuid
+  class     PlayerClass
+  xp        BigInt
+  salvage   BigInt
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([playerId])
+  @@map("reward_grant")
 }
 
 // Social: one row per pair, with player_a < player_b so a pair can only exist once.
