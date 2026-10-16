@@ -53,7 +53,7 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 
 | Table | Columns | Constraints and notes |
 |---|---|---|
-| `player` | `user_id` PK → user, `player_name` citext, `avatar_style`, `avatar_seed`, `avatar_options` jsonb, `active_class` (`assault`/`medic`/`heavy`), `currency_balance` bigint, `title_id`, `banner_id`, `is_admin` bool | `player_name` unique, 3–16 chars, filter-checked in the API; `currency_balance >= 0`; balance is a cache of the ledger (checked by a nightly job and in tests) |
+| `player` | `user_id` PK → user, `player_name` citext, `avatar_style`, `avatar_seed`, `avatar_options` jsonb, `active_class` (`assault`/`medic`/`heavy`), `salvage` bigint, `title_id`, `banner_id`, `is_admin` bool | `player_name` unique, 3–16 chars, filter-checked in the API; `salvage >= 0`; the balance is a cache of the ledger (checked by a nightly job and in tests) |
 | `class_progress` | `player_id`, `class`, `xp` bigint | PK (`player_id`, `class`); three rows created with the player. Level and skill points are derived from the XP total and the game data, so a curve change never needs a migration |
 | `skill_allocation` | `player_id`, `class`, `node_id`, `rank` | PK (`player_id`, `class`, `node_id`); prerequisites checked against game data |
 | `ability_slot` | `player_id`, `class`, `slot` (1–3), `ability_id` | PK (`player_id`, `class`, `slot`) |
@@ -69,11 +69,11 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 
 | Table | Columns | Constraints and notes |
 |---|---|---|
-| `ledger_entry` | `id` bigint identity, `player_id` uuid, `amount` bigint (signed, never 0), `balance_after` bigint (never negative), `reason` enum (`kill`, `wave`, `objective`, `mission`, `score`, `contract`, `discard`, `purchase`, `upgrade`, `perk`, `respec`, `admin`), `ref_type`, `ref_id`, `grant_key` text, `created_at` | **Append-only**: the application role has `INSERT, SELECT` only, and a trigger rejects `UPDATE`/`DELETE`. **unique (`grant_key`)** makes rewards idempotent. Index (`player_id`, `id`) |
+| `ledger_entry` | `id` bigserial, `player_id` uuid, `amount` bigint (signed, never 0), `balance_after` bigint (never negative), `reason` enum (`kill`, `wave`, `objective`, `mission`, `score`, `contract`, `discard`, `purchase`, `upgrade`, `perk`, `respec`, `admin`), `ref_type`, `ref_id`, `grant_key` text, `created_at` | **Append-only**: triggers reject `UPDATE`, `DELETE` and `TRUNCATE`, and in production the application role has `INSERT, SELECT` only (the owner role runs migrations). **unique (`grant_key`)** makes rewards idempotent. Index (`player_id`, `id`) |
 | `purchase` | `id`, `player_id`, `sku`, `price`, `ledger_entry_id` → ledger_entry, `created_at` | One row per shop purchase; written in the same transaction as its ledger row and the item |
 | `reward_grant` | `grant_key` PK, `player_id`, `class`, `xp`, `salvage`, `created_at` | One row per reward report from a game server. Inserted first in the grant's transaction, so a report delivered twice grants nothing the second time |
 
-Every currency change runs in one transaction: lock the player row (`SELECT … FOR UPDATE`), check the balance, insert the ledger row with `balance_after`, update `currency_balance`, apply the item, upgrade or reward. Prices come from the active game-data version, never from the client.
+Every change to a player's progress, inventory or Salvage runs in one transaction that first locks the player row (`SELECT … FOR NO KEY UPDATE`), so one player's changes run one at a time. A currency change then checks the balance, insert the ledger row with `balance_after`, update `currency_balance`, apply the item, upgrade or reward. Prices come from the active game-data version, never from the client.
 
 ### Matches
 
@@ -111,7 +111,7 @@ Every currency change runs in one transaction: lock the player row (`SELECT … 
 
 ## Account deletion
 
-In one transaction: delete the `user` row, which cascades to `account`, `session`, `player` and every player-owned table above. Ledger and purchase rows are not deleted (they record the economy), but their `player_id` is replaced by a random tombstone id through a single `SECURITY DEFINER` function, the only code path allowed to modify the ledger. `match_player` rows are re-pointed to the same tombstone so other players' match history still adds up. The action is written to `audit_log` without the player name or email.
+In one transaction: delete the `user` row, which cascades to `account`, `session`, `player` and every player-owned table above. Ledger, purchase and reward-grant rows are not deleted (they record the economy), but their `player_id` is replaced by a random tombstone id through a single `SECURITY DEFINER` function, the only code path allowed to modify the ledger. `match_player` rows are re-pointed to the same tombstone so other players' match history still adds up. The action is written to `audit_log` without the player name or email.
 
 ## Indexes worth noting
 

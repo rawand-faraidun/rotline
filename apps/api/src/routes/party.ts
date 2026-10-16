@@ -10,6 +10,7 @@ import { z } from 'zod'
 import type { AppEnv, Services } from '../context.ts'
 import { loadBuild } from '../lib/build.ts'
 import { recordRecentPlayers } from './friends.ts'
+import { ensureStarterKit } from './progress.ts'
 
 /** Path the browser connects to for the game (same origin; the reverse proxy routes it). */
 export const GAME_PATH = '/game'
@@ -156,6 +157,7 @@ export function partyRoutes(services: Services) {
 				if (party.state !== 'mission') return c.json({ error: 'no-mission' as const }, 409)
 				// only players holding a seat may play; everyone else waits in the queue
 				if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
+				await ensureStarterKit(db, user.id)
 				const build = await loadBuild(db, user.id)
 				if (!build || buildProblem(build)) {
 					log.error({ userId: user.id, problem: build && buildProblem(build) }, 'invalid build')
@@ -179,6 +181,7 @@ export function partyRoutes(services: Services) {
 				if (!player) return c.json({ error: 'no-player' as const }, 404)
 				if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
 				if ((await parties.current(user.id)).state === 'mission') return c.json({ error: 'in-mission' as const }, 409)
+				await ensureStarterKit(db, user.id)
 				const build = await loadBuild(db, user.id)
 				if (!build || buildProblem(build)) return c.json({ error: 'invalid-build' as const }, 409)
 				const { ticket, payload } = signTicket(key, {

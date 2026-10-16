@@ -229,4 +229,58 @@ describe('progression', () => {
 		await parties.endMission((await parties.current(id)).id)
 		await seats.release(id)
 	})
+
+	it('runs one change per player at a time, so parallel requests cannot overspend', async () => {
+		const { jar, id } = await enlist('Kai')
+		await pay(id, xpForLevel(3), 0)
+		// level 3: three points; ten requests at once for three tier-1 nodes and the rest
+		const nodes = ['adrenaline-burst', 'fleet-foot', 'fleet-foot', 'quick-hands', 'steady-aim', 'conditioning']
+		await Promise.all([...nodes, ...nodes].map(nodeId => post(jar, 'skills', { nodeId })))
+		const view = await progress(jar)
+		expect(view.classes.assault.spent).toBe(3)
+		expect(Object.values(view.classes.assault.skills).every(rank => rank <= 2)).toBe(true)
+
+		await pay(id, 0, 20000)
+		await post(jar, 'buy', { itemId: 'breacher-12' })
+		for (let level = 0; level < 5; level++) await post(jar, 'upgrade', { itemId: 'breacher-12' })
+		await post(jar, 'perk', { itemId: 'breacher-12', level: 5, perkId: 'breacher-tight-choke' })
+		const before = (await progress(jar)).salvage
+		await Promise.all(
+			Array.from({ length: 4 }, () =>
+				post(jar, 'perk', { itemId: 'breacher-12', level: 5, perkId: 'breacher-extra-pellets' })
+			)
+		)
+		expect((await progress(jar)).salvage).toBe(before - economy.upgrade.perkSwitchPrice)
+	})
+
+	it('gives the starter kit to a player who is missing it', async () => {
+		const { jar, id } = await enlist('Lux')
+		await db.loadout.delete({ where: { playerId: id } })
+		await db.inventoryItem.deleteMany({ where: { playerId: id } })
+		const view = await progress(jar)
+		expect(view.loadout.main1).toBe('vex-9')
+		expect(view.inventory).toHaveLength(economy.starter.items.length)
+	})
+
+	it('drops malformed and orphaned reward reports instead of retrying them forever', async () => {
+		const stream = `rewards-test-${crypto.randomUUID()}`
+		const worker = new RewardWorker(db, valkey, env.VALKEY_URL, log, 'test', stream)
+		await worker.start()
+		try {
+			await valkey.xadd(stream, '*', 'report', 'not json')
+			await valkey.xadd(stream, '*', 'other', '1')
+			const ghost = { grantKey: 'ghost', userId: crypto.randomUUID(), class: 'medic', xp: 0, salvage: 5, kills: 0 }
+			await valkey.xadd(stream, '*', 'report', JSON.stringify(ghost))
+			let pending = 3
+			for (let i = 0; i < 50 && pending > 0; i++) {
+				await new Promise(resolve => setTimeout(resolve, 100))
+				pending = Number(((await valkey.xpending(stream, 'api')) as [number])[0])
+			}
+			expect(pending).toBe(0)
+			expect(await db.rewardGrant.count({ where: { grantKey: 'ghost' } })).toBe(0)
+		} finally {
+			await worker.stop()
+			await valkey.del(stream)
+		}
+	})
 })

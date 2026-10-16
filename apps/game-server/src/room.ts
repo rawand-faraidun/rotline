@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { type Build, economy, maps, zombieIndex, zombies } from '@rotline/game-data'
 import {
 	RangeAction,
@@ -31,7 +32,15 @@ export type Connection = {
 }
 
 /** What a player earned since their last report, flushed at each wave cleared and when they leave. */
-type Earnings = { xp: number; salvage: number; score: number; kills: number; reports: number }
+type Earnings = {
+	xp: number
+	salvage: number
+	score: number
+	kills: number
+	reports: number
+	/** unique per membership, so a player who leaves and rejoins (or a restarted server) never reuses a grant key */
+	nonce: string
+}
 
 export type RewardSink = (report: {
 	grantKey: string
@@ -125,7 +134,7 @@ export class Room {
 				name,
 				slot,
 				build,
-				earnings: { xp: 0, salvage: 0, score: 0, kills: 0, reports: 0 },
+				earnings: { xp: 0, salvage: 0, score: 0, kills: 0, reports: 0, nonce: randomUUID().slice(0, 8) },
 				connection: null,
 				encoder: new SnapshotEncoder(slot),
 				queue: [],
@@ -272,7 +281,7 @@ export class Room {
 		const salvage = Math.floor(earnings.salvage)
 		if (xp === 0 && salvage === 0 && earnings.kills === 0) return
 		this.onReward({
-			grantKey: `${this.id}:${member.userId}:${earnings.reports}`,
+			grantKey: `${this.id}:${member.userId}:${earnings.nonce}:${earnings.reports}`,
 			userId: member.userId,
 			class: member.build.class,
 			xp,

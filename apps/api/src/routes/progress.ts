@@ -22,7 +22,8 @@ import { zValidator } from '@hono/zod-validator'
 import { type Context, Hono, type Next } from 'hono'
 import { z } from 'zod'
 import type { AppEnv, Services } from '../context.ts'
-import { changeSalvage, NotEnoughSalvage, type Tx } from '../lib/ledger.ts'
+import { grantStarterKit } from '../lib/build.ts'
+import { changeSalvage, lockPlayer, NotEnoughSalvage, type Tx } from '../lib/ledger.ts'
 
 /** A rule the request broke; turned into a 409 with this code. */
 export class Refused extends Error {
@@ -39,6 +40,7 @@ const itemId = z.string().regex(/^[a-z0-9-]+$/)
 
 /** Everything the lobby, skills, armory and shop screens show, in one read. */
 export async function progressView(db: Database, playerId: string, inMission: boolean) {
+	await ensureStarterKit(db, playerId)
 	const player = await db.player.findUnique({
 		where: { userId: playerId },
 		include: {
@@ -116,6 +118,19 @@ export async function progressView(db: Database, playerId: string, inMission: bo
 
 export type ProgressView = NonNullable<Awaited<ReturnType<typeof progressView>>>
 
+/**
+ * A player without a loadout (made by an older release during a deploy) gets the starter kit now.
+ * Idempotent: everything it writes skips what already exists.
+ */
+export async function ensureStarterKit(db: Database, playerId: string): Promise<void> {
+	if (await db.loadout.findUnique({ where: { playerId }, select: { playerId: true } })) return
+	if (!(await db.player.findUnique({ where: { userId: playerId }, select: { userId: true } }))) return
+	await db.$transaction(async tx => {
+		await lockPlayer(tx, playerId)
+		await grantStarterKit(tx, playerId)
+	})
+}
+
 const equippedSlots = (loadout: ProgressView['loadout']) =>
 	[loadout.main1, loadout.main2, loadout.pistol, loadout.armour, loadout.utility1, loadout.utility2].filter(
 		(id): id is string => id !== null
@@ -141,12 +156,19 @@ export function progressRoutes(services: Services) {
 		const busy = await inMission(userId)
 		if (options.lockedInMission && busy) return { status: 409, body: { error: 'in-mission' } }
 		try {
-			await db.$transaction(work, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+			await db.$transaction(
+				async tx => {
+					// one change per player at a time: every check below sees the result of the last change
+					await lockPlayer(tx, userId)
+					await work(tx)
+				},
+				{ isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted }
+			)
 		} catch (error) {
 			if (error instanceof Refused) return { status: 409, body: { error: error.code, ...error.details } }
 			if (error instanceof NotEnoughSalvage) return { status: 409, body: { error: 'not-enough-salvage' } }
 			// a concurrent request bought or changed the same thing first
-			if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+			if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2003', 'P2025'].includes(error.code)) {
 				return { status: 409, body: { error: 'conflict' } }
 			}
 			throw error
@@ -293,9 +315,11 @@ export function progressRoutes(services: Services) {
 					throw new Refused('owned')
 				}
 				const { entryId } = await changeSalvage(tx, user.id, -def.price, LedgerReason.purchase, { type: 'item', id })
-				await tx.purchase.create({
-					data: { playerId: user.id, sku: id, price: BigInt(def.price), ledgerEntryId: entryId }
-				})
+				if (entryId !== null) {
+					await tx.purchase.create({
+						data: { playerId: user.id, sku: id, price: BigInt(def.price), ledgerEntryId: entryId }
+					})
+				}
 				await tx.inventoryItem.create({ data: { playerId: user.id, itemId: id, source: ItemSource.shop } })
 			})
 			return c.json(result.body, result.status)

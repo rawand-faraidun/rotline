@@ -2,7 +2,7 @@ import { type Database, LedgerReason, PlayerClass, Prisma } from '@rotline/db'
 import { createValkey, notify, REWARDS_STREAM, type RewardReport, type Valkey } from '@rotline/state'
 import type { Logger } from 'pino'
 import { z } from 'zod'
-import { changeSalvage } from './lib/ledger.ts'
+import { changeSalvage, PlayerMissing } from './lib/ledger.ts'
 
 const GROUP = 'api'
 /** Reports a crashed consumer left unacknowledged are taken over after this long. */
@@ -22,6 +22,8 @@ const report = z.object({
  * delivered twice changes nothing the second time. Returns false for a repeat.
  */
 export async function grantReward(db: Database, valkey: Valkey | null, input: RewardReport): Promise<boolean> {
+	// a deleted player cannot be paid; nothing is recorded for them
+	if (!(await db.player.findUnique({ where: { userId: input.userId }, select: { userId: true } }))) return false
 	try {
 		await db.$transaction(async tx => {
 			await tx.rewardGrant.create({
@@ -143,8 +145,14 @@ export class RewardWorker {
 
 	private async handle(entries: [string, string[]][]): Promise<void> {
 		for (const [id, fields] of entries) {
-			const raw = fields[fields.indexOf('report') + 1]
-			const parsed = report.safeParse(raw ? JSON.parse(raw) : null)
+			const at = fields.indexOf('report')
+			let body: unknown = null
+			try {
+				body = at >= 0 ? JSON.parse(fields[at + 1] ?? '') : null
+			} catch {
+				body = null
+			}
+			const parsed = report.safeParse(body)
 			if (!parsed.success) {
 				this.log.error({ id }, 'malformed reward report dropped')
 				await this.valkey.xack(this.stream, GROUP, id)
@@ -155,7 +163,10 @@ export class RewardWorker {
 				await this.valkey.xack(this.stream, GROUP, id)
 			} catch (error) {
 				// a player who no longer exists cannot be paid; anything else is retried later
-				if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+				if (
+					error instanceof PlayerMissing ||
+					(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003')
+				) {
 					this.log.warn({ grantKey: parsed.data.grantKey }, 'reward for a deleted player dropped')
 					await this.valkey.xack(this.stream, GROUP, id)
 				} else {

@@ -37,7 +37,7 @@ describe('room rewards', () => {
 		expect(reports).toHaveLength(1)
 		const xp = 3 * def.xp + (3 * def.score) / economy.rewards.scorePerXp
 		expect(reports[0]).toMatchObject({
-			grantKey: 'room-1:user-a:0',
+			grantKey: expect.stringMatching(/^room-1:user-a:[0-9a-f]{8}:0$/),
 			class: 'medic',
 			xp: Math.floor(xp),
 			salvage: Math.floor(3 * def.salvage),
@@ -46,7 +46,11 @@ describe('room rewards', () => {
 		// half a Salvage was left over; one more kill makes it whole
 		shootOne(room, 'user-a', 1, drudge)
 		room.reportAll()
-		expect(reports[1]).toMatchObject({ grantKey: 'room-1:user-a:1', salvage: 1, kills: 1 })
+		expect(reports[1]).toMatchObject({
+			grantKey: expect.stringMatching(/^room-1:user-a:[0-9a-f]{8}:1$/),
+			salvage: 1,
+			kills: 1
+		})
 	})
 
 	it('pays everyone for a cleared wave', () => {

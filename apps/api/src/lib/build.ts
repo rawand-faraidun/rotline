@@ -13,8 +13,9 @@ export async function grantStarterKit(tx: Tx, playerId: string): Promise<void> {
 		skipDuplicates: true
 	})
 	const { main, pistol, armour, utility } = economy.starter.loadout
-	await tx.loadout.create({
-		data: { playerId, main1: main[0], main2: main[1], pistol, armour, utility1: utility[0], utility2: utility[1] }
+	await tx.loadout.createMany({
+		data: [{ playerId, main1: main[0], main2: main[1], pistol, armour, utility1: utility[0], utility2: utility[1] }],
+		skipDuplicates: true
 	})
 }
 
