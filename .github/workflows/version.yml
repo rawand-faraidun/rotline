@@ -1,9 +1,12 @@
 name: Version
 
-# On main: open or update the "Version packages" pull request while changesets are pending.
-# Once it is merged (no changesets left), tag vX.Y.Z and run the release.
+# After CI passes on a push to main: apply pending changesets (bump the shared version, write the
+# changelogs) in a "Version packages" commit on main, tag vX.Y.Z and run the release.
+# No pull request: main only receives work that is already known to be good.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 concurrency:
@@ -12,11 +15,11 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: write
   packages: write
 
 jobs:
   version:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
@@ -24,24 +27,31 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
-      - uses: ./.github/actions/setup
-      - name: Version pull request
-        id: changesets
-        uses: changesets/action@v2
-        with:
-          version: pnpm version-packages
-          title: Version packages
-          commit: Version packages
+      - name: Only the commit CI tested
+        id: current
+        # if main moved on since, the newer commit's own CI run versions it
+        run: echo "ok=$([ "$(git rev-parse HEAD)" = "$HEAD_SHA" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Tag the release
-        id: tag
-        if: steps.changesets.outputs.hasChangesets == 'false'
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      - if: steps.current.outputs.ok == 'true'
+        uses: ./.github/actions/setup
+      - name: Version packages
+        if: steps.current.outputs.ok == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          pnpm --silent release:tag >> "$GITHUB_OUTPUT"
+          pnpm version-packages
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "Version packages"
+            git push origin HEAD:main
+          fi
+      - name: Tag the release
+        id: tag
+        if: steps.current.outputs.ok == 'true'
+        run: pnpm --silent release:tag >> "$GITHUB_OUTPUT"
 
   release:
     needs: version

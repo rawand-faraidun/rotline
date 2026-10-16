@@ -82,7 +82,7 @@ docs/           Project documentation
 
 Versions are managed with [Changesets](https://github.com/changesets/changesets). With a change that players or operators would notice, run `pnpm changeset`, choose patch, minor or major, and describe it in a line or two; commit the file it creates. All `@rotline/*` packages share one version: the game's version.
 
-On `main`, the Version workflow keeps a "Version packages" pull request up to date. Merging it bumps the version, writes the changelogs, tags `vX.Y.Z` and publishes versioned images and a GitHub release.
+When CI passes on a push to `main`, the Version workflow applies the pending changesets in a "Version packages" commit on `main` (version bump and changelogs), tags `vX.Y.Z`, and publishes versioned images and a GitHub release. There is no version pull request; a push without changesets releases nothing.
 
 ## Documentation
 
