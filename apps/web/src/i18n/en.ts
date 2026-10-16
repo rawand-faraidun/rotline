@@ -272,7 +272,7 @@ export const en = {
 			slot: 'Slot {slot}',
 			emptySlot: 'Empty',
 			cooldown: '{seconds} s cooldown',
-			abilitiesArrive: 'Abilities can be equipped now and are used in missions from the next update.',
+			abilitiesArrive: 'In a mission, slot 1, 2 and 3 are on F, C and V. Try them in the firing range.',
 			selectHint: 'Pick a skill to see what it does.'
 		},
 		armory: {
@@ -343,6 +343,14 @@ export const en = {
 			confirmBuy: 'Buy for {price}',
 			owned: 'Owned',
 			categories: { main: 'Main weapons', pistol: 'Pistols', armour: 'Armour', utility: 'Utilities' }
+		},
+		range: {
+			title: 'Firing range',
+			dps: 'Damage per second',
+			spawn: 'Spawn',
+			clear: 'Clear zombies',
+			hint: 'Nothing here counts toward progress. Abilities have no cooldown and utilities never run out.',
+			enter: 'Firing range'
 		},
 		idleWarning: 'Still there? You will lose your seat in two minutes unless you move or press a key.',
 		friends: {
@@ -444,7 +452,10 @@ export const en = {
 			lost: 'Connection lost',
 			kicked: 'Removed from the mission',
 			backToLobby: 'Back to lobby',
-			controls: 'WASD move · mouse aim · click fire · R reload · 1 2 3 weapons · Q swap · E revive · Esc leave'
+			controls:
+				'WASD move · mouse aim · click fire · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · Esc leave',
+			abilities: 'Abilities and utilities',
+			ready: 'Ready'
 		}
 	}
 } as const

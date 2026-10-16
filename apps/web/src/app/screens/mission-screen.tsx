@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { GameHandle, HudState } from '@rotline/client'
+import { zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
-import { fetchTicket, usePlayerEvents } from '../../lib/party.ts'
+import { fetchRangeTicket, fetchTicket, usePlayerEvents } from '../../lib/party.ts'
 import { SeatKeeper } from './seat-keeper.tsx'
 
 const t = en.app.mission
@@ -79,7 +80,94 @@ function Weapons({ hud }: { hud: HudState }) {
 	)
 }
 
-export function MissionScreen() {
+/** Abilities with their keys and cooldowns, and utilities with their charges. */
+function Abilities({ hud }: { hud: HudState }) {
+	if (hud.abilities.length === 0 && hud.utilities.length === 0) return null
+	return (
+		<ol className="flex items-end gap-2" aria-label={t.abilities}>
+			{hud.abilities.map(ability => {
+				const ready = ability.seconds === 0
+				return (
+					<li
+						key={ability.key}
+						className={cn(
+							'frame cut-sm relative flex w-28 flex-col gap-0.5 overflow-hidden px-2.5 py-1.5 [--frame-fill:rgb(13_16_14/0.85)]',
+							ready ? '[--frame-color:var(--color-rot-lime)]' : 'opacity-75'
+						)}
+					>
+						{!ready && (
+							<span
+								className="absolute inset-x-0 bottom-0 bg-surface-raised/80"
+								style={{ height: `${Math.min(100, (ability.seconds / ability.cooldown) * 100)}%` }}
+								aria-hidden="true"
+							/>
+						)}
+						<span className="relative flex items-center justify-between">
+							<span className="cut-sm bg-bone px-1.5 font-bold text-rot-black text-xs">{ability.key}</span>
+							<span className={cn('font-display text-lg tabular-nums', ready ? 'text-rot-lime' : 'text-bone')}>
+								{ready ? t.ready : ability.seconds}
+							</span>
+						</span>
+						<span className="relative truncate font-bold text-[11px] uppercase tracking-wide">{ability.name}</span>
+					</li>
+				)
+			})}
+			{hud.utilities.map(utility => (
+				<li
+					key={utility.key}
+					className={cn(
+						'frame cut-sm flex w-28 flex-col gap-0.5 px-2.5 py-1.5 [--frame-fill:rgb(13_16_14/0.85)]',
+						utility.charges === 0 && 'opacity-50'
+					)}
+				>
+					<span className="flex items-center justify-between">
+						<span className="cut-sm bg-bone px-1.5 font-bold text-rot-black text-xs">{utility.key}</span>
+						<span className="font-display text-lg tabular-nums">
+							{utility.charges === null ? t.unlimited : `×${utility.charges}`}
+						</span>
+					</span>
+					<span className="truncate font-bold text-[11px] uppercase tracking-wide">{utility.name}</span>
+				</li>
+			))}
+		</ol>
+	)
+}
+
+/** Firing-range controls: spawn zombies to practise on, clear them, and the damage meter. */
+function RangePanel({ handle, hud }: { handle: GameHandle; hud: HudState }) {
+	const r = en.app.range
+	return (
+		<Panel className="absolute top-16 right-4 w-64 gap-3 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
+			<span className="flex items-baseline justify-between">
+				<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{r.dps}</span>
+				<span className="font-display text-3xl text-rot-lime tabular-nums" data-testid="dps">
+					{hud.dps}
+				</span>
+			</span>
+			<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{r.spawn}</span>
+			<div className="grid grid-cols-2 gap-1.5">
+				{zombies.map((zombie, index) =>
+					zombie.dummy ? null : (
+						<Button key={zombie.id} size="sm" variant="secondary" onClick={() => handle.range('spawn', index, 5)}>
+							{zombie.name} ×5
+						</Button>
+					)
+				)}
+			</div>
+			<Button size="sm" variant="ghost" onClick={() => handle.range('clear')}>
+				{r.clear}
+			</Button>
+			<p className="text-muted text-xs">{r.hint}</p>
+		</Panel>
+	)
+}
+
+export function RangeScreen() {
+	return <MissionScreen mode="range" />
+}
+
+export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range' } = {}) {
+	const range = mode === 'range'
 	const canvasRef = useRef<HTMLCanvasElement>(null)
 	const [handle, setHandle] = useState<GameHandle | null>(null)
 	const [loaded, setLoaded] = useState(false)
@@ -93,7 +181,7 @@ export function MissionScreen() {
 		let cancelled = false
 		void (async () => {
 			try {
-				const issued = await fetchTicket()
+				const issued = range ? await fetchRangeTicket() : await fetchTicket()
 				if (!issued) {
 					// no mission to join (it ended, or the squad never deployed)
 					if (!cancelled) void navigate({ to: '/play/lobby' })
@@ -108,7 +196,8 @@ export function MissionScreen() {
 					canvas: canvasRef.current,
 					url: `${protocol}//${location.host}${path}`,
 					ticket,
-					assets: '/assets'
+					assets: '/assets',
+					map: range ? 'range' : 'yard'
 				})
 				setHandle(game)
 				await game.ready
@@ -121,7 +210,7 @@ export function MissionScreen() {
 			cancelled = true
 			game?.stop()
 		}
-	}, [navigate])
+	}, [navigate, range])
 
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
@@ -149,7 +238,13 @@ export function MissionScreen() {
 
 			{hud && loaded && (
 				<>
-					<div className="pointer-events-none absolute top-4 left-1/2 flex -translate-x-1/2 items-stretch gap-3">
+					{range && handle && <RangePanel handle={handle} hud={hud} />}
+					<div
+						className={cn(
+							'pointer-events-none absolute top-4 left-1/2 flex -translate-x-1/2 items-stretch gap-3',
+							range && 'hidden'
+						)}
+					>
 						{[
 							[t.wave, hud.wave],
 							[t.kills, hud.kills],
@@ -223,6 +318,16 @@ export function MissionScreen() {
 					<div className="pointer-events-none absolute right-6 bottom-6">
 						<Weapons hud={hud} />
 					</div>
+
+					<div className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2">
+						<Abilities hud={hud} />
+					</div>
+
+					{range && (
+						<p className="pointer-events-none absolute top-5 left-1/2 -translate-x-1/2 font-display text-3xl text-warning uppercase">
+							{en.app.range.title}
+						</p>
+					)}
 
 					<div className="absolute top-4 left-4 flex items-center gap-3">
 						<Button variant="secondary" size="sm" onClick={() => void navigate({ to: '/play/lobby' })}>

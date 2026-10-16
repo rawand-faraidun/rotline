@@ -55,6 +55,17 @@ export async function fetchTicket(): Promise<{ ticket: string; path: string } | 
 	return (await response.json()) as { ticket: string; path: string }
 }
 
+/** A ticket into the firing range (a solo room that earns nothing). */
+export async function fetchRangeTicket(): Promise<{ ticket: string; path: string } | null> {
+	const response = await fetch('/api/game/range', {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: '{}'
+	})
+	if (response.status !== 200) return null
+	return (await response.json()) as { ticket: string; path: string }
+}
+
 export const partyActions = {
 	join: (code: string) => send('join', { code }),
 	leave: () => send('leave'),

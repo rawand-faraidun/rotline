@@ -12,7 +12,7 @@ import { requireSeat } from '../lib/seat.ts'
 import { ArmoryScreen } from './screens/armory-screen.tsx'
 import { ErrorScreen } from './screens/error-screen.tsx'
 import { LobbyScreen } from './screens/lobby-screen.tsx'
-import { MissionScreen } from './screens/mission-screen.tsx'
+import { MissionScreen, RangeScreen } from './screens/mission-screen.tsx'
 import { ShopScreen } from './screens/shop-screen.tsx'
 import { SignInScreen } from './screens/sign-in-screen.tsx'
 import { SkillsScreen } from './screens/skills-screen.tsx'
@@ -100,6 +100,17 @@ function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop'>(path
 	})
 }
 
+const rangeRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/play/range',
+	beforeLoad: async ({ context }) => {
+		const target = await destination(context.queryClient)
+		if (target !== '/play/lobby') throw redirect({ to: target })
+		await requireSeat()
+	},
+	component: RangeScreen
+})
+
 const skillsRoute = hubRoute('/play/skills', SkillsScreen)
 const armoryRoute = hubRoute('/play/armory', ArmoryScreen)
 const shopRoute = hubRoute('/play/shop', ShopScreen)
@@ -112,6 +123,7 @@ const router = createRouter({
 		skillsRoute,
 		armoryRoute,
 		shopRoute,
+		rangeRoute,
 		missionRoute
 	]),
 	context: { queryClient },

@@ -32,19 +32,20 @@ All messages are binary; the first byte is the message type. Encoding lives in `
 | Type | Contents | Delivery |
 |---|---|---|
 | `hello` | protocol version, game ticket | reliable |
-| `input` | sequence number, last 3 inputs (movement, aim angle, buttons, the snapshot tick being displayed), acknowledged snapshot id | unreliable |
+| `input` | sequence number, last 3 inputs (movement, aim angle, 16 button bits, the snapshot tick being displayed, the cursor's distance for throws), acknowledged snapshot id | unreliable |
+| `range` | firing range only: spawn zombies of a type, or clear them | reliable |
 | `ping-wheel`, `quick-chat` | phrase id, world position | reliable |
 | `ready`, `vote` | checkpoint and restart votes | reliable |
 | `pong` | echo of server time | unreliable |
 
-Reload, weapon swap, interact and abilities are bits in the `input` button field, so they are repeated like any input.
+Reload, weapon swap, interact, the three abilities and the two utilities are bits in the `input` button field, so they are repeated like any input.
 
 ### Server to client
 
 | Type | Contents | Delivery |
 |---|---|---|
 | `welcome` | your entity id, map, server tick, your build (class, level, skills, loadout with upgrades), so prediction uses the server's numbers | reliable |
-| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state, other players, acid pools, changed zombies, removals | unreliable |
+| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state (including cooldowns, charges, haste, dash and minigun timers), other players, acid pools, objects (zones, barricades, mines, decoys, sentries, mortar markers), changed zombies with their status bits, removals | unreliable |
 | `event` | batched one-off events: shots, hits, kills, grenades launched and exploding, bursts, pickups, buffs, objective updates, mutation alerts, downed, revived | reliable |
 | `mission` | checkpoint reached, mission result | reliable |
 | `ping` | server time | unreliable |
@@ -65,6 +66,7 @@ With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 
 3. Each snapshot carries the server's state for this player and the last input it processed. The client resets to that state and replays every later input.
 4. Corrections under 0.5 m are eased over 100 ms; larger ones (knock-back, being grabbed) snap.
 5. Firing is predicted for feedback (muzzle flash, tracer, sound, magazine count); damage, kills and drops appear only when the server confirms them.
+6. Abilities are predicted only for what they do to the player: cooldowns, utility charges, Adrenaline and Stim haste, Slide Dash, Overwatch and the minigun. Their effect on zombies and teammates (blasts, heals, stuns, barricades) comes from the server. Barricades are walls in the client's grid too, so prediction stops at them.
 
 The simulation is deterministic: fixed steps, server-owned seeded randomness, and no `Date.now()` or `Math.random()` in `packages/sim`.
 

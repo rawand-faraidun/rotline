@@ -41,6 +41,8 @@ export function SkillsScreen() {
 	const [selected, setSelected] = useState<string | null>(null)
 	const [problem, setProblem] = useState<ProgressProblem | null>(null)
 	const [confirmRespec, setConfirmRespec] = useState(false)
+	// one change at a time: each is computed from the view the last one returned
+	const [pending, setPending] = useState(false)
 	const view = progress.data
 	if (!view) return <GameShell>{null}</GameShell>
 
@@ -52,8 +54,13 @@ export function SkillsScreen() {
 
 	async function act(action: ReturnType<typeof progressActions.learn>) {
 		setProblem(null)
-		const refusal = await runAction(queryClient, action)
-		if (refusal) setProblem(refusal.error)
+		setPending(true)
+		try {
+			const refusal = await runAction(queryClient, action)
+			if (refusal) setProblem(refusal.error)
+		} finally {
+			setPending(false)
+		}
 	}
 
 	const learned = unlockedAbilities(entry.skills)
@@ -233,7 +240,7 @@ export function SkillsScreen() {
 									})}
 								</p>
 								<Button
-									disabled={allocationProblem(cls, entry.skills, entry.level, selectedNode.id) !== null}
+									disabled={pending || allocationProblem(cls, entry.skills, entry.level, selectedNode.id) !== null}
 									onClick={() => void act(progressActions.learn(selectedNode.id))}
 								>
 									{t.learn}
@@ -259,6 +266,7 @@ export function SkillsScreen() {
 									{format(t.slot, { slot: String(index + 1) })}
 								</span>
 								<select
+									disabled={pending}
 									className="cut-sm h-10 border border-line bg-rot-black px-3 font-bold text-bone"
 									value={current}
 									onChange={event => {

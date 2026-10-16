@@ -20,7 +20,8 @@ const tabs = [
 	{ to: '/play/lobby', label: t.nav.lobby },
 	{ to: '/play/skills', label: t.nav.skills },
 	{ to: '/play/armory', label: t.nav.armory },
-	{ to: '/play/shop', label: t.nav.shop }
+	{ to: '/play/shop', label: t.nav.shop },
+	{ to: '/play/range', label: en.app.range.enter }
 ] as const
 
 /**
