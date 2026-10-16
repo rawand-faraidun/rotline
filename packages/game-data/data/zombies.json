@@ -11,7 +11,9 @@
 		"score": 10,
 		"tint": "#8a9089",
 		"scale": 1,
-		"deathBurst": null
+		"deathBurst": null,
+		"xp": 4,
+		"salvage": 0.5
 	},
 	{
 		"id": "bolter",
@@ -25,7 +27,9 @@
 		"score": 15,
 		"tint": "#b46a5e",
 		"scale": 0.9,
-		"deathBurst": null
+		"deathBurst": null,
+		"xp": 6,
+		"salvage": 1
 	},
 	{
 		"id": "swell",
@@ -45,6 +49,8 @@
 			"poolDamagePerSecond": 10,
 			"poolRadius": 2,
 			"poolSeconds": 8
-		}
+		},
+		"xp": 15,
+		"salvage": 3
 	}
 ]

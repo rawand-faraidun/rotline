@@ -1,0 +1,102 @@
+{
+	"armour": [
+		{
+			"id": "kevlar-vest",
+			"name": "Kevlar Vest",
+			"tier": 0,
+			"armour": 20,
+			"speed": 0,
+			"resist": {},
+			"utilityCharges": 0
+		},
+		{
+			"id": "plated-carrier",
+			"name": "Plated Carrier",
+			"tier": 2,
+			"price": 12000,
+			"armour": 40,
+			"speed": -0.05,
+			"resist": {},
+			"utilityCharges": 0
+		},
+		{
+			"id": "hazmat-suit",
+			"name": "Hazmat Suit",
+			"tier": 2,
+			"price": 12000,
+			"armour": 20,
+			"speed": 0,
+			"resist": {
+				"fire": 0.25,
+				"chemical": 0.25
+			},
+			"utilityCharges": 0
+		},
+		{
+			"id": "assault-rig",
+			"name": "Assault Rig",
+			"tier": 2,
+			"price": 12000,
+			"armour": 30,
+			"speed": 0,
+			"resist": {},
+			"utilityCharges": 1
+		}
+	],
+	"utility": [
+		{
+			"id": "frag-grenades",
+			"name": "Frag Grenades",
+			"tier": 0,
+			"charges": 3,
+			"damageType": "explosive",
+			"damage": 120,
+			"radius": 3.5
+		},
+		{
+			"id": "incendiary-grenades",
+			"name": "Incendiary Grenades",
+			"tier": 1,
+			"charges": 3,
+			"damageType": "fire",
+			"damage": 30,
+			"radius": 3.5
+		},
+		{
+			"id": "shock-grenades",
+			"name": "Shock Grenades",
+			"tier": 1,
+			"charges": 3,
+			"damageType": "shock",
+			"damage": 40,
+			"radius": 4
+		},
+		{
+			"id": "sticky-mines",
+			"name": "Sticky Mines",
+			"tier": 1,
+			"charges": 4,
+			"damageType": "explosive",
+			"damage": 150,
+			"radius": 3
+		},
+		{
+			"id": "decoy-beacon",
+			"name": "Decoy Beacon",
+			"tier": 2,
+			"charges": 2,
+			"damageType": "ballistic",
+			"damage": 0,
+			"radius": 10
+		},
+		{
+			"id": "mini-sentry",
+			"name": "Mini-Sentry",
+			"tier": 2,
+			"charges": 1,
+			"damageType": "ballistic",
+			"damage": 18,
+			"radius": 14
+		}
+	]
+}

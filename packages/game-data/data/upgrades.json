@@ -1,0 +1,12 @@
+{
+	"weapon": {
+		"damage": 0.06,
+		"fireRate": 0.02,
+		"reloadSpeed": 0.03,
+		"magazine": 0.05,
+		"spread": -0.03,
+		"reserve": 0.08
+	},
+	"armour": { "armour": 0.06 },
+	"utility": { "damage": 0.06, "blastRadius": 0.02 }
+}

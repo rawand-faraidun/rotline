@@ -1,7 +1,4 @@
 {
-	"health": 100,
 	"radius": 0.4,
-	"speed": 5.4,
-	"respawnSeconds": 3,
-	"loadout": { "main": ["vex-9", "k-71"], "pistol": "p9-service" }
+	"respawnSeconds": 3
 }

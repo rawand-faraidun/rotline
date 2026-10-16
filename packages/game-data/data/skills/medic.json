@@ -1,0 +1,859 @@
+{
+	"class": "medic",
+	"branches": [
+		{
+			"id": "field-surgeon",
+			"name": "Field Surgeon",
+			"nodes": [
+				{
+					"id": "medkit-drop",
+					"name": "Medkit Drop",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "medkit-drop",
+					"effects": []
+				},
+				{
+					"id": "triage",
+					"name": "Triage",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healing",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "quick-revive",
+					"name": "Quick Revive",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reviveTime",
+							"value": -0.3
+						}
+					]
+				},
+				{
+					"id": "bedside",
+					"name": "Bedside Manner",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "steady-pulse",
+					"name": "Steady Pulse",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.02
+						}
+					]
+				},
+				{
+					"id": "field-dressing",
+					"name": "Field Dressing",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "revivedHealth",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "caregiver",
+					"name": "Caregiver",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healing",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "light-kit",
+					"name": "Light Kit",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "moveSpeed",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "iron-stomach",
+					"name": "Iron Stomach",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "resist",
+							"value": 0.15,
+							"damageType": "chemical"
+						}
+					]
+				},
+				{
+					"id": "spare-mags",
+					"name": "Spare Mags",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "healing-field",
+					"name": "Healing Field",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "healing-field",
+					"effects": []
+				},
+				{
+					"id": "rapid-response",
+					"name": "Rapid Response",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reviveTime",
+							"value": -0.3
+						}
+					]
+				},
+				{
+					"id": "emergency-care",
+					"name": "Emergency Care",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healing",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "hardy",
+					"name": "Hardy",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "cooldown-discipline",
+					"name": "Discipline",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.06
+						}
+					]
+				},
+				{
+					"id": "surgeon",
+					"name": "Surgeon",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healing",
+							"value": 0.12
+						}
+					]
+				},
+				{
+					"id": "lifeline",
+					"name": "Lifeline",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "bleedout",
+							"value": 5
+						}
+					]
+				},
+				{
+					"id": "reinforced",
+					"name": "Reinforced",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "triage-protocol",
+					"name": "Triage Protocol",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "revivedHealth",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "second-wind",
+					"name": "Second Wind",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "second-wind",
+					"effects": []
+				},
+				{
+					"id": "chief-medic",
+					"name": "Chief Medic",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.1
+						}
+					]
+				},
+				{
+					"id": "miracle-worker",
+					"name": "Miracle Worker",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healing",
+							"value": 0.1
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "chemist",
+			"name": "Chemist",
+			"nodes": [
+				{
+					"id": "toxin-grenade",
+					"name": "Toxin Grenade",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "toxin-grenade",
+					"effects": []
+				},
+				{
+					"id": "toxicology",
+					"name": "Toxicology",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.08,
+							"damageType": "chemical"
+						}
+					]
+				},
+				{
+					"id": "sprayer-drill",
+					"name": "Sprayer Drill",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.08,
+							"kinds": ["chemical"]
+						}
+					]
+				},
+				{
+					"id": "hazmat-training",
+					"name": "Hazmat Training",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "resist",
+							"value": 0.2,
+							"damageType": "chemical"
+						}
+					]
+				},
+				{
+					"id": "concentrate",
+					"name": "Concentrate",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.1,
+							"kinds": ["chemical"]
+						}
+					]
+				},
+				{
+					"id": "corrosive",
+					"name": "Corrosive",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"damageType": "chemical"
+						}
+					]
+				},
+				{
+					"id": "wide-nozzle",
+					"name": "Wide Nozzle",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "range",
+							"value": 0.1,
+							"kinds": ["chemical", "flamethrower"]
+						}
+					]
+				},
+				{
+					"id": "insulated",
+					"name": "Insulated",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "resist",
+							"value": 0.15,
+							"damageType": "fire"
+						}
+					]
+				},
+				{
+					"id": "pressurised",
+					"name": "Pressurised",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "magazine",
+							"value": 0.12,
+							"kinds": ["chemical", "flamethrower"]
+						}
+					]
+				},
+				{
+					"id": "lab-coat",
+					"name": "Lab Coat",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "antidote-shot",
+					"name": "Antidote Shot",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "antidote-shot",
+					"effects": []
+				},
+				{
+					"id": "virulence",
+					"name": "Virulence",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.08,
+							"damageType": "chemical"
+						}
+					]
+				},
+				{
+					"id": "neurotoxin",
+					"name": "Neurotoxin",
+					"tier": 3,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageVsSlowed",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "fume-hood",
+					"name": "Fume Hood",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "catalyst",
+					"name": "Catalyst",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.06
+						}
+					]
+				},
+				{
+					"id": "potent-mix",
+					"name": "Potent Mix",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.1,
+							"damageType": "chemical"
+						}
+					]
+				},
+				{
+					"id": "saturation",
+					"name": "Saturation",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "blastRadius",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "sealed-suit",
+					"name": "Sealed Suit",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "resist",
+							"value": 0.2,
+							"damageType": "chemical"
+						}
+					]
+				},
+				{
+					"id": "field-chemist",
+					"name": "Field Chemist",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healing",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "contagion",
+					"name": "Contagion",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "contagion",
+					"effects": []
+				},
+				{
+					"id": "master-chemist",
+					"name": "Master Chemist",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.1
+						}
+					]
+				},
+				{
+					"id": "toxic-blood",
+					"name": "Toxic Blood",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.05
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "combat-medic",
+			"name": "Combat Medic",
+			"nodes": [
+				{
+					"id": "stim",
+					"name": "Stim",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "stim",
+					"effects": []
+				},
+				{
+					"id": "tough-skin",
+					"name": "Tough Skin",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "self-care",
+					"name": "Self-Care",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healingReceived",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "drilled",
+					"name": "Drilled",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "run-and-heal",
+					"name": "Run and Heal",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "moveSpeed",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "hardened-medic",
+					"name": "Hardened",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "battle-medic",
+					"name": "Battle Medic",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "killHeal",
+							"value": 1
+						}
+					]
+				},
+				{
+					"id": "sidearm",
+					"name": "Sidearm",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"kinds": ["pistol", "smg"]
+						}
+					]
+				},
+				{
+					"id": "kevlar-weave",
+					"name": "Kevlar Weave",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "armour",
+							"value": 5
+						}
+					]
+				},
+				{
+					"id": "steady",
+					"name": "Steady",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "defibrillator",
+					"name": "Defibrillator",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "defibrillator",
+					"effects": []
+				},
+				{
+					"id": "adrenaline-shot",
+					"name": "Adrenaline Shot",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healingReceived",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "field-rifle",
+					"name": "Field Rifle",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.05,
+							"kinds": ["rifle", "smg"]
+						}
+					]
+				},
+				{
+					"id": "extra-mags",
+					"name": "Extra Mags",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "rapid-stim",
+					"name": "Rapid Stim",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.06
+						}
+					]
+				},
+				{
+					"id": "unbreakable",
+					"name": "Unbreakable",
+					"tier": 4,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "recovery",
+					"name": "Recovery",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healingReceived",
+							"value": 0.15
+						}
+					]
+				},
+				{
+					"id": "combat-ready",
+					"name": "Combat Ready",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "fireRate",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "plated",
+					"name": "Plated",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "armour",
+							"value": 8
+						}
+					]
+				},
+				{
+					"id": "last-rites",
+					"name": "Last Rites",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "last-rites",
+					"effects": []
+				},
+				{
+					"id": "second-heart",
+					"name": "Second Heart",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "bleedout",
+							"value": 5
+						}
+					]
+				},
+				{
+					"id": "warmedic",
+					"name": "Warmedic",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06
+						}
+					]
+				}
+			]
+		}
+	]
+}

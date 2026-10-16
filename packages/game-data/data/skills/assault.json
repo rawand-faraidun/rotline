@@ -1,0 +1,866 @@
+{
+	"class": "assault",
+	"branches": [
+		{
+			"id": "vanguard",
+			"name": "Vanguard",
+			"nodes": [
+				{
+					"id": "adrenaline-burst",
+					"name": "Adrenaline Burst",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "adrenaline-burst",
+					"effects": []
+				},
+				{
+					"id": "fleet-foot",
+					"name": "Fleet Foot",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "moveSpeed",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "quick-hands",
+					"name": "Quick Hands",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "steady-aim",
+					"name": "Steady Aim",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "spread",
+							"value": -0.08,
+							"kinds": ["smg", "rifle"]
+						}
+					]
+				},
+				{
+					"id": "conditioning",
+					"name": "Conditioning",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "run-and-gun",
+					"name": "Run and Gun",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "fireRate",
+							"value": 0.04,
+							"kinds": ["smg", "rifle"]
+						}
+					]
+				},
+				{
+					"id": "second-breath",
+					"name": "Second Breath",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "killHeal",
+							"value": 1
+						}
+					]
+				},
+				{
+					"id": "evasive",
+					"name": "Evasive",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "drum-feed",
+					"name": "Drum Feed",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "magazine",
+							"value": 0.08,
+							"kinds": ["smg", "rifle"]
+						}
+					]
+				},
+				{
+					"id": "scavenger",
+					"name": "Scavenger",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "slide-dash",
+					"name": "Slide Dash",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "slide-dash",
+					"effects": []
+				},
+				{
+					"id": "light-step",
+					"name": "Light Step",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "moveSpeed",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "adrenal-glands",
+					"name": "Adrenal Glands",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.06
+						}
+					]
+				},
+				{
+					"id": "blood-rush",
+					"name": "Blood Rush",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "killHeal",
+							"value": 1
+						}
+					]
+				},
+				{
+					"id": "flanker",
+					"name": "Flanker",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "veteran",
+					"name": "Veteran",
+					"tier": 4,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "hair-trigger",
+					"name": "Hair Trigger",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "fireRate",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "combat-reload",
+					"name": "Combat Reload",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "sure-footed",
+					"name": "Sure-Footed",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "momentum",
+					"name": "Momentum",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "momentum",
+					"effects": []
+				},
+				{
+					"id": "overdrive",
+					"name": "Overdrive",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.1
+						}
+					]
+				},
+				{
+					"id": "relentless",
+					"name": "Relentless",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "demolition",
+			"name": "Demolition",
+			"nodes": [
+				{
+					"id": "cluster-grenade",
+					"name": "Cluster Grenade",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "cluster-grenade",
+					"effects": []
+				},
+				{
+					"id": "blast-training",
+					"name": "Blast Training",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"damageType": "explosive"
+						}
+					]
+				},
+				{
+					"id": "extra-charge",
+					"name": "Extra Charge",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "utilityCharges",
+							"value": 1
+						}
+					]
+				},
+				{
+					"id": "wide-blast",
+					"name": "Wide Blast",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "blastRadius",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "padded",
+					"name": "Padded",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "demo-expert",
+					"name": "Demo Expert",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.05,
+							"damageType": "explosive"
+						}
+					]
+				},
+				{
+					"id": "launcher-drill",
+					"name": "Launcher Drill",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.08,
+							"kinds": ["launcher"]
+						}
+					]
+				},
+				{
+					"id": "shell-belt",
+					"name": "Shell Belt",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.1,
+							"kinds": ["launcher", "shotgun"]
+						}
+					]
+				},
+				{
+					"id": "blast-shielding",
+					"name": "Blast Shielding",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "scattershot",
+					"name": "Scattershot",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "pellets",
+							"value": 1,
+							"kinds": ["shotgun"]
+						}
+					]
+				},
+				{
+					"id": "breaching-charge",
+					"name": "Breaching Charge",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "breaching-charge",
+					"effects": []
+				},
+				{
+					"id": "shaped-charge",
+					"name": "Shaped Charge",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"damageType": "explosive"
+						}
+					]
+				},
+				{
+					"id": "bigger-booms",
+					"name": "Bigger Booms",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "blastRadius",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "buckshot",
+					"name": "Buckshot",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"kinds": ["shotgun"]
+						}
+					]
+				},
+				{
+					"id": "quick-fuse",
+					"name": "Quick Fuse",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.06
+						}
+					]
+				},
+				{
+					"id": "demolitionist",
+					"name": "Demolitionist",
+					"tier": 4,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.08,
+							"damageType": "explosive"
+						}
+					]
+				},
+				{
+					"id": "heavy-shells",
+					"name": "Heavy Shells",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "magazine",
+							"value": 0.15,
+							"kinds": ["launcher", "shotgun"]
+						}
+					]
+				},
+				{
+					"id": "hardened",
+					"name": "Hardened",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "chain-reaction",
+					"name": "Chain Reaction",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "blastRadius",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "shrapnel",
+					"name": "Shrapnel",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "shrapnel",
+					"effects": []
+				},
+				{
+					"id": "ordnance",
+					"name": "Ordnance",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "utilityCharges",
+							"value": 1
+						}
+					]
+				},
+				{
+					"id": "cluster-mastery",
+					"name": "Cluster Mastery",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.1
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "marksman",
+			"name": "Marksman",
+			"nodes": [
+				{
+					"id": "mark-target",
+					"name": "Mark Target",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "mark-target",
+					"effects": []
+				},
+				{
+					"id": "keen-eye",
+					"name": "Keen Eye",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "critDamage",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "rifleman",
+					"name": "Rifleman",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.05,
+							"kinds": ["rifle", "sniper", "pistol"]
+						}
+					]
+				},
+				{
+					"id": "steady-hands",
+					"name": "Steady Hands",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "spread",
+							"value": -0.1
+						}
+					]
+				},
+				{
+					"id": "field-strip",
+					"name": "Field Strip",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "sharpshooter",
+					"name": "Sharpshooter",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"kinds": ["sniper"]
+						}
+					]
+				},
+				{
+					"id": "deep-pockets",
+					"name": "Deep Pockets",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.1,
+							"kinds": ["rifle", "sniper"]
+						}
+					]
+				},
+				{
+					"id": "sidearm-drill",
+					"name": "Sidearm Drill",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.08,
+							"kinds": ["pistol"]
+						}
+					]
+				},
+				{
+					"id": "long-barrel",
+					"name": "Long Barrel",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "range",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "composure",
+					"name": "Composure",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "overwatch",
+					"name": "Overwatch",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "overwatch",
+					"effects": []
+				},
+				{
+					"id": "weak-spot",
+					"name": "Weak Spot",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "critDamage",
+							"value": 0.15
+						}
+					]
+				},
+				{
+					"id": "penetrator",
+					"name": "Penetrator",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "pierce",
+							"value": 1,
+							"kinds": ["sniper", "rifle"]
+						}
+					]
+				},
+				{
+					"id": "quick-scope",
+					"name": "Quick Scope",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.08,
+							"kinds": ["sniper"]
+						}
+					]
+				},
+				{
+					"id": "focus",
+					"name": "Focus",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.06
+						}
+					]
+				},
+				{
+					"id": "deadeye",
+					"name": "Deadeye",
+					"tier": 4,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.08,
+							"kinds": ["rifle", "sniper"]
+						}
+					]
+				},
+				{
+					"id": "extended-mags",
+					"name": "Extended Mags",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "magazine",
+							"value": 0.1,
+							"kinds": ["rifle", "sniper", "pistol"]
+						}
+					]
+				},
+				{
+					"id": "tactical-vest",
+					"name": "Tactical Vest",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "cold-blood",
+					"name": "Cold Blood",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "critDamage",
+							"value": 0.15
+						}
+					]
+				},
+				{
+					"id": "executioner",
+					"name": "Executioner",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "executioner",
+					"effects": []
+				},
+				{
+					"id": "ballistics",
+					"name": "Ballistics",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.05,
+							"damageType": "ballistic"
+						}
+					]
+				},
+				{
+					"id": "spotter",
+					"name": "Spotter",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.1
+						}
+					]
+				}
+			]
+		}
+	]
+}

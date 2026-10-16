@@ -1,0 +1,48 @@
+{
+	"tierPrices": {
+		"0": 1500,
+		"1": 6000,
+		"2": 14000,
+		"3": 28000
+	},
+	"upgrade": {
+		"maxLevel": 10,
+		"tierBase": {
+			"0": 600,
+			"1": 800,
+			"2": 1400,
+			"3": 2200
+		},
+		"growth": 1.4,
+		"roundTo": 10,
+		"perkLevels": [5, 10],
+		"perkSwitchPrice": 500
+	},
+	"discard": {
+		"0": 300,
+		"1": 600,
+		"2": 1200,
+		"3": 2400
+	},
+	"respecPrice": 2500,
+	"rewards": {
+		"waveClear": {
+			"xp": 40,
+			"salvage": 25
+		},
+		"scorePerXp": 20
+	},
+	"starter": {
+		"items": ["vex-9", "k-71", "p9-service", "kevlar-vest", "frag-grenades"],
+		"loadout": {
+			"main": ["vex-9", "k-71"],
+			"pistol": "p9-service",
+			"armour": "kevlar-vest",
+			"utility": ["frag-grenades", null]
+		}
+	},
+	"estimate": {
+		"salvagePerHour": 4200,
+		"note": "Veteran, 4-player squad, before contracts (game-design.md section 6)"
+	}
+}

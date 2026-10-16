@@ -1,0 +1,51 @@
+section,id,name,tier,salvage,hours of play
+assumption,salvage-per-hour,"Veteran, 4-player squad, before contracts (game-design.md section 6)",,4200,1.0
+buy,p9-service,P9 Service,0,1500,0.4
+buy,halcyon-45,Halcyon .45,1,4000,1.0
+buy,vex-9,Vex-9,0,1500,0.4
+buy,k-71,K-71,0,1500,0.4
+buy,breacher-12,Breacher 12,1,6000,1.4
+buy,mower,Mower,3,28000,6.7
+buy,longstride,Longstride,2,14000,3.3
+buy,kiln,Kiln,2,14000,3.3
+buy,thumper,Thumper,3,28000,6.7
+buy,arclight,Arclight,2,14000,3.3
+buy,viper,Viper,2,14000,3.3
+buy,kevlar-vest,Kevlar Vest,0,1500,0.4
+buy,plated-carrier,Plated Carrier,2,12000,2.9
+buy,hazmat-suit,Hazmat Suit,2,12000,2.9
+buy,assault-rig,Assault Rig,2,12000,2.9
+buy,frag-grenades,Frag Grenades,0,1500,0.4
+buy,incendiary-grenades,Incendiary Grenades,1,6000,1.4
+buy,shock-grenades,Shock Grenades,1,6000,1.4
+buy,sticky-mines,Sticky Mines,1,6000,1.4
+buy,decoy-beacon,Decoy Beacon,2,14000,3.3
+buy,mini-sentry,Mini-Sentry,2,14000,3.3
+upgrade 1-10,p9-service,P9 Service,0,41890,10.0
+upgrade 1-10,halcyon-45,Halcyon .45,1,55850,13.3
+upgrade 1-10,vex-9,Vex-9,0,41890,10.0
+upgrade 1-10,k-71,K-71,0,41890,10.0
+upgrade 1-10,breacher-12,Breacher 12,1,55850,13.3
+upgrade 1-10,mower,Mower,3,153580,36.6
+upgrade 1-10,longstride,Longstride,2,97740,23.3
+upgrade 1-10,kiln,Kiln,2,97740,23.3
+upgrade 1-10,thumper,Thumper,3,153580,36.6
+upgrade 1-10,arclight,Arclight,2,97740,23.3
+upgrade 1-10,viper,Viper,2,97740,23.3
+upgrade 1-10,kevlar-vest,Kevlar Vest,0,41890,10.0
+upgrade 1-10,plated-carrier,Plated Carrier,2,97740,23.3
+upgrade 1-10,hazmat-suit,Hazmat Suit,2,97740,23.3
+upgrade 1-10,assault-rig,Assault Rig,2,97740,23.3
+upgrade 1-10,frag-grenades,Frag Grenades,0,41890,10.0
+upgrade 1-10,incendiary-grenades,Incendiary Grenades,1,55850,13.3
+upgrade 1-10,shock-grenades,Shock Grenades,1,55850,13.3
+upgrade 1-10,sticky-mines,Sticky Mines,1,55850,13.3
+upgrade 1-10,decoy-beacon,Decoy Beacon,2,97740,23.3
+upgrade 1-10,mini-sentry,Mini-Sentry,2,97740,23.3
+respec,one-class,Respec one class,,2500,0.6
+perk switch,any,Switch a perk,,500,0.1
+earn per kill,drudge,Drudge,,0.5,
+earn per kill,bolter,Bolter,,1,
+earn per kill,swell,Swell,,3,
+earn per wave,wave-clear,Wave cleared,,25,
+abilities,count,18 active abilities,,,

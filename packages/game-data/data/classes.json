@@ -1,0 +1,18 @@
+{
+	"progression": {
+		"maxLevel": 50,
+		"xpBase": 1000,
+		"xpGrowth": 1.12,
+		"pointsPerLevel": 1,
+		"bonusPointLevels": [10, 20, 30, 40, 50],
+		"bonusPoints": 2,
+		"healthPerLevel": 0.01,
+		"pointsPerTier": 5,
+		"abilitySlots": [{ "level": 1, "slots": 2 }, { "level": 20, "slots": 3 }]
+	},
+	"classes": [
+		{ "id": "assault", "name": "Assault", "health": 100, "speed": 5.4, "reviveSeconds": 4, "armourEffectiveness": 1 },
+		{ "id": "medic", "name": "Medic", "health": 100, "speed": 5, "reviveSeconds": 2.5, "armourEffectiveness": 1 },
+		{ "id": "heavy", "name": "Heavy", "health": 140, "speed": 4.4, "reviveSeconds": 4, "armourEffectiveness": 1.2 }
+	]
+}

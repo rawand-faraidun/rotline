@@ -1,31 +1,69 @@
 import { describe, expect, it } from 'vitest'
-import { maps, player, waves, weaponSchema, weapons, zombies } from '../src/index.ts'
+import {
+	abilities,
+	economy,
+	items,
+	maps,
+	skillNodes,
+	skillTrees,
+	starterBuild,
+	waves,
+	weaponSchema,
+	weapons,
+	zombies
+} from '../src/index.ts'
 
 describe('game data', () => {
 	it('loads and validates every file', () => {
-		expect(weapons.length).toBeGreaterThanOrEqual(3)
+		expect(weapons.length).toBe(12)
 		expect(zombies.map(zombie => zombie.id)).toEqual(['drudge', 'bolter', 'swell'])
 		expect(maps.yard?.playerSpawns.length).toBe(4)
 		expect(waves.waves.length).toBeGreaterThan(0)
+		expect(abilities).toHaveLength(18)
 	})
 
 	it('gives pistols unlimited reserve and main weapons a carried maximum', () => {
 		for (const weapon of weapons) {
-			if (weapon.slot === 'pistol') expect(weapon.maxReserve).toBeNull()
-			else expect(weapon.maxReserve).toBeGreaterThan(0)
+			if (weapon.kind === 'pistol') expect(weapon.maxReserve).toBeNull()
+			else if (weapon.tier !== null) expect(weapon.maxReserve).toBeGreaterThan(0)
 		}
 	})
 
 	it('rejects a pistol with limited reserve', () => {
-		const pistol = weapons.find(weapon => weapon.slot === 'pistol')
+		const pistol = weapons.find(weapon => weapon.kind === 'pistol')
 		expect(weaponSchema.safeParse({ ...pistol, maxReserve: 60 }).success).toBe(false)
 	})
 
-	it('starts players with two main weapons and a pistol', () => {
-		const slots = [...player.loadout.main, player.loadout.pistol].map(
-			id => weapons.find(weapon => weapon.id === id)?.slot
-		)
-		expect(slots).toEqual(['main', 'main', 'pistol'])
+	it('has one form of every item at a fixed whole price (no rarity, nothing random)', () => {
+		expect(new Set(items.map(item => item.id)).size).toBe(items.length)
+		for (const item of items) {
+			expect(Number.isInteger(item.price)).toBe(true)
+			expect(item.price).toBeGreaterThan(0)
+		}
+	})
+
+	it('starts players with two main weapons, a pistol, armour and a utility they own', () => {
+		const { loadout } = economy.starter
+		const slotOf = (id: string) => items.find(item => item.id === id)?.slot
+		expect([...loadout.main, loadout.pistol].map(slotOf)).toEqual(['main', 'main', 'pistol'])
+		expect(slotOf(loadout.armour ?? '')).toBe('armour')
+		expect(slotOf(loadout.utility[0] ?? '')).toBe('utility')
+		const owned = new Set(economy.starter.items)
+		for (const id of [...loadout.main, loadout.pistol, loadout.armour, ...loadout.utility]) {
+			if (id) expect(owned.has(id)).toBe(true)
+		}
+		expect(starterBuild().loadout.pistol.id).toBe('p9-service')
+	})
+
+	it('has three branches of 22 nodes per class with two actives and one capstone each', () => {
+		for (const tree of Object.values(skillTrees)) {
+			for (const branch of tree.branches) {
+				expect(branch.nodes).toHaveLength(22)
+				expect(branch.nodes.filter(node => node.kind === 'active')).toHaveLength(2)
+				expect(branch.nodes.filter(node => node.kind === 'capstone')).toHaveLength(1)
+			}
+		}
+		expect(skillNodes.size).toBe(9 * 22)
 	})
 
 	it('keeps every spawn point inside the map and off walls', () => {
@@ -41,5 +79,13 @@ describe('game data', () => {
 				expect(blocked).toBe(false)
 			}
 		}
+	})
+})
+
+describe('economy sheet', () => {
+	it('is up to date with the data (run `pnpm --filter @rotline/game-data economy`)', async () => {
+		const { readFileSync } = await import('node:fs')
+		const { economySheet } = await import('../src/economy-sheet.ts')
+		expect(readFileSync(new URL('../economy.csv', import.meta.url), 'utf8')).toBe(economySheet())
 	})
 })

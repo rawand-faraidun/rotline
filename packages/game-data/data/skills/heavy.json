@@ -1,0 +1,867 @@
+{
+	"class": "heavy",
+	"branches": [
+		{
+			"id": "bulwark",
+			"name": "Bulwark",
+			"nodes": [
+				{
+					"id": "deploy-barricade",
+					"name": "Deploy Barricade",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "deploy-barricade",
+					"effects": []
+				},
+				{
+					"id": "thick-skin",
+					"name": "Thick Skin",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "plating",
+					"name": "Plating",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "armourPct",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "stubborn",
+					"name": "Stubborn",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "braced",
+					"name": "Braced",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "fortified",
+					"name": "Fortified",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "iron-hide",
+					"name": "Iron Hide",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "armour",
+							"value": 8
+						}
+					]
+				},
+				{
+					"id": "anchor",
+					"name": "Anchor",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "bleedout",
+							"value": 5
+						}
+					]
+				},
+				{
+					"id": "guardian",
+					"name": "Guardian",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "revivedHealth",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "heavy-pockets",
+					"name": "Heavy Pockets",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "taunt",
+					"name": "Taunt",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "taunt",
+					"effects": []
+				},
+				{
+					"id": "bulwark-plating",
+					"name": "Bulwark Plating",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "armourPct",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "walls-up",
+					"name": "Walls Up",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.06
+						}
+					]
+				},
+				{
+					"id": "last-line",
+					"name": "Last Line",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "juggernaut",
+					"name": "Juggernaut",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "titan",
+					"name": "Titan",
+					"tier": 4,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "reinforced-plates",
+					"name": "Reinforced Plates",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "armour",
+							"value": 10
+						}
+					]
+				},
+				{
+					"id": "resolve",
+					"name": "Resolve",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "healingReceived",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "shield-wall",
+					"name": "Shield Wall",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "immovable",
+					"name": "Immovable",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "immovable",
+					"effects": []
+				},
+				{
+					"id": "unyielding",
+					"name": "Unyielding",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "bastion",
+					"name": "Bastion",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.1
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "artillery",
+			"name": "Artillery",
+			"nodes": [
+				{
+					"id": "mortar-shot",
+					"name": "Mortar Shot",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "mortar-shot",
+					"effects": []
+				},
+				{
+					"id": "heavy-ordnance",
+					"name": "Heavy Ordnance",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"damageType": "explosive"
+						}
+					]
+				},
+				{
+					"id": "blast-radius",
+					"name": "Blast Radius",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "blastRadius",
+							"value": 0.08
+						}
+					]
+				},
+				{
+					"id": "loader",
+					"name": "Loader",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.06,
+							"kinds": ["launcher"]
+						}
+					]
+				},
+				{
+					"id": "padded-heavy",
+					"name": "Padded",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "high-explosive",
+					"name": "High Explosive",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"damageType": "explosive"
+						}
+					]
+				},
+				{
+					"id": "ammo-crate",
+					"name": "Ammo Crate",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.1,
+							"kinds": ["launcher", "lmg"]
+						}
+					]
+				},
+				{
+					"id": "rangefinder",
+					"name": "Rangefinder",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "range",
+							"value": 0.1,
+							"kinds": ["launcher"]
+						}
+					]
+				},
+				{
+					"id": "spotter-heavy",
+					"name": "Spotter",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.05
+						}
+					]
+				},
+				{
+					"id": "flak-vest",
+					"name": "Flak Vest",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.03
+						}
+					]
+				},
+				{
+					"id": "aerial-bombardment",
+					"name": "Aerial Bombardment",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "aerial-bombardment",
+					"effects": []
+				},
+				{
+					"id": "big-payload",
+					"name": "Big Payload",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "blastRadius",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "demolition-heavy",
+					"name": "Demolition",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.08,
+							"damageType": "explosive"
+						}
+					]
+				},
+				{
+					"id": "autoloader",
+					"name": "Autoloader",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "magazine",
+							"value": 0.15,
+							"kinds": ["launcher"]
+						}
+					]
+				},
+				{
+					"id": "shell-shock",
+					"name": "Shell Shock",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.05
+						}
+					]
+				},
+				{
+					"id": "siege-master",
+					"name": "Siege Master",
+					"tier": 4,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.1,
+							"damageType": "explosive"
+						}
+					]
+				},
+				{
+					"id": "fire-mission",
+					"name": "Fire Mission",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.08
+						}
+					]
+				},
+				{
+					"id": "armoured-crew",
+					"name": "Armoured Crew",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "armour",
+							"value": 8
+						}
+					]
+				},
+				{
+					"id": "wide-pattern",
+					"name": "Wide Pattern",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "blastRadius",
+							"value": 0.1
+						}
+					]
+				},
+				{
+					"id": "aftershock",
+					"name": "Aftershock",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "aftershock",
+					"effects": []
+				},
+				{
+					"id": "barrage",
+					"name": "Barrage",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06
+						}
+					]
+				},
+				{
+					"id": "ordnance-expert",
+					"name": "Ordnance Expert",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "utilityCharges",
+							"value": 1
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "suppressor",
+			"name": "Suppressor",
+			"nodes": [
+				{
+					"id": "shock-pulse",
+					"name": "Shock Pulse",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "shock-pulse",
+					"effects": []
+				},
+				{
+					"id": "lmg-drill",
+					"name": "LMG Drill",
+					"tier": 1,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.05,
+							"kinds": ["lmg", "minigun"]
+						}
+					]
+				},
+				{
+					"id": "belt-feed",
+					"name": "Belt Feed",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "magazine",
+							"value": 0.1,
+							"kinds": ["lmg"]
+						}
+					]
+				},
+				{
+					"id": "steady-stance",
+					"name": "Steady Stance",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "spread",
+							"value": -0.1,
+							"kinds": ["lmg"]
+						}
+					]
+				},
+				{
+					"id": "heavy-frame",
+					"name": "Heavy Frame",
+					"tier": 1,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "maxHealth",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "suppressive-fire",
+					"name": "Suppressive Fire",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "fireRate",
+							"value": 0.04,
+							"kinds": ["lmg"]
+						}
+					]
+				},
+				{
+					"id": "shock-rounds",
+					"name": "Shock Rounds",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"damageType": "shock"
+						}
+					]
+				},
+				{
+					"id": "big-reserve",
+					"name": "Big Reserve",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.1,
+							"kinds": ["lmg", "shock"]
+						}
+					]
+				},
+				{
+					"id": "conductor",
+					"name": "Conductor",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "range",
+							"value": 0.1,
+							"kinds": ["shock"]
+						}
+					]
+				},
+				{
+					"id": "grounded",
+					"name": "Grounded",
+					"tier": 2,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "resist",
+							"value": 0.15,
+							"damageType": "shock"
+						}
+					]
+				},
+				{
+					"id": "minigun-spin-up",
+					"name": "Minigun Spin-up",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "active",
+					"ability": "minigun-spin-up",
+					"effects": []
+				},
+				{
+					"id": "gunner",
+					"name": "Gunner",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.06,
+							"kinds": ["lmg", "minigun"]
+						}
+					]
+				},
+				{
+					"id": "rapid-belt",
+					"name": "Rapid Belt",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reloadSpeed",
+							"value": 0.1,
+							"kinds": ["lmg"]
+						}
+					]
+				},
+				{
+					"id": "overcharge",
+					"name": "Overcharge",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.08,
+							"damageType": "shock"
+						}
+					]
+				},
+				{
+					"id": "crowd-control",
+					"name": "Crowd Control",
+					"tier": 3,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.06
+						}
+					]
+				},
+				{
+					"id": "lead-storm",
+					"name": "Lead Storm",
+					"tier": 4,
+					"maxRank": 2,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damage",
+							"value": 0.08,
+							"kinds": ["lmg", "minigun"]
+						}
+					]
+				},
+				{
+					"id": "hold-fast",
+					"name": "Hold Fast",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "damageReduction",
+							"value": 0.04
+						}
+					]
+				},
+				{
+					"id": "extended-belt",
+					"name": "Extended Belt",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "magazine",
+							"value": 0.15,
+							"kinds": ["lmg"]
+						}
+					]
+				},
+				{
+					"id": "arc-mastery",
+					"name": "Arc Mastery",
+					"tier": 4,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "chains",
+							"value": 1,
+							"kinds": ["shock"]
+						}
+					]
+				},
+				{
+					"id": "suppression",
+					"name": "Suppression",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "capstone",
+					"special": "suppression",
+					"effects": []
+				},
+				{
+					"id": "minigun-mastery",
+					"name": "Minigun Mastery",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "abilityCooldown",
+							"value": -0.1
+						}
+					]
+				},
+				{
+					"id": "endless-belt",
+					"name": "Endless Belt",
+					"tier": 5,
+					"maxRank": 1,
+					"kind": "passive",
+					"effects": [
+						{
+							"stat": "reserve",
+							"value": 0.15
+						}
+					]
+				}
+			]
+		}
+	]
+}

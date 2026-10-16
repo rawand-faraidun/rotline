@@ -2,7 +2,8 @@
 	{
 		"id": "p9-service",
 		"name": "P9 Service",
-		"slot": "pistol",
+		"kind": "pistol",
+		"tier": 0,
 		"damageType": "ballistic",
 		"damage": 22,
 		"pellets": 1,
@@ -11,13 +12,145 @@
 		"magazine": 12,
 		"maxReserve": null,
 		"reloadSeconds": 1.2,
+		"reloadPerRound": false,
 		"spreadDegrees": 2,
-		"range": 26
+		"range": 26,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "p9-match-barrel",
+						"name": "Match Barrel",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.15
+							}
+						]
+					},
+					{
+						"id": "p9-extended-mag",
+						"name": "Extended Mag",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.3
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "p9-hair-trigger",
+						"name": "Hair Trigger",
+						"effects": [
+							{
+								"stat": "fireRate",
+								"value": 0.2
+							}
+						]
+					},
+					{
+						"id": "p9-hollow-points",
+						"name": "Hollow Points",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.2
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "halcyon-45",
+		"name": "Halcyon .45",
+		"kind": "pistol",
+		"tier": 1,
+		"price": 4000,
+		"damageType": "ballistic",
+		"damage": 38,
+		"pellets": 1,
+		"fireRate": 180,
+		"automatic": false,
+		"magazine": 8,
+		"maxReserve": null,
+		"reloadSeconds": 1.4,
+		"reloadPerRound": false,
+		"spreadDegrees": 1.5,
+		"range": 28,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "halcyon-heavy-rounds",
+						"name": "Heavy Rounds",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.15
+							}
+						]
+					},
+					{
+						"id": "halcyon-speed-loader",
+						"name": "Speed Loader",
+						"effects": [
+							{
+								"stat": "reloadSpeed",
+								"value": 0.3
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "halcyon-penetrator",
+						"name": "Penetrator",
+						"effects": [
+							{
+								"stat": "pierce",
+								"value": 1
+							}
+						]
+					},
+					{
+						"id": "halcyon-big-mag",
+						"name": "Big Mag",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.5
+							}
+						]
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "vex-9",
 		"name": "Vex-9",
-		"slot": "main",
+		"kind": "smg",
+		"tier": 0,
 		"damageType": "ballistic",
 		"damage": 14,
 		"pellets": 1,
@@ -26,13 +159,71 @@
 		"magazine": 32,
 		"maxReserve": 256,
 		"reloadSeconds": 1.8,
+		"reloadPerRound": false,
 		"spreadDegrees": 5,
-		"range": 22
+		"range": 22,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "vex-extended-mag",
+						"name": "Extended Mag",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.25
+							}
+						]
+					},
+					{
+						"id": "vex-stabiliser",
+						"name": "Stabiliser",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": -0.3
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "vex-overclock",
+						"name": "Overclock",
+						"effects": [
+							{
+								"stat": "fireRate",
+								"value": 0.15
+							}
+						]
+					},
+					{
+						"id": "vex-hollow-points",
+						"name": "Hollow Points",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.15
+							}
+						]
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "k-71",
 		"name": "K-71",
-		"slot": "main",
+		"kind": "rifle",
+		"tier": 0,
 		"damageType": "ballistic",
 		"damage": 24,
 		"pellets": 1,
@@ -41,7 +232,599 @@
 		"magazine": 30,
 		"maxReserve": 210,
 		"reloadSeconds": 2.2,
+		"reloadPerRound": false,
 		"spreadDegrees": 2.5,
-		"range": 30
+		"range": 30,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "k71-extended-mag",
+						"name": "Extended Mag",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.25
+							}
+						]
+					},
+					{
+						"id": "k71-hollow-points",
+						"name": "Hollow Points",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.15
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "k71-rapid-chamber",
+						"name": "Rapid Chamber",
+						"effects": [
+							{
+								"stat": "fireRate",
+								"value": 0.15
+							}
+						]
+					},
+					{
+						"id": "k71-ap-rounds",
+						"name": "Armour-Piercing Rounds",
+						"effects": [
+							{
+								"stat": "pierce",
+								"value": 1
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "breacher-12",
+		"name": "Breacher 12",
+		"kind": "shotgun",
+		"tier": 1,
+		"damageType": "ballistic",
+		"damage": 10,
+		"pellets": 8,
+		"fireRate": 75,
+		"automatic": false,
+		"magazine": 6,
+		"maxReserve": 48,
+		"reloadSeconds": 0.5,
+		"reloadPerRound": true,
+		"spreadDegrees": 14,
+		"range": 14,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "breacher-tight-choke",
+						"name": "Tight Choke",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": -0.35
+							}
+						]
+					},
+					{
+						"id": "breacher-extra-pellets",
+						"name": "Buckshot Load",
+						"effects": [
+							{
+								"stat": "pellets",
+								"value": 2
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "breacher-slam-fire",
+						"name": "Slam Fire",
+						"effects": [
+							{
+								"stat": "fireRate",
+								"value": 0.3
+							}
+						]
+					},
+					{
+						"id": "breacher-tube-extension",
+						"name": "Tube Extension",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.5
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "mower",
+		"name": "Mower",
+		"kind": "lmg",
+		"tier": 3,
+		"damageType": "ballistic",
+		"damage": 26,
+		"pellets": 1,
+		"fireRate": 750,
+		"automatic": true,
+		"magazine": 100,
+		"maxReserve": 300,
+		"reloadSeconds": 4.5,
+		"reloadPerRound": false,
+		"spreadDegrees": 4,
+		"range": 32,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "mower-quick-change",
+						"name": "Quick Change",
+						"effects": [
+							{
+								"stat": "reloadSpeed",
+								"value": 0.3
+							}
+						]
+					},
+					{
+						"id": "mower-bipod-grip",
+						"name": "Bipod Grip",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": -0.35
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "mower-big-belt",
+						"name": "Big Belt",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.5
+							}
+						]
+					},
+					{
+						"id": "mower-heavy-rounds",
+						"name": "Heavy Rounds",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.15
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "longstride",
+		"name": "Longstride",
+		"kind": "sniper",
+		"tier": 2,
+		"damageType": "ballistic",
+		"damage": 180,
+		"pellets": 1,
+		"fireRate": 45,
+		"automatic": false,
+		"magazine": 5,
+		"maxReserve": 40,
+		"reloadSeconds": 3,
+		"reloadPerRound": false,
+		"spreadDegrees": 0.3,
+		"range": 60,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 3
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "longstride-straight-pull",
+						"name": "Straight Pull",
+						"effects": [
+							{
+								"stat": "fireRate",
+								"value": 0.25
+							}
+						]
+					},
+					{
+						"id": "longstride-five-more",
+						"name": "Extended Mag",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.6
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "longstride-tungsten",
+						"name": "Tungsten Core",
+						"effects": [
+							{
+								"stat": "pierce",
+								"value": 2
+							}
+						]
+					},
+					{
+						"id": "longstride-heavy-load",
+						"name": "Heavy Load",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.2
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "kiln",
+		"name": "Kiln",
+		"kind": "flamethrower",
+		"tier": 2,
+		"damageType": "fire",
+		"damage": 160,
+		"pellets": 1,
+		"fireRate": 600,
+		"automatic": true,
+		"magazine": 100,
+		"maxReserve": 300,
+		"reloadSeconds": 3.5,
+		"reloadPerRound": false,
+		"spreadDegrees": 0,
+		"range": 7,
+		"behaviour": {
+			"type": "cone",
+			"angleDegrees": 30
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "kiln-long-nozzle",
+						"name": "Long Nozzle",
+						"effects": [
+							{
+								"stat": "range",
+								"value": 0.25
+							}
+						]
+					},
+					{
+						"id": "kiln-big-tank",
+						"name": "Big Tank",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.4
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "kiln-napalm",
+						"name": "Napalm Mix",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.2
+							}
+						]
+					},
+					{
+						"id": "kiln-wide-spray",
+						"name": "Wide Spray",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": 0.5
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "thumper",
+		"name": "Thumper",
+		"kind": "launcher",
+		"tier": 3,
+		"damageType": "explosive",
+		"damage": 220,
+		"pellets": 1,
+		"fireRate": 60,
+		"automatic": false,
+		"magazine": 6,
+		"maxReserve": 24,
+		"reloadSeconds": 3.2,
+		"reloadPerRound": false,
+		"spreadDegrees": 1,
+		"range": 35,
+		"behaviour": {
+			"type": "projectile",
+			"speed": 25,
+			"blastRadius": 3.5
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "thumper-wide-blast",
+						"name": "Wide Blast",
+						"effects": [
+							{
+								"stat": "blastRadius",
+								"value": 0.3
+							}
+						]
+					},
+					{
+						"id": "thumper-quick-load",
+						"name": "Quick Load",
+						"effects": [
+							{
+								"stat": "reloadSpeed",
+								"value": 0.3
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "thumper-big-drum",
+						"name": "Big Drum",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.5
+							}
+						]
+					},
+					{
+						"id": "thumper-hot-load",
+						"name": "Hot Load",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.2
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "arclight",
+		"name": "Arclight",
+		"kind": "shock",
+		"tier": 2,
+		"damageType": "shock",
+		"damage": 40,
+		"pellets": 1,
+		"fireRate": 240,
+		"automatic": true,
+		"magazine": 20,
+		"maxReserve": 120,
+		"reloadSeconds": 2.6,
+		"reloadPerRound": false,
+		"spreadDegrees": 1.5,
+		"range": 26,
+		"behaviour": {
+			"type": "chain",
+			"chains": 3,
+			"chainRange": 5
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "arclight-capacitor",
+						"name": "Capacitor",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.4
+							}
+						]
+					},
+					{
+						"id": "arclight-long-arc",
+						"name": "Long Arc",
+						"effects": [
+							{
+								"stat": "range",
+								"value": 0.25
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "arclight-forked",
+						"name": "Forked Lightning",
+						"effects": [
+							{
+								"stat": "chains",
+								"value": 2
+							}
+						]
+					},
+					{
+						"id": "arclight-overvolt",
+						"name": "Overvolt",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.2
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "viper",
+		"name": "Viper",
+		"kind": "chemical",
+		"tier": 2,
+		"damageType": "chemical",
+		"damage": 90,
+		"pellets": 1,
+		"fireRate": 600,
+		"automatic": true,
+		"magazine": 80,
+		"maxReserve": 240,
+		"reloadSeconds": 3,
+		"reloadPerRound": false,
+		"spreadDegrees": 0,
+		"range": 6,
+		"behaviour": {
+			"type": "cone",
+			"angleDegrees": 25
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "viper-big-tank",
+						"name": "Big Tank",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.4
+							}
+						]
+					},
+					{
+						"id": "viper-long-nozzle",
+						"name": "Long Nozzle",
+						"effects": [
+							{
+								"stat": "range",
+								"value": 0.25
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "viper-caustic",
+						"name": "Caustic Mix",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.2
+							}
+						]
+					},
+					{
+						"id": "viper-wide-spray",
+						"name": "Wide Spray",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": 0.5
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "minigun",
+		"name": "Minigun",
+		"kind": "minigun",
+		"tier": null,
+		"damageType": "ballistic",
+		"damage": 45,
+		"pellets": 1,
+		"fireRate": 1200,
+		"automatic": true,
+		"magazine": 9999,
+		"maxReserve": null,
+		"reloadSeconds": 1,
+		"reloadPerRound": false,
+		"spreadDegrees": 6,
+		"range": 30,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"perks": []
 	}
 ]

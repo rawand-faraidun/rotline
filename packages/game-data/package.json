@@ -6,7 +6,8 @@
 	"exports": "./src/index.ts",
 	"scripts": {
 		"typecheck": "tsc",
-		"test": "vitest run"
+		"test": "vitest run",
+		"economy": "node src/write-economy.ts"
 	},
 	"dependencies": {
 		"zod": "catalog:"
