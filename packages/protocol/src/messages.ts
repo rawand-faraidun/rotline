@@ -1,16 +1,16 @@
-import { zombies as zombieDefs } from '@rotline/game-data'
+import { type Build, buildSchema, zombies as zombieDefs } from '@rotline/game-data'
 import {
 	MAX_ZOMBIES,
 	type PlayerInput,
 	type PlayerState,
-	REVIVE_SECONDS,
+	REVIVE_COMPLETE,
 	type SimEvent,
 	TICK_RATE,
 	type World
 } from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
-export const PROTOCOL_VERSION = 2
+export const PROTOCOL_VERSION = 3
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3 } as const
 export const ServerMessage = { welcome: 10, snapshot: 11, events: 12, ping: 13, kick: 14, roster: 15 } as const
@@ -55,7 +55,7 @@ export function readClientMessage(r: Reader): ClientToServer {
 	const type = r.u8()
 	switch (type) {
 		case ClientMessage.hello:
-			return { type: 'hello', version: r.u16(), ticket: r.string(2048) }
+			return { type: 'hello', version: r.u16(), ticket: r.string(4096) }
 		case ClientMessage.input: {
 			const ackSnapshot = r.u32()
 			const count = r.u8()
@@ -75,10 +75,44 @@ export function readClientMessage(r: Reader): ClientToServer {
 
 // --- server → client ---------------------------------------------------------------------------
 
-export type WelcomeMessage = { type: 'welcome'; version: number; you: number; mapId: string; tick: number }
+/** `build` is the player's own build, so client prediction uses exactly the server's numbers. */
+export type WelcomeMessage = {
+	type: 'welcome'
+	version: number
+	you: number
+	mapId: string
+	tick: number
+	build: Build
+}
 
-export function writeWelcome(w: Writer, you: number, mapId: string, tick: number): Uint8Array<ArrayBuffer> {
-	return w.reset().u8(ServerMessage.welcome).u16(PROTOCOL_VERSION).u8(you).string(mapId).u32(tick).finish()
+export function writeWelcome(
+	w: Writer,
+	you: number,
+	mapId: string,
+	tick: number,
+	build: Build
+): Uint8Array<ArrayBuffer> {
+	return w
+		.reset()
+		.u8(ServerMessage.welcome)
+		.u16(PROTOCOL_VERSION)
+		.u8(you)
+		.string(mapId)
+		.u32(tick)
+		.string(JSON.stringify(build))
+		.finish()
+}
+
+function readBuild(text: string): Build {
+	let parsed: unknown
+	try {
+		parsed = JSON.parse(text)
+	} catch {
+		throw new ProtocolError('welcome build is not JSON')
+	}
+	const result = buildSchema.safeParse(parsed)
+	if (!result.success) throw new ProtocolError('welcome build is invalid')
+	return result.data
 }
 
 export type RosterEntry = { slot: number; name: string; connected: boolean }
@@ -102,7 +136,7 @@ export function writeKick(w: Writer, reason: number): Uint8Array<ArrayBuffer> {
 }
 
 /** Everything the client needs to reconcile its own player exactly. */
-export type SelfState = Omit<PlayerState, 'id' | 'lastSeq'>
+export type SelfState = Omit<PlayerState, 'id' | 'lastSeq' | 'stats'>
 
 export type OtherPlayer = {
 	id: number
@@ -192,7 +226,7 @@ export class SnapshotEncoder {
 			const s = self ?? EMPTY_SELF
 			w.f64(s.x).f64(s.y).u16(s.aim).f32(s.health)
 			w.u8((s.alive ? 1 : 0) | (s.reloadEndTick !== 0 ? 2 : 0) | (s.downed ? 4 : 0))
-			w.u32(s.bleedoutTick).u8(s.downs).u16(s.reviveProgress)
+			w.u32(s.bleedoutTick).u8(s.downs).u16(Math.round(s.reviveProgress))
 			w.u8(s.slot).u8(s.previousSlot).u32(s.respawnTick).u32(s.safeUntilTick)
 			w.u32(s.reloadEndTick).f64(s.nextFireTick).u8(s.heldButtons)
 			for (const weapon of s.weapons) w.u8(weapon.def).u16(weapon.mag).i16(weapon.reserve)
@@ -206,7 +240,7 @@ export class SnapshotEncoder {
 			w.u8(Math.round((other.health / 100) * 255))
 			w.u8((other.alive ? 1 : 0) | (other.downed ? 2 : 0) | (other.slot << 2))
 			w.u8(other.downed ? Math.max(0, Math.min(255, Math.ceil((other.bleedoutTick - world.tick) / TICK_RATE))) : 0)
-			w.u8(Math.min(255, Math.round((other.reviveProgress / (REVIVE_SECONDS * TICK_RATE)) * 255)))
+			w.u8(Math.min(255, Math.round((other.reviveProgress / REVIVE_COMPLETE) * 255)))
 		}
 
 		// pools
@@ -431,7 +465,9 @@ const EventType = {
 	wave: 8,
 	'player-out': 9,
 	'player-revived': 10,
-	wipe: 11
+	wipe: 11,
+	launch: 12,
+	explode: 13
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -454,6 +490,20 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				w.u16(q(event.x))
 					.u16(q(event.y))
 					.u8(Math.round(event.radius * 10))
+				break
+			case 'launch':
+				w.u16(event.id & 0xffff)
+					.u8(event.player)
+					.u16(q(event.x))
+					.u16(q(event.y))
+				w.u16(Math.round(((((event.angle % TAU) + TAU) % TAU) / TAU) * 65536) & 0xffff)
+				w.u8(Math.min(255, Math.round(event.speed))).u8(event.weapon)
+				break
+			case 'explode':
+				w.u16(event.id & 0xffff)
+					.u16(q(event.x))
+					.u16(q(event.y))
+					.u8(Math.min(255, Math.round(event.radius * 10)))
 				break
 			case 'player-hurt':
 				w.u8(event.player).u16(Math.round(event.amount * 10))
@@ -501,6 +551,21 @@ export function readEvents(r: Reader): SimEvent[] {
 			case EventType.burst:
 				events.push({ type: 'burst', x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })
 				break
+			case EventType.launch:
+				events.push({
+					type: 'launch',
+					id: r.u16(),
+					player: r.u8(),
+					x: dq(r.u16()),
+					y: dq(r.u16()),
+					angle: (r.u16() / 65536) * TAU,
+					speed: r.u8(),
+					weapon: r.u8()
+				})
+				break
+			case EventType.explode:
+				events.push({ type: 'explode', id: r.u16(), x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })
+				break
 			case EventType['player-hurt']:
 				events.push({ type: 'player-hurt', player: r.u8(), amount: r.u16() / 10 })
 				break
@@ -542,7 +607,14 @@ export function readServerHeader(r: Reader): ServerToClient {
 	const type = r.u8()
 	switch (type) {
 		case ServerMessage.welcome:
-			return { type: 'welcome', version: r.u16(), you: r.u8(), mapId: r.string(64), tick: r.u32() }
+			return {
+				type: 'welcome',
+				version: r.u16(),
+				you: r.u8(),
+				mapId: r.string(64),
+				tick: r.u32(),
+				build: readBuild(r.string(4096))
+			}
 		case ServerMessage.snapshot:
 			return { type: 'snapshot' }
 		case ServerMessage.events:

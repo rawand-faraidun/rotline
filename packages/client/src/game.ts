@@ -6,8 +6,8 @@ import {
 	Grid,
 	type PlayerInput,
 	quantiseAxis,
+	REVIVE_COMPLETE,
 	REVIVE_RANGE,
-	REVIVE_SECONDS,
 	TICK_RATE
 } from '@rotline/sim'
 import * as THREE from 'three'
@@ -89,9 +89,9 @@ export function startGame(options: GameOptions): GameHandle {
 	})
 
 	const connection = new GameConnection(options.url, options.ticket, {
-		welcome: slot => {
+		welcome: (slot, _tick, _map, build) => {
 			you = slot
-			predictor = new Predictor(grid, slot)
+			predictor = new Predictor(grid, slot, build)
 			me = new PlayerFigure(slot, true)
 			stage.scene.add(me.group)
 		},
@@ -125,7 +125,7 @@ export function startGame(options: GameOptions): GameHandle {
 				{
 					status: self.downed ? 'down' : self.alive ? 'playing' : 'out',
 					bleedoutSeconds: self.downed ? Math.max(0, Math.ceil((self.bleedoutTick - snapshot.tick) / TICK_RATE)) : 0,
-					beingRevived: self.downed ? self.reviveProgress / (REVIVE_SECONDS * TICK_RATE) : 0,
+					beingRevived: self.downed ? self.reviveProgress / REVIVE_COMPLETE : 0,
 					reviveHint: near ? (names.get(near.id)?.name ?? `Player ${near.id}`) : null,
 					teammates,
 					health: Math.ceil(self.health),
@@ -149,12 +149,33 @@ export function startGame(options: GameOptions): GameHandle {
 			const now = performance.now() / 1000
 			for (const event of events) {
 				switch (event.type) {
-					case 'shot':
-						// our own shots are already drawn when predicted
-						if (event.player !== you) {
-							effects.tracer(event.x, event.y, event.angle, event.length, now)
-							effects.muzzleFlash(event.x, event.y, event.angle, now)
+					case 'shot': {
+						const weapon = weapons[event.weapon]
+						const behaviour = weapon?.behaviour.type ?? 'hitscan'
+						// our own bullets and flames are already drawn when predicted; lightning is drawn from here
+						if (event.player === you && behaviour !== 'chain') break
+						if (behaviour === 'cone') {
+							effects.flame(event.x, event.y, event.angle, event.length, 0.3, weapon?.damageType === 'chemical', now)
+						} else {
+							effects.tracer(
+								event.x,
+								event.y,
+								event.angle,
+								event.length,
+								now,
+								1.05,
+								behaviour === 'chain' ? 0x7fd8ff : 0xffe2a0
+							)
+							if (behaviour !== 'chain' || event.player !== you) effects.muzzleFlash(event.x, event.y, event.angle, now)
 						}
+						break
+					}
+					case 'launch':
+						effects.launch(event.id, event.x, event.y, event.angle, event.speed, now)
+						if (event.player !== you) effects.muzzleFlash(event.x, event.y, event.angle, now)
+						break
+					case 'explode':
+						effects.explode(event.id, event.x, event.y, event.radius, now)
 						break
 					case 'hit':
 						if (now - lastOwnShotAt < 0.3) hud.set({ hitMarker: performance.now() }, performance.now(), true)
@@ -213,11 +234,11 @@ export function startGame(options: GameOptions): GameHandle {
 		hud.set(
 			{
 				weapons: state.weapons.map((held, slot) => {
-					const def = weapons[held.def]
+					const stats = state.stats.weapons[slot as 0 | 1 | 2]
 					return {
-						name: def?.name ?? '?',
+						name: stats.name,
 						mag: held.mag,
-						magazine: def?.magazine ?? 0,
+						magazine: stats.magazine,
 						reserve: held.reserve < 0 ? null : held.reserve,
 						active: slot === state.slot
 					}
@@ -244,16 +265,16 @@ export function startGame(options: GameOptions): GameHandle {
 				const fired = predictor.apply(input)
 				if (fired) {
 					const angle = aimToAngle(predictor.state.aim)
-					const def = weapons[predictor.state.weapons[predictor.state.slot as 0 | 1 | 2].def]
-					const reach = grid.rayToWall(
-						predictor.state.x,
-						predictor.state.y,
-						Math.cos(angle),
-						Math.sin(angle),
-						def?.range ?? 20
-					)
-					effects.tracer(predictor.state.x, predictor.state.y, angle, reach, now / 1000)
-					effects.muzzleFlash(predictor.state.x, predictor.state.y, angle, now / 1000)
+					const held = predictor.state.stats.weapons[predictor.state.slot as 0 | 1 | 2]
+					const { x, y } = predictor.state
+					if (held.behaviour.type === 'cone') {
+						const half = (held.behaviour.angleDegrees * Math.PI) / 360
+						effects.flame(x, y, angle, held.range, half, held.damageType === 'chemical', now / 1000)
+					} else if (held.behaviour.type !== 'projectile') {
+						const reach = grid.rayToWall(x, y, Math.cos(angle), Math.sin(angle), held.range)
+						effects.tracer(x, y, angle, reach, now / 1000, 1.05, held.behaviour.type === 'chain' ? 0x7fd8ff : 0xffe2a0)
+					}
+					effects.muzzleFlash(x, y, angle, now / 1000)
 					lastOwnShotAt = now / 1000
 				}
 				recent.push(input)
@@ -267,14 +288,7 @@ export function startGame(options: GameOptions): GameHandle {
 		if (predictor && me) {
 			predictor.renderPosition(accumulator / TICK_MS, dt, drawn)
 			const own = predictor.state
-			me.set(
-				drawn.x,
-				drawn.y,
-				aimToAngle(own.aim),
-				own.alive,
-				own.downed,
-				own.reviveProgress / (REVIVE_SECONDS * TICK_RATE)
-			)
+			me.set(drawn.x, drawn.y, aimToAngle(own.aim), own.alive, own.downed, own.reviveProgress / REVIVE_COMPLETE)
 			const aimAngle = aimToAngle(predictor.state.aim)
 			const aimX = controls.pointer.inside ? aimPoint.x : drawn.x + Math.cos(aimAngle) * 8
 			const aimY = controls.pointer.inside ? aimPoint.z : drawn.y + Math.sin(aimAngle) * 8

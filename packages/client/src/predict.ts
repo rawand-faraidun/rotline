@@ -1,3 +1,4 @@
+import type { Build } from '@rotline/game-data'
 import type { SelfState } from '@rotline/protocol'
 import { clonePlayer, createPlayer, type Grid, type PlayerInput, type PlayerState, stepPlayer } from '@rotline/sim'
 
@@ -23,9 +24,10 @@ export class Predictor {
 	corrections = 0
 	private started = false
 
-	constructor(grid: Grid, slot: number) {
+	/** `build` comes from the welcome message, so prediction uses exactly the server's numbers. */
+	constructor(grid: Grid, slot: number, build?: Build) {
 		this.grid = grid
-		this.state = createPlayer(slot, 0, 0)
+		this.state = createPlayer(slot, 0, 0, build)
 	}
 
 	/** Applies a new local input now. Returns true if it fired a shot. */

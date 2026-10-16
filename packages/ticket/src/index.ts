@@ -1,4 +1,5 @@
 import { createPrivateKey, createPublicKey, type KeyObject, randomBytes, sign, verify } from 'node:crypto'
+import { buildSchema } from '@rotline/game-data'
 import { z } from 'zod'
 
 /**
@@ -15,6 +16,8 @@ export const ticketPayload = z.object({
 	inst: z.string().min(1).max(64),
 	/** squads hold up to four players; a player alone is a squad of one */
 	mode: z.enum(['squad']),
+	/** class, level, skills and loadout: the game server needs no database */
+	build: buildSchema,
 	/** expiry, unix seconds */
 	exp: z.number().int().positive(),
 	/** random, single use */
@@ -24,6 +27,8 @@ export const ticketPayload = z.object({
 export type TicketPayload = z.infer<typeof ticketPayload>
 
 export const TICKET_SECONDS = 30
+/** a full skill tree and loadout fit comfortably */
+export const MAX_TICKET_LENGTH = 4096
 
 export function loadPrivateKey(base64Der: string): KeyObject {
 	return createPrivateKey({ key: Buffer.from(base64Der, 'base64'), format: 'der', type: 'pkcs8' })
@@ -55,7 +60,8 @@ export type TicketCheck =
 /** Checks shape, signature and expiry. Single use is enforced by the caller (it owns the nonce store). */
 export function verifyTicket(key: KeyObject, ticket: string, now = Date.now()): TicketCheck {
 	const [body, signature, extra] = ticket.split('.')
-	if (!body || !signature || extra !== undefined || ticket.length > 2048) return { ok: false, reason: 'malformed' }
+	if (!body || !signature || extra !== undefined || ticket.length > MAX_TICKET_LENGTH)
+		return { ok: false, reason: 'malformed' }
 	let valid = false
 	try {
 		valid = verify(null, Buffer.from(body), key, Buffer.from(signature, 'base64url'))

@@ -1,3 +1,4 @@
+import type { Build } from '@rotline/game-data'
 import {
 	ProtocolError,
 	Reader,
@@ -14,7 +15,7 @@ import {
 import type { PlayerInput, SimEvent } from '@rotline/sim'
 
 export type ConnectionHandlers = {
-	welcome(you: number, tick: number, mapId: string): void
+	welcome(you: number, tick: number, mapId: string, build: Build): void
 	snapshot(frame: SnapshotFrame, table: ZombieTable, receivedAt: number): void
 	events(events: SimEvent[]): void
 	roster(entries: RosterEntry[]): void
@@ -41,7 +42,7 @@ export class GameConnection {
 				const message = readServerHeader(reader)
 				switch (message.type) {
 					case 'welcome':
-						handlers.welcome(message.you, message.tick, message.mapId)
+						handlers.welcome(message.you, message.tick, message.mapId, message.build)
 						break
 					case 'snapshot': {
 						const frame = readSnapshot(reader, this.table)

@@ -1,4 +1,11 @@
-import { player as playerDef, type WeaponDef, weaponIndex, weapons } from '@rotline/game-data'
+import {
+	type Build,
+	computeStats,
+	type PlayerStats,
+	player as playerDef,
+	starterBuild,
+	type WeaponStats
+} from '@rotline/game-data'
 import { DOWNED_SPEED, DT, SWITCH_SECONDS, TICK_RATE } from './constants.ts'
 import type { Grid } from './grid.ts'
 import { aimToAngle, Button, type PlayerInput } from './input.ts'
@@ -13,6 +20,8 @@ export type WeaponState = {
 
 export type PlayerState = {
 	id: number
+	/** class, level, skills and gear turned into numbers; fixed for the mission */
+	stats: PlayerStats
 	x: number
 	y: number
 	/** facing, 0..65535 */
@@ -26,7 +35,7 @@ export type PlayerState = {
 	bleedoutTick: number
 	/** downs since the last respawn; each one shortens the next bleed-out */
 	downs: number
-	/** ticks of revive progress while downed */
+	/** revive progress while downed, 0..REVIVE_COMPLETE */
 	reviveProgress: number
 	respawnTick: number
 	/** no damage before this tick (after respawning) */
@@ -35,7 +44,7 @@ export type PlayerState = {
 	slot: number
 	previousSlot: number
 	weapons: [WeaponState, WeaponState, WeaponState]
-	/** tick at which a reload finishes; 0 when not reloading */
+	/** tick at which a reload (or the next shell of a shell-by-shell reload) finishes; 0 when not reloading */
 	reloadEndTick: number
 	/** fractional tick at which the next shot may fire */
 	nextFireTick: number
@@ -44,20 +53,21 @@ export type PlayerState = {
 	lastSeq: number
 }
 
-function weaponState(id: string): WeaponState {
-	const def = weaponIndex(id)
-	const weapon = weapons[def] as WeaponDef
-	return { def, mag: weapon.magazine, reserve: weapon.maxReserve ?? -1 }
-}
+const fullWeapon = (weapon: WeaponStats): WeaponState => ({
+	def: weapon.index,
+	mag: weapon.magazine,
+	reserve: weapon.maxReserve ?? -1
+})
 
-export function createPlayer(id: number, x: number, y: number): PlayerState {
-	const [mainA, mainB] = playerDef.loadout.main
+export function createPlayer(id: number, x: number, y: number, build: Build = starterBuild()): PlayerState {
+	const stats = computeStats(build)
 	return {
 		id,
+		stats,
 		x,
 		y,
 		aim: 0,
-		health: playerDef.health,
+		health: stats.maxHealth,
 		alive: true,
 		downed: false,
 		bleedoutTick: 0,
@@ -67,7 +77,7 @@ export function createPlayer(id: number, x: number, y: number): PlayerState {
 		safeUntilTick: 0,
 		slot: 0,
 		previousSlot: 1,
-		weapons: [weaponState(mainA), weaponState(mainB), weaponState(playerDef.loadout.pistol)],
+		weapons: [fullWeapon(stats.weapons[0]), fullWeapon(stats.weapons[1]), fullWeapon(stats.weapons[2])],
 		reloadEndTick: 0,
 		nextFireTick: 0,
 		heldButtons: 0,
@@ -82,25 +92,31 @@ export function clonePlayer(source: PlayerState): PlayerState {
 	}
 }
 
-export function activeWeapon(state: PlayerState): WeaponDef {
-	return weapons[state.weapons[state.slot as 0 | 1 | 2].def] as WeaponDef
+/** The held weapon's stats, with upgrades, perks and skills applied. */
+export function activeWeapon(state: PlayerState): WeaponStats {
+	return state.stats.weapons[state.slot as 0 | 1 | 2]
 }
 
 const position = { x: 0, y: 0 }
 
-function startReload(state: PlayerState, tick: number, def: WeaponDef): void {
+const reloadTicks = (weapon: WeaponStats) => Math.round(weapon.reloadSeconds * TICK_RATE)
+
+function startReload(state: PlayerState, tick: number, weapon: WeaponStats): void {
 	const held = state.weapons[state.slot as 0 | 1 | 2]
-	if (state.reloadEndTick !== 0 || held.mag >= def.magazine || held.reserve === 0) return
-	state.reloadEndTick = tick + Math.round(def.reloadSeconds * TICK_RATE)
+	if (state.reloadEndTick !== 0 || held.mag >= weapon.magazine || held.reserve === 0) return
+	state.reloadEndTick = tick + reloadTicks(weapon)
 }
 
-function finishReload(state: PlayerState, def: WeaponDef): void {
+function finishReload(state: PlayerState, tick: number, weapon: WeaponStats): void {
 	const held = state.weapons[state.slot as 0 | 1 | 2]
-	const missing = def.magazine - held.mag
-	const taken = held.reserve < 0 ? missing : Math.min(missing, held.reserve)
+	const missing = weapon.magazine - held.mag
+	const wanted = weapon.reloadPerRound ? Math.min(1, missing) : missing
+	const taken = held.reserve < 0 ? wanted : Math.min(wanted, held.reserve)
 	held.mag += taken
 	if (held.reserve >= 0) held.reserve -= taken
-	state.reloadEndTick = 0
+	// shotguns keep loading shell by shell until full or out of shells
+	const more = weapon.reloadPerRound && held.mag < weapon.magazine && held.reserve !== 0
+	state.reloadEndTick = more ? tick + reloadTicks(weapon) : 0
 }
 
 function switchTo(state: PlayerState, slot: number, tick: number): void {
@@ -131,7 +147,7 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 		mx /= length
 		my /= length
 	}
-	const step = (state.downed ? DOWNED_SPEED : playerDef.speed) * DT
+	const step = (state.downed ? DOWNED_SPEED : state.stats.speed) * DT
 	grid.moveCircle(state.x, state.y, mx * step, my * step, playerDef.radius, position)
 	state.x = position.x
 	state.y = position.y
@@ -148,21 +164,26 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	else if (pressed & Button.slot3) switchTo(state, 2, tick)
 	else if (pressed & Button.swap) switchTo(state, state.previousSlot, tick)
 
-	const def = activeWeapon(state)
+	const weapon = activeWeapon(state)
 	const held = state.weapons[state.slot as 0 | 1 | 2]
 
-	if (state.reloadEndTick !== 0 && tick >= state.reloadEndTick) finishReload(state, def)
-	if (pressed & Button.reload) startReload(state, tick, def)
+	if (state.reloadEndTick !== 0 && tick >= state.reloadEndTick) finishReload(state, tick, weapon)
+	if (pressed & Button.reload) startReload(state, tick, weapon)
 
-	const wantsFire = def.automatic ? (input.buttons & Button.fire) !== 0 : (pressed & Button.fire) !== 0
-	if (!wantsFire || state.reloadEndTick !== 0) return false
+	const wantsFire = weapon.automatic ? (input.buttons & Button.fire) !== 0 : (pressed & Button.fire) !== 0
+	if (!wantsFire) return false
+	// a shell-by-shell reload stops as soon as the player fires with shells loaded
+	if (state.reloadEndTick !== 0) {
+		if (!weapon.reloadPerRound || held.mag === 0) return false
+		state.reloadEndTick = 0
+	}
 	if (held.mag === 0) {
-		startReload(state, tick, def)
+		startReload(state, tick, weapon)
 		return false
 	}
 	if (tick < state.nextFireTick) return false
 	held.mag -= 1
-	state.nextFireTick = Math.max(state.nextFireTick, tick) + (60 * TICK_RATE) / def.fireRate
+	state.nextFireTick = Math.max(state.nextFireTick, tick) + (60 * TICK_RATE) / weapon.fireRate
 	return true
 }
 

@@ -2,6 +2,7 @@
 // node src/index.ts --url ws://localhost:3200/game --rooms 2 --players 4 --seconds 60
 import { randomUUID } from 'node:crypto'
 import { parseArgs } from 'node:util'
+import { starterBuild } from '@rotline/game-data'
 import { loadPrivateKey, signTicket } from '@rotline/ticket'
 import { Bot, botName } from './bot.ts'
 
@@ -29,7 +30,8 @@ for (let r = 0; r < Number(values.rooms); r++) {
 			name: botName(),
 			room,
 			inst: values.instance,
-			mode: 'squad'
+			mode: 'squad',
+			build: starterBuild()
 		})
 		bots.push(new Bot(values.url, ticket))
 	}

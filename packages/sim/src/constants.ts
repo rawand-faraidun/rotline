@@ -17,10 +17,11 @@ export const BLEEDOUT_SECONDS = 30
 /** each earlier down shortens the next bleed-out by this much */
 export const BLEEDOUT_STEP_SECONDS = 5
 export const BLEEDOUT_MIN_SECONDS = 15
+/** the default revive time; each reviver's class and skills set their own */
 export const REVIVE_SECONDS = 4
+/** revive progress runs from 0 to this, at a rate set by the reviver's revive time */
+export const REVIVE_COMPLETE = 1000
 export const REVIVE_RANGE = 1.5
-/** share of max health a revived player gets back */
-export const REVIVED_HEALTH = 0.3
 /** crawling speed while downed, metres per second */
 export const DOWNED_SPEED = 1
 /** a tick far in the future: players who bled out come back with the next wave, not on a timer */

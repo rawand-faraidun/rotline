@@ -6,6 +6,9 @@ const TRACER_SECONDS = 0.07
 const DECALS = 256
 const BURSTS = 8
 const POOLS = 16
+const FLAMES = 96
+const FLAME_SECONDS = 0.28
+const PROJECTILES = 16
 
 function blob(r: number, g: number, b: number, soft: number): THREE.CanvasTexture {
 	const canvas = document.createElement('canvas')
@@ -41,13 +44,31 @@ export class Effects {
 	private readonly up = new THREE.Vector3(0, 1, 0)
 	private readonly hidden = new THREE.Matrix4().makeScale(0, 0, 0)
 	private readonly gore: boolean
+	private readonly flames: THREE.Sprite[] = []
+	private readonly flameBorn = new Float32Array(FLAMES).fill(-1)
+	private readonly flameVelocity = new Float32Array(FLAMES * 2)
+	private readonly flameOrigin = new Float32Array(FLAMES * 2)
+	private flameHead = 0
+	private readonly fireMaterial: THREE.SpriteMaterial
+	private readonly toxinMaterial: THREE.SpriteMaterial
+	private readonly projectiles: THREE.Mesh[] = []
+	private readonly projectileState: {
+		id: number
+		x: number
+		y: number
+		dx: number
+		dy: number
+		born: number
+		alive: boolean
+	}[] = []
+	private readonly tint = new THREE.Color()
 
 	constructor(scene: THREE.Scene, gore = true) {
 		this.gore = gore
 		this.tracers = new THREE.InstancedMesh(
 			new THREE.BoxGeometry(0.035, 0.035, 1).translate(0, 0, 0.5),
 			new THREE.MeshBasicMaterial({
-				color: 0xffe2a0,
+				color: 0xffffff,
 				transparent: true,
 				opacity: 0.9,
 				blending: THREE.AdditiveBlending,
@@ -107,10 +128,83 @@ export class Effects {
 		)
 		this.flashSprite.visible = false
 		scene.add(this.tracers, this.decals, this.pools, this.flash, this.flashSprite)
+
+		this.fireMaterial = new THREE.SpriteMaterial({
+			map: blob(255, 150, 40, 0.3),
+			blending: THREE.AdditiveBlending,
+			depthWrite: false,
+			transparent: true
+		})
+		this.toxinMaterial = new THREE.SpriteMaterial({
+			map: blob(150, 230, 60, 0.3),
+			blending: THREE.AdditiveBlending,
+			depthWrite: false,
+			transparent: true
+		})
+		for (let i = 0; i < FLAMES; i++) {
+			const sprite = new THREE.Sprite(this.fireMaterial)
+			sprite.visible = false
+			this.flames.push(sprite)
+			scene.add(sprite)
+		}
+		const shell = new THREE.Mesh(
+			new THREE.SphereGeometry(0.14, 10, 8),
+			new THREE.MeshBasicMaterial({ color: 0xffd36a })
+		)
+		for (let i = 0; i < PROJECTILES; i++) {
+			const mesh = shell.clone()
+			mesh.visible = false
+			this.projectiles.push(mesh)
+			this.projectileState.push({ id: -1, x: 0, y: 0, dx: 0, dy: 0, born: 0, alive: false })
+			scene.add(mesh)
+		}
 	}
 
-	tracer(x: number, y: number, angle: number, length: number, now: number, height = 1.05): void {
+	/** A puff of fire or toxin across a cone; the particles drift outward and fade. */
+	flame(x: number, y: number, angle: number, range: number, halfAngle: number, toxic: boolean, now: number): void {
+		for (let n = 0; n < 3; n++) {
+			const i = this.flameHead
+			this.flameHead = (i + 1) % FLAMES
+			const sprite = this.flames[i] as THREE.Sprite
+			const a = angle + (Math.random() * 2 - 1) * halfAngle
+			const speed = (range / FLAME_SECONDS) * (0.6 + Math.random() * 0.4)
+			sprite.material = toxic ? this.toxinMaterial : this.fireMaterial
+			this.flameOrigin[i * 2] = x + Math.cos(angle) * 0.7
+			this.flameOrigin[i * 2 + 1] = y + Math.sin(angle) * 0.7
+			sprite.position.set(this.flameOrigin[i * 2] as number, 1, this.flameOrigin[i * 2 + 1] as number)
+			sprite.visible = true
+			this.flameVelocity[i * 2] = Math.cos(a) * speed
+			this.flameVelocity[i * 2 + 1] = Math.sin(a) * speed
+			this.flameBorn[i] = now
+		}
+	}
+
+	/** A grenade in flight, drawn locally from its launch until the server says it exploded. */
+	launch(id: number, x: number, y: number, angle: number, speed: number, now: number): void {
+		const slot = this.projectileState.findIndex(state => !state.alive)
+		if (slot < 0) return
+		const state = this.projectileState[slot] as (typeof this.projectileState)[number]
+		Object.assign(state, { id, x, y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, born: now, alive: true })
+		;(this.projectiles[slot] as THREE.Mesh).visible = true
+	}
+
+	explode(id: number, x: number, y: number, radius: number, now: number): void {
+		for (const [slot, state] of this.projectileState.entries()) {
+			if (state.alive && state.id === id) {
+				state.alive = false
+				;(this.projectiles[slot] as THREE.Mesh).visible = false
+			}
+		}
+		this.burst(x, y, radius, now, 0xffa040)
+		this.flash.position.set(x, 1.5, y)
+		this.flash.intensity = 40
+		this.flashUntil = now + 0.08
+	}
+
+	tracer(x: number, y: number, angle: number, length: number, now: number, height = 1.05, color = 0xffe2a0): void {
 		const i = this.tracerHead
+		this.tracers.setColorAt(i, this.tint.set(color))
+		if (this.tracers.instanceColor) this.tracers.instanceColor.needsUpdate = true
 		this.tracerHead = (i + 1) % TRACERS
 		this.quaternion.setFromAxisAngle(this.up, Math.PI / 2 - angle)
 		this.matrix.compose(this.position.set(x, height, y), this.quaternion, this.scale.set(1, 1, Math.max(0.1, length)))
@@ -139,10 +233,11 @@ export class Effects {
 		this.decals.instanceMatrix.needsUpdate = true
 	}
 
-	burst(x: number, y: number, radius: number, now: number): void {
+	burst(x: number, y: number, radius: number, now: number, color = 0x9fe04a): void {
 		const i = this.burstHead
 		this.burstHead = (i + 1) % BURSTS
 		const ring = this.bursts[i] as THREE.Mesh
+		;(ring.material as THREE.MeshBasicMaterial).color.set(color)
 		ring.position.set(x, 0.1, y)
 		ring.userData.radius = radius
 		ring.visible = true
@@ -179,6 +274,33 @@ export class Effects {
 		if (now > this.flashUntil) {
 			this.flash.intensity = 0
 			this.flashSprite.visible = false
+		}
+		for (let i = 0; i < FLAMES; i++) {
+			const born = this.flameBorn[i] as number
+			if (born < 0) continue
+			const sprite = this.flames[i] as THREE.Sprite
+			const t = (now - born) / FLAME_SECONDS
+			if (t >= 1) {
+				sprite.visible = false
+				this.flameBorn[i] = -1
+				continue
+			}
+			const age = now - born
+			sprite.position.x = (this.flameOrigin[i * 2] as number) + (this.flameVelocity[i * 2] as number) * age
+			sprite.position.z = (this.flameOrigin[i * 2 + 1] as number) + (this.flameVelocity[i * 2 + 1] as number) * age
+			sprite.scale.setScalar(0.5 + t * 1.6)
+			sprite.material.opacity = 0.9 * (1 - t)
+		}
+		for (const [slot, state] of this.projectileState.entries()) {
+			if (!state.alive) continue
+			const age = now - state.born
+			// a lost explode event must not leave a grenade hanging forever
+			if (age > 3) {
+				state.alive = false
+				;(this.projectiles[slot] as THREE.Mesh).visible = false
+				continue
+			}
+			;(this.projectiles[slot] as THREE.Mesh).position.set(state.x + state.dx * age, 1.1, state.y + state.dy * age)
 		}
 		for (let i = 0; i < BURSTS; i++) {
 			const born = this.burstBorn[i] as number

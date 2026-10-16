@@ -1,4 +1,5 @@
 import { generateKeyPairSync } from 'node:crypto'
+import { starterBuild } from '@rotline/game-data'
 import { describe, expect, it } from 'vitest'
 import { NonceStore, signTicket, TICKET_SECONDS, verifyTicket } from '../src/index.ts'
 
@@ -9,7 +10,8 @@ const claims = {
 	name: 'Rook',
 	room: 'solo-1',
 	inst: 'local-1',
-	mode: 'squad' as const
+	mode: 'squad' as const,
+	build: starterBuild()
 }
 
 describe('tickets', () => {

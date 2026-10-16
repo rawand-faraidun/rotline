@@ -29,7 +29,7 @@ describe('movement', () => {
 describe('weapons', () => {
 	it('starts with two main weapons and a pistol with unlimited reserve', () => {
 		const player = createPlayer(1, 32, 24)
-		const slots = player.weapons.map(weapon => weapons[weapon.def]?.slot)
+		const slots = player.weapons.map(weapon => (weapons[weapon.def]?.kind === 'pistol' ? 'pistol' : 'main'))
 		expect(slots).toEqual(['main', 'main', 'pistol'])
 		expect(player.weapons[2].reserve).toBe(-1)
 	})

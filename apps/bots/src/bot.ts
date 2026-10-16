@@ -79,7 +79,7 @@ export class Bot {
 		const reader = new Reader(bytes)
 		const message = readServerHeader(reader)
 		if (message.type === 'welcome') {
-			this.predictor = new Predictor(this.grid, message.you)
+			this.predictor = new Predictor(this.grid, message.you, message.build)
 			this.timers.push(setInterval(() => this.tick(), TICK_MS))
 			this.timers.push(setInterval(() => this.frame(), 1000 / 60))
 		} else if (message.type === 'ping') {

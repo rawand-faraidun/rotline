@@ -1,4 +1,4 @@
-import { maps, zombieIndex } from '@rotline/game-data'
+import { maps, starterBuild, zombieIndex } from '@rotline/game-data'
 import { aimToAngle, angleToAim, Button, type PlayerInput, quantiseAxis, type SimEvent, World } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
 import {
@@ -131,13 +131,17 @@ describe('client messages', () => {
 describe('server messages', () => {
 	it('round-trip welcome, ping and kick', () => {
 		const w = new Writer()
-		expect(readServerHeader(new Reader(writeWelcome(w, 2, 'yard', 500)))).toEqual({
+		const build = { ...starterBuild('medic'), level: 3, skills: { 'medkit-drop': 1 }, abilities: ['medkit-drop'] }
+		expect(readServerHeader(new Reader(writeWelcome(w, 2, 'yard', 500, build)))).toEqual({
 			type: 'welcome',
 			version: PROTOCOL_VERSION,
 			you: 2,
 			mapId: 'yard',
-			tick: 500
+			tick: 500,
+			build
 		})
+		const broken = writeWelcome(w, 2, 'yard', 500, { ...build, class: 'pirate' } as unknown as typeof build)
+		expect(() => readServerHeader(new Reader(broken))).toThrow(ProtocolError)
 		expect(readServerHeader(new Reader(writePing(w, 9.25)))).toEqual({ type: 'ping', time: 9.25 })
 		expect(readServerHeader(new Reader(writeKick(w, KickReason.badTicket)))).toEqual({
 			type: 'kick',
@@ -167,7 +171,9 @@ describe('server messages', () => {
 			{ type: 'wave', wave: 4 },
 			{ type: 'player-out', player: 2 },
 			{ type: 'player-revived', player: 2, by: 3 },
-			{ type: 'wipe', wave: 4 }
+			{ type: 'wipe', wave: 4 },
+			{ type: 'launch', id: 7, player: 1, x: 3, y: 4, angle: 0, speed: 25, weapon: 8 },
+			{ type: 'explode', id: 7, x: 13, y: 4, radius: 3.5 }
 		]
 		const decoded = readServerHeader(new Reader(writeEvents(new Writer(), events)))
 		expect(decoded.type).toBe('events')

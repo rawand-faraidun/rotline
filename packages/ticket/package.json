@@ -10,6 +10,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@rotline/game-data": "workspace:*",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
