@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { queryOptions, useQueryClient } from '@tanstack/react-query'
 import { api } from './api.ts'
+import { friendsQuery } from './friends.ts'
 
 export type PartyMember = {
 	id: string
@@ -60,15 +61,29 @@ export const partyActions = {
 	start: () => send('start')
 }
 
+export type Invite = { from: string; code: string }
+
 /** Listens to the API's event stream and refreshes whatever changed. Reconnects on its own. */
-export function usePlayerEvents(): void {
+export function usePlayerEvents(onInvite?: (invite: Invite) => void): void {
 	const queryClient = useQueryClient()
+	const inviteHandler = useRef(onInvite)
+	inviteHandler.current = onInvite
 	useEffect(() => {
 		const source = new EventSource('/api/events')
 		const refreshParty = () => void queryClient.invalidateQueries({ queryKey: partyQuery.queryKey })
+		const refreshFriends = () => void queryClient.invalidateQueries({ queryKey: friendsQuery.queryKey })
 		source.addEventListener('party', refreshParty)
+		source.addEventListener('friends', refreshFriends)
+		source.addEventListener('presence', refreshFriends)
+		source.addEventListener('invite', event => {
+			const invite = JSON.parse((event as MessageEvent<string>).data) as Invite
+			inviteHandler.current?.(invite)
+		})
 		// after a reconnect anything may have changed
-		source.addEventListener('hello', refreshParty)
+		source.addEventListener('hello', () => {
+			refreshParty()
+			refreshFriends()
+		})
 		return () => source.close()
 	}, [queryClient])
 }

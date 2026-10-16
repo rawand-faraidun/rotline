@@ -1,0 +1,473 @@
+---
+import { zombies } from '@rotline/game-data'
+import { Panel } from '@rotline/ui'
+import { en } from '../i18n/en.ts'
+import Base from '../layouts/base.astro'
+
+const t = en.queue
+const fill = (text: string, values: Record<string, string | number>) =>
+	text.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ''))
+
+// tips and bestiary entries rotate while players wait; built in, so they need no request
+const cards = [
+	...zombies.map(zombie => ({
+		kind: t.bestiary,
+		title: zombie.name,
+		body: t.creatures[zombie.id as keyof typeof t.creatures] ?? '',
+		meta: fill(t.stats, { health: zombie.health, speed: zombie.speed }),
+		tint: zombie.tint
+	})),
+	...t.tips.map(tip => ({ kind: t.tip, title: '', body: tip, meta: '', tint: '' }))
+]
+
+// one shambling silhouette, reused across the horde
+const horde = Array.from({ length: 14 }, (_, i) => ({
+	x: i * 72 + ((i * 37) % 23),
+	scale: 0.8 + ((i * 13) % 7) / 20,
+	delay: -((i * 0.7) % 2.4).toFixed(2)
+}))
+---
+
+<Base title={t.title}>
+	<div class="queue-scene pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+		<div class="fog fog-a"></div>
+		<div class="fog fog-b"></div>
+		<div class="fog fog-c"></div>
+		<svg class="absolute h-0 w-0">
+			<defs>
+				<symbol id="shambler" viewBox="0 0 48 84">
+					<circle cx="24" cy="13" r="7"></circle>
+					<path
+						d="M18 20C12 24 10 34 12 46L10 62 6 82H12L16 64 20 53 24 64 26 82H32L28 60V44C30 38 30 33 30 30L43 34 45 30 30 23ZM28 27H41L42 24 28 22Z"
+					></path>
+				</symbol>
+			</defs>
+		</svg>
+		{
+			[
+				{ row: 'horde-back', y: 0 },
+				{ row: 'horde-front', y: 0 }
+			].map(({ row }) => (
+				<div class={`horde ${row}`}>
+					{[0, 1].map(copy => (
+						<svg viewBox="0 0 1040 90" preserveAspectRatio="xMinYMax meet" data-copy={copy}>
+							{horde.map(figure => (
+								<g class="shamble" style={`--delay:${figure.delay}s`} transform={`translate(${figure.x} ${90 - 84 * figure.scale}) scale(${figure.scale})`}>
+									<use href="#shambler" width="48" height="84" />
+									{row === 'horde-front' && <circle class="eye" cx="27" cy="12" r="1.3" />}
+								</g>
+							))}
+						</svg>
+					))}
+				</div>
+			))
+		}
+	</div>
+
+	<div class="hazard relative h-2 w-full opacity-80" aria-hidden="true"></div>
+	<main class="relative mx-auto flex min-h-[calc(100dvh-0.5rem)] max-w-5xl flex-col gap-10 px-4 pt-10 pb-44 sm:px-6">
+		<a href="/" class="mx-auto w-fit">
+			<img
+				src="/brand/svg/rotline-logo-stacked-slogan.svg"
+				alt="Rotline — Hold the line against the rot."
+				width="320"
+				height="180"
+				class="h-auto w-56 sm:w-72"
+				fetchpriority="high"
+			/>
+		</a>
+
+		<div class="grid gap-6 lg:grid-cols-[3fr_2fr]">
+			<Panel className="brackets relative gap-6 p-6 sm:p-8" data-panel>
+				<!-- waiting -->
+				<section data-view="queued" class="flex flex-col gap-6">
+					<p class="cut cut-sm w-fit bg-surface-raised px-3 py-1 font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">
+						{t.kicker}
+					</p>
+					<h1 class="font-display text-4xl uppercase sm:text-5xl">{t.heading}</h1>
+					<div class="flex flex-wrap items-end gap-x-10 gap-y-4">
+						<div class="flex flex-col">
+							<span class="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.position}</span>
+							<span class="font-display text-8xl text-rot-lime leading-none tabular-nums" data-testid="queue-position" data-position
+								>—</span
+							>
+							<span class="text-muted" data-total></span>
+						</div>
+						<div class="flex flex-col pb-2">
+							<span class="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.estimate}</span>
+							<span class="font-display text-3xl" data-estimate>—</span>
+						</div>
+					</div>
+					<div class="frame h-4 [--frame-fill:var(--color-rot-black)]" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-progress>
+						<div class="hazard h-full w-0 transition-[width] duration-700 [--hazard-a:var(--color-rot-lime)]" data-bar></div>
+					</div>
+					<p class="text-muted text-sm" data-online></p>
+				</section>
+
+				<!-- admitted: a pass to enter -->
+				<section data-view="pass" hidden class="flex flex-col gap-6">
+					<h1 class="font-display text-4xl text-rot-lime uppercase sm:text-5xl">{t.readyTitle}</h1>
+					<p class="text-bone/85 text-lg" data-pass-body></p>
+					<div class="frame h-4 [--frame-fill:var(--color-rot-black)]">
+						<div class="h-full bg-rot-lime transition-[width] duration-1000 ease-linear" data-pass-bar></div>
+					</div>
+					<button
+						type="button"
+						class="cut cut-lg inline-flex h-14 w-fit cursor-pointer items-center justify-center bg-rot-lime px-8 font-bold text-base text-rot-black uppercase tracking-[0.12em] hover:bg-bone"
+						data-enter
+					>
+						{t.enter}
+					</button>
+				</section>
+
+				<!-- out of the queue -->
+				<section data-view="none" hidden class="flex flex-col gap-6">
+					<h1 class="font-display text-4xl uppercase sm:text-5xl" data-none-title></h1>
+					<p class="text-bone/85 text-lg" data-none-body></p>
+					<button
+						type="button"
+						class="cut cut-lg inline-flex h-14 w-fit cursor-pointer items-center justify-center bg-rot-lime px-8 font-bold text-base text-rot-black uppercase tracking-[0.12em] hover:bg-bone"
+						data-rejoin
+					>
+						{t.rejoin}
+					</button>
+				</section>
+
+				<p class="text-warning text-sm" hidden data-reconnecting>{t.reconnecting}</p>
+				<div class="flex flex-wrap items-center gap-3 border-line border-t border-dashed pt-5">
+					<button
+						type="button"
+						class="cut cut-sm frame inline-flex h-8 cursor-pointer items-center px-3 font-bold text-bone text-xs uppercase tracking-[0.12em] [--frame-color:var(--color-bone)] [--frame-fill:var(--color-rot-black)] hover:text-rot-lime"
+						data-notify
+					>
+						{t.notify}
+					</button>
+					<button
+						type="button"
+						class="cut cut-sm inline-flex h-8 cursor-pointer items-center px-3 font-bold text-muted text-xs uppercase tracking-[0.12em] hover:bg-surface hover:text-bone"
+						data-leave
+					>
+						{t.leave}
+					</button>
+				</div>
+			</Panel>
+
+			<div class="flex flex-col gap-6">
+				<Panel className="gap-4" data-cards>
+					<div class="flex items-center justify-between">
+						<span class="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.field}</span>
+						<span class="flex gap-1.5" data-dots>
+							{cards.map((_, i) => <span class:list={['h-1.5 w-3 bg-line', i === 0 && 'bg-rot-lime']}></span>)}
+						</span>
+					</div>
+					{
+						cards.map((card, i) => (
+							<article class="flex min-h-36 flex-col gap-2" hidden={i !== 0} data-card>
+								<span class="font-bold text-rot-lime text-xs uppercase tracking-[0.2em]">{card.kind}</span>
+								{card.title && (
+									<h2 class="flex items-center gap-3 font-display text-2xl uppercase">
+										<span class="cut-sm inline-block size-4" style={`background:${card.tint}`} />
+										{card.title}
+									</h2>
+								)}
+								<p class="text-bone/85 leading-relaxed">{card.body}</p>
+								{card.meta && <p class="text-muted text-sm">{card.meta}</p>}
+							</article>
+						))
+					}
+				</Panel>
+				<Panel className="gap-3" hidden data-friends>
+					<span class="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.friends}</span>
+					<ul class="flex flex-col gap-2" data-friend-list></ul>
+					<p class="text-muted text-sm" hidden data-no-friends>{t.noFriends}</p>
+				</Panel>
+			</div>
+		</div>
+	</main>
+</Base>
+
+<script is:inline type="application/json" id="queue-text" set:html={JSON.stringify({ ...t, presence: en.app.friends.presence })} />
+
+<script>
+	type Status =
+		| { state: 'admitted' }
+		| { state: 'pass'; expiresAt: number }
+		| { state: 'queued'; position: number; total: number; estimateSeconds: number; capacity: number; online: number }
+		| { state: 'none' }
+
+	const text = JSON.parse(document.getElementById('queue-text')?.textContent ?? '{}')
+	const fill = (value: string, values: Record<string, string | number>) =>
+		value.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ''))
+	const $ = <T extends HTMLElement>(selector: string) => document.querySelector(selector) as T
+	const views = document.querySelectorAll<HTMLElement>('[data-view]')
+	const show = (name: string) => {
+		for (const view of views) view.hidden = view.dataset.view !== name
+	}
+
+	const POLL_MS = 4000
+	const PASS_MS = 90_000
+	const lost = new URLSearchParams(location.search).get('lost')
+	let firstPosition = 0
+	let current: Status['state'] | null = null
+	let passTimer = 0
+	let enteredOnce = false
+
+	async function call(method: 'GET' | 'POST', path: string): Promise<Response | null> {
+		try {
+			return await fetch(`/api/queue/${path}`, {
+				method,
+				headers: method === 'POST' ? { 'content-type': 'application/json' } : {},
+				...(method === 'POST' ? { body: '{}' } : {})
+			})
+		} catch {
+			return null
+		}
+	}
+
+	function render(status: Status) {
+		const previous = current
+		current = status.state
+		if (status.state === 'admitted') {
+			location.replace('/play/lobby')
+			return
+		}
+		if (status.state === 'queued') {
+			show('queued')
+			if (firstPosition === 0 || status.position > firstPosition) firstPosition = status.position
+			$('[data-position]').textContent = String(status.position)
+			$('[data-total]').textContent = fill(text.of, { total: status.total })
+			const minutes = Math.round(status.estimateSeconds / 60)
+			$('[data-estimate]').textContent = minutes < 1 ? text.underMinute : fill(text.minutes, { minutes })
+			const progress = firstPosition <= 1 ? 100 : Math.round(((firstPosition - status.position) / (firstPosition - 1)) * 100)
+			$('[data-bar]').style.width = `${Math.max(4, progress)}%`
+			$('[data-progress]').setAttribute('aria-valuenow', String(progress))
+			$('[data-online]').textContent = fill(text.online, { online: status.online, capacity: status.capacity })
+			document.title = `#${status.position} · ${text.title}`
+			return
+		}
+		if (status.state === 'pass') {
+			show('pass')
+			if (previous !== 'pass') announce()
+			clearInterval(passTimer)
+			const tick = () => {
+				const seconds = Math.max(0, Math.ceil((status.expiresAt - Date.now()) / 1000))
+				$('[data-pass-body]').textContent = fill(text.readyBody, { seconds })
+				$('[data-pass-bar]').style.width = `${(seconds * 1000 * 100) / PASS_MS}%`
+				document.title = `▶ ${text.readyTitle} · Rotline`
+				if (seconds === 0) clearInterval(passTimer)
+			}
+			tick()
+			passTimer = window.setInterval(tick, 1000)
+			return
+		}
+		show('none')
+		clearInterval(passTimer)
+		const reason = previous === 'pass' ? 'expired' : lost === 'idle' ? 'idle' : 'lost'
+		$('[data-none-title]').textContent = text[`${reason}Title`]
+		$('[data-none-body]').textContent = text[`${reason}Body`]
+		document.title = text.title
+	}
+
+	function announce() {
+		if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+			new Notification('Rotline', { body: text.notification, icon: '/brand/png/apple-touch-icon.png' })
+		}
+		try {
+			const audio = new AudioContext()
+			const tone = audio.createOscillator()
+			const gain = audio.createGain()
+			tone.frequency.value = 660
+			gain.gain.setValueAtTime(0.08, audio.currentTime)
+			gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.6)
+			tone.connect(gain).connect(audio.destination)
+			tone.start()
+			tone.stop(audio.currentTime + 0.6)
+		} catch {
+			// sound is a bonus; browsers may block it until the page is used
+		}
+	}
+
+	async function poll() {
+		const response = await call('GET', 'status')
+		$('[data-reconnecting]').hidden = response !== null && response.status < 500
+		if (!response) return
+		if (response.status === 401) {
+			location.replace('/play')
+			return
+		}
+		if (!response.ok) return
+		const status = (await response.json()) as Status
+		// arriving without a place in line (an old tab, a bookmark) joins the queue
+		if (status.state === 'none' && !lost && !enteredOnce && current === null) {
+			await enter()
+			return
+		}
+		render(status)
+	}
+
+	async function enter() {
+		enteredOnce = true
+		const response = await call('POST', 'enter')
+		if (response?.ok) render((await response.json()) as Status)
+	}
+
+	$('[data-enter]').addEventListener('click', () => void enter())
+	$('[data-rejoin]').addEventListener('click', () => {
+		history.replaceState(null, '', '/queue')
+		firstPosition = 0
+		void enter()
+	})
+	$('[data-leave]').addEventListener('click', async () => {
+		await call('POST', 'leave')
+		location.assign('/')
+	})
+	const notifyButton = $('[data-notify]')
+	if (!('Notification' in window)) notifyButton.hidden = true
+	else if (Notification.permission === 'granted') notifyButton.textContent = text.notifyOn
+	notifyButton.addEventListener('click', async () => {
+		if ((await Notification.requestPermission()) === 'granted') notifyButton.textContent = text.notifyOn
+	})
+
+	// rotating field notes
+	const cards = document.querySelectorAll<HTMLElement>('[data-card]')
+	const dots = document.querySelectorAll<HTMLElement>('[data-dots] > span')
+	let card = 0
+	setInterval(() => {
+		card = (card + 1) % cards.length
+		cards.forEach((element, i) => {
+			element.hidden = i !== card
+			dots[i]?.classList.toggle('bg-rot-lime', i === card)
+		})
+	}, 9000)
+
+	// friends online (from the API; the queue keeps working without it)
+	async function friends() {
+		try {
+			const response = await fetch('/api/friends')
+			if (!response.ok) return
+			const body = (await response.json()) as { friends: { name: string; presence: { status: string } }[] }
+			const online = body.friends.filter(friend => friend.presence.status !== 'offline')
+			const list = $('[data-friend-list]')
+			list.replaceChildren(
+				...online.map(friend => {
+					const item = document.createElement('li')
+					item.className = 'flex items-center justify-between gap-3'
+					const name = document.createElement('span')
+					name.className = 'truncate font-bold'
+					name.textContent = friend.name
+					const where = document.createElement('span')
+					where.className = 'text-muted text-sm'
+					where.textContent = text.presence[friend.presence.status] ?? ''
+					item.append(name, where)
+					return item
+				})
+			)
+			$('[data-no-friends]').hidden = online.length > 0
+			$('[data-friends]').hidden = false
+		} catch {
+			// leave the panel hidden
+		}
+	}
+
+	void poll()
+	void friends()
+	setInterval(() => void poll(), POLL_MS)
+	setInterval(() => void friends(), 60_000)
+</script>
+
+<style>
+	.fog {
+		position: absolute;
+		inset: -20% -40%;
+		filter: blur(40px);
+		animation: drift 60s ease-in-out infinite alternate;
+	}
+	.fog-a {
+		background: radial-gradient(ellipse 40% 25% at 30% 80%, rgb(184 242 60 / 0.07), transparent 70%);
+	}
+	.fog-b {
+		background: radial-gradient(ellipse 45% 30% at 70% 90%, rgb(236 232 220 / 0.06), transparent 70%);
+		animation-duration: 80s;
+		animation-direction: alternate-reverse;
+	}
+	.fog-c {
+		background: radial-gradient(ellipse 60% 20% at 50% 100%, rgb(13 16 14 / 0.9), transparent 75%);
+		animation-duration: 45s;
+	}
+	@keyframes drift {
+		from {
+			transform: translateX(-6%);
+		}
+		to {
+			transform: translateX(6%);
+		}
+	}
+
+	.horde {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		display: flex;
+		width: 200%;
+		animation: advance 90s linear infinite;
+	}
+	.horde svg {
+		width: 50%;
+		height: auto;
+		flex: none;
+	}
+	.horde-back {
+		bottom: 3.5rem;
+		opacity: 0.35;
+		fill: #1f2620;
+		animation-duration: 140s;
+		transform: scale(0.7);
+	}
+	.horde-front {
+		fill: #070908;
+	}
+	@keyframes advance {
+		from {
+			translate: 0 0;
+		}
+		to {
+			translate: -50% 0;
+		}
+	}
+	.shamble use {
+		transform-box: fill-box;
+		transform-origin: 50% 100%;
+		animation: sway 2.4s ease-in-out infinite alternate;
+		animation-delay: var(--delay);
+	}
+	@keyframes sway {
+		from {
+			transform: rotate(-4deg);
+		}
+		to {
+			transform: rotate(3deg) translateY(1px);
+		}
+	}
+	.eye {
+		fill: var(--color-rot-lime);
+		animation: blink 5s steps(1) infinite;
+		animation-delay: var(--delay);
+	}
+	@keyframes blink {
+		0%,
+		92% {
+			opacity: 0.9;
+		}
+		94% {
+			opacity: 0;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.fog,
+		.horde,
+		.shamble use,
+		.eye {
+			animation: none;
+		}
+	}
+</style>

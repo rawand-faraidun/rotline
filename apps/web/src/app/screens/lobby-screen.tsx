@@ -7,6 +7,7 @@ import { en } from '../../i18n/en.ts'
 import { signOut } from '../../lib/api.ts'
 import { useAvatar } from '../../lib/avatar.ts'
 import {
+	type Invite,
 	type PartyMember,
 	type PartyProblem,
 	type PartyView,
@@ -14,7 +15,11 @@ import {
 	partyQuery,
 	usePlayerEvents
 } from '../../lib/party.ts'
+import { leaveSeat } from '../../lib/seat.ts'
 import { meQuery } from '../app.tsx'
+import { AdminPanel } from './admin-panel.tsx'
+import { FriendsPanel } from './friends-panel.tsx'
+import { SeatKeeper } from './seat-keeper.tsx'
 import { Shell } from './shell.tsx'
 
 const t = en.app.lobby
@@ -69,7 +74,8 @@ export function LobbyScreen() {
 	const [copied, setCopied] = useState(false)
 	const player = me.status === 'signed-in' ? me.player : null
 	const avatar = useAvatar((player?.avatarStyle ?? 'pixel-art') as AvatarStyle, player?.avatarSeed ?? '')
-	usePlayerEvents()
+	const [invite, setInvite] = useState<Invite | null>(null)
+	usePlayerEvents(setInvite)
 
 	const view = party.data
 	// when the leader deploys, everyone in the squad follows (but returning to the lobby does not bounce back)
@@ -100,6 +106,7 @@ export function LobbyScreen() {
 	}
 
 	const leave = async () => {
+		await leaveSeat()
 		await signOut()
 		queryClient.clear()
 		await navigate({ to: '/play' })
@@ -122,9 +129,31 @@ export function LobbyScreen() {
 				</div>
 			}
 		>
+			<SeatKeeper />
+			{invite && (
+				<div role="status" className="fixed right-4 bottom-4 z-40 w-80">
+					<Panel className="gap-3 [--frame-color:var(--color-rot-lime)]">
+						<p className="font-bold">{en.app.friends.inviteToast.replace('{name}', invite.from)}</p>
+						<div className="flex gap-2">
+							<Button
+								size="sm"
+								onClick={() => {
+									setInvite(null)
+									void act(() => partyActions.join(invite.code))
+								}}
+							>
+								{en.app.friends.joinSquad}
+							</Button>
+							<Button size="sm" variant="ghost" onClick={() => setInvite(null)}>
+								{en.app.friends.dismiss}
+							</Button>
+						</div>
+					</Panel>
+				</div>
+			)}
 			<h1 className="mt-6 mb-8 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
 			<div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-				<Panel>
+				<Panel className="lg:self-start">
 					<PanelHeader>
 						<PanelTitle>{t.squad}</PanelTitle>
 						<span className="font-bold text-muted text-sm">{view?.members.length ?? 1} / 4</span>
@@ -238,6 +267,8 @@ export function LobbyScreen() {
 						</PanelHeader>
 						<p className="text-muted">{t.deployHint}</p>
 					</Panel>
+					<FriendsPanel squad={view?.members.map(member => member.id) ?? []} />
+					{player.isAdmin && <AdminPanel />}
 				</div>
 			</div>
 		</Shell>

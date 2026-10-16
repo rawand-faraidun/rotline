@@ -8,6 +8,7 @@ import {
 	redirect
 } from '@tanstack/react-router'
 import { fetchMe, fetchProviders } from '../lib/api.ts'
+import { requireSeat } from '../lib/seat.ts'
 import { ErrorScreen } from './screens/error-screen.tsx'
 import { LobbyScreen } from './screens/lobby-screen.tsx'
 import { MissionScreen } from './screens/mission-screen.tsx'
@@ -66,6 +67,7 @@ const lobbyRoute = createRoute({
 	beforeLoad: async ({ context }) => {
 		const target = await destination(context.queryClient)
 		if (target !== '/play/lobby') throw redirect({ to: target })
+		await requireSeat()
 	},
 	component: LobbyScreen
 })
@@ -76,6 +78,7 @@ const missionRoute = createRoute({
 	beforeLoad: async ({ context }) => {
 		const target = await destination(context.queryClient)
 		if (target !== '/play/lobby') throw redirect({ to: target })
+		await requireSeat()
 	},
 	component: MissionScreen
 })

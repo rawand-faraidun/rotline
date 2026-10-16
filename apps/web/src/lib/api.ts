@@ -16,6 +16,7 @@ export type Me =
 				avatarSeed: string
 				activeClass: 'assault' | 'medic' | 'heavy'
 				salvage: number
+				isAdmin: boolean
 			} | null
 	  }
 

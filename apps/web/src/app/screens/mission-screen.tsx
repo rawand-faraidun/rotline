@@ -4,6 +4,7 @@ import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
 import { fetchTicket, usePlayerEvents } from '../../lib/party.ts'
+import { SeatKeeper } from './seat-keeper.tsx'
 
 const t = en.app.mission
 
@@ -135,6 +136,7 @@ export function MissionScreen() {
 	return (
 		<div className="fixed inset-0 select-none overflow-hidden bg-rot-black">
 			<canvas ref={canvasRef} className="block h-full w-full cursor-crosshair" aria-label="Game" />
+			<SeatKeeper />
 
 			{!loaded && !ended && (
 				<div className="absolute inset-0 grid place-items-center bg-rot-black">
