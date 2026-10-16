@@ -12,8 +12,8 @@ The server runs the real game; clients send inputs and draw what the server says
 | Interest radius | 40 m | Nothing farther is sent |
 | Client input rate | 30 Hz, each packet repeats the last 3 inputs | A lost packet loses no input |
 | Client render rate | the display's refresh rate, independent of the tick | |
-| Interpolation delay | adaptive, 100 ms by default, 67–250 ms | Grows when snapshots arrive late, shrinks on a clean connection |
-| Lag compensation rewind | up to 200 ms | Fair hits at high ping without shooting far into the past |
+| Interpolation delay | adaptive, 67–300 ms | Covers the 95th percentile of snapshot lateness; about 75 ms on a clean link, about 180 ms at 2 % loss |
+| Lag compensation rewind | up to 300 ms | Matches the largest interpolation delay, so hits stay fair on lossy links |
 
 If a tick runs late, the server runs the missed ticks back to back (up to 3) instead of slowing the game clock. Each room's heavy work, such as rebuilding its flow field, is spread across ticks so rooms on one process never spike together.
 
@@ -68,9 +68,28 @@ With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 
 
 The simulation is deterministic: fixed steps, server-owned seeded randomness, and no `Date.now()` or `Math.random()` in `packages/sim`.
 
+## Input handling on the server
+
+- Each player's inputs wait in a queue; the server applies at most one per tick.
+- A player whose input has not arrived simply does nothing that tick. The server never replays an old input, because that would move the player twice and break prediction.
+- After a network stall the queue may hold several inputs; above three, the server applies two per tick until the player has caught up.
+- Inputs are rate-limited with a token bucket (30 per second, bursts up to 24), so a modified client cannot move faster by sending more inputs.
+
 ## Interpolation
 
-Other players and zombies are drawn at `serverTime − interpolationDelay`, between the two snapshots around that time. If the next snapshot is late, the client extrapolates for up to 100 ms, then holds. The delay targets the 95th percentile of recent arrival jitter plus one snapshot interval.
+Other players and zombies are drawn at `serverTime − interpolationDelay`, between the two snapshots around that time. The delay is the 95th percentile of how late recent snapshots arrived, plus one snapshot interval, between 67 and 300 ms; it grows at once and shrinks gently. If the next snapshot is still late, positions are extrapolated from the last two snapshots for up to 150 ms, then hold.
+
+## Measured behaviour
+
+Bots behind `tc netem` (75 ms each way, loss applied in both directions), 8 players in 2 rooms, 60 seconds per run, WebSocket:
+
+| Round trip, loss | Snapshots >100 ms late | Frames with nothing to draw | Interpolation delay | Prediction corrections |
+|---|---|---|---|---|
+| 150 ms, 0 % | 0 % | 0 % | 77 ms | 0 |
+| 150 ms, 2 % | 6.2 % | 0.7 % | 182 ms | 0 |
+| 150 ms, 5 % | 16.9 % | 0.9 % | 269 ms | 0 |
+
+Your own movement and shooting stay exact at every loss rate. What TCP costs is how far in the past other players and zombies are drawn; datagrams (WebTransport) would bring that back to about 75 ms.
 
 ## Lag compensation
 

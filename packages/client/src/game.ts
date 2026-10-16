@@ -1,6 +1,15 @@
 import { maps, weapons } from '@rotline/game-data'
 import { INPUT_REDUNDANCY } from '@rotline/protocol'
-import { aimToAngle, angleToAim, Grid, type PlayerInput, quantiseAxis, TICK_RATE } from '@rotline/sim'
+import {
+	aimToAngle,
+	angleToAim,
+	Grid,
+	type PlayerInput,
+	quantiseAxis,
+	REVIVE_RANGE,
+	REVIVE_SECONDS,
+	TICK_RATE
+} from '@rotline/sim'
 import * as THREE from 'three'
 import { Controls } from './controls.ts'
 import { HudStore } from './hud-store.ts'
@@ -45,6 +54,7 @@ export function startGame(options: GameOptions): GameHandle {
 	const aimPoint = new THREE.Vector3()
 	const pointer = new THREE.Vector2()
 	const others = new Map<number, PlayerFigure>()
+	const names = new Map<number, { name: string; connected: boolean }>()
 
 	let zombies: ZombieRenderer | null = null
 	let predictor: Predictor | null = null
@@ -85,19 +95,47 @@ export function startGame(options: GameOptions): GameHandle {
 			me = new PlayerFigure(slot, true)
 			stage.scene.add(me.group)
 		},
+		roster: entries => {
+			names.clear()
+			for (const entry of entries) names.set(entry.slot, { name: entry.name, connected: entry.connected })
+		},
 		snapshot: (snapshot, table, receivedAt) => {
 			interpolator.push(snapshot.tick, table, snapshot.others, snapshot.pools, receivedAt)
 			predictor?.reconcile(snapshot.self, snapshot.lastSeq, snapshot.tick)
 			if (snapshot.rttMs > 0) pingMs = snapshot.rttMs
 			const self = snapshot.self
+			const teammates = snapshot.others.map(other => ({
+				slot: other.id,
+				name: names.get(other.id)?.name ?? `Player ${other.id}`,
+				health: Math.round(other.healthPercent * 100),
+				downed: other.downed,
+				out: !other.alive,
+				bleedoutSeconds: other.bleedoutSeconds,
+				revive: other.revive,
+				connected: names.get(other.id)?.connected ?? true
+			}))
+			const near = snapshot.others.find(
+				other =>
+					other.downed &&
+					self.alive &&
+					!self.downed &&
+					Math.hypot(other.x - self.x, other.y - self.y) <= REVIVE_RANGE + 0.3
+			)
 			hud.set(
 				{
-					status: self.alive ? 'playing' : 'down',
+					status: self.downed ? 'down' : self.alive ? 'playing' : 'out',
+					bleedoutSeconds: self.downed ? Math.max(0, Math.ceil((self.bleedoutTick - snapshot.tick) / TICK_RATE)) : 0,
+					beingRevived: self.downed ? self.reviveProgress / (REVIVE_SECONDS * TICK_RATE) : 0,
+					reviveHint: near ? (names.get(near.id)?.name ?? `Player ${near.id}`) : null,
+					teammates,
 					health: Math.ceil(self.health),
 					wave: snapshot.wave + 1,
 					kills: snapshot.kills,
 					score: snapshot.score,
-					respawnSeconds: self.alive ? 0 : Math.max(0, Math.ceil((self.respawnTick - snapshot.tick) / TICK_RATE)),
+					respawnSeconds:
+						self.alive || self.respawnTick > snapshot.tick + 3600 * TICK_RATE
+							? 0
+							: Math.max(0, Math.ceil((self.respawnTick - snapshot.tick) / TICK_RATE)),
 					pingMs: Math.round(pingMs)
 				},
 				receivedAt
@@ -130,6 +168,12 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					case 'player-down':
 						if (event.player === you) hud.set({ status: 'down' }, performance.now(), true)
+						break
+					case 'wave':
+						hud.set({ banner: { text: 'wave', wave: event.wave, at: performance.now() } }, performance.now(), true)
+						break
+					case 'wipe':
+						hud.set({ banner: { text: 'wipe', wave: event.wave, at: performance.now() } }, performance.now(), true)
 						break
 				}
 			}
@@ -222,11 +266,22 @@ export function startGame(options: GameOptions): GameHandle {
 		// draw
 		if (predictor && me) {
 			predictor.renderPosition(accumulator / TICK_MS, dt, drawn)
-			me.set(drawn.x, drawn.y, aimToAngle(predictor.state.aim), predictor.state.alive)
+			const own = predictor.state
+			me.set(
+				drawn.x,
+				drawn.y,
+				aimToAngle(own.aim),
+				own.alive,
+				own.downed,
+				own.reviveProgress / (REVIVE_SECONDS * TICK_RATE)
+			)
 			const aimAngle = aimToAngle(predictor.state.aim)
 			const aimX = controls.pointer.inside ? aimPoint.x : drawn.x + Math.cos(aimAngle) * 8
 			const aimY = controls.pointer.inside ? aimPoint.z : drawn.y + Math.sin(aimAngle) * 8
-			stage.follow(drawn.x, drawn.y, aimX, aimY, dt)
+			// while out of the fight, watch a teammate who is still in it
+			const watched = own.alive ? null : interpolator.others.find(other => other.alive)
+			if (watched) stage.follow(watched.x, watched.y, watched.x, watched.y, dt)
+			else stage.follow(drawn.x, drawn.y, aimX, aimY, dt)
 		}
 		if (interpolator.sample(renderTick)) {
 			zombies?.update(interpolator.view, now / 1000)
@@ -238,7 +293,7 @@ export function startGame(options: GameOptions): GameHandle {
 					others.set(other.id, figure)
 					stage.scene.add(figure.group)
 				}
-				figure.set(other.x, other.y, aimToAngle(other.aim), other.alive)
+				figure.set(other.x, other.y, aimToAngle(other.aim), other.alive, other.downed, other.revive)
 			}
 		}
 		effects.update(now / 1000)

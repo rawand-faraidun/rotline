@@ -1,6 +1,6 @@
 /** What the HUD shows. The game writes it; React reads it through `subscribe` + `getSnapshot`. */
 export type HudState = {
-	status: 'connecting' | 'playing' | 'down' | 'disconnected' | 'kicked'
+	status: 'connecting' | 'playing' | 'down' | 'out' | 'disconnected' | 'kicked'
 	health: number
 	maxHealth: number
 	weapons: { name: string; mag: number; magazine: number; reserve: number | null; active: boolean }[]
@@ -9,6 +9,24 @@ export type HudState = {
 	kills: number
 	score: number
 	respawnSeconds: number
+	/** seconds left before bleeding out, while downed */
+	bleedoutSeconds: number
+	/** 0..1 while a teammate is reviving you */
+	beingRevived: number
+	/** name of the downed teammate you can revive right now */
+	reviveHint: string | null
+	teammates: {
+		slot: number
+		name: string
+		health: number
+		downed: boolean
+		out: boolean
+		bleedoutSeconds: number
+		revive: number
+		connected: boolean
+	}[]
+	/** short announcements: new wave, squad wiped */
+	banner: { text: 'wave' | 'wipe'; wave: number; at: number } | null
 	pingMs: number
 	fps: number
 	hitMarker: number
@@ -25,6 +43,11 @@ export const initialHud: HudState = {
 	kills: 0,
 	score: 0,
 	respawnSeconds: 0,
+	bleedoutSeconds: 0,
+	beingRevived: 0,
+	reviveHint: null,
+	teammates: [],
+	banner: null,
 	pingMs: 0,
 	fps: 0,
 	hitMarker: 0,

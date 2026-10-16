@@ -9,9 +9,13 @@ export class PlayerFigure {
 	private readonly gun: THREE.Mesh
 	private readonly ring: THREE.Mesh
 	private readonly material: THREE.MeshStandardMaterial
+	private readonly colour: number
+	private readonly reviveArc: THREE.Mesh
+	private reviveSteps = 0
 
 	constructor(slot: number, isSelf: boolean) {
 		const colour = SLOT_COLOURS[(slot - 1) % SLOT_COLOURS.length] ?? 0xffffff
+		this.colour = colour
 		this.material = new THREE.MeshStandardMaterial({ color: 0x3b4a3c, roughness: 0.7 })
 		this.body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.9, 4, 10), this.material)
 		this.body.position.y = 0.8
@@ -34,19 +38,35 @@ export class PlayerFigure {
 		)
 		this.ring.rotation.x = -Math.PI / 2
 		this.ring.position.y = 0.03
+		this.reviveArc = new THREE.Mesh(
+			new THREE.RingGeometry(0.72, 0.86, 32, 1, 0, 0),
+			new THREE.MeshBasicMaterial({ color: 0xb8f23c, transparent: true, opacity: 0.95, depthWrite: false })
+		)
+		this.reviveArc.rotation.x = -Math.PI / 2
+		this.reviveArc.position.y = 0.05
+		this.reviveArc.visible = false
 		const pivot = new THREE.Group()
 		pivot.add(this.body, head, this.gun)
-		this.group.add(pivot, this.ring)
+		this.group.add(pivot, this.ring, this.reviveArc)
 		this.group.userData.pivot = pivot
 	}
 
-	set(x: number, y: number, aimAngle: number, alive: boolean): void {
+	/** `revive` is 0..1 progress while a teammate revives this player. */
+	set(x: number, y: number, aimAngle: number, alive: boolean, downed: boolean, revive = 0): void {
+		this.group.visible = alive
 		this.group.position.set(x, 0, y)
 		const pivot = this.group.userData.pivot as THREE.Group
 		pivot.rotation.y = Math.PI / 2 - aimAngle
-		pivot.rotation.z = alive ? 0 : Math.PI / 2.4
-		pivot.position.y = alive ? 0 : 0.25
-		this.material.opacity = alive ? 1 : 0.6
+		pivot.rotation.z = downed ? Math.PI / 2.4 : 0
+		pivot.position.y = downed ? 0.25 : 0
+		;(this.ring.material as THREE.MeshBasicMaterial).color.set(downed ? 0xff5630 : this.colour)
+		const steps = Math.round(revive * 20)
+		if (steps !== this.reviveSteps) {
+			this.reviveSteps = steps
+			this.reviveArc.geometry.dispose()
+			this.reviveArc.geometry = new THREE.RingGeometry(0.72, 0.86, 32, 1, Math.PI / 2, (steps / 20) * Math.PI * 2)
+			this.reviveArc.visible = steps > 0
+		}
 	}
 
 	/** World position of the muzzle, for flashes and tracers. */

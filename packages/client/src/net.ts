@@ -1,6 +1,7 @@
 import {
 	ProtocolError,
 	Reader,
+	type RosterEntry,
 	readServerHeader,
 	readSnapshot,
 	type SnapshotFrame,
@@ -16,6 +17,7 @@ export type ConnectionHandlers = {
 	welcome(you: number, tick: number, mapId: string): void
 	snapshot(frame: SnapshotFrame, table: ZombieTable, receivedAt: number): void
 	events(events: SimEvent[]): void
+	roster(entries: RosterEntry[]): void
 	kicked(reason: number): void
 	closed(): void
 }
@@ -52,6 +54,9 @@ export class GameConnection {
 						break
 					case 'ping':
 						this.socket.send(writePong(this.writer, message.time))
+						break
+					case 'roster':
+						handlers.roster(message.entries)
 						break
 					case 'kick':
 						this.finished = true

@@ -87,8 +87,34 @@ export const en = {
 			signOut: 'Sign out',
 			classes: { assault: 'Assault', medic: 'Medic', heavy: 'Heavy' },
 			slotOpen: 'Open slot',
-			deploy: 'Deploy solo',
-			deployHint: 'Hold the yard against wave after wave.'
+			deploy: 'Deploy',
+			deploySquad: 'Deploy squad',
+			deployHint: 'Hold the yard against wave after wave.',
+			waiting: 'Waiting for everyone to be ready',
+			ready: 'Ready',
+			notReady: 'Not ready',
+			markReady: 'I am ready',
+			unready: 'Not ready yet',
+			leader: 'Leader',
+			kick: 'Remove',
+			leaveParty: 'Leave squad',
+			invite: 'Invite',
+			inviteCode: 'Squad code',
+			copyLink: 'Copy invite link',
+			copied: 'Copied',
+			joinCode: 'Join a squad',
+			joinPlaceholder: 'CODE',
+			join: 'Join',
+			inMission: 'Your squad is in a mission',
+			rejoin: 'Rejoin mission',
+			problems: {
+				'not-found': 'No squad has that code.',
+				full: 'That squad is full.',
+				'in-mission': 'That squad is in a mission right now.',
+				'not-leader': 'Only the leader can do that.',
+				'not-ready': 'Everyone has to be ready first.',
+				'not-member': 'That player is not in your squad.'
+			}
 		},
 		mission: {
 			loading: 'Deploying',
@@ -101,12 +127,23 @@ export const en = {
 			unlimited: '∞',
 			down: 'You are down',
 			backIn: 'Back in {seconds} s',
+			bleedout: 'Bleeding out in {seconds} s',
+			waitForRevive: 'A teammate can revive you',
+			beingRevived: 'Being revived',
+			out: 'You are out',
+			outBack: 'Back with the next wave',
+			reviveHint: 'Hold E to revive {name}',
+			waveBanner: 'Wave {wave}',
+			wipeBanner: 'Squad wiped — restarting wave {wave}',
+			teammateDown: 'Down {seconds} s',
+			teammateOut: 'Out',
+			disconnected: 'Disconnected',
 			ping: '{ms} ms',
 			fps: '{fps} fps',
 			lost: 'Connection lost',
 			kicked: 'Removed from the mission',
 			backToLobby: 'Back to lobby',
-			controls: 'WASD move · mouse aim · click fire · R reload · 1 2 3 weapons · Q swap · Esc leave'
+			controls: 'WASD move · mouse aim · click fire · R reload · 1 2 3 weapons · Q swap · E revive · Esc leave'
 		}
 	}
 } as const

@@ -48,7 +48,7 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	await expect(page).toHaveURL(/\/play\/lobby$/)
 
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition
-	await page.getByRole('button', { name: /deploy solo/i }).click()
+	await page.getByRole('button', { name: /^deploy$/i }).click()
 	await expect(page).toHaveURL(/\/play\/mission$/)
 	await expect(page.getByText(/^wave$/i)).toBeVisible({ timeout: 45_000 })
 	const magazine = page.locator('li', { hasText: 'Vex-9' }).locator('[data-slot="magazine"]')
@@ -63,4 +63,33 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	await page.getByRole('button', { name: /sign out/i }).click()
 	await expect(page).toHaveURL(/\/play$/)
 	await expect(page.getByRole('button', { name: /test account/i })).toBeVisible()
+})
+
+test('two players form a squad by code and deploy together', async ({ browser }) => {
+	async function enlist(tag: string) {
+		const context = await browser.newContext()
+		const page = await context.newPage()
+		const username = `${tag}-${run}`
+		await page.goto('/play')
+		await signInWithTestProvider(page, username)
+		await expect(page).toHaveURL(/\/play\/welcome$/)
+		await page.getByLabel(/player name/i).fill(`${tag}${run}`)
+		await expect(page.getByText(/^available$/i)).toBeVisible()
+		await page.getByRole('button', { name: /enlist/i }).click()
+		await expect(page).toHaveURL(/\/play\/lobby$/)
+		return page
+	}
+	const host = await enlist('Lead')
+	const guest = await enlist('Wing')
+	const code = (await host.getByTestId('party-code').innerText()).trim()
+	await guest.getByLabel(/join a squad/i).fill(code)
+	await guest.getByRole('button', { name: /^join$/i }).click()
+	await expect(host.getByText('2 / 4')).toBeVisible()
+	await expect(host.getByRole('button', { name: /deploy squad/i })).toBeDisabled()
+	await guest.getByRole('button', { name: /i am ready/i }).click()
+	await host.getByRole('button', { name: /deploy squad/i }).click()
+	await expect(host).toHaveURL(/\/play\/mission$/)
+	await expect(guest).toHaveURL(/\/play\/mission$/, { timeout: 15_000 })
+	await expect(host.getByText(`Wing${run}`)).toBeVisible({ timeout: 45_000 })
+	await expect(guest.getByText(`Lead${run}`)).toBeVisible({ timeout: 45_000 })
 })

@@ -3,7 +3,7 @@ import type { GameHandle, HudState } from '@rotline/client'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
-import { api } from '../../lib/api.ts'
+import { fetchTicket, usePlayerEvents } from '../../lib/party.ts'
 
 const t = en.app.mission
 
@@ -85,15 +85,20 @@ export function MissionScreen() {
 	const [failed, setFailed] = useState(false)
 	const navigate = useNavigate()
 	const hud = useHud(handle)
+	usePlayerEvents()
 
 	useEffect(() => {
 		let game: GameHandle | null = null
 		let cancelled = false
 		void (async () => {
 			try {
-				const response = await api.api.game.solo.$post()
-				if (response.status !== 200) throw new Error(`ticket ${response.status}`)
-				const { ticket, path } = (await response.json()) as { ticket: string; path: string }
+				const issued = await fetchTicket()
+				if (!issued) {
+					// no mission to join (it ended, or the squad never deployed)
+					if (!cancelled) void navigate({ to: '/play/lobby' })
+					return
+				}
+				const { ticket, path } = issued
 				// the engine and its assets load only now, never on the landing page or lobby
 				const { startGame } = await import('@rotline/client')
 				if (cancelled || !canvasRef.current) return
@@ -115,7 +120,7 @@ export function MissionScreen() {
 			cancelled = true
 			game?.stop()
 		}
-	}, [])
+	}, [navigate])
 
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
@@ -158,6 +163,57 @@ export function MissionScreen() {
 						))}
 					</div>
 
+					{hud.teammates.length > 0 && (
+						<ul className="pointer-events-none absolute top-16 left-4 flex flex-col gap-2">
+							{hud.teammates.map(mate => (
+								<li
+									key={mate.slot}
+									className={cn(
+										'frame cut-sm flex min-w-52 flex-col gap-1 px-3 py-2 [--frame-fill:rgb(13_16_14/0.8)]',
+										mate.downed && '[--frame-color:var(--color-alert)]'
+									)}
+								>
+									<span className="flex items-center justify-between gap-3 text-sm">
+										<span className="truncate font-bold">{mate.name}</span>
+										<span className={cn('text-xs uppercase tracking-wider', mate.downed ? 'text-alert' : 'text-muted')}>
+											{!mate.connected
+												? t.disconnected
+												: mate.out
+													? t.teammateOut
+													: mate.downed
+														? format(t.teammateDown, { seconds: String(mate.bleedoutSeconds) })
+														: `${mate.health}`}
+										</span>
+									</span>
+									<span className="h-1.5 bg-surface-raised">
+										<span
+											className={cn('block h-full', mate.downed ? 'bg-rot-lime' : 'bg-bone')}
+											style={{ width: `${(mate.downed ? mate.revive : mate.health / 100) * 100}%` }}
+										/>
+									</span>
+								</li>
+							))}
+						</ul>
+					)}
+
+					{hud.reviveHint && hud.status === 'playing' && (
+						<p className="pointer-events-none absolute top-[58%] left-1/2 -translate-x-1/2 bg-rot-black/80 px-3 py-1 font-bold text-rot-lime uppercase tracking-widest">
+							{format(t.reviveHint, { name: hud.reviveHint })}
+						</p>
+					)}
+
+					{hud.banner && performance.now() - hud.banner.at < 2500 && (
+						<p
+							className={cn(
+								'pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
+								hud.banner.text === 'wipe' ? 'text-alert' : 'text-warning'
+							)}
+							aria-live="polite"
+						>
+							{format(hud.banner.text === 'wipe' ? t.wipeBanner : t.waveBanner, { wave: String(hud.banner.wave) })}
+						</p>
+					)}
+
 					<div className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
 						<HealthBar health={hud.health} max={hud.maxHealth} />
 					</div>
@@ -185,13 +241,27 @@ export function MissionScreen() {
 								<div className="cut flex flex-col items-center bg-rot-black px-10 py-6">
 									<p className="font-display text-5xl text-alert uppercase">{t.down}</p>
 									<p className="text-bone/80 tabular-nums" aria-live="polite">
-										{format(t.backIn, { seconds: String(hud.respawnSeconds) })}
+										{hud.beingRevived > 0
+											? `${t.beingRevived} ${Math.round(hud.beingRevived * 100)} %`
+											: format(t.bleedout, { seconds: String(hud.bleedoutSeconds) })}
 									</p>
+									<p className="text-muted text-sm">{t.waitForRevive}</p>
 								</div>
 							</div>
 						</div>
 					)}
 				</>
+			)}
+
+			{hud && loaded && hud.status === 'out' && (
+				<div className="pointer-events-none absolute inset-x-0 top-1/3 flex justify-center">
+					<div className="cut flex flex-col items-center bg-rot-black/85 px-10 py-5">
+						<p className="font-display text-4xl text-muted uppercase">{t.out}</p>
+						<p className="text-bone/80 tabular-nums" aria-live="polite">
+							{hud.respawnSeconds > 0 ? format(t.backIn, { seconds: String(hud.respawnSeconds) }) : t.outBack}
+						</p>
+					</div>
+				</div>
 			)}
 
 			{ended && (

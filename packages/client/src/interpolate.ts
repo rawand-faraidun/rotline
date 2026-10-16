@@ -3,6 +3,11 @@ import { MAX_ZOMBIES, TICK_RATE } from '@rotline/sim'
 
 const TICK_MS = 1000 / TICK_RATE
 const BUFFER = 32
+/** How far past the newest snapshot positions may be extrapolated before they hold, in ticks (150 ms). */
+export const EXTRAPOLATE_TICKS = 4.5
+const LATENESS_SAMPLES = 90
+const MIN_DELAY_MS = TICK_MS * 2
+const MAX_DELAY_MS = 300
 
 type Frame = {
 	tick: number
@@ -35,8 +40,9 @@ export type ZombieView = {
 export class Interpolator {
 	private readonly frames: Frame[] = []
 	private offset = Number.NaN
-	private jitter = 0
+	private readonly lateness: number[] = []
 	delayMs = 100
+	newestTick = 0
 	readonly view: ZombieView = {
 		count: 0,
 		index: new Int32Array(MAX_ZOMBIES),
@@ -64,14 +70,19 @@ export class Interpolator {
 		frame.pools = pools
 		this.frames.push(frame)
 
-		// clock: local time at which `tick` happened on the server, smoothed
+		this.newestTick = Math.max(this.newestTick, tick)
+		// clock: the earliest arrival seen defines "on time"; it drifts up slowly so clock skew heals
 		const sample = receivedAt - tick * TICK_MS
-		if (Number.isNaN(this.offset)) this.offset = sample
-		const deviation = sample - this.offset
-		this.jitter = this.jitter * 0.9 + Math.abs(deviation) * 0.1
-		// follow quickly when packets come early (less delay), slowly when late
-		this.offset += deviation * (deviation < 0 ? 0.2 : 0.02)
-		this.delayMs = Math.max(TICK_MS * 2, Math.min(250, TICK_MS * 2 + this.jitter * 2.5))
+		if (Number.isNaN(this.offset) || sample < this.offset) this.offset = sample
+		else this.offset += 0.002 * (sample - this.offset)
+		// the delay covers the 95th percentile of how late snapshots arrive, plus one snapshot interval
+		this.lateness.push(sample - this.offset)
+		if (this.lateness.length > LATENESS_SAMPLES) this.lateness.shift()
+		const sorted = [...this.lateness].sort((x, y) => x - y)
+		const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0
+		const target = Math.max(MIN_DELAY_MS, Math.min(MAX_DELAY_MS, MIN_DELAY_MS + p95))
+		// grow at once, shrink gently, so motion does not jump backwards
+		this.delayMs = target > this.delayMs ? target : this.delayMs + (target - this.delayMs) * 0.05
 	}
 
 	/** The fractional server tick to draw now. */
@@ -94,15 +105,22 @@ export class Interpolator {
 				break
 			}
 		}
-		const span = b.tick - a.tick
-		// hold at the newest snapshot rather than guessing far ahead
-		const alpha = span > 0 ? Math.max(0, Math.min(1, (tick - a.tick) / span)) : 0
+		let span = b.tick - a.tick
+		// past the newest snapshot: extrapolate from the last two for a short while, then hold
+		if (a === b && frames.length > 1) {
+			a = frames[frames.length - 2] as Frame
+			span = b.tick - a.tick
+		}
+		const limit = a === b ? 1 : 1 + EXTRAPOLATE_TICKS / Math.max(1, span)
+		const alpha = span > 0 ? Math.max(0, Math.min(limit, (tick - a.tick) / span)) : 0
 		const view = this.view
 		let count = 0
 		for (let i = 0; i < MAX_ZOMBIES; i++) {
 			const inA = a.known[i] === 1
 			const inB = b.known[i] === 1 && b.type[i] === a.type[i]
 			if (!inA && !(b.known[i] === 1 && alpha > 0.5)) continue
+			// removed (died or out of range) by the later snapshot
+			if (inA && b.known[i] === 0 && alpha >= 0.5) continue
 			const from = inA ? a : b
 			const to = inA && inB ? b : from
 			view.index[count] = i

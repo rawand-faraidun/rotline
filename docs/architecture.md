@@ -158,6 +158,19 @@ sequenceDiagram
 - Tickets are signed with Ed25519 by the API and verified by the game server with the public key, with no database call.
 - Mission progress is held in memory and saved at checkpoints and at mission end. Each save is one transaction with a unique grant key, so a retried save cannot pay twice. A mission in progress can be lost in a crash; anything saved cannot.
 
+## Squads
+
+Every signed-in player is in a squad (party) of one to four, kept in Valkey: members in join order, the leader, a six-character code, who is ready, and whether the squad is in a mission.
+
+- Players join by code or by an invite link (`/play/lobby?join=CODE`). Squad changes are atomic Lua scripts, so several API instances can change the same squad safely.
+- The leader deploys once everyone else is ready. The API picks the least busy live game-server instance from the registry, names a room and marks the squad as in a mission; every member then asks for their own ticket to that room.
+- Game servers refresh their instance record every five seconds and each room's record every second. A squad whose room record has expired goes back to the lobby.
+- Changes are pushed to members through the event stream (below), so lobbies update at once.
+
+## Event stream
+
+Each open app tab keeps one Server-Sent Events connection to the API (`/api/events`). The API subscribes to the player's Valkey channel while the stream is open and forwards events (squad changed, invites, presence). The browser reconnects by itself and refreshes what it shows after each reconnect.
+
 ## Presence and friends
 
 Game servers and the API keep each player's presence (lobby, mission name, queue, firing range, offline) in Valkey and publish every change. Each client has one push channel and receives changes only for its friends. Nothing polls.
