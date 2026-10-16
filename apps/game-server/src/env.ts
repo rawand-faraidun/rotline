@@ -7,6 +7,8 @@ const schema = z.object({
 	GAME_TICKET_PUBLIC_KEY: z.string().min(40),
 	/** this process's name in tickets and the room registry */
 	GAME_INSTANCE_ID: z.string().min(1).default('local-1'),
+	/** optional: without it the server runs alone, without the room registry (tests, quick local runs) */
+	VALKEY_URL: z.url().optional(),
 	GAME_MAX_ROOMS: z.coerce.number().int().positive().default(64),
 	LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')
 })

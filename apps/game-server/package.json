@@ -15,6 +15,7 @@
 		"@rotline/game-data": "workspace:*",
 		"@rotline/protocol": "workspace:*",
 		"@rotline/sim": "workspace:*",
+		"@rotline/state": "workspace:*",
 		"@rotline/ticket": "workspace:*",
 		"pino": "^10.4.0",
 		"uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.71.0",

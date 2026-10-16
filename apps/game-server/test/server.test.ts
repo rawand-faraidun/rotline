@@ -33,9 +33,9 @@ function ticket(overrides: Partial<{ sub: string; room: string; inst: string }> 
 	return signTicket(keys.privateKey, {
 		sub: randomUUID(),
 		name: 'Tester',
-		room: `solo-${randomUUID()}`,
+		room: `squad-${randomUUID()}`,
 		inst: 'test-1',
-		mode: 'solo',
+		mode: 'squad',
 		...overrides
 	}).ticket
 }
@@ -140,7 +140,7 @@ describe('game server', () => {
 
 	it('lets a player reconnect to the same character', async () => {
 		const sub = randomUUID()
-		const room = `solo-${randomUUID()}`
+		const room = `squad-${randomUUID()}`
 		const first = await connect(ticket({ sub, room }))
 		await until(() => first.snapshots.length >= 1)
 		first.socket.close()

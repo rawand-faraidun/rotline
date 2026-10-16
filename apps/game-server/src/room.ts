@@ -1,11 +1,17 @@
 import { maps } from '@rotline/game-data'
-import { SnapshotEncoder, Writer, writeEvents, writePing, writeWelcome } from '@rotline/protocol'
-import { EMPTY_INPUT, type PlayerInput, type SimEvent, World } from '@rotline/sim'
+import { SnapshotEncoder, Writer, writeEvents, writePing, writeRoster, writeWelcome } from '@rotline/protocol'
+import { type PlayerInput, type SimEvent, World } from '@rotline/sim'
 
 /** Snapshots go out every SNAPSHOT_EVERY ticks (15 Hz at 30 Hz ticks). */
 export const SNAPSHOT_EVERY = 2
 /** Inputs buffered beyond this are dropped (oldest first), so a client cannot bank up movement. */
-const MAX_QUEUED_INPUTS = 6
+/** Inputs buffered for a player; about a second, enough to ride out a TCP stall. */
+const MAX_QUEUED_INPUTS = 30
+/** Beyond this backlog the player is caught up with two inputs per tick. */
+const CATCH_UP_BACKLOG = 3
+/** Input rate limit (token bucket): the normal rate plus room for one stall's burst. */
+const INPUT_RATE = 30
+const INPUT_BURST = 24
 /** Seconds a disconnected player keeps their place in the room. */
 export const RECONNECT_GRACE_SECONDS = 120
 
@@ -22,8 +28,9 @@ type Member = {
 	encoder: SnapshotEncoder
 	queue: PlayerInput[]
 	lastQueuedSeq: number
-	lastInput: PlayerInput
 	disconnectedAt: number
+	inputTokens: number
+	tokensAt: number
 	rtt: number
 }
 
@@ -31,7 +38,7 @@ type Member = {
 export class Room {
 	readonly id: string
 	readonly world: World
-	readonly mode: 'solo'
+	readonly mode: 'squad'
 	readonly capacity: number
 	private readonly members = new Map<string, Member>()
 	private readonly writer = new Writer(16384)
@@ -39,10 +46,10 @@ export class Room {
 	private readonly inputs = new Map<number, PlayerInput>()
 	emptySince = 0
 
-	constructor(id: string, mode: 'solo', seed: number, flowPhase: number) {
+	constructor(id: string, mode: 'squad', seed: number, flowPhase: number) {
 		this.id = id
 		this.mode = mode
-		this.capacity = mode === 'solo' ? 1 : 4
+		this.capacity = 4
 		this.world = new World({ seed, map: maps.yard as NonNullable<typeof maps.yard>, flowPhase })
 	}
 
@@ -73,8 +80,9 @@ export class Room {
 				encoder: new SnapshotEncoder(slot),
 				queue: [],
 				lastQueuedSeq: 0,
-				lastInput: { ...EMPTY_INPUT },
 				disconnectedAt: 0,
+				inputTokens: INPUT_BURST,
+				tokensAt: 0,
 				rtt: 0
 			}
 			this.members.set(userId, member)
@@ -87,6 +95,7 @@ export class Room {
 		member.connection = connection
 		member.disconnectedAt = 0
 		connection.send(writeWelcome(this.writer, member.slot, this.world.map.id, this.world.tick))
+		this.broadcastRoster()
 		return { ok: true, slot: member.slot }
 	}
 
@@ -95,13 +104,34 @@ export class Room {
 		if (!member || member.connection !== connection) return
 		member.connection = null
 		member.disconnectedAt = now
+		this.broadcastRoster()
+	}
+
+	private broadcastRoster(): void {
+		const roster = writeRoster(
+			this.writer,
+			[...this.members.values()].map(member => ({
+				slot: member.slot,
+				name: member.name,
+				connected: member.connection !== null
+			}))
+		)
+		for (const member of this.members.values()) member.connection?.send(roster)
 	}
 
 	receiveInputs(userId: string, inputs: readonly PlayerInput[]): void {
 		const member = this.members.get(userId)
 		if (!member) return
+		// a client may not send inputs faster than the tick rate for long (no banking speed)
+		const now = performance.now()
+		if (member.tokensAt > 0) {
+			member.inputTokens = Math.min(INPUT_BURST, member.inputTokens + ((now - member.tokensAt) / 1000) * INPUT_RATE)
+		}
+		member.tokensAt = now
 		for (const input of inputs) {
 			if (input.seq <= member.lastQueuedSeq) continue
+			if (member.inputTokens < 1) break
+			member.inputTokens -= 1
 			member.lastQueuedSeq = input.seq
 			member.queue.push(input)
 		}
@@ -117,10 +147,14 @@ export class Room {
 	tick(now: number): void {
 		this.inputs.clear()
 		for (const member of this.members.values()) {
-			// one input per tick; if none arrived in time, repeat the last one
+			// at most one input per tick; a player whose input is late simply waits this tick
+			if (member.queue.length > CATCH_UP_BACKLOG) {
+				const state = this.world.players.get(member.slot)
+				const extra = member.queue.shift()
+				if (state && extra) this.world.applyInput(state, extra)
+			}
 			const next = member.queue.shift()
-			if (next) member.lastInput = next
-			this.inputs.set(member.slot, member.lastInput)
+			if (next) this.inputs.set(member.slot, next)
 		}
 		this.world.step(this.inputs)
 		for (const event of this.world.events) this.pendingEvents.push(event)
@@ -148,6 +182,7 @@ export class Room {
 			) {
 				this.world.removePlayer(member.slot)
 				this.members.delete(userId)
+				this.broadcastRoster()
 			}
 		}
 		if (this.members.size === 0 && this.emptySince === 0) this.emptySince = now

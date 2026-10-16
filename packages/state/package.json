@@ -1,0 +1,21 @@
+{
+	"name": "@rotline/state",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc",
+		"test:integration": "node --env-file-if-exists=../../.env ./node_modules/vitest/vitest.mjs run"
+	},
+	"dependencies": {
+		"ioredis": "^6.0.0"
+	},
+	"devDependencies": {
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"@types/node": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

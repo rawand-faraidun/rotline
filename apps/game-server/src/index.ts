@@ -16,5 +16,11 @@ const shutdown = (signal: string) => {
 	server.close()
 	process.exit(0)
 }
+// SIGUSR2: drain (take no new rooms, finish current missions); a deploy sends this to the old version
+process.on('SIGUSR2', () => {
+	log.info('draining')
+	server.onDrained = () => shutdown('drained')
+	server.drain()
+})
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGINT', () => shutdown('SIGINT'))

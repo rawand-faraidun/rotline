@@ -9,6 +9,7 @@ import {
 	writeKick
 } from '@rotline/protocol'
 import { DT } from '@rotline/sim'
+import { announceInstance, createValkey, touchRoom, type Valkey } from '@rotline/state'
 import { loadPublicKey, NonceStore, verifyTicket } from '@rotline/ticket'
 import type { Logger } from 'pino'
 import type { GameEnv } from './env.ts'
@@ -48,12 +49,18 @@ export class GameServer {
 	private nextTickAt = 0
 	private roomSeed = 1
 	private readonly env: GameEnv
+	private readonly valkey: Valkey | null
+	private registryTimer: ReturnType<typeof setInterval> | null = null
+	private draining = false
+	/** called once a draining server has no rooms left */
+	onDrained: (() => void) | null = null
 	private readonly log: Logger
 
 	constructor(env: GameEnv, log: Logger) {
 		this.env = env
 		this.log = log
 		this.publicKey = loadPublicKey(env.GAME_TICKET_PUBLIC_KEY)
+		this.valkey = env.VALKEY_URL ? createValkey(env.VALKEY_URL, `rotline-game-${env.GAME_INSTANCE_ID}`) : null
 		this.app = uws.App()
 		this.app.get('/health', response => {
 			response.writeHeader('content-type', 'application/json').end(
@@ -124,14 +131,48 @@ export class GameServer {
 				this.listenSocket = socket
 				this.nextTickAt = performance.now()
 				this.schedule()
+				if (this.valkey) {
+					void this.announce()
+					this.registryTimer = setInterval(() => void this.announce(), 1000)
+				}
 				resolve(uws.us_socket_local_port(socket))
 			})
 		})
 	}
 
+	/** Takes no new rooms; current missions carry on until they end. */
+	drain(): void {
+		this.draining = true
+		void this.announce()
+	}
+
+	/** Tells the registry this instance is alive and which rooms exist (every second). */
+	private announced = 0
+	private async announce(): Promise<void> {
+		if (!this.valkey) return
+		try {
+			const now = Date.now()
+			for (const room of this.rooms.values()) await touchRoom(this.valkey, room.id, room.playerCount)
+			if (now - this.announced >= 5000 || this.draining) {
+				this.announced = now
+				await announceInstance(this.valkey, {
+					id: this.env.GAME_INSTANCE_ID,
+					rooms: this.rooms.size,
+					players: this.playerCount(),
+					draining: this.draining
+				})
+			}
+		} catch (error) {
+			this.log.warn({ err: error }, 'registry update failed')
+		}
+	}
+
 	close(): void {
 		if (this.timer) clearTimeout(this.timer)
 		this.timer = null
+		if (this.registryTimer) clearInterval(this.registryTimer)
+		this.registryTimer = null
+		void this.valkey?.quit()
 		for (const room of this.rooms.values()) room.closeAll()
 		if (this.listenSocket) uws.us_listen_socket_close(this.listenSocket)
 		this.listenSocket = null
@@ -182,7 +223,7 @@ export class GameServer {
 		}
 		let room = this.rooms.get(payload.room)
 		if (!room) {
-			if (this.rooms.size >= this.env.GAME_MAX_ROOMS) {
+			if (this.draining || this.rooms.size >= this.env.GAME_MAX_ROOMS) {
 				this.kick(socket, KickReason.roomFull)
 				return
 			}
@@ -257,6 +298,7 @@ export class GameServer {
 			if (room.emptySince > 0 && wall - room.emptySince > EMPTY_ROOM_MS) {
 				this.rooms.delete(id)
 				this.log.info({ room: id }, 'room closed')
+				if (this.draining && this.rooms.size === 0) this.onDrained?.()
 			}
 		}
 		const took = performance.now() - started
