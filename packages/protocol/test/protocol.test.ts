@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	INTEREST_RADIUS,
 	KickReason,
+	PROTOCOL_VERSION,
 	ProtocolError,
 	Reader,
 	readClientMessage,
@@ -17,6 +18,7 @@ import {
 	writeKick,
 	writePing,
 	writePong,
+	writeRoster,
 	writeWelcome,
 	ZombieTable
 } from '../src/index.ts'
@@ -80,7 +82,7 @@ describe('client messages', () => {
 		const w = new Writer()
 		expect(readClientMessage(new Reader(writeHello(w, 'ticket.abc')))).toEqual({
 			type: 'hello',
-			version: 1,
+			version: PROTOCOL_VERSION,
 			ticket: 'ticket.abc'
 		})
 		const inputs: PlayerInput[] = [
@@ -131,7 +133,7 @@ describe('server messages', () => {
 		const w = new Writer()
 		expect(readServerHeader(new Reader(writeWelcome(w, 2, 'yard', 500)))).toEqual({
 			type: 'welcome',
-			version: 1,
+			version: PROTOCOL_VERSION,
 			you: 2,
 			mapId: 'yard',
 			tick: 500
@@ -141,6 +143,11 @@ describe('server messages', () => {
 			type: 'kick',
 			reason: KickReason.badTicket
 		})
+		const entries = [
+			{ slot: 1, name: 'Rook', connected: true },
+			{ slot: 2, name: 'Ghost', connected: false }
+		]
+		expect(readServerHeader(new Reader(writeRoster(w, entries)))).toEqual({ type: 'roster', entries })
 	})
 
 	it('rejects unknown server messages and events', () => {
@@ -157,7 +164,10 @@ describe('server messages', () => {
 			{ type: 'player-hurt', player: 1, amount: 12.5 },
 			{ type: 'player-down', player: 1 },
 			{ type: 'player-up', player: 1 },
-			{ type: 'wave', wave: 4 }
+			{ type: 'wave', wave: 4 },
+			{ type: 'player-out', player: 2 },
+			{ type: 'player-revived', player: 2, by: 3 },
+			{ type: 'wipe', wave: 4 }
 		]
 		const decoded = readServerHeader(new Reader(writeEvents(new Writer(), events)))
 		expect(decoded.type).toBe('events')

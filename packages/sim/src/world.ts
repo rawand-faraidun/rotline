@@ -10,17 +10,24 @@ import {
 	zombieIndex
 } from '@rotline/game-data'
 import {
+	BLEEDOUT_MIN_SECONDS,
+	BLEEDOUT_SECONDS,
+	BLEEDOUT_STEP_SECONDS,
 	DT,
 	FLOW_EVERY,
 	HASH_CELL,
 	HISTORY_TICKS,
 	MAX_REWIND_TICKS,
 	MAX_ZOMBIES,
+	NEVER,
 	RESPAWN_SAFE_SECONDS,
+	REVIVE_RANGE,
+	REVIVE_SECONDS,
+	REVIVED_HEALTH,
 	TICK_RATE
 } from './constants.ts'
 import { Grid } from './grid.ts'
-import { EMPTY_INPUT, type PlayerInput } from './input.ts'
+import { Button, type PlayerInput } from './input.ts'
 import { createPlayer, type PlayerState, stepPlayer } from './player.ts'
 import { Rng } from './rng.ts'
 
@@ -31,7 +38,10 @@ export type SimEvent =
 	| { type: 'burst'; x: number; y: number; radius: number }
 	| { type: 'player-hurt'; player: number; amount: number }
 	| { type: 'player-down'; player: number }
+	| { type: 'player-out'; player: number }
+	| { type: 'player-revived'; player: number; by: number }
 	| { type: 'player-up'; player: number }
+	| { type: 'wipe'; wave: number }
 	| { type: 'wave'; wave: number }
 
 export type Pool = { x: number; y: number; radius: number; damagePerTick: number; untilTick: number }
@@ -127,14 +137,18 @@ export class World {
 		return this.spawning.wave
 	}
 
-	/** Advances one tick. `inputs` holds this tick's input per player; missing players repeat nothing. */
+	/**
+	 * Advances one tick. `inputs` holds this tick's input per player. A player without an input this
+	 * tick does nothing: replaying an old input would move them twice and desync client prediction.
+	 */
 	step(inputs: ReadonlyMap<number, PlayerInput>): void {
 		this.events = []
 		for (const state of this.players.values()) {
 			if (!state.alive && this.tick >= state.respawnTick) this.respawn(state)
-			const input = inputs.get(state.id) ?? { ...EMPTY_INPUT, aim: state.aim, seq: state.lastSeq }
-			if (stepPlayer(this.grid, state, input, this.tick)) this.fire(state, input.viewTick)
+			const input = inputs.get(state.id)
+			if (input) this.applyInput(state, input)
 		}
+		this.revives()
 		this.direct()
 		if (this.tick % FLOW_EVERY === this.flowPhase) this.buildFlow()
 		this.buildHash()
@@ -146,9 +160,20 @@ export class World {
 
 	// --- players ---------------------------------------------------------------------------
 
+	/**
+	 * Applies one input to one player at the current tick. `step` calls it once per player; the
+	 * server may call it for an extra queued input to catch a player up after a network stall.
+	 */
+	applyInput(state: PlayerState, input: PlayerInput): void {
+		if (stepPlayer(this.grid, state, input, this.tick)) this.fire(state, input.viewTick)
+	}
+
 	private respawn(state: PlayerState): void {
-		const spawn = this.map.playerSpawns[0]
+		const spawn = this.map.playerSpawns[(state.id - 1) % this.map.playerSpawns.length] ?? this.map.playerSpawns[0]
 		state.alive = true
+		state.downed = false
+		state.downs = 0
+		state.reviveProgress = 0
 		state.health = playerDef.health
 		state.x = spawn?.x ?? 1
 		state.y = spawn?.y ?? 1
@@ -157,15 +182,88 @@ export class World {
 		this.events.push({ type: 'player-up', player: state.id })
 	}
 
+	/** Players who can still fight: in the world and not downed. */
+	private standing(): number {
+		let count = 0
+		for (const state of this.players.values()) if (state.alive && !state.downed) count++
+		return count
+	}
+
 	private hurt(state: PlayerState, amount: number): void {
-		if (!state.alive || amount <= 0 || this.tick < state.safeUntilTick) return
+		if (!state.alive || state.downed || amount <= 0 || this.tick < state.safeUntilTick) return
 		state.health = Math.max(0, state.health - amount)
 		this.events.push({ type: 'player-hurt', player: state.id, amount })
-		if (state.health === 0) {
-			state.alive = false
-			state.respawnTick = this.tick + Math.round(playerDef.respawnSeconds * TICK_RATE)
-			this.events.push({ type: 'player-down', player: state.id })
+		if (state.health > 0) return
+		// zero health: downed, bleeding out, until a teammate revives them
+		state.downed = true
+		state.reviveProgress = 0
+		const seconds = Math.max(BLEEDOUT_MIN_SECONDS, BLEEDOUT_SECONDS - BLEEDOUT_STEP_SECONDS * state.downs)
+		state.bleedoutTick = this.tick + Math.round(seconds * TICK_RATE)
+		state.downs++
+		if (state.slot !== 2) {
+			state.previousSlot = state.slot
+			state.slot = 2
+			state.reloadEndTick = 0
 		}
+		this.events.push({ type: 'player-down', player: state.id })
+		// nobody left standing (always the case solo): the squad restarts the wave
+		if (this.standing() === 0) this.wipe()
+	}
+
+	/** Revives in progress, and bleed-outs. Runs after everyone's input for the tick. */
+	private revives(): void {
+		const needed = Math.round(REVIVE_SECONDS * TICK_RATE)
+		for (const downed of this.players.values()) {
+			if (!downed.alive || !downed.downed) continue
+			if (this.tick >= downed.bleedoutTick) {
+				downed.downed = false
+				downed.alive = false
+				downed.reviveProgress = 0
+				// back with the next wave (or the next checkpoint, once missions have them)
+				downed.respawnTick = NEVER
+				this.events.push({ type: 'player-out', player: downed.id })
+				if (this.standing() === 0) this.wipe()
+				continue
+			}
+			let reviver: PlayerState | null = null
+			for (const other of this.players.values()) {
+				if (other === downed || !other.alive || other.downed || (other.heldButtons & Button.interact) === 0) continue
+				if (Math.hypot(other.x - downed.x, other.y - downed.y) <= REVIVE_RANGE) {
+					reviver = other
+					break
+				}
+			}
+			if (!reviver) {
+				downed.reviveProgress = 0
+				continue
+			}
+			downed.reviveProgress++
+			if (downed.reviveProgress >= needed) {
+				downed.downed = false
+				downed.reviveProgress = 0
+				downed.health = playerDef.health * REVIVED_HEALTH
+				downed.slot = downed.previousSlot === 2 ? 0 : downed.previousSlot
+				this.events.push({ type: 'player-revived', player: downed.id, by: reviver.id })
+			}
+		}
+	}
+
+	/** Everyone is down or out: clear the board and restart the current wave. */
+	private wipe(): void {
+		const delay = Math.round(playerDef.respawnSeconds * TICK_RATE)
+		for (const state of this.players.values()) {
+			state.alive = false
+			state.downed = false
+			state.reviveProgress = 0
+			state.respawnTick = this.tick + delay
+		}
+		for (let i = 0; i < MAX_ZOMBIES; i++) this.alive[i] = 0
+		this.aliveCount = 0
+		this.pools.length = 0
+		this.spawning.queue.length = 0
+		this.spawning.accumulator = 0
+		this.spawning.nextWaveTick = this.tick + delay + Math.round(this.wavesDef.breakSeconds * TICK_RATE)
+		this.events.push({ type: 'wipe', wave: this.spawning.wave + 1 })
 	}
 
 	// --- shooting --------------------------------------------------------------------------
@@ -311,6 +409,8 @@ export class World {
 				}
 				this.events.push({ type: 'wave', wave: spawning.wave + 1 })
 				spawning.nextWaveTick = -1
+				for (const state of this.players.values())
+					if (!state.alive && state.respawnTick === NEVER) state.respawnTick = this.tick
 			}
 		}
 		if (spawning.queue.length > 0) {
@@ -378,7 +478,7 @@ export class World {
 		let head = 0
 		let tail = 0
 		for (const state of this.players.values()) {
-			if (!state.alive) continue
+			if (!state.alive || state.downed) continue
 			const c = Math.floor(state.y) * width + Math.floor(state.x)
 			if (c >= 0 && c < distance.length && distance[c] !== 0) {
 				distance[c] = 0
@@ -461,7 +561,7 @@ export class World {
 			let target: PlayerState | null = null
 			let targetDistance = Number.POSITIVE_INFINITY
 			for (const state of this.players.values()) {
-				if (!state.alive) continue
+				if (!state.alive || state.downed) continue
 				const d = Math.hypot(state.x - x, state.y - y)
 				if (d < targetDistance) {
 					targetDistance = d

@@ -5,7 +5,9 @@ export const Button = {
 	slot1: 4,
 	slot2: 8,
 	slot3: 16,
-	swap: 32
+	swap: 32,
+	/** hold next to a downed teammate to revive them */
+	interact: 64
 } as const
 
 /**

@@ -1,11 +1,19 @@
 import { zombies as zombieDefs } from '@rotline/game-data'
-import { MAX_ZOMBIES, type PlayerInput, type PlayerState, type SimEvent, type World } from '@rotline/sim'
+import {
+	MAX_ZOMBIES,
+	type PlayerInput,
+	type PlayerState,
+	REVIVE_SECONDS,
+	type SimEvent,
+	TICK_RATE,
+	type World
+} from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
-export const PROTOCOL_VERSION = 1
+export const PROTOCOL_VERSION = 2
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3 } as const
-export const ServerMessage = { welcome: 10, snapshot: 11, events: 12, ping: 13, kick: 14 } as const
+export const ServerMessage = { welcome: 10, snapshot: 11, events: 12, ping: 13, kick: 14, roster: 15 } as const
 
 export const KickReason = { badTicket: 1, roomFull: 2, protocol: 3, replaced: 4, shutdown: 5, idle: 6 } as const
 
@@ -73,6 +81,18 @@ export function writeWelcome(w: Writer, you: number, mapId: string, tick: number
 	return w.reset().u8(ServerMessage.welcome).u16(PROTOCOL_VERSION).u8(you).string(mapId).u32(tick).finish()
 }
 
+export type RosterEntry = { slot: number; name: string; connected: boolean }
+
+/** Who is in the room, by player slot; sent whenever someone joins, leaves or reconnects. */
+export function writeRoster(w: Writer, entries: readonly RosterEntry[]): Uint8Array<ArrayBuffer> {
+	w.reset().u8(ServerMessage.roster).u8(entries.length)
+	for (const entry of entries)
+		w.u8(entry.slot)
+			.u8(entry.connected ? 1 : 0)
+			.string(entry.name)
+	return w.finish()
+}
+
 export function writePing(w: Writer, time: number): Uint8Array<ArrayBuffer> {
 	return w.reset().u8(ServerMessage.ping).f64(time).finish()
 }
@@ -91,7 +111,12 @@ export type OtherPlayer = {
 	aim: number
 	healthPercent: number
 	alive: boolean
+	downed: boolean
 	slot: number
+	/** seconds until a downed player bleeds out */
+	bleedoutSeconds: number
+	/** 0..1 */
+	revive: number
 }
 
 export type PoolState = { x: number; y: number; radius: number }
@@ -166,7 +191,8 @@ export class SnapshotEncoder {
 		{
 			const s = self ?? EMPTY_SELF
 			w.f64(s.x).f64(s.y).u16(s.aim).f32(s.health)
-			w.u8((s.alive ? 1 : 0) | (s.reloadEndTick !== 0 ? 2 : 0))
+			w.u8((s.alive ? 1 : 0) | (s.reloadEndTick !== 0 ? 2 : 0) | (s.downed ? 4 : 0))
+			w.u32(s.bleedoutTick).u8(s.downs).u16(s.reviveProgress)
 			w.u8(s.slot).u8(s.previousSlot).u32(s.respawnTick).u32(s.safeUntilTick)
 			w.u32(s.reloadEndTick).f64(s.nextFireTick).u8(s.heldButtons)
 			for (const weapon of s.weapons) w.u8(weapon.def).u16(weapon.mag).i16(weapon.reserve)
@@ -178,7 +204,9 @@ export class SnapshotEncoder {
 			if (other.id === this.playerId) continue
 			w.u8(other.id).u16(q(other.x)).u16(q(other.y)).u16(other.aim)
 			w.u8(Math.round((other.health / 100) * 255))
-			w.u8((other.alive ? 1 : 0) | (other.slot << 1))
+			w.u8((other.alive ? 1 : 0) | (other.downed ? 2 : 0) | (other.slot << 2))
+			w.u8(other.downed ? Math.max(0, Math.min(255, Math.ceil((other.bleedoutTick - world.tick) / TICK_RATE))) : 0)
+			w.u8(Math.min(255, Math.round((other.reviveProgress / (REVIVE_SECONDS * TICK_RATE)) * 255)))
 		}
 
 		// pools
@@ -277,6 +305,9 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		const aim = r.u16()
 		const health = r.f32()
 		const flags = r.u8()
+		const bleedoutTick = r.u32()
+		const downs = r.u8()
+		const reviveProgress = r.u16()
 		const slot = r.u8()
 		const previousSlot = r.u8()
 		const respawnTick = r.u32()
@@ -291,6 +322,10 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			aim,
 			health,
 			alive: (flags & 1) !== 0,
+			downed: (flags & 4) !== 0,
+			bleedoutTick,
+			downs,
+			reviveProgress,
 			slot,
 			previousSlot,
 			respawnTick,
@@ -310,7 +345,20 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		const aim = r.u16()
 		const healthPercent = r.u8() / 255
 		const flags = r.u8()
-		others.push({ id: otherId, x, y, aim, healthPercent, alive: (flags & 1) !== 0, slot: flags >> 1 })
+		const bleedoutSeconds = r.u8()
+		const revive = r.u8() / 255
+		others.push({
+			id: otherId,
+			x,
+			y,
+			aim,
+			healthPercent,
+			alive: (flags & 1) !== 0,
+			downed: (flags & 2) !== 0,
+			slot: flags >> 2,
+			bleedoutSeconds,
+			revive
+		})
 	}
 	const pools: PoolState[] = []
 	const poolCount = r.u8()
@@ -352,6 +400,10 @@ const EMPTY_SELF: SelfState = {
 	aim: 0,
 	health: 0,
 	alive: false,
+	downed: false,
+	bleedoutTick: 0,
+	downs: 0,
+	reviveProgress: 0,
 	respawnTick: 0,
 	safeUntilTick: 0,
 	slot: 0,
@@ -376,7 +428,10 @@ const EventType = {
 	'player-hurt': 5,
 	'player-down': 6,
 	'player-up': 7,
-	wave: 8
+	wave: 8,
+	'player-out': 9,
+	'player-revived': 10,
+	wipe: 11
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -405,9 +460,14 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'player-down':
 			case 'player-up':
+			case 'player-out':
 				w.u8(event.player)
 				break
+			case 'player-revived':
+				w.u8(event.player).u8(event.by)
+				break
 			case 'wave':
+			case 'wipe':
 				w.u16(event.wave)
 				break
 		}
@@ -453,6 +513,15 @@ export function readEvents(r: Reader): SimEvent[] {
 			case EventType.wave:
 				events.push({ type: 'wave', wave: r.u16() })
 				break
+			case EventType['player-out']:
+				events.push({ type: 'player-out', player: r.u8() })
+				break
+			case EventType['player-revived']:
+				events.push({ type: 'player-revived', player: r.u8(), by: r.u8() })
+				break
+			case EventType.wipe:
+				events.push({ type: 'wipe', wave: r.u16() })
+				break
 			default:
 				throw new ProtocolError(`unknown event ${type}`)
 		}
@@ -466,6 +535,7 @@ export type ServerToClient =
 	| { type: 'events'; events: SimEvent[] }
 	| { type: 'ping'; time: number }
 	| { type: 'kick'; reason: number }
+	| { type: 'roster'; entries: RosterEntry[] }
 
 /** Reads the type byte and simple messages; snapshots are read with readSnapshot by the caller. */
 export function readServerHeader(r: Reader): ServerToClient {
@@ -481,6 +551,13 @@ export function readServerHeader(r: Reader): ServerToClient {
 			return { type: 'ping', time: r.f64() }
 		case ServerMessage.kick:
 			return { type: 'kick', reason: r.u8() }
+		case ServerMessage.roster: {
+			const count = r.u8()
+			if (count > 8) throw new ProtocolError('roster too long')
+			const entries: RosterEntry[] = []
+			for (let i = 0; i < count; i++) entries.push({ slot: r.u8(), connected: r.u8() === 1, name: r.string(64) })
+			return { type: 'roster', entries }
+		}
 		default:
 			throw new ProtocolError(`unknown server message ${type}`)
 	}

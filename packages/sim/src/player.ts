@@ -1,5 +1,5 @@
 import { player as playerDef, type WeaponDef, weaponIndex, weapons } from '@rotline/game-data'
-import { DT, SWITCH_SECONDS, TICK_RATE } from './constants.ts'
+import { DOWNED_SPEED, DT, SWITCH_SECONDS, TICK_RATE } from './constants.ts'
 import type { Grid } from './grid.ts'
 import { aimToAngle, Button, type PlayerInput } from './input.ts'
 
@@ -18,7 +18,16 @@ export type PlayerState = {
 	/** facing, 0..65535 */
 	aim: number
 	health: number
+	/** false while out of the fight (bled out, or after a wipe) until respawning */
 	alive: boolean
+	/** at zero health in co-op: crawling with the pistol until revived or bled out */
+	downed: boolean
+	/** tick at which a downed player bleeds out */
+	bleedoutTick: number
+	/** downs since the last respawn; each one shortens the next bleed-out */
+	downs: number
+	/** ticks of revive progress while downed */
+	reviveProgress: number
 	respawnTick: number
 	/** no damage before this tick (after respawning) */
 	safeUntilTick: number
@@ -50,6 +59,10 @@ export function createPlayer(id: number, x: number, y: number): PlayerState {
 		aim: 0,
 		health: playerDef.health,
 		alive: true,
+		downed: false,
+		bleedoutTick: 0,
+		downs: 0,
+		reviveProgress: 0,
 		respawnTick: 0,
 		safeUntilTick: 0,
 		slot: 0,
@@ -118,7 +131,7 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 		mx /= length
 		my /= length
 	}
-	const step = playerDef.speed * DT
+	const step = (state.downed ? DOWNED_SPEED : playerDef.speed) * DT
 	grid.moveCircle(state.x, state.y, mx * step, my * step, playerDef.radius, position)
 	state.x = position.x
 	state.y = position.y
@@ -127,7 +140,10 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	const pressed = input.buttons & ~state.heldButtons
 	state.heldButtons = input.buttons
 
-	if (pressed & Button.slot1) switchTo(state, 0, tick)
+	// downed players only have the pistol
+	if (state.downed) {
+		if (state.slot !== 2) switchTo(state, 2, tick)
+	} else if (pressed & Button.slot1) switchTo(state, 0, tick)
 	else if (pressed & Button.slot2) switchTo(state, 1, tick)
 	else if (pressed & Button.slot3) switchTo(state, 2, tick)
 	else if (pressed & Button.swap) switchTo(state, state.previousSlot, tick)

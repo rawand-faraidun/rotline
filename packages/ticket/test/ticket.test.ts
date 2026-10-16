@@ -9,7 +9,7 @@ const claims = {
 	name: 'Rook',
 	room: 'solo-1',
 	inst: 'local-1',
-	mode: 'solo' as const
+	mode: 'squad' as const
 }
 
 describe('tickets', () => {

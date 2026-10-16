@@ -13,7 +13,8 @@ export const ticketPayload = z.object({
 	room: z.string().min(1).max(64),
 	/** game-server instance the ticket is for */
 	inst: z.string().min(1).max(64),
-	mode: z.enum(['solo']),
+	/** squads hold up to four players; a player alone is a squad of one */
+	mode: z.enum(['squad']),
 	/** expiry, unix seconds */
 	exp: z.number().int().positive(),
 	/** random, single use */
