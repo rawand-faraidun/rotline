@@ -208,6 +208,42 @@ describe('snapshots', () => {
 		expect(Math.abs((table.x[zombie] as number) - (world.x[zombie] as number))).toBeLessThan(1 / 64)
 	})
 
+	it('carries downed teammates with their bleed-out time', () => {
+		const world = quietWorld()
+		world.addPlayer(1)
+		const other = world.addPlayer(2)
+		other.downed = true
+		other.bleedoutTick = world.tick + 300
+		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), new ZombieTable())
+		expect(frame.others[0]?.downed).toBe(true)
+		expect(frame.others[0]?.bleedoutSeconds).toBe(10)
+	})
+
+	it('encodes a snapshot for a player who has left the world', () => {
+		const world = quietWorld()
+		world.addPlayer(2)
+		world.spawnZombie(zombieIndex('drudge'), { x: 3, y: 3 })
+		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), new ZombieTable())
+		expect(frame.lastSeq).toBe(0)
+		expect(frame.others).toHaveLength(1)
+	})
+
+	it('rejects zombie indexes out of range and overlong rosters', () => {
+		const world = quietWorld()
+		world.addPlayer(1)
+		const bytes = new SnapshotEncoder(1).write(new Writer(), world)
+		// the zombie count is the last u16 when no zombies are sent: claim one with a huge index
+		const tail = new Writer().u16(1).varint(1_000_000).u8(0).finish()
+		const bad = new Uint8Array(bytes.length - 2 + tail.length)
+		bad.set(bytes.subarray(0, bytes.length - 2))
+		bad.set(tail, bytes.length - 2)
+		const r = new Reader(bad)
+		readServerHeader(r)
+		expect(() => readSnapshot(r, new ZombieTable())).toThrow(ProtocolError)
+		const roster = Array.from({ length: 9 }, (_, slot) => ({ slot, name: 'x', connected: true }))
+		expect(() => readServerHeader(new Reader(writeRoster(new Writer(), roster)))).toThrow(ProtocolError)
+	})
+
 	it('sends only changes, removes dead zombies and stays in sync over many ticks', () => {
 		const world = quietWorld()
 		world.addPlayer(1)
