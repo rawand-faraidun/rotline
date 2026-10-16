@@ -7,8 +7,16 @@ export const Button = {
 	slot3: 16,
 	swap: 32,
 	/** hold next to a downed teammate to revive them */
-	interact: 64
+	interact: 64,
+	ability1: 128,
+	ability2: 256,
+	ability3: 512,
+	utility1: 1024,
+	utility2: 2048
 } as const
+
+/** `reach` is in steps of this many metres: how far from the player the cursor is (for throws). */
+export const REACH_STEP = 0.2
 
 /**
  * One tick of player intent, already quantised exactly as it travels on the wire,
@@ -26,9 +34,11 @@ export type PlayerInput = {
 	buttons: number
 	/** the server tick the client was displaying when this input was made, for lag compensation */
 	viewTick: number
+	/** distance from the player to the cursor, 0..255 in REACH_STEP metres; where grenades land */
+	reach: number
 }
 
-export const EMPTY_INPUT: PlayerInput = { seq: 0, moveX: 0, moveY: 0, aim: 0, buttons: 0, viewTick: 0 }
+export const EMPTY_INPUT: PlayerInput = { seq: 0, moveX: 0, moveY: 0, aim: 0, buttons: 0, viewTick: 0, reach: 0 }
 
 const TAU = Math.PI * 2
 

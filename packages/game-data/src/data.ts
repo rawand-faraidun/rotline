@@ -3,6 +3,7 @@ import abilitiesData from '../data/abilities.json' with { type: 'json' }
 import classesData from '../data/classes.json' with { type: 'json' }
 import economyData from '../data/economy.json' with { type: 'json' }
 import gearData from '../data/gear.json' with { type: 'json' }
+import rangeData from '../data/maps/range.json' with { type: 'json' }
 import yardData from '../data/maps/yard.json' with { type: 'json' }
 import playerData from '../data/player.json' with { type: 'json' }
 import assaultTree from '../data/skills/assault.json' with { type: 'json' }
@@ -53,9 +54,13 @@ export const weapons = uniqueById('weapons', parse('weapons', z.array(weaponSche
 export const zombies = uniqueById('zombies', parse('zombies', z.array(zombieSchema), zombiesData))
 export const player = parse('player', playerSchema, playerData)
 export const waves = parse('waves', wavesSchema, wavesData)
-export const maps: Record<string, MapDef> = { yard: parse('maps/yard', mapSchema, yardData) }
+export const maps: Record<string, MapDef> = {
+	yard: parse('maps/yard', mapSchema, yardData),
+	range: parse('maps/range', mapSchema, rangeData)
+}
 export const classes = parse('classes', classesSchema, classesData)
 export const abilities = uniqueById('abilities', parse('abilities', z.array(abilitySchema), abilitiesData))
+export const abilityById = new Map(abilities.map(ability => [ability.id, ability]))
 export const gear = parse('gear', gearSchema, gearData)
 export const economy = parse('economy', economySchema, economyData)
 export const upgrades = parse('upgrades', upgradesSchema, upgradesData)
@@ -73,7 +78,7 @@ export const skillNodes = new Map<string, { node: SkillNode; class: ClassId; bra
 for (const [index, wave] of waves.waves.entries()) {
 	for (const key of Object.keys(wave)) {
 		check(
-			zombies.some(zombie => zombie.id === key),
+			zombies.some(zombie => zombie.id === key && !zombie.dummy),
 			`waves[${index}]: unknown zombie ${key}`
 		)
 	}

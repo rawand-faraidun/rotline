@@ -10,9 +10,12 @@ import {
 } from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
-export const PROTOCOL_VERSION = 3
+export const PROTOCOL_VERSION = 4
 
-export const ClientMessage = { hello: 1, input: 2, pong: 3 } as const
+export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4 } as const
+
+/** Firing-range controls: spawn zombies of a type, or clear them away. */
+export const RangeAction = { spawn: 1, clear: 2 } as const
 export const ServerMessage = { welcome: 10, snapshot: 11, events: 12, ping: 13, kick: 14, roster: 15 } as const
 
 export const KickReason = { badTicket: 1, roomFull: 2, protocol: 3, replaced: 4, shutdown: 5, idle: 6 } as const
@@ -32,7 +35,8 @@ const dq = (value: number) => value / POSITION_SCALE
 export type HelloMessage = { type: 'hello'; version: number; ticket: string }
 export type InputMessage = { type: 'input'; ackSnapshot: number; inputs: PlayerInput[] }
 export type PongMessage = { type: 'pong'; time: number }
-export type ClientToServer = HelloMessage | InputMessage | PongMessage
+export type RangeMessage = { type: 'range'; action: number; zombieType: number; count: number }
+export type ClientToServer = HelloMessage | InputMessage | PongMessage | RangeMessage
 
 export function writeHello(w: Writer, ticket: string): Uint8Array<ArrayBuffer> {
 	return w.reset().u8(ClientMessage.hello).u16(PROTOCOL_VERSION).string(ticket).finish()
@@ -42,9 +46,14 @@ export function writeHello(w: Writer, ticket: string): Uint8Array<ArrayBuffer> {
 export function writeInput(w: Writer, ackSnapshot: number, inputs: readonly PlayerInput[]): Uint8Array<ArrayBuffer> {
 	w.reset().u8(ClientMessage.input).u32(ackSnapshot).u8(inputs.length)
 	for (const input of inputs) {
-		w.u32(input.seq).i8(input.moveX).i8(input.moveY).u16(input.aim).u8(input.buttons).u32(input.viewTick)
+		w.u32(input.seq).i8(input.moveX).i8(input.moveY).u16(input.aim).u16(input.buttons).u32(input.viewTick)
+		w.u8(Math.max(0, Math.min(255, Math.round(input.reach))))
 	}
 	return w.finish()
+}
+
+export function writeRange(w: Writer, action: number, zombieType = 0, count = 1): Uint8Array<ArrayBuffer> {
+	return w.reset().u8(ClientMessage.range).u8(action).u8(zombieType).u8(count).finish()
 }
 
 export function writePong(w: Writer, time: number): Uint8Array<ArrayBuffer> {
@@ -62,12 +71,27 @@ export function readClientMessage(r: Reader): ClientToServer {
 			if (count > 16) throw new ProtocolError('too many inputs')
 			const inputs: PlayerInput[] = []
 			for (let i = 0; i < count; i++) {
-				inputs.push({ seq: r.u32(), moveX: r.i8(), moveY: r.i8(), aim: r.u16(), buttons: r.u8(), viewTick: r.u32() })
+				inputs.push({
+					seq: r.u32(),
+					moveX: r.i8(),
+					moveY: r.i8(),
+					aim: r.u16(),
+					buttons: r.u16(),
+					viewTick: r.u32(),
+					reach: r.u8()
+				})
 			}
 			return { type: 'input', ackSnapshot, inputs }
 		}
 		case ClientMessage.pong:
 			return { type: 'pong', time: r.f64() }
+		case ClientMessage.range: {
+			const action = r.u8()
+			const zombieType = r.u8()
+			const count = r.u8()
+			if (count > 20) throw new ProtocolError('too many zombies')
+			return { type: 'range', action, zombieType, count }
+		}
 		default:
 			throw new ProtocolError(`unknown client message ${type}`)
 	}
@@ -136,7 +160,11 @@ export function writeKick(w: Writer, reason: number): Uint8Array<ArrayBuffer> {
 }
 
 /** Everything the client needs to reconcile its own player exactly. */
-export type SelfState = Omit<PlayerState, 'id' | 'lastSeq' | 'stats'>
+/** Everything client prediction needs about its own player (server-only fields stay out). */
+export type SelfState = Omit<
+	PlayerState,
+	'id' | 'lastSeq' | 'stats' | 'guardUntil' | 'immuneUntil' | 'lastRitesUsed' | 'chain' | 'lastKillTick'
+>
 
 export type OtherPlayer = {
 	id: number
@@ -155,6 +183,22 @@ export type OtherPlayer = {
 
 export type PoolState = { x: number; y: number; radius: number }
 
+/** A zone, barricade, mine, decoy, sentry or mortar marker, as clients see it. */
+export type ObjectState = {
+	id: number
+	kind: number
+	x: number
+	y: number
+	radius: number
+	angle: number
+	/** 0..1 for barricades */
+	health: number
+	secondsLeft: number
+}
+
+/** Zombie status bits, for drawing (stunned zombies sparkle, marked ones glow red, ...). */
+export const ZombieStatus = { stunned: 1, slowed: 2, marked: 4, poisoned: 8, taunted: 16 } as const
+
 /** The decoded non-zombie part of a snapshot; zombies are applied straight into a ZombieTable. */
 export type SnapshotFrame = {
 	id: number
@@ -168,6 +212,7 @@ export type SnapshotFrame = {
 	self: SelfState
 	others: OtherPlayer[]
 	pools: PoolState[]
+	objects: ObjectState[]
 }
 
 /** Client-side copy of every zombie the server has told this client about. */
@@ -181,9 +226,20 @@ export class ZombieTable {
 	/** 0..255 of max health */
 	readonly health = new Uint8Array(MAX_ZOMBIES)
 	readonly state = new Uint8Array(MAX_ZOMBIES)
+	/** ZombieStatus bits */
+	readonly status = new Uint8Array(MAX_ZOMBIES)
 }
 
-const Flag = { position: 1, facing: 2, health: 4, fresh: 8, absolute: 16, state: 32, removed: 0x80 } as const
+const Flag = {
+	position: 1,
+	facing: 2,
+	health: 4,
+	fresh: 8,
+	absolute: 16,
+	state: 32,
+	status: 64,
+	removed: 0x80
+} as const
 
 const TAU = Math.PI * 2
 
@@ -194,6 +250,7 @@ const TAU = Math.PI * 2
  */
 export class SnapshotEncoder {
 	private readonly sentKnown = new Uint8Array(MAX_ZOMBIES)
+	private readonly sentStatus = new Uint8Array(MAX_ZOMBIES)
 	private readonly sentX = new Uint16Array(MAX_ZOMBIES)
 	private readonly sentY = new Uint16Array(MAX_ZOMBIES)
 	private readonly sentFacing = new Uint8Array(MAX_ZOMBIES)
@@ -225,11 +282,16 @@ export class SnapshotEncoder {
 		{
 			const s = self ?? EMPTY_SELF
 			w.f64(s.x).f64(s.y).u16(s.aim).f32(s.health)
-			w.u8((s.alive ? 1 : 0) | (s.reloadEndTick !== 0 ? 2 : 0) | (s.downed ? 4 : 0))
+			w.u8((s.alive ? 1 : 0) | (s.reloadEndTick !== 0 ? 2 : 0) | (s.downed ? 4 : 0) | (s.free ? 8 : 0))
 			w.u32(s.bleedoutTick).u8(s.downs).u16(Math.round(s.reviveProgress))
 			w.u8(s.slot).u8(s.previousSlot).u32(s.respawnTick).u32(s.safeUntilTick)
-			w.u32(s.reloadEndTick).f64(s.nextFireTick).u8(s.heldButtons)
+			w.u32(s.reloadEndTick).f64(s.nextFireTick).u16(s.heldButtons)
 			for (const weapon of s.weapons) w.u8(weapon.def).u16(weapon.mag).i16(weapon.reserve)
+			for (const ready of s.abilityReady) w.u32(ready)
+			w.u8(s.utilityCharges[0]).u8(s.utilityCharges[1]).u32(s.utilityReady)
+			w.u32(s.hasteUntil).f32(s.hasteSpeed).f32(s.hasteFire)
+			w.u32(s.dashUntil).f64(s.dashX).f64(s.dashY)
+			w.u16(s.overwatchShots).u32(s.minigunUntil)
 		}
 
 		// everyone else, quantised
@@ -249,6 +311,22 @@ export class SnapshotEncoder {
 			w.u16(q(pool.x))
 				.u16(q(pool.y))
 				.u8(Math.round(pool.radius * 10))
+
+		// zones, barricades, mines, decoys, sentries, markers: few, all sent every time
+		const objects = world.objects.slice(0, 255)
+		w.u8(objects.length)
+		for (const object of objects) {
+			w.u16(object.id & 0xffff)
+				.u8(object.kind)
+				.u16(q(object.x))
+				.u16(q(object.y))
+			w.u8(Math.min(255, Math.round(object.radius * 10)))
+			w.u16(Math.round(((((object.angle % TAU) + TAU) % TAU) / TAU) * 65536) & 0xffff)
+			w.u8(
+				object.maxHealth > 0 ? Math.max(0, Math.min(255, Math.round((object.health / object.maxHealth) * 255))) : 255
+			)
+			w.u8(Math.max(0, Math.min(255, Math.ceil((object.untilTick - world.tick) / TICK_RATE))))
+		}
 
 		// zombies: deltas within the interest radius
 		const cx = self?.x ?? 0
@@ -280,12 +358,14 @@ export class SnapshotEncoder {
 			const max = (zombieDefs[world.type[i] as number] as { health: number }).health
 			const health = Math.max(1, Math.min(255, Math.round(((world.health[i] as number) / max) * 255)))
 			const state = world.state[i] as number
+			const status = zombieStatus(world, i)
 			const fresh = this.sentKnown[i] === 0
 			let flags = 0
 			if (fresh || px !== this.sentX[i] || py !== this.sentY[i]) flags |= Flag.position
 			if (fresh || facing !== this.sentFacing[i]) flags |= Flag.facing
 			if (fresh || health !== this.sentHealth[i]) flags |= Flag.health
 			if (fresh || state !== this.sentState[i]) flags |= Flag.state
+			if (status !== this.sentStatus[i] || (fresh && status !== 0)) flags |= Flag.status
 			if (fresh) flags |= Flag.fresh
 			if (flags === 0) continue
 			w.varint(i - lastId)
@@ -307,7 +387,9 @@ export class SnapshotEncoder {
 			if (flags & Flag.facing) w.u8(facing)
 			if (flags & Flag.health) w.u8(health)
 			if (flags & Flag.state) w.u8(state)
+			if (flags & Flag.status) w.u8(status)
 			this.sentKnown[i] = 1
+			this.sentStatus[i] = status
 			this.sentType[i] = world.type[i] as number
 			this.sentX[i] = px
 			this.sentY[i] = py
@@ -348,8 +430,19 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		const safeUntilTick = r.u32()
 		const reloadEndTick = r.u32()
 		const nextFireTick = r.f64()
-		const heldButtons = r.u8()
+		const heldButtons = r.u16()
 		const weapons = [0, 1, 2].map(() => ({ def: r.u8(), mag: r.u16(), reserve: r.i16() })) as SelfState['weapons']
+		const abilityReady: SelfState['abilityReady'] = [r.u32(), r.u32(), r.u32()]
+		const utilityCharges: SelfState['utilityCharges'] = [r.u8(), r.u8()]
+		const utilityReady = r.u32()
+		const hasteUntil = r.u32()
+		const hasteSpeed = r.f32()
+		const hasteFire = r.f32()
+		const dashUntil = r.u32()
+		const dashX = r.f64()
+		const dashY = r.f64()
+		const overwatchShots = r.u16()
+		const minigunUntil = r.u32()
 		self = {
 			x,
 			y,
@@ -367,7 +460,19 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			reloadEndTick,
 			nextFireTick,
 			heldButtons,
-			weapons
+			weapons,
+			abilityReady,
+			utilityCharges,
+			utilityReady,
+			hasteUntil,
+			hasteSpeed,
+			hasteFire,
+			dashUntil,
+			dashX,
+			dashY,
+			overwatchShots,
+			minigunUntil,
+			free: (flags & 8) !== 0
 		}
 	}
 	const others: OtherPlayer[] = []
@@ -397,6 +502,20 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 	const pools: PoolState[] = []
 	const poolCount = r.u8()
 	for (let i = 0; i < poolCount; i++) pools.push({ x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })
+	const objects: ObjectState[] = []
+	const objectCount = r.u8()
+	for (let i = 0; i < objectCount; i++) {
+		objects.push({
+			id: r.u16(),
+			kind: r.u8(),
+			x: dq(r.u16()),
+			y: dq(r.u16()),
+			radius: r.u8() / 10,
+			angle: (r.u16() / 65536) * TAU,
+			health: r.u8() / 255,
+			secondsLeft: r.u8()
+		})
+	}
 
 	const count = r.u16()
 	let index = 0
@@ -424,8 +543,10 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		if (flags & Flag.facing) table.facing[index] = r.u8()
 		if (flags & Flag.health) table.health[index] = r.u8()
 		if (flags & Flag.state) table.state[index] = r.u8()
+		if (flags & Flag.status) table.status[index] = r.u8()
+		else if (flags & Flag.fresh) table.status[index] = 0
 	}
-	return { id, tick, lastSeq, wave, kills, score, rttMs, self, others, pools }
+	return { id, tick, lastSeq, wave, kills, score, rttMs, self, others, pools, objects }
 }
 
 const EMPTY_SELF: SelfState = {
@@ -449,7 +570,30 @@ const EMPTY_SELF: SelfState = {
 	],
 	reloadEndTick: 0,
 	nextFireTick: 0,
-	heldButtons: 0
+	heldButtons: 0,
+	abilityReady: [0, 0, 0],
+	utilityCharges: [0, 0],
+	utilityReady: 0,
+	hasteUntil: 0,
+	hasteSpeed: 0,
+	hasteFire: 0,
+	dashUntil: 0,
+	dashX: 0,
+	dashY: 0,
+	overwatchShots: 0,
+	minigunUntil: 0,
+	free: false
+}
+
+function zombieStatus(world: World, i: number): number {
+	const tick = world.tick
+	return (
+		((world.stunUntil[i] as number) > tick ? ZombieStatus.stunned : 0) |
+		((world.slowUntil[i] as number) > tick ? ZombieStatus.slowed : 0) |
+		((world.markUntil[i] as number) > tick ? ZombieStatus.marked : 0) |
+		((world.poisonUntil[i] as number) > tick ? ZombieStatus.poisoned : 0) |
+		((world.tauntUntil[i] as number) > tick ? ZombieStatus.taunted : 0)
+	)
 }
 
 // --- events ------------------------------------------------------------------------------------
@@ -467,7 +611,8 @@ const EventType = {
 	'player-revived': 10,
 	wipe: 11,
 	launch: 12,
-	explode: 13
+	explode: 13,
+	ability: 14
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -482,6 +627,11 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'hit':
 				w.u16(event.zombie).u16(q(event.x)).u16(q(event.y))
+				w.u16(Math.min(0xffff, Math.round(event.amount * 10))).u8(event.by)
+				break
+			case 'ability':
+				w.u8(event.player).u8(event.ability).u16(q(event.x)).u16(q(event.y))
+				w.u16(Math.round(((((event.angle % TAU) + TAU) % TAU) / TAU) * 65536) & 0xffff)
 				break
 			case 'kill':
 				w.u16(event.zombie).u8(event.zombieType).u16(q(event.x)).u16(q(event.y)).u8(event.by)
@@ -543,7 +693,17 @@ export function readEvents(r: Reader): SimEvent[] {
 				})
 				break
 			case EventType.hit:
-				events.push({ type: 'hit', zombie: r.u16(), x: dq(r.u16()), y: dq(r.u16()) })
+				events.push({ type: 'hit', zombie: r.u16(), x: dq(r.u16()), y: dq(r.u16()), amount: r.u16() / 10, by: r.u8() })
+				break
+			case EventType.ability:
+				events.push({
+					type: 'ability',
+					player: r.u8(),
+					ability: r.u8(),
+					x: dq(r.u16()),
+					y: dq(r.u16()),
+					angle: (r.u16() / 65536) * TAU
+				})
 				break
 			case EventType.kill:
 				events.push({ type: 'kill', zombie: r.u16(), zombieType: r.u8(), x: dq(r.u16()), y: dq(r.u16()), by: r.u8() })

@@ -15,7 +15,8 @@ export const ticketPayload = z.object({
 	/** game-server instance the ticket is for */
 	inst: z.string().min(1).max(64),
 	/** squads hold up to four players; a player alone is a squad of one */
-	mode: z.enum(['squad']),
+	/** a squad mission, or the firing range (alone, no rewards) */
+	mode: z.enum(['squad', 'range']),
 	/** class, level, skills and loadout: the game server needs no database */
 	build: buildSchema,
 	/** expiry, unix seconds */

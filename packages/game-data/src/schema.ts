@@ -129,6 +129,8 @@ export const zombieSchema = z.object({
 	salvage: z.number().min(0),
 	tint: z.string().regex(/^#[0-9a-f]{6}$/i),
 	scale: z.number().positive().max(4),
+	/** firing-range targets: never move or attack, never appear in waves, heal back to full */
+	dummy: z.boolean().optional(),
 	deathBurst: z
 		.object({
 			damage: z.number().min(0),
@@ -226,10 +228,16 @@ export const gearSchema = z.object({
 			name: z.string().min(1),
 			tier,
 			price: z.number().int().positive().optional(),
+			/** grenade: thrown, bursts where it lands; mine: placed, bursts when a zombie comes close;
+			 * decoy: draws zombies to it; sentry: a small turret */
+			type: z.enum(['grenade', 'mine', 'decoy', 'sentry']),
+			/** per mission, refilled when a wave starts */
 			charges: z.number().int().min(1),
 			damageType,
 			damage: z.number().min(0),
-			radius: z.number().positive()
+			radius: z.number().positive(),
+			/** how long it lasts: a fire zone, a stun, a decoy, a sentry (0 = instant) */
+			seconds: z.number().min(0)
 		})
 	)
 })

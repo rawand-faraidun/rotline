@@ -16,7 +16,8 @@ import {
 describe('game data', () => {
 	it('loads and validates every file', () => {
 		expect(weapons.length).toBe(12)
-		expect(zombies.map(zombie => zombie.id)).toEqual(['drudge', 'bolter', 'swell'])
+		expect(zombies.filter(zombie => !zombie.dummy).map(zombie => zombie.id)).toEqual(['drudge', 'bolter', 'swell'])
+		expect(maps.range?.playerSpawns.length).toBe(4)
 		expect(maps.yard?.playerSpawns.length).toBe(4)
 		expect(waves.waves.length).toBeGreaterThan(0)
 		expect(abilities).toHaveLength(18)

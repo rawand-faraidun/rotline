@@ -52,5 +52,22 @@
 		},
 		"xp": 15,
 		"salvage": 3
+	},
+	{
+		"id": "target-dummy",
+		"name": "Target Dummy",
+		"health": 2000,
+		"speed": 0.1,
+		"radius": 0.45,
+		"meleeDamage": 0,
+		"meleeRange": 0.1,
+		"meleeCooldownSeconds": 1,
+		"score": 0,
+		"xp": 0,
+		"salvage": 0,
+		"tint": "#c9b48a",
+		"scale": 1.1,
+		"deathBurst": null,
+		"dummy": true
 	}
 ]

@@ -48,55 +48,67 @@
 			"id": "frag-grenades",
 			"name": "Frag Grenades",
 			"tier": 0,
+			"type": "grenade",
 			"charges": 3,
 			"damageType": "explosive",
 			"damage": 120,
-			"radius": 3.5
+			"radius": 3.5,
+			"seconds": 0
 		},
 		{
 			"id": "incendiary-grenades",
 			"name": "Incendiary Grenades",
 			"tier": 1,
+			"type": "grenade",
 			"charges": 3,
 			"damageType": "fire",
 			"damage": 30,
-			"radius": 3.5
+			"radius": 3.5,
+			"seconds": 6
 		},
 		{
 			"id": "shock-grenades",
 			"name": "Shock Grenades",
 			"tier": 1,
+			"type": "grenade",
 			"charges": 3,
 			"damageType": "shock",
 			"damage": 40,
-			"radius": 4
+			"radius": 4,
+			"seconds": 2
 		},
 		{
 			"id": "sticky-mines",
 			"name": "Sticky Mines",
 			"tier": 1,
+			"type": "mine",
 			"charges": 4,
 			"damageType": "explosive",
 			"damage": 150,
-			"radius": 3
+			"radius": 3,
+			"seconds": 60
 		},
 		{
 			"id": "decoy-beacon",
 			"name": "Decoy Beacon",
 			"tier": 2,
+			"type": "decoy",
 			"charges": 2,
 			"damageType": "ballistic",
 			"damage": 0,
-			"radius": 10
+			"radius": 10,
+			"seconds": 8
 		},
 		{
 			"id": "mini-sentry",
 			"name": "Mini-Sentry",
 			"tier": 2,
+			"type": "sentry",
 			"charges": 1,
 			"damageType": "ballistic",
 			"damage": 18,
-			"radius": 14
+			"radius": 14,
+			"seconds": 30
 		}
 	]
 }

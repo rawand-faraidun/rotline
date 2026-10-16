@@ -86,7 +86,7 @@ describe('weapons', () => {
 	it('reloads automatically when firing an empty magazine', () => {
 		const player = createPlayer(1, 32, 24)
 		player.weapons[0].mag = 0
-		expect(stepPlayer(grid, player, input({ buttons: Button.fire }), 0)).toBe(false)
+		expect(stepPlayer(grid, player, input({ buttons: Button.fire }), 0)).toBe(0)
 		expect(player.reloadEndTick).toBeGreaterThan(0)
 	})
 
@@ -97,7 +97,7 @@ describe('weapons', () => {
 		stepPlayer(grid, player, input({ buttons: Button.slot2 }), 1)
 		expect(player.slot).toBe(1)
 		expect(player.reloadEndTick).toBe(0)
-		expect(stepPlayer(grid, player, input({ buttons: Button.fire }), 2)).toBe(false)
+		expect(stepPlayer(grid, player, input({ buttons: Button.fire }), 2)).toBe(0)
 		stepPlayer(grid, player, input({ buttons: Button.swap }), 30)
 		expect(player.slot).toBe(0)
 	})
@@ -105,7 +105,7 @@ describe('weapons', () => {
 	it('does nothing while dead', () => {
 		const player = createPlayer(1, 32, 24)
 		player.alive = false
-		expect(stepPlayer(grid, player, input({ moveX: 127, buttons: Button.fire }), 0)).toBe(false)
+		expect(stepPlayer(grid, player, input({ moveX: 127, buttons: Button.fire }), 0)).toBe(0)
 		expect(player.x).toBe(32)
 	})
 })

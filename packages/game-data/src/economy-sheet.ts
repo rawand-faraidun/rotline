@@ -27,7 +27,8 @@ export function economySheet(): string {
 		economy.upgrade.perkSwitchPrice,
 		hours(economy.upgrade.perkSwitchPrice)
 	])
-	for (const zombie of zombies) rows.push(['earn per kill', zombie.id, zombie.name, '', zombie.salvage, ''])
+	for (const zombie of zombies.filter(entry => !entry.dummy))
+		rows.push(['earn per kill', zombie.id, zombie.name, '', zombie.salvage, ''])
 	rows.push(['earn per wave', 'wave-clear', 'Wave cleared', '', economy.rewards.waveClear.salvage, ''])
 	rows.push(['abilities', 'count', `${abilities.length} active abilities`, '', '', ''])
 	return `${rows.map(row => row.map(cell => (String(cell).includes(',') ? `"${cell}"` : cell)).join(',')).join('\n')}\n`

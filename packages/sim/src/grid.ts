@@ -1,6 +1,6 @@
 import type { MapDef } from '@rotline/game-data'
 
-/** The map as a 1 m occupancy grid. Walls are whole cells. */
+/** The map as a 1 m occupancy grid. Walls are whole cells: 1 for the map, 2 for barricades. */
 export class Grid {
 	readonly width: number
 	readonly height: number
@@ -23,7 +23,7 @@ export class Grid {
 		const cx = Math.floor(x)
 		const cy = Math.floor(y)
 		if (cx < 0 || cy < 0 || cx >= this.width || cy >= this.height) return true
-		return this.walls[cy * this.width + cx] === 1
+		return this.walls[cy * this.width + cx] !== 0
 	}
 
 	/** True if a circle at (x, y) overlaps any wall cell. */
@@ -92,7 +92,7 @@ export class Grid {
 				sideY += deltaY
 				cy += stepY
 			}
-			if (cx < 0 || cy < 0 || cx >= this.width || cy >= this.height || this.walls[cy * this.width + cx] === 1) {
+			if (cx < 0 || cy < 0 || cx >= this.width || cy >= this.height || this.walls[cy * this.width + cx] !== 0) {
 				return Math.min(distance, maxDistance)
 			}
 		}

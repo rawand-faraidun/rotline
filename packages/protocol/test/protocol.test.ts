@@ -1,5 +1,14 @@
 import { maps, starterBuild, zombieIndex } from '@rotline/game-data'
-import { aimToAngle, angleToAim, Button, type PlayerInput, quantiseAxis, type SimEvent, World } from '@rotline/sim'
+import {
+	aimToAngle,
+	angleToAim,
+	Button,
+	ObjectKind,
+	type PlayerInput,
+	quantiseAxis,
+	type SimEvent,
+	World
+} from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
 import {
 	INTEREST_RADIUS,
@@ -20,6 +29,7 @@ import {
 	writePong,
 	writeRoster,
 	writeWelcome,
+	ZombieStatus,
 	ZombieTable
 } from '../src/index.ts'
 
@@ -91,10 +101,11 @@ describe('client messages', () => {
 				moveX: quantiseAxis(-1),
 				moveY: quantiseAxis(0.5),
 				aim: angleToAim(1),
-				buttons: Button.fire | Button.reload,
-				viewTick: 99
+				buttons: Button.fire | Button.reload | Button.ability3 | Button.utility2,
+				viewTick: 99,
+				reach: 60
 			},
-			{ seq: 8, moveX: 0, moveY: 127, aim: 65535, buttons: 0, viewTick: 100 }
+			{ seq: 8, moveX: 0, moveY: 127, aim: 65535, buttons: 0, viewTick: 100, reach: 0 }
 		]
 		expect(readClientMessage(new Reader(writeInput(w, 41, inputs)))).toEqual({ type: 'input', ackSnapshot: 41, inputs })
 		expect(readClientMessage(new Reader(writePong(w, 123.5)))).toEqual({ type: 'pong', time: 123.5 })
@@ -162,7 +173,8 @@ describe('server messages', () => {
 	it('round-trips every event type', () => {
 		const events: SimEvent[] = [
 			{ type: 'shot', player: 1, x: 10.5, y: 3.25, angle: 1, length: 12.5, weapon: 2 },
-			{ type: 'hit', zombie: 17, x: 5, y: 6 },
+			{ type: 'hit', zombie: 17, x: 5, y: 6, amount: 12.5, by: 2 },
+			{ type: 'ability', player: 2, ability: 4, x: 7, y: 8, angle: 0 },
 			{ type: 'kill', zombie: 17, zombieType: 2, x: 5, y: 6, by: 1 },
 			{ type: 'burst', x: 5, y: 6, radius: 3 },
 			{ type: 'player-hurt', player: 1, amount: 12.5 },
@@ -199,7 +211,7 @@ describe('snapshots', () => {
 		const me = world.addPlayer(1)
 		const other = world.addPlayer(2)
 		const zombie = world.spawnZombie(zombieIndex('bolter'), { x: me.x + 5.123, y: me.y - 2.9 })
-		world.step(new Map([[1, { seq: 5, moveX: 127, moveY: 30, aim: 1234, buttons: 0, viewTick: 0 }]]))
+		world.step(new Map([[1, { seq: 5, moveX: 127, moveY: 30, aim: 1234, buttons: 0, viewTick: 0, reach: 0 }]]))
 		const table = new ZombieTable()
 		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), table)
 		expect(frame.lastSeq).toBe(5)
@@ -248,6 +260,49 @@ describe('snapshots', () => {
 		expect(() => readSnapshot(r, new ZombieTable())).toThrow(ProtocolError)
 		const roster = Array.from({ length: 9 }, (_, slot) => ({ slot, name: 'x', connected: true }))
 		expect(() => readServerHeader(new Reader(writeRoster(new Writer(), roster)))).toThrow(ProtocolError)
+	})
+
+	it('carries objects, zombie statuses and the predicted ability state', () => {
+		const world = quietWorld()
+		const me = world.addPlayer(1)
+		me.abilityReady = [10, 20, 30]
+		me.utilityCharges = [2, 1]
+		me.hasteUntil = 99
+		me.hasteSpeed = 0.25
+		me.dashX = 0.75
+		me.minigunUntil = 77
+		const zombie = world.spawnZombie(zombieIndex('drudge'), { x: me.x + 3, y: me.y })
+		world.stunUntil[zombie] = 1000
+		world.markUntil[zombie] = 1000
+		world.addObject({
+			kind: ObjectKind.barricade,
+			owner: 1,
+			x: 10,
+			y: 12,
+			radius: 2,
+			angle: 1,
+			untilTick: world.tick + 90,
+			health: 150,
+			maxHealth: 300,
+			amount: 0,
+			damageType: 'ballistic',
+			cells: [],
+			nextTick: 0
+		})
+		const table = new ZombieTable()
+		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), table)
+		expect(frame.self).toMatchObject({
+			abilityReady: [10, 20, 30],
+			utilityCharges: [2, 1],
+			hasteUntil: 99,
+			dashX: 0.75,
+			minigunUntil: 77
+		})
+		expect(frame.self.hasteSpeed).toBeCloseTo(0.25)
+		expect(frame.objects).toHaveLength(1)
+		expect(frame.objects[0]).toMatchObject({ kind: ObjectKind.barricade, x: 10, y: 12, radius: 2, secondsLeft: 3 })
+		expect(frame.objects[0]?.health).toBeCloseTo(0.5, 1)
+		expect(table.status[zombie]).toBe(ZombieStatus.stunned | ZombieStatus.marked)
 	})
 
 	it('sends only changes, removes dead zombies and stays in sync over many ticks', () => {

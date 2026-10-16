@@ -1,7 +1,17 @@
 import { classDef, classes, economy, gear, skillNodes, upgrades, weaponIndex, weapons } from './data.ts'
 import { itemById, perkOptions } from './items.ts'
 import { validateAbilities, validateSkills } from './progression.ts'
-import type { Build, ClassId, DamageType, Effect, ItemRef, StatKey, WeaponDef, WeaponKind } from './schema.ts'
+import type {
+	Build,
+	ClassId,
+	DamageType,
+	Effect,
+	ItemRef,
+	StatKey,
+	UtilityDef,
+	WeaponDef,
+	WeaponKind
+} from './schema.ts'
 
 export type WeaponBehaviour = WeaponDef['behaviour']
 
@@ -46,11 +56,16 @@ export type PlayerStats = {
 	bleedoutBonusSeconds: number
 	/** cooldown multiplier, e.g. 0.84 */
 	abilityCooldown: number
-	utilityCharges: number
 	critDamage: number
 	damageVsSlowed: number
+	/** damage multiplier for abilities and utilities, by damage type (skills without a weapon filter) */
+	damageByType: Record<DamageType, number>
 	blastRadius: number
 	weapons: [WeaponStats, WeaponStats, WeaponStats]
+	/** the minigun from Minigun Spin-up (and later the buff), with skills applied */
+	minigun: WeaponStats
+	/** utility items in the two slots, with their charges for a wave; null when empty */
+	utilities: [UtilityStats | null, UtilityStats | null]
 	abilities: string[]
 	specials: string[]
 }
@@ -127,6 +142,35 @@ export function weaponStats(ref: ItemRef, skillEffects: readonly Effect[] = []):
 	}
 }
 
+export type UtilityStats = {
+	id: string
+	type: UtilityDef['type']
+	charges: number
+	damageType: DamageType
+	damage: number
+	radius: number
+	seconds: number
+}
+
+/** A utility at its upgrade level; skills add charges and blast radius. */
+function utilityStats(ref: ItemRef | null, effects: readonly Effect[], extraCharges: number): UtilityStats | null {
+	if (!ref) return null
+	const def = gear.utility.find(entry => entry.id === ref.id)
+	if (!def) return null
+	const sum = (stat: StatKey) => effects.filter(effect => effect.stat === stat).reduce((total, e) => total + e.value, 0)
+	return {
+		id: def.id,
+		type: def.type,
+		charges: def.charges + Math.round(sum('utilityCharges')) + extraCharges,
+		damageType: def.damageType,
+		damage: def.damage * (1 + (upgrades.utility.damage ?? 0) * ref.level),
+		radius:
+			def.radius *
+			(1 + (upgrades.utility.blastRadius ?? 0) * ref.level + (def.type === 'grenade' ? sum('blastRadius') : 0)),
+		seconds: def.seconds
+	}
+}
+
 /** Skill effects of an allocation, each multiplied by its rank. */
 export function skillEffects(skills: Readonly<Record<string, number>>): Effect[] {
 	const result: Effect[] = []
@@ -170,14 +214,24 @@ export function computeStats(build: Build): PlayerStats {
 		revivedHealth: Math.min(1, REVIVED_BASE + total('revivedHealth')),
 		bleedoutBonusSeconds: total('bleedout'),
 		abilityCooldown: Math.max(0.4, 1 + total('abilityCooldown')),
-		utilityCharges: total('utilityCharges') + (armourDef?.utilityCharges ?? 0),
 		critDamage: total('critDamage'),
+		damageByType: Object.fromEntries(
+			(['ballistic', 'explosive', 'fire', 'shock', 'chemical'] as const).map(type => [
+				type,
+				1 + total('damage', effect => !effect.kinds && (!effect.damageType || effect.damageType === type))
+			])
+		) as Record<DamageType, number>,
 		damageVsSlowed: total('damageVsSlowed'),
 		blastRadius: 1 + total('blastRadius'),
 		weapons: [
 			weaponStats(build.loadout.main[0], effects),
 			weaponStats(build.loadout.main[1], effects),
 			weaponStats(build.loadout.pistol, effects)
+		],
+		minigun: weaponStats({ id: 'minigun', level: 0, perks: [] }, effects),
+		utilities: [
+			utilityStats(build.loadout.utility[0], effects, armourDef?.utilityCharges ?? 0),
+			utilityStats(build.loadout.utility[1], effects, armourDef?.utilityCharges ?? 0)
 		],
 		abilities: [...build.abilities],
 		specials: Object.keys(build.skills).flatMap(id => skillNodes.get(id)?.node.special ?? [])

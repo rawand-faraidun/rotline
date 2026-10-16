@@ -20,7 +20,7 @@ export function quietWorld(seed = 1): World {
 }
 
 export function input(partial: Partial<PlayerInput> = {}): PlayerInput {
-	return { seq: 0, moveX: 0, moveY: 0, aim: 0, buttons: 0, viewTick: 0, ...partial }
+	return { seq: 0, moveX: 0, moveY: 0, aim: 0, buttons: 0, viewTick: 0, reach: 0, ...partial }
 }
 
 export function steps(
