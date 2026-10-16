@@ -13,10 +13,12 @@ function shootOne(room: Room, userId: string, slot: number, type: number) {
 	const index = room.world.spawnZombie(type, { x: player.x + 2, y: player.y })
 	room.world.health[index] = 1
 	room.receiveInputs(userId, [
-		{ seq: ++seq, moveX: 0, moveY: 0, aim: angleToAim(0), buttons: Button.fire, viewTick: room.world.tick }
+		{ seq: ++seq, moveX: 0, moveY: 0, aim: angleToAim(0), buttons: Button.fire, viewTick: room.world.tick, reach: 0 }
 	])
 	room.tick(Date.now())
-	room.receiveInputs(userId, [{ seq: ++seq, moveX: 0, moveY: 0, aim: angleToAim(0), buttons: 0, viewTick: 0 }])
+	room.receiveInputs(userId, [
+		{ seq: ++seq, moveX: 0, moveY: 0, aim: angleToAim(0), buttons: 0, viewTick: 0, reach: 0 }
+	])
 	room.tick(Date.now())
 	expect(room.world.alive[index]).toBe(0)
 }

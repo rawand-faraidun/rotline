@@ -1,4 +1,4 @@
-import type { OtherPlayer, PoolState, ZombieTable } from '@rotline/protocol'
+import type { ObjectState, OtherPlayer, PoolState, ZombieTable } from '@rotline/protocol'
 import { MAX_ZOMBIES, TICK_RATE } from '@rotline/sim'
 
 const TICK_MS = 1000 / TICK_RATE
@@ -18,8 +18,10 @@ type Frame = {
 	facing: Uint8Array
 	health: Uint8Array
 	state: Uint8Array
+	status: Uint8Array
 	others: OtherPlayer[]
 	pools: PoolState[]
+	objects: ObjectState[]
 }
 
 export type ZombieView = {
@@ -31,6 +33,8 @@ export type ZombieView = {
 	facing: Float32Array
 	health: Uint8Array
 	state: Uint8Array
+	/** ZombieStatus bits */
+	status: Uint8Array
 }
 
 /**
@@ -51,12 +55,21 @@ export class Interpolator {
 		y: new Float32Array(MAX_ZOMBIES),
 		facing: new Float32Array(MAX_ZOMBIES),
 		health: new Uint8Array(MAX_ZOMBIES),
-		state: new Uint8Array(MAX_ZOMBIES)
+		state: new Uint8Array(MAX_ZOMBIES),
+		status: new Uint8Array(MAX_ZOMBIES)
 	}
 	others: OtherPlayer[] = []
 	pools: PoolState[] = []
+	objects: ObjectState[] = []
 
-	push(tick: number, table: ZombieTable, others: OtherPlayer[], pools: PoolState[], receivedAt: number): void {
+	push(
+		tick: number,
+		table: ZombieTable,
+		others: OtherPlayer[],
+		pools: PoolState[],
+		receivedAt: number,
+		objects: ObjectState[] = []
+	): void {
 		const frame = this.frames.length >= BUFFER ? (this.frames.shift() as Frame) : this.newFrame()
 		frame.tick = tick
 		frame.known.set(table.known)
@@ -66,8 +79,10 @@ export class Interpolator {
 		frame.facing.set(table.facing)
 		frame.health.set(table.health)
 		frame.state.set(table.state)
+		frame.status.set(table.status)
 		frame.others = others
 		frame.pools = pools
+		frame.objects = objects
 		this.frames.push(frame)
 
 		this.newestTick = Math.max(this.newestTick, tick)
@@ -134,10 +149,12 @@ export class Interpolator {
 			view.facing[count] = fa + (fb - fa) * alpha
 			view.health[count] = to.health[i] as number
 			view.state[count] = to.state[i] as number
+			view.status[count] = to.status[i] as number
 			count++
 		}
 		view.count = count
 		this.pools = b.pools
+		this.objects = b.objects
 		this.others = (alpha < 0.5 ? a : b).others.map(player => {
 			const before = a.others.find(other => other.id === player.id)
 			const after = b.others.find(other => other.id === player.id)
@@ -157,8 +174,10 @@ export class Interpolator {
 			facing: new Uint8Array(MAX_ZOMBIES),
 			health: new Uint8Array(MAX_ZOMBIES),
 			state: new Uint8Array(MAX_ZOMBIES),
+			status: new Uint8Array(MAX_ZOMBIES),
 			others: [],
-			pools: []
+			pools: [],
+			objects: []
 		}
 	}
 }

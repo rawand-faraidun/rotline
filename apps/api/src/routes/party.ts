@@ -89,118 +89,140 @@ export function partyRoutes(services: Services) {
 		await notify(valkey, userIds, { type: 'party' })
 	}
 
-	return new Hono<AppEnv>()
-		.use('/party/*', async (c, next) => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			const player = await db.player.findUnique({ where: { userId: user.id }, select: { userId: true } })
-			if (!player) return c.json({ error: 'no-player' as const }, 404)
-			await next()
-		})
-		.onError((error, c) => {
-			if (error instanceof PartyError) return c.json({ error: error.code }, errorStatus[error.code])
-			throw error
-		})
-		.get('/party', async c => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			const party = await settle(await parties.current(user.id))
-			return c.json(await view(party, user.id), 200)
-		})
-		.post('/party/join', zValidator('json', z.object({ code: z.string().trim().length(6) })), async c => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			const { party, left } = await parties.join(user.id, c.req.valid('json').code)
-			await changed(party.id, left)
-			return c.json(await view(party, user.id), 200)
-		})
-		.post('/party/leave', async c => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			const { party, left } = await parties.leave(user.id)
-			await changed(left)
-			return c.json(await view(party, user.id), 200)
-		})
-		.post('/party/kick', zValidator('json', z.object({ userId: z.uuid() })), async c => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			const { userId } = c.req.valid('json')
-			const party = await parties.kick(user.id, userId)
-			await changed(party.id)
-			await notify(valkey, [userId], { type: 'party' })
-			return c.json(await view(party, user.id), 200)
-		})
-		.post('/party/ready', zValidator('json', z.object({ ready: z.boolean() })), async c => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			const party = await parties.setReady(user.id, c.req.valid('json').ready)
-			await changed(party.id)
-			return c.json(await view(party, user.id), 200)
-		})
-		.post('/party/start', async c => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			const instance = (await pickInstance(valkey)) ?? env.GAME_INSTANCE_ID
-			const party = await parties.start(user.id, `squad-${randomUUID()}`, instance)
-			await changed(party.id)
-			if (party.members.length > 1) await recordRecentPlayers(db, party.members)
-			return c.json(await view(party, user.id), 200)
-		})
-		.post('/game/ticket', async c => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			const player = await db.player.findUnique({ where: { userId: user.id }, select: { name: true } })
-			if (!player) return c.json({ error: 'no-player' as const }, 404)
-			const party = await settle(await parties.current(user.id))
-			if (party.state !== 'mission') return c.json({ error: 'no-mission' as const }, 409)
-			// only players holding a seat may play; everyone else waits in the queue
-			if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
-			const build = await loadBuild(db, user.id)
-			if (!build || buildProblem(build)) {
-				log.error({ userId: user.id, problem: build && buildProblem(build) }, 'invalid build')
-				return c.json({ error: 'invalid-build' as const }, 409)
-			}
-			const { ticket, payload } = signTicket(key, {
-				sub: user.id,
-				name: player.name,
-				room: party.room,
-				inst: party.instance,
-				mode: 'squad',
-				build
+	return (
+		new Hono<AppEnv>()
+			.use('/party/*', async (c, next) => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const player = await db.player.findUnique({ where: { userId: user.id }, select: { userId: true } })
+				if (!player) return c.json({ error: 'no-player' as const }, 404)
+				await next()
 			})
-			return c.json({ ticket, room: payload.room, path: GAME_PATH, expiresAt: payload.exp }, 200)
-		})
-		.get('/events', async c => {
-			const user = c.get('user')
-			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-			// an open stream means the player is online: keep their presence fresh and tell friends when it changes
-			const announce = async () => {
-				const party = await parties.current(user.id)
-				const status = party.state === 'mission' ? 'mission' : 'lobby'
-				const detail = party.state === 'mission' ? 'The Yard' : ''
-				if (await setPresence(valkey, user.id, { status, detail })) {
-					await notify(valkey, await friendIds(db, user.id), { type: 'presence', userId: user.id, status, detail })
+			.onError((error, c) => {
+				if (error instanceof PartyError) return c.json({ error: error.code }, errorStatus[error.code])
+				throw error
+			})
+			.get('/party', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const party = await settle(await parties.current(user.id))
+				return c.json(await view(party, user.id), 200)
+			})
+			.post('/party/join', zValidator('json', z.object({ code: z.string().trim().length(6) })), async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const { party, left } = await parties.join(user.id, c.req.valid('json').code)
+				await changed(party.id, left)
+				return c.json(await view(party, user.id), 200)
+			})
+			.post('/party/leave', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const { party, left } = await parties.leave(user.id)
+				await changed(left)
+				return c.json(await view(party, user.id), 200)
+			})
+			.post('/party/kick', zValidator('json', z.object({ userId: z.uuid() })), async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const { userId } = c.req.valid('json')
+				const party = await parties.kick(user.id, userId)
+				await changed(party.id)
+				await notify(valkey, [userId], { type: 'party' })
+				return c.json(await view(party, user.id), 200)
+			})
+			.post('/party/ready', zValidator('json', z.object({ ready: z.boolean() })), async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const party = await parties.setReady(user.id, c.req.valid('json').ready)
+				await changed(party.id)
+				return c.json(await view(party, user.id), 200)
+			})
+			.post('/party/start', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const instance = (await pickInstance(valkey)) ?? env.GAME_INSTANCE_ID
+				const party = await parties.start(user.id, `squad-${randomUUID()}`, instance)
+				await changed(party.id)
+				if (party.members.length > 1) await recordRecentPlayers(db, party.members)
+				return c.json(await view(party, user.id), 200)
+			})
+			.post('/game/ticket', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const player = await db.player.findUnique({ where: { userId: user.id }, select: { name: true } })
+				if (!player) return c.json({ error: 'no-player' as const }, 404)
+				const party = await settle(await parties.current(user.id))
+				if (party.state !== 'mission') return c.json({ error: 'no-mission' as const }, 409)
+				// only players holding a seat may play; everyone else waits in the queue
+				if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
+				const build = await loadBuild(db, user.id)
+				if (!build || buildProblem(build)) {
+					log.error({ userId: user.id, problem: build && buildProblem(build) }, 'invalid build')
+					return c.json({ error: 'invalid-build' as const }, 409)
 				}
-			}
-			return streamSSE(c, async stream => {
-				const unsubscribe = await events.subscribe(user.id, event => {
-					void stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
-					// a squad change may change what friends see (lobby or in a mission)
-					if (event.type === 'party') void announce()
+				const { ticket, payload } = signTicket(key, {
+					sub: user.id,
+					name: player.name,
+					room: party.room,
+					inst: party.instance,
+					mode: 'squad',
+					build
 				})
-				stream.onAbort(() => {
-					void unsubscribe()
-					// let presence lapse soon unless another tab keeps it alive
-					void valkey.expire(`presence:${user.id}`, 20)
+				return c.json({ ticket, room: payload.room, path: GAME_PATH, expiresAt: payload.exp }, 200)
+			})
+			// the firing range: a room of one, on the least busy game server, earning nothing
+			.post('/game/range', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const player = await db.player.findUnique({ where: { userId: user.id }, select: { name: true } })
+				if (!player) return c.json({ error: 'no-player' as const }, 404)
+				if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
+				if ((await parties.current(user.id)).state === 'mission') return c.json({ error: 'in-mission' as const }, 409)
+				const build = await loadBuild(db, user.id)
+				if (!build || buildProblem(build)) return c.json({ error: 'invalid-build' as const }, 409)
+				const { ticket, payload } = signTicket(key, {
+					sub: user.id,
+					name: player.name,
+					room: `range-${user.id}`,
+					inst: (await pickInstance(valkey)) ?? env.GAME_INSTANCE_ID,
+					mode: 'range',
+					build
 				})
-				await stream.writeSSE({ event: 'hello', data: '{}' })
-				await announce()
-				while (!stream.aborted) {
-					await stream.sleep(HEARTBEAT_MS)
-					if (stream.aborted) break
-					await stream.write(': keep-alive\n\n')
+				return c.json({ ticket, room: payload.room, path: GAME_PATH, expiresAt: payload.exp }, 200)
+			})
+			.get('/events', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				// an open stream means the player is online: keep their presence fresh and tell friends when it changes
+				const announce = async () => {
+					const party = await parties.current(user.id)
+					const status = party.state === 'mission' ? 'mission' : 'lobby'
+					const detail = party.state === 'mission' ? 'The Yard' : ''
+					if (await setPresence(valkey, user.id, { status, detail })) {
+						await notify(valkey, await friendIds(db, user.id), { type: 'presence', userId: user.id, status, detail })
+					}
+				}
+				return streamSSE(c, async stream => {
+					const unsubscribe = await events.subscribe(user.id, event => {
+						void stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+						// a squad change may change what friends see (lobby or in a mission)
+						if (event.type === 'party') void announce()
+					})
+					stream.onAbort(() => {
+						void unsubscribe()
+						// let presence lapse soon unless another tab keeps it alive
+						void valkey.expire(`presence:${user.id}`, 20)
+					})
+					await stream.writeSSE({ event: 'hello', data: '{}' })
 					await announce()
-				}
+					while (!stream.aborted) {
+						await stream.sleep(HEARTBEAT_MS)
+						if (stream.aborted) break
+						await stream.write(': keep-alive\n\n')
+						await announce()
+					}
+				})
 			})
-		})
+	)
 }

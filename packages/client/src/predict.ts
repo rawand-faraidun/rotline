@@ -30,8 +30,13 @@ export class Predictor {
 		this.state = createPlayer(slot, 0, 0, build)
 	}
 
-	/** Applies a new local input now. Returns true if it fired a shot. */
-	apply(input: PlayerInput): boolean {
+	/** The tick of the newest predicted input (cooldowns are measured against it). */
+	get tick(): number {
+		return this.baseTick + this.pending.length
+	}
+
+	/** Applies a new local input now. Returns the step's bits (see `Step`: fired, abilities, throws). */
+	apply(input: PlayerInput): number {
 		const tick = this.baseTick + this.pending.length + 1
 		this.pending.push({ input, tick })
 		this.previous.x = this.state.x

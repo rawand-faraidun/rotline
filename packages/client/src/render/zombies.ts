@@ -1,4 +1,5 @@
 import { zombies as zombieDefs } from '@rotline/game-data'
+import { ZombieStatus } from '@rotline/protocol'
 import { MAX_ZOMBIES, ZombieState } from '@rotline/sim'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
@@ -138,6 +139,11 @@ ${withNormal ? 'vec3 objectNormal = normalize(mat3(batM) * normal);' : ''}
 `
 
 /** Draws every visible zombie as one instanced, GPU-skinned mesh. */
+const MARKED = new THREE.Color(0xff3a2a)
+const STUNNED = new THREE.Color(0x6fb8ff)
+const POISONED = new THREE.Color(0x9fe04a)
+const SLOWED = new THREE.Color(0x9fd8e8)
+
 export class ZombieRenderer {
 	readonly mesh: THREE.InstancedMesh
 	private readonly anim: THREE.InstancedBufferAttribute
@@ -210,9 +216,14 @@ export class ZombieRenderer {
 				this.scale.set(size, size, size)
 			)
 			this.mesh.setMatrixAt(n, this.matrix)
-			// wounded zombies darken slightly
+			// wounded zombies darken slightly; statuses tint them (stunned blue, marked red, poisoned green)
 			const health = (view.health[n] as number) / 255
 			this.color.copy(this.tints[type] ?? this.color.set(0xffffff)).multiplyScalar(0.55 + 0.45 * health)
+			const status = view.status[n] as number
+			if (status & ZombieStatus.marked) this.color.lerp(MARKED, 0.55)
+			else if (status & ZombieStatus.stunned) this.color.lerp(STUNNED, 0.6)
+			else if (status & ZombieStatus.poisoned) this.color.lerp(POISONED, 0.45)
+			else if (status & ZombieStatus.slowed) this.color.lerp(SLOWED, 0.35)
 			this.mesh.setColorAt(n, this.color)
 		}
 		this.mesh.count = view.count

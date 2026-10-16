@@ -1,4 +1,4 @@
-import { maps } from '@rotline/game-data'
+import { type Build, maps, starterBuild } from '@rotline/game-data'
 import { Reader, readServerHeader, readSnapshot, SnapshotEncoder, Writer, ZombieTable } from '@rotline/protocol'
 import { Button, Grid, type PlayerInput, World } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
@@ -28,47 +28,86 @@ function snapshot(world: World, encoder: SnapshotEncoder, table: ZombieTable) {
 	return readSnapshot(r, table)
 }
 
+/** Runs 120 inputs through client prediction and the server with confirmations LAG ticks late. */
+function predictAgainstServer(build: Build | undefined, buttonsAt: (seq: number) => number) {
+	const world = quietWorld()
+	world.addPlayer(1, build)
+	const encoder = new SnapshotEncoder(1)
+	const table = new ZombieTable()
+	const predictor = new Predictor(new Grid(yard), 1, build)
+	const first = snapshot(world, encoder, table)
+	predictor.reconcile(first.self, first.lastSeq, first.tick)
+
+	const sent: PlayerInput[] = []
+	const LAG = 4
+	for (let seq = 1; seq <= 120; seq++) {
+		const input: PlayerInput = {
+			seq,
+			moveX: Math.round(Math.sin(seq / 9) * 127),
+			moveY: Math.round(Math.cos(seq / 13) * 127),
+			aim: (seq * 997) & 0xffff,
+			buttons: buttonsAt(seq),
+			viewTick: 0,
+			reach: 40
+		}
+		predictor.apply(input)
+		sent.push(input)
+		// the server applies inputs LAG ticks later, one per tick
+		const arrived = sent[seq - 1 - LAG]
+		if (arrived) {
+			world.step(new Map([[1, arrived]]))
+			const frame = snapshot(world, encoder, table)
+			predictor.reconcile(frame.self, frame.lastSeq, frame.tick)
+		}
+	}
+	expect(predictor.corrections).toBe(0)
+	// catch the server up and compare
+	for (const input of sent.slice(-LAG)) world.step(new Map([[1, input]]))
+	const server = world.players.get(1)
+	const frame = snapshot(world, encoder, table)
+	predictor.reconcile(frame.self, frame.lastSeq, frame.tick)
+	expect(predictor.state.x).toBe(server?.x)
+	expect(predictor.state.y).toBe(server?.y)
+	expect(predictor.state.weapons).toEqual(server?.weapons)
+	expect(predictor.state.abilityReady).toEqual(server?.abilityReady)
+	expect(predictor.state.utilityCharges).toEqual(server?.utilityCharges)
+	expect(predictor.pending).toHaveLength(0)
+}
+
 describe('prediction', () => {
 	it('matches the server exactly when inputs arrive one per tick, with a lagging confirmation', () => {
-		const world = quietWorld()
-		world.addPlayer(1)
-		const encoder = new SnapshotEncoder(1)
-		const table = new ZombieTable()
-		const predictor = new Predictor(new Grid(yard), 1)
-		const first = snapshot(world, encoder, table)
-		predictor.reconcile(first.self, first.lastSeq, first.tick)
+		predictAgainstServer(
+			undefined,
+			seq => (seq % 40 < 25 ? Button.fire : 0) | (seq === 70 ? Button.reload : 0) | (seq === 90 ? Button.slot3 : 0)
+		)
+	})
 
-		const sent: PlayerInput[] = []
-		const LAG = 4
-		for (let seq = 1; seq <= 120; seq++) {
-			const input: PlayerInput = {
-				seq,
-				moveX: Math.round(Math.sin(seq / 9) * 127),
-				moveY: Math.round(Math.cos(seq / 13) * 127),
-				aim: (seq * 997) & 0xffff,
-				buttons: (seq % 40 < 25 ? Button.fire : 0) | (seq === 70 ? Button.reload : 0) | (seq === 90 ? Button.slot3 : 0),
-				viewTick: 0
-			}
-			predictor.apply(input)
-			sent.push(input)
-			// the server applies inputs LAG ticks later, one per tick
-			const arrived = sent[seq - 1 - LAG]
-			if (arrived) {
-				world.step(new Map([[1, arrived]]))
-				const frame = snapshot(world, encoder, table)
-				predictor.reconcile(frame.self, frame.lastSeq, frame.tick)
-			}
+	it('predicts abilities that move or arm the player, and throws, exactly', () => {
+		const build: Build = {
+			...starterBuild('assault'),
+			level: 30,
+			skills: { 'adrenaline-burst': 1, 'slide-dash': 1, overwatch: 1 },
+			abilities: ['adrenaline-burst', 'slide-dash', 'overwatch']
 		}
-		expect(predictor.corrections).toBe(0)
-		// catch the server up and compare
-		for (const input of sent.slice(-LAG)) world.step(new Map([[1, input]]))
-		const server = world.players.get(1)
-		const frame = snapshot(world, encoder, table)
-		predictor.reconcile(frame.self, frame.lastSeq, frame.tick)
-		expect(predictor.state.x).toBe(server?.x)
-		expect(predictor.state.y).toBe(server?.y)
-		expect(predictor.state.weapons).toEqual(server?.weapons)
-		expect(predictor.pending).toHaveLength(0)
+		predictAgainstServer(
+			build,
+			seq =>
+				(seq % 30 < 20 ? Button.fire : 0) |
+				(seq === 10 ? Button.ability1 : 0) |
+				(seq === 40 ? Button.ability2 : 0) |
+				(seq === 60 ? Button.ability3 : 0) |
+				(seq === 80 || seq === 100 ? Button.utility1 : 0)
+		)
+	})
+
+	it('predicts the minigun', () => {
+		const build: Build = {
+			...starterBuild('heavy'),
+			level: 30,
+			skills: { 'minigun-spin-up': 1 },
+			abilities: ['minigun-spin-up']
+		}
+		predictAgainstServer(build, seq => (seq % 30 < 25 ? Button.fire : 0) | (seq === 5 ? Button.ability1 : 0))
 	})
 
 	it('eases small corrections and snaps big ones', () => {

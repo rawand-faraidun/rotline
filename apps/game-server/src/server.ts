@@ -212,6 +212,7 @@ export class GameServer {
 		}
 		if (message.type === 'input') room.receiveInputs(data.userId, message.inputs)
 		else if (message.type === 'pong') room.receivePong(data.userId, message.time, Date.now())
+		else if (message.type === 'range') room.rangeCommand(message.action, message.zombieType, message.count)
 	}
 
 	private hello(socket: WebSocket<SocketData>, ticket: string): void {

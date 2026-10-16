@@ -75,6 +75,10 @@ export class GameConnection {
 		})
 	}
 
+	send(bytes: Uint8Array<ArrayBuffer>): void {
+		if (this.socket.readyState === WebSocket.OPEN) this.socket.send(bytes)
+	}
+
 	sendInputs(inputs: readonly PlayerInput[]): void {
 		if (this.socket.readyState === WebSocket.OPEN)
 			this.socket.send(writeInput(this.writer, this.lastSnapshotId, inputs))

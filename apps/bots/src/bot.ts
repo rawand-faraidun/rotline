@@ -140,6 +140,7 @@ export class Bot {
 			moveY: quantiseAxis(Math.sin(t * 0.9 + this.phase) * 0.8),
 			aim,
 			buttons,
+			reach: 0,
 			viewTick: Math.max(0, Math.floor(this.interpolator.renderTick(performance.now())))
 		}
 		predictor.apply(input)

@@ -105,7 +105,7 @@ describe('game server', () => {
 		const w = new Writer()
 		const inputs: PlayerInput[] = []
 		for (let seq = 1; seq <= 30; seq++) {
-			inputs.push({ seq, moveX: quantiseAxis(1), moveY: 0, aim: 0, buttons: 0, viewTick: 0 })
+			inputs.push({ seq, moveX: quantiseAxis(1), moveY: 0, aim: 0, buttons: 0, viewTick: 0, reach: 0 })
 			client.socket.send(writeInput(w, 0, inputs.slice(-3)))
 			await wait(33)
 		}

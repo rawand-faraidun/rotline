@@ -34,7 +34,8 @@ for (let t = 0; t < ticks; t++) {
 			moveY: Math.round(Math.cos(t / 40 + p) * 127),
 			aim: angleToAim(t / 10 + p),
 			buttons: Button.fire,
-			viewTick: Math.max(0, t - 3)
+			viewTick: Math.max(0, t - 3),
+			reach: 0
 		})
 	}
 	const started = performance.now()

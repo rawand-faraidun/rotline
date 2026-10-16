@@ -1,5 +1,13 @@
-import { type Build, economy, maps, zombies } from '@rotline/game-data'
-import { SnapshotEncoder, Writer, writeEvents, writePing, writeRoster, writeWelcome } from '@rotline/protocol'
+import { type Build, economy, maps, zombieIndex, zombies } from '@rotline/game-data'
+import {
+	RangeAction,
+	SnapshotEncoder,
+	Writer,
+	writeEvents,
+	writePing,
+	writeRoster,
+	writeWelcome
+} from '@rotline/protocol'
 import { type PlayerInput, type SimEvent, World } from '@rotline/sim'
 
 /** Snapshots go out every SNAPSHOT_EVERY ticks (15 Hz at 30 Hz ticks). */
@@ -12,6 +20,8 @@ const CATCH_UP_BACKLOG = 3
 /** Input rate limit (token bucket): the normal rate plus room for one stall's burst. */
 const INPUT_RATE = 30
 const INPUT_BURST = 24
+/** Where the firing range's target dummies stand. */
+const RANGE_DUMMIES = [9, 15, 21]
 /** Seconds a disconnected player keeps their place in the room. */
 export const RECONNECT_GRACE_SECONDS = 120
 
@@ -52,7 +62,7 @@ type Member = {
 export class Room {
 	readonly id: string
 	readonly world: World
-	readonly mode: 'squad'
+	readonly mode: 'squad' | 'range'
 	readonly capacity: number
 	private readonly members = new Map<string, Member>()
 	private readonly writer = new Writer(16384)
@@ -61,12 +71,33 @@ export class Room {
 	emptySince = 0
 	private readonly onReward: RewardSink
 
-	constructor(id: string, mode: 'squad', seed: number, flowPhase: number, onReward: RewardSink = () => {}) {
+	constructor(id: string, mode: 'squad' | 'range', seed: number, flowPhase: number, onReward: RewardSink = () => {}) {
 		this.id = id
 		this.onReward = onReward
 		this.mode = mode
-		this.capacity = 4
-		this.world = new World({ seed, map: maps.yard as NonNullable<typeof maps.yard>, flowPhase })
+		const range = mode === 'range'
+		// the firing range is solo and earns nothing
+		this.capacity = range ? 1 : 4
+		const map = (range ? maps.range : maps.yard) as NonNullable<typeof maps.yard>
+		this.world = new World({ seed, map, flowPhase, range })
+		if (range) for (const y of RANGE_DUMMIES) this.world.spawnZombie(zombieIndex('target-dummy'), { x: 26, y })
+	}
+
+	/** Firing-range controls from the player: spawn zombies they want to practise on, or clear them. */
+	rangeCommand(action: number, zombieType: number, count: number): void {
+		if (this.mode !== 'range') return
+		if (action === RangeAction.clear) {
+			for (let i = 0; i < this.world.alive.length; i++) {
+				if (this.world.alive[i] === 1 && !zombies[this.world.type[i] as number]?.dummy) {
+					this.world.alive[i] = 0
+					this.world.aliveCount--
+				}
+			}
+			return
+		}
+		const def = zombies[zombieType]
+		if (action !== RangeAction.spawn || !def || def.dummy) return
+		for (let n = 0; n < Math.min(count, 20); n++) this.world.spawnZombie(zombieType)
 	}
 
 	get playerCount(): number {
@@ -234,6 +265,7 @@ export class Room {
 
 	/** Sends what a member earned since the last report; fractions carry over to the next one. */
 	private report(member: Member): void {
+		if (this.mode === 'range') return
 		const earnings = member.earnings
 		const xpTotal = earnings.xp + earnings.score / economy.rewards.scorePerXp
 		const xp = Math.floor(xpTotal)

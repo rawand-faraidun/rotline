@@ -60,6 +60,11 @@ export class Controls {
 		if (this.keys.has('Digit3')) buttons |= Button.slot3
 		if (this.keys.has('KeyQ')) buttons |= Button.swap
 		if (this.keys.has('KeyE')) buttons |= Button.interact
+		if (this.keys.has('KeyF')) buttons |= Button.ability1
+		if (this.keys.has('KeyC')) buttons |= Button.ability2
+		if (this.keys.has('KeyV')) buttons |= Button.ability3
+		if (this.keys.has('KeyG')) buttons |= Button.utility1
+		if (this.keys.has('KeyT')) buttons |= Button.utility2
 		return buttons
 	}
 

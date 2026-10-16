@@ -1,11 +1,13 @@
+import { createPublicKey } from 'node:crypto'
 import { buildProblem, economy, upgradeCost, xpToNext } from '@rotline/game-data'
+import { loadPrivateKey, verifyTicket } from '@rotline/ticket'
 import { describe, expect, it } from 'vitest'
 import { loadBuild } from '../../src/lib/build.ts'
 import { grantReward, RewardWorker } from '../../src/rewards.ts'
 import type { ProgressView } from '../../src/routes/progress.ts'
 import { harness, type Jar } from './helpers.ts'
 
-const { env, db, valkey, parties, log, call, enlist } = harness('progression.rotline.test')
+const { env, db, valkey, parties, seats, log, call, enlist } = harness('progression.rotline.test')
 
 const progress = async (jar: Jar) => (await (await call(jar, '/api/progress')).json()) as ProgressView
 
@@ -210,5 +212,21 @@ describe('progression', () => {
 			await worker.stop()
 			await valkey.del(stream)
 		}
+	})
+
+	it('issues firing-range tickets to seated players outside missions', async () => {
+		const { jar, id } = await enlist('Jin')
+		const ask = () => call(jar, '/api/game/range', { method: 'POST', body: '{}' })
+		expect((await ask()).status).toBe(403)
+		await seats.enter(id)
+		const response = await ask()
+		expect(response.status).toBe(200)
+		const { ticket } = (await response.json()) as { ticket: string }
+		const check = verifyTicket(createPublicKey(loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY)), ticket)
+		expect(check.ok && check.payload).toMatchObject({ mode: 'range', room: `range-${id}` })
+		await parties.start(id, `room-${id}`, 'test-instance')
+		expect((await ask()).status).toBe(409)
+		await parties.endMission((await parties.current(id)).id)
+		await seats.release(id)
 	})
 })

@@ -27,6 +27,12 @@ export type HudState = {
 	}[]
 	/** short announcements: new wave, squad wiped */
 	banner: { text: 'wave' | 'wipe'; wave: number; at: number } | null
+	/** equipped abilities: name, key and seconds until ready (0 = ready) */
+	abilities: { name: string; key: string; seconds: number; cooldown: number }[]
+	/** utilities: name, key and charges left (null = unlimited, in the firing range) */
+	utilities: { name: string; key: string; charges: number | null }[]
+	/** firing range: damage per second over the last three seconds */
+	dps: number
 	pingMs: number
 	fps: number
 	hitMarker: number
@@ -48,6 +54,9 @@ export const initialHud: HudState = {
 	reviveHint: null,
 	teammates: [],
 	banner: null,
+	abilities: [],
+	utilities: [],
+	dps: 0,
 	pingMs: 0,
 	fps: 0,
 	hitMarker: 0,

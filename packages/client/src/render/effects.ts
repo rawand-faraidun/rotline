@@ -233,7 +233,8 @@ export class Effects {
 		this.decals.instanceMatrix.needsUpdate = true
 	}
 
-	burst(x: number, y: number, radius: number, now: number, color = 0x9fe04a): void {
+	/** A ring that grows and fades; `splat` leaves a stain (Swell bursts, not explosions or abilities). */
+	burst(x: number, y: number, radius: number, now: number, color = 0x9fe04a, splat = false): void {
 		const i = this.burstHead
 		this.burstHead = (i + 1) % BURSTS
 		const ring = this.bursts[i] as THREE.Mesh
@@ -242,7 +243,7 @@ export class Effects {
 		ring.userData.radius = radius
 		ring.visible = true
 		this.burstBorn[i] = now
-		if (this.gore) this.splat(x, y, radius * 0.8)
+		if (splat && this.gore) this.splat(x, y, radius * 0.8)
 	}
 
 	setPools(pools: readonly PoolState[]): void {
