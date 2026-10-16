@@ -19,6 +19,14 @@ describe('parties', () => {
 		expect((await parties.current(me)).id).toBe(party.id)
 	})
 
+	it('creates one party when several requests ask at once', async () => {
+		const me = user()
+		const results = await Promise.all(Array.from({ length: 8 }, () => parties.current(me)))
+		expect(new Set(results.map(party => party.id)).size).toBe(1)
+		expect(new Set(results.map(party => party.code)).size).toBe(1)
+		expect((await parties.current(me)).id).toBe(results[0]?.id)
+	})
+
 	it('joins by code, case-insensitively, and the old party of one disappears', async () => {
 		const host = user()
 		const guest = user()

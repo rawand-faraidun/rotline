@@ -93,13 +93,10 @@ export class PartyStore {
 			if ((await this.valkey.set(codeKey(candidate), id, 'NX')) === 'OK') code = candidate
 		}
 		if (!code) throw new Error('could not allocate a party code')
-		await this.valkey
-			.multi()
-			.hset(partyKey(id), { leader: userId, code, state: 'lobby', room: '', instance: '', startedAt: 0 })
-			.zadd(membersKey(id), Date.now(), userId)
-			.set(memberKey(userId), id)
-			.exec()
-		return (await this.get(id)) as Party
+		// atomic: two requests at once (the lobby and its event stream) must not create two parties
+		const actual = (await this.valkey.eval(CREATE, 0, userId, id, code, Date.now())) as string
+		if (actual !== id) await this.valkey.del(codeKey(code))
+		return (await this.get(actual)) as Party
 	}
 
 	/** Removes a player from whatever party they are in; empty parties are deleted. Returns that party's id. */
@@ -167,6 +164,16 @@ export class PartyStore {
 			.exec()
 	}
 }
+
+const CREATE = `
+local user, id, code, now = ARGV[1], ARGV[2], ARGV[3], ARGV[4]
+local existing = redis.call('GET', 'party-member:' .. user)
+if existing and redis.call('ZSCORE', 'party:' .. existing .. ':members', user) then return existing end
+redis.call('HSET', 'party:' .. id, 'leader', user, 'code', code, 'state', 'lobby', 'room', '', 'instance', '', 'startedAt', 0)
+redis.call('ZADD', 'party:' .. id .. ':members', now, user)
+redis.call('SET', 'party-member:' .. user, id)
+return id
+`
 
 const DETACH = `
 local user = ARGV[1]
