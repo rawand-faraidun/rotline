@@ -3,6 +3,7 @@ import { readEnv } from '../../src/env.ts'
 
 const base = {
 	DATABASE_URL: 'postgresql://u:p@localhost:6440/rotline',
+	VALKEY_URL: 'redis://localhost:6379',
 	PUBLIC_ORIGIN: 'http://localhost:4321',
 	BETTER_AUTH_SECRET: 'x'.repeat(32),
 	GAME_TICKET_PRIVATE_KEY: 'k'.repeat(48)

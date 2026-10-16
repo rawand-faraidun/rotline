@@ -1,16 +1,28 @@
 import { createPublicKey } from 'node:crypto'
 import { createDatabase } from '@rotline/db'
+import { createValkey, PartyStore } from '@rotline/state'
 import { loadPrivateKey, verifyTicket } from '@rotline/ticket'
 import { pino } from 'pino'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../src/app.ts'
 import { createAuth } from '../../src/auth.ts'
 import { readEnv } from '../../src/env.ts'
+import { EventHub } from '../../src/events.ts'
 
 // Needs PostgreSQL (DATABASE_URL, migrated) and the OAuth mock (AUTH_TEST_PROVIDER_ISSUER).
 const env = readEnv({ ...process.env, NODE_ENV: 'test' })
 const db = createDatabase(env.DATABASE_URL)
-const app = createApp({ env, db, auth: createAuth(env, db), log: pino({ level: 'silent' }) })
+const valkey = createValkey(env.VALKEY_URL, 'rotline-api-test')
+const events = new EventHub(env.VALKEY_URL)
+const app = createApp({
+	env,
+	db,
+	auth: createAuth(env, db),
+	log: pino({ level: 'silent' }),
+	valkey,
+	parties: new PartyStore(valkey),
+	events
+})
 const origin = env.PUBLIC_ORIGIN
 const domain = 'integration.rotline.test'
 // unique per run: the mock provider uses the username as the account id
@@ -68,6 +80,8 @@ beforeAll(async () => {
 afterAll(async () => {
 	await db.user.deleteMany({ where: { email: { endsWith: `@${domain}` } } })
 	await db.$disconnect()
+	await valkey.quit()
+	await events.close()
 })
 
 describe('sign-in and player creation', () => {
@@ -127,26 +141,85 @@ describe('sign-in and player creation', () => {
 		expect(response.status).toBe(422)
 	})
 
-	it('issues a signed solo game ticket only to players', async () => {
-		const jar = await signIn('erin')
-		const before = await call(jar, '/api/game/solo', { method: 'POST' })
-		expect(before.status).toBe(404)
-		await call(jar, '/api/player', {
+	it('forms a party by code, readies up, starts, and hands every member a ticket to the same room', async () => {
+		const host = await signIn('frank')
+		const guest = await signIn('gina')
+		const outsider = await signIn('hank')
+		for (const [jar, name] of [
+			[host, 'Frank'],
+			[guest, 'Gina'],
+			[outsider, 'Hank']
+		] as const) {
+			await call(jar, '/api/player', {
+				method: 'POST',
+				body: JSON.stringify({ name: `${name}${run.slice(0, 6)}`, avatarStyle: 'pixelbot', avatarSeed: name })
+			})
+		}
+		const hostParty = (await (await call(host, '/api/party')).json()) as { code: string; members: unknown[] }
+		expect(hostParty.members).toHaveLength(1)
+		expect((await call(host, '/api/game/ticket', { method: 'POST' })).status).toBe(409)
+
+		const joined = await call(guest, '/api/party/join', {
 			method: 'POST',
-			body: JSON.stringify({ name: `Erin${run.slice(0, 6)}`, avatarStyle: 'pixelbot', avatarSeed: 'e' })
+			body: JSON.stringify({ code: hostParty.code })
 		})
-		const response = await call(jar, '/api/game/solo', { method: 'POST' })
-		expect(response.status).toBe(200)
-		const body = (await response.json()) as { ticket: string; room: string; path: string }
+		expect(joined.status).toBe(200)
+		expect((await call(host, '/api/party/start', { method: 'POST' })).status).toBe(409)
+		await call(guest, '/api/party/ready', { method: 'POST', body: JSON.stringify({ ready: true }) })
+		const started = (await (await call(host, '/api/party/start', { method: 'POST' })).json()) as { state: string }
+		expect(started.state).toBe('mission')
+
 		const publicKey = createPublicKey(loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY))
-		const check = verifyTicket(publicKey, body.ticket)
-		expect(check.ok && check.payload).toMatchObject({
-			room: body.room,
-			mode: 'solo',
-			inst: env.GAME_INSTANCE_ID,
-			name: `Erin${run.slice(0, 6)}`
+		const rooms = new Set<string>()
+		for (const jar of [host, guest]) {
+			const body = (await (await call(jar, '/api/game/ticket', { method: 'POST' })).json()) as {
+				ticket: string
+				path: string
+			}
+			const check = verifyTicket(publicKey, body.ticket)
+			expect(check.ok && check.payload.mode).toBe('squad')
+			if (check.ok) rooms.add(check.payload.room)
+			expect(body.path).toBe('/game')
+		}
+		expect(rooms.size).toBe(1)
+
+		const late = await call(outsider, '/api/party/join', {
+			method: 'POST',
+			body: JSON.stringify({ code: hostParty.code })
 		})
-		expect(body.path).toBe('/game')
+		expect(late.status).toBe(409)
+		expect(await late.json()).toEqual({ error: 'in-mission' })
+	})
+
+	it('pushes party changes to members over the event stream', async () => {
+		const host = await signIn('ivy')
+		const guest = await signIn('jack')
+		for (const [jar, name] of [
+			[host, 'Ivy'],
+			[guest, 'Jack']
+		] as const) {
+			await call(jar, '/api/player', {
+				method: 'POST',
+				body: JSON.stringify({ name: `${name}${run.slice(0, 6)}`, avatarStyle: 'lorelei', avatarSeed: name })
+			})
+		}
+		const { code } = (await (await call(host, '/api/party')).json()) as { code: string }
+		const stream = await call(host, '/api/events')
+		const reader = (stream.body as ReadableStream<Uint8Array>).getReader()
+		const decoder = new TextDecoder()
+		let text = ''
+		const until = async (pattern: RegExp) => {
+			while (!pattern.test(text)) {
+				const { value, done } = await reader.read()
+				if (done) break
+				text += decoder.decode(value)
+			}
+		}
+		await until(/event: hello/)
+		await call(guest, '/api/party/join', { method: 'POST', body: JSON.stringify({ code }) })
+		await until(/event: party/)
+		expect(text).toMatch(/event: party/)
+		await reader.cancel()
 	})
 
 	it('rejects requests without a session', async () => {

@@ -21,6 +21,7 @@
 		"@prisma/client": "^7.10.0",
 		"@rotline/constants": "workspace:*",
 		"@rotline/db": "workspace:*",
+		"@rotline/state": "workspace:*",
 		"@rotline/ticket": "workspace:*",
 		"better-auth": "^1.7.8",
 		"hono": "^4.13.13",

@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
 import { enabledProviders } from './auth.ts'
 import type { AppEnv, Services } from './context.ts'
-import { gameRoutes } from './routes/game.ts'
+import { partyRoutes } from './routes/party.ts'
 import { playerRoutes } from './routes/player.ts'
 
 export function createApp(services: Services) {
@@ -37,7 +37,7 @@ export function createApp(services: Services) {
 			}
 		})
 		.route('/', playerRoutes(services))
-		.route('/', gameRoutes(services))
+		.route('/', partyRoutes(services))
 
 	api.onError((error, c) => {
 		log.error({ err: error, path: c.req.path }, 'unhandled error')

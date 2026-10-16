@@ -10,6 +10,7 @@ const schema = z.object({
 	NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 	API_PORT: z.coerce.number().int().positive().default(3100),
 	DATABASE_URL: z.url(),
+	VALKEY_URL: z.url(),
 	PUBLIC_ORIGIN: z.url(),
 	BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 characters'),
 	GITHUB_CLIENT_ID: optional,
