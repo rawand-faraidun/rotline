@@ -28,7 +28,7 @@ Requirements: Node.js 26 (`nvm use`), pnpm 11, Docker.
    pnpm --silent --filter @rotline/ticket keys >> .env
    ```
 
-4. Run the API, the game server and the website:
+4. Run the API, the queue, the game server and the website:
 
    ```sh
    pnpm dev
@@ -42,7 +42,8 @@ Requirements: Node.js 26 (`nvm use`), pnpm 11, Docker.
 
 | Command | What it does |
 |---|---|
-| `pnpm dev` | API on port 3100, game server on 3200 and the website on 4321 (the website proxies `/api` and `/game`) |
+| `pnpm dev` | Development: API on port 3100, queue on 3300, game server on 3200 and the website on 4321 (the website proxies `/api`, `/api/queue` and `/game`), reloading on changes |
+| `pnpm start` | The production builds on the same ports: applies migrations, builds what changed, then runs each app's `start` |
 | `pnpm lint` | Biome checks |
 | `pnpm typecheck` | Type checks every package |
 | `pnpm test` | Unit tests |
@@ -52,12 +53,15 @@ Requirements: Node.js 26 (`nvm use`), pnpm 11, Docker.
 | `pnpm db:migrate` | Applies database migrations (uses `DATABASE_DIRECT_URL`) |
 | `pnpm changeset` | Describes a change for the next release (see below) |
 | `pnpm --filter @rotline/game-server bench` | Server tick benchmark with full rooms |
+| `pnpm --filter @rotline/bots bots` | Headless bot players against a running game, for network and load tests |
 
 ## Layout
 
 ```
-apps/api        HTTP API: sign-in (Better Auth), player profile, game tickets
+apps/api        HTTP API: sign-in (Better Auth), player profile, squads, friends, game tickets
+apps/queue      Seats and the queue for the player limit
 apps/game-server  Authoritative game server (uWebSockets.js, 30 Hz)
+apps/bots       Headless bot players for network and load tests
 apps/web        Static pages (Astro) and the game's React app
 packages/sim    Deterministic game simulation shared by server and browser
 packages/protocol  Binary messages and snapshot encoding
@@ -65,6 +69,8 @@ packages/client  3D renderer, input, prediction and interpolation (three.js)
 packages/game-data  Weapons, zombies, maps and waves as validated data
 packages/ticket  Signed game connection tickets
 packages/db     Prisma schema, migrations and client
+packages/auth   Better Auth setup shared by the API and the queue
+packages/state  Squads, seats, presence and the game-server registry in Valkey
 packages/ui     Interface components in the Rotline style
 packages/constants  Shared rules and constants
 tooling/        Shared Biome and TypeScript presets

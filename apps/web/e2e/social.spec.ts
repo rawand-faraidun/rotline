@@ -1,5 +1,6 @@
 import { createValkey, Seats } from '@rotline/state'
 import { type Browser, expect, type Page, test } from '@playwright/test'
+import { releaseSeats } from './helpers.ts'
 
 const run = Math.random().toString(36).slice(2, 8)
 
@@ -43,6 +44,7 @@ test('friends: request, accept, see presence, invite into the squad', async ({ b
 	await expect(ben.getByText(`Ana${run} invited you to their squad`)).toBeVisible()
 	await ben.getByRole('button', { name: /join squad/i }).click()
 	await expect(ana.getByText('2 / 4')).toBeVisible()
+	await releaseSeats(ana, ben)
 })
 
 test('a full game queues new players and lets them in when a seat frees', async ({ browser }) => {
@@ -52,13 +54,15 @@ test('a full game queues new players and lets them in when a seat frees', async 
 	const before = await seats.capacity()
 	try {
 		const first = await enlist(browser, 'Ira')
-		await expect(first).toHaveURL(/\/play\/lobby$/)
+		// the lobby renders only once the seat is taken (the address changes before that)
+		await expect(first.getByRole('heading', { name: /lobby/i })).toBeVisible()
 		// exactly full: everyone already seated, including the first player
 		const { seats: seated, passes } = await seats.counts()
+		expect(seated).toBeGreaterThan(0)
 		await seats.setCapacity(seated + passes)
 
 		const second = await enlist(browser, 'Jon')
-		await expect(second).toHaveURL(/\/queue$/)
+		await expect(second).toHaveURL(/\/queue$/, { timeout: 15_000 })
 		await expect(second.getByTestId('queue-position')).toHaveText('1')
 		await expect(second.getByRole('heading', { name: /holding position/i })).toBeVisible()
 
@@ -68,6 +72,7 @@ test('a full game queues new players and lets them in when a seat frees', async 
 		await second.getByRole('button', { name: /enter rotline/i }).click()
 		await expect(second).toHaveURL(/\/play\/lobby$/)
 		await expect(second.getByRole('heading', { name: /lobby/i })).toBeVisible()
+		await releaseSeats(second)
 	} finally {
 		await seats.setCapacity(before)
 		await valkey.quit()

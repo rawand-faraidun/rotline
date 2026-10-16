@@ -7,7 +7,7 @@
 		"brand": "node scripts/copy-brand.ts",
 		"dev": "node scripts/copy-brand.ts && astro dev",
 		"build": "node scripts/copy-brand.ts && astro build",
-		"preview": "astro preview",
+		"start": "astro preview",
 		"typecheck": "astro check",
 		"test:e2e": "playwright test"
 	},

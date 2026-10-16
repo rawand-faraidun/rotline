@@ -5,17 +5,19 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"start": "turbo run start",
+		"prestart": "pnpm db:migrate",
 		"dev": "turbo run dev",
 		"build": "turbo run build",
 		"lint": "biome check .",
 		"check": "biome check .",
 		"format": "biome format --write .",
+		"db:migrate": "pnpm --filter @rotline/db migrate:deploy",
+		"verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
 		"typecheck": "turbo run typecheck",
 		"test": "turbo run test",
 		"test:integration": "turbo run test:integration",
 		"test:e2e": "turbo run test:e2e",
-		"db:migrate": "pnpm --filter @rotline/db migrate:deploy",
-		"verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
 		"changeset": "changeset",
 		"version-packages": "changeset version",
 		"release:tag": "node scripts/tag-release.ts"
@@ -41,5 +43,9 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/rawand-faraidun/rotline.git"
+	},
+	"homepage": "https://github.com/rawand-faraidun/rotline#readme",
+	"bugs": {
+		"url": "https://github.com/rawand-faraidun/rotline/issues"
 	}
 }

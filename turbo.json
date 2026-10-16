@@ -36,6 +36,11 @@
 		"generate": {
 			"cache": false
 		},
+		"start": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"persistent": true
+		},
 		"dev": {
 			"dependsOn": ["generate"],
 			"cache": false,

@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test'
+import { releaseSeats } from './helpers.ts'
 
 const run = Math.random().toString(36).slice(2, 8)
 
@@ -92,4 +93,5 @@ test('two players form a squad by code and deploy together', async ({ browser })
 	await expect(guest).toHaveURL(/\/play\/mission$/, { timeout: 15_000 })
 	await expect(host.getByText(`Wing${run}`)).toBeVisible({ timeout: 45_000 })
 	await expect(guest.getByText(`Lead${run}`)).toBeVisible({ timeout: 45_000 })
+	await releaseSeats(host, guest)
 })
