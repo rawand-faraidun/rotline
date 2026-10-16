@@ -54,15 +54,21 @@ describe('room rewards', () => {
 		})
 	})
 
-	it('pays everyone for a cleared wave', () => {
+	it('pays a cleared wave to players who played it, not to idle ones', () => {
 		const reports: { userId: string; xp: number; salvage: number }[] = []
 		const room = new Room('room-2', 'squad', 1, 0, report => reports.push(report))
 		room.join('user-a', 'A', starterBuild(), connection())
-		// run until the second wave starts (the first is cleared by killing everything as it spawns)
+		room.join('user-b', 'B', starterBuild(), connection())
+		// a moves now and then; b never touches the controls
+		let seq = 0
 		for (let i = 0; i < 30 * 120 && reports.length === 0; i++) {
+			if (i % 30 === 0) {
+				room.receiveInputs('user-a', [{ seq: ++seq, moveX: 50, moveY: 0, aim: 0, buttons: 0, viewTick: 0, reach: 0 }])
+			}
 			for (let z = 0; z < 300; z++) if (room.world.alive[z]) room.world.damageZombie(z, 1e6, 0)
 			room.tick(Date.now())
 		}
+		expect(reports).toHaveLength(1)
 		expect(reports[0]).toMatchObject({
 			userId: 'user-a',
 			xp: economy.rewards.waveClear.xp,

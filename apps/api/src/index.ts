@@ -2,6 +2,7 @@ import { hostname } from 'node:os'
 import { createAuth } from '@rotline/auth'
 import { createDatabase } from '@rotline/db'
 import { createValkey, PartyStore, Seats } from '@rotline/state'
+import { loadPublicKey } from '@rotline/ticket'
 import { serve } from '@hono/node-server'
 import { pino } from 'pino'
 import { createApp } from './app.ts'
@@ -25,7 +26,14 @@ const app = createApp({ env, db, auth, log, valkey, parties: new PartyStore(valk
 // Valkey is rebuildable: the admin capacity setting lives in the database and is mirrored there
 await mirrorSettings(db, seats).catch(error => log.error({ err: error }, 'could not mirror admin settings'))
 
-const rewards = new RewardWorker(db, valkey, env.VALKEY_URL, log, `${hostname()}-${process.pid}`)
+const rewards = new RewardWorker(
+	db,
+	valkey,
+	env.VALKEY_URL,
+	log,
+	`${hostname()}-${process.pid}`,
+	loadPublicKey(env.GAME_REWARD_PUBLIC_KEY)
+)
 await rewards.start()
 
 const server = serve({ fetch: app.fetch, port: env.API_PORT }, info => {

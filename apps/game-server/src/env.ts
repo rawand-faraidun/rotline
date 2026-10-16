@@ -5,6 +5,8 @@ const schema = z.object({
 	GAME_PORT: z.coerce.number().int().positive().default(3200),
 	/** base64 DER (SPKI) Ed25519 public key matching the API's GAME_TICKET_PRIVATE_KEY */
 	GAME_TICKET_PUBLIC_KEY: z.string().min(40),
+	/** base64 DER (PKCS#8) Ed25519 key that signs reward reports; without it no rewards are reported */
+	GAME_REWARD_PRIVATE_KEY: z.string().min(40).optional(),
 	/** this process's name in tickets and the room registry */
 	GAME_INSTANCE_ID: z.string().min(1).default('local-1'),
 	/** optional: without it the server runs alone, without the room registry (tests, quick local runs) */

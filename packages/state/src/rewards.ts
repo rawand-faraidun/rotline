@@ -17,6 +17,15 @@ export type RewardReport = {
 	kills: number
 }
 
-export async function publishReward(valkey: Valkey, report: RewardReport): Promise<void> {
-	await valkey.xadd(REWARDS_STREAM, 'MAXLEN', '~', STREAM_MAX, '*', 'report', JSON.stringify(report))
+/**
+ * Appends a report with its signature: the API pays only reports signed by a game server's key, so
+ * write access to Valkey alone cannot mint XP or Salvage.
+ */
+export async function publishReward(
+	valkey: Valkey,
+	report: RewardReport,
+	sign: (text: string) => string
+): Promise<void> {
+	const text = JSON.stringify(report)
+	await valkey.xadd(REWARDS_STREAM, 'MAXLEN', '~', STREAM_MAX, '*', 'report', text, 'sig', sign(text))
 }

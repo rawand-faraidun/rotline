@@ -183,8 +183,10 @@ sequenceDiagram
 
 - A room adds up what each player earns (XP and Salvage per kill from game data, score converted to XP, a bonus per wave cleared) and reports it at every wave cleared, when the player's reconnect grace runs out, when the room closes and on shutdown. Fractions carry over to the next report.
 - Each report's grant key (`room:player:membership:sequence`) is recorded in the same transaction as the XP and Salvage, so a report delivered twice pays once. Reports are acknowledged only after their transaction commits; one an API instance was holding when it died is claimed by another after a minute.
+- Game servers sign every report with their own Ed25519 key; the API pays only reports with a valid signature, so write access to Valkey alone cannot mint XP or Salvage. In production each service also has its own Valkey user, and only the game servers may append to the stream.
 - The API only accepts reports whose key names a squad room and the same player, and no larger than one wave can plausibly pay (a limit in game data); anything else is dropped and logged.
-- A wave pays when it is cleared, never when it restarts after a wipe, and only players still connected are paid for it.
+- A wave pays when it is cleared, never when it restarts after a wipe, and only to players who are connected and played it (moved, aimed or fired since the last clear).
+- Rooms log players whose accuracy stays above 97 % over 300 shots or more (possible aim assistance), for review; nothing is taken away automatically.
 - A mission in progress can be lost in a crash (up to one wave of rewards); anything granted cannot.
 - Every progress change locks the player's row first, so one player's changes run one at a time; writes are rate-limited per player (progress 20 a second, game tickets 6 per 10 seconds, squad and friends 20 per 10 seconds).
 

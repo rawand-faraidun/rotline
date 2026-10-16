@@ -21,6 +21,9 @@ const CATCH_UP_BACKLOG = 3
 /** Input rate limit (token bucket): the normal rate plus room for one stall's burst. */
 const INPUT_RATE = 30
 const INPUT_BURST = 24
+/** Accuracy worth logging: this share of hits over at least this many shots. */
+const SUSPICION_ACCURACY = 0.97
+const SUSPICION_MIN_SHOTS = 300
 /** Firing-range commands per second (and burst), so one client cannot flood the room. */
 const RANGE_COMMAND_RATE = 4
 const RANGE_COMMAND_BURST = 6
@@ -41,6 +44,11 @@ type Earnings = {
 	score: number
 	kills: number
 	reports: number
+	/** moved, aimed or fired since the last cleared wave: idle players are not paid for a wave */
+	active: boolean
+	/** for spotting aim assistance: shots fired and zombies hit by this player's shots */
+	shots: number
+	hits: number
 	/** unique per membership, so a player who leaves and rejoins (or a restarted server) never reuses a grant key */
 	nonce: string
 }
@@ -153,7 +161,17 @@ export class Room {
 				name,
 				slot,
 				build,
-				earnings: { xp: 0, salvage: 0, score: 0, kills: 0, reports: 0, nonce: randomUUID().slice(0, 8) },
+				earnings: {
+					xp: 0,
+					salvage: 0,
+					score: 0,
+					kills: 0,
+					reports: 0,
+					active: false,
+					shots: 0,
+					hits: 0,
+					nonce: randomUUID().slice(0, 8)
+				},
 				connection: null,
 				encoder: new SnapshotEncoder(slot),
 				queue: [],
@@ -225,6 +243,7 @@ export class Room {
 			member.inputTokens -= 1
 			member.lastQueuedSeq = input.seq
 			member.queue.push(input)
+			if (input.moveX !== 0 || input.moveY !== 0 || input.buttons !== 0) member.earnings.active = true
 		}
 		while (member.queue.length > MAX_QUEUED_INPUTS) member.queue.shift()
 	}
@@ -253,10 +272,15 @@ export class Room {
 		for (const event of this.world.events) {
 			this.pendingEvents.push(event)
 			if (event.type === 'kill') this.credit(event.by, event.zombieType)
-			// a cleared wave pays everyone connected (not on a restart after a wipe, not the absent)
+			else if (event.type === 'shot' && event.player > 0) this.count(event.player, 'shots')
+			else if (event.type === 'hit' && event.by > 0) this.count(event.by, 'hits')
+			// a cleared wave pays everyone connected who played it (not on a restart after a wipe,
+			// not the absent, not someone standing idle while the others play)
 			else if (event.type === 'cleared') {
 				for (const member of this.members.values()) {
-					if (!member.connection) continue
+					const played = member.earnings.active
+					member.earnings.active = false
+					if (!member.connection || !played) continue
 					member.earnings.xp += economy.rewards.waveClear.xp
 					member.earnings.salvage += economy.rewards.waveClear.salvage
 					this.report(member)
@@ -305,6 +329,24 @@ export class Room {
 			member.earnings.score += zombie.score
 			member.earnings.kills++
 		}
+	}
+
+	private count(slot: number, field: 'shots' | 'hits'): void {
+		for (const member of this.members.values()) if (member.slot === slot) member.earnings[field]++
+	}
+
+	/**
+	 * Players whose shots almost never miss over many shots are worth a look (aim assistance). This
+	 * only logs; nothing is taken away automatically.
+	 */
+	suspicious(): { userId: string; shots: number; hits: number }[] {
+		const flagged: { userId: string; shots: number; hits: number }[] = []
+		for (const member of this.members.values()) {
+			const { shots, hits } = member.earnings
+			if (shots >= SUSPICION_MIN_SHOTS && hits / shots >= SUSPICION_ACCURACY)
+				flagged.push({ userId: member.userId, shots, hits })
+		}
+		return flagged
 	}
 
 	/** Sends what a member earned since the last report; fractions carry over to the next one. */

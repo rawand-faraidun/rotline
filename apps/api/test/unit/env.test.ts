@@ -6,7 +6,8 @@ const base = {
 	VALKEY_URL: 'redis://localhost:6379',
 	PUBLIC_ORIGIN: 'http://localhost:4321',
 	BETTER_AUTH_SECRET: 'x'.repeat(32),
-	GAME_TICKET_PRIVATE_KEY: 'k'.repeat(48)
+	GAME_TICKET_PRIVATE_KEY: 'k'.repeat(48),
+	GAME_REWARD_PUBLIC_KEY: 'p'.repeat(48)
 }
 
 describe('readEnv', () => {

@@ -154,14 +154,15 @@ jobs:
             -e NODE_ENV=test -e DATABASE_URL=postgresql://rotline:rotline@localhost:5432/rotline \
             -e PUBLIC_ORIGIN=http://localhost:8080 -e BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             -e AUTH_TEST_PROVIDER_ISSUER=http://localhost:8090/rotline \
-            -e GAME_TICKET_PRIVATE_KEY=$GAME_TICKET_PRIVATE_KEY -e GAME_INSTANCE_ID=ci-1 \
+            -e GAME_TICKET_PRIVATE_KEY=$GAME_TICKET_PRIVATE_KEY -e GAME_REWARD_PUBLIC_KEY=$GAME_REWARD_PUBLIC_KEY -e GAME_INSTANCE_ID=ci-1 \
             -e VALKEY_URL=redis://localhost:6379 rotline-api:ci
           docker run -d --name queue --network host \
             -e NODE_ENV=test -e DATABASE_URL=postgresql://rotline:rotline@localhost:5432/rotline \
             -e PUBLIC_ORIGIN=http://localhost:8080 -e BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             -e AUTH_TEST_PROVIDER_ISSUER=http://localhost:8090/rotline \
             -e VALKEY_URL=redis://localhost:6379 rotline-queue:ci
-          docker run -d --name game --network host -e GAME_TICKET_PUBLIC_KEY=$GAME_TICKET_PUBLIC_KEY -e GAME_INSTANCE_ID=ci-1 \
+          docker run -d --name game --network host -e GAME_TICKET_PUBLIC_KEY=$GAME_TICKET_PUBLIC_KEY \
+            -e GAME_REWARD_PRIVATE_KEY=$GAME_REWARD_PRIVATE_KEY -e GAME_INSTANCE_ID=ci-1 \
             -e VALKEY_URL=redis://localhost:6379 rotline-game:ci
           gateway=$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')
           docker run -d --name web -p 8080:8080 -e API_UPSTREAM=http://$gateway:3100 -e QUEUE_UPSTREAM=http://$gateway:3300 -e GAME_UPSTREAM=http://$gateway:3200 rotline-web:ci

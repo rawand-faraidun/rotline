@@ -1,6 +1,8 @@
+import type { KeyObject } from 'node:crypto'
 import { type Database, LedgerReason, PlayerClass, Prisma } from '@rotline/db'
 import { economy } from '@rotline/game-data'
 import { createValkey, notify, REWARDS_STREAM, type RewardReport, type Valkey } from '@rotline/state'
+import { verifyMessage } from '@rotline/ticket'
 import type { Logger } from 'pino'
 import { z } from 'zod'
 import { changeSalvage, PlayerMissing } from './lib/ledger.ts'
@@ -80,7 +82,18 @@ export class RewardWorker {
 	private readonly done: Promise<void>
 	private resolveDone: () => void = () => {}
 
-	constructor(db: Database, valkey: Valkey, valkeyUrl: string, log: Logger, consumer: string, stream = REWARDS_STREAM) {
+	private readonly rewardKey: KeyObject
+
+	constructor(
+		db: Database,
+		valkey: Valkey,
+		valkeyUrl: string,
+		log: Logger,
+		consumer: string,
+		rewardKey: KeyObject,
+		stream = REWARDS_STREAM
+	) {
+		this.rewardKey = rewardKey
 		this.db = db
 		this.valkey = valkey
 		this.log = log
@@ -149,9 +162,18 @@ export class RewardWorker {
 	private async handle(entries: [string, string[]][]): Promise<void> {
 		for (const [id, fields] of entries) {
 			const at = fields.indexOf('report')
+			const text = at >= 0 ? (fields[at + 1] ?? '') : ''
+			const signatureAt = fields.indexOf('sig')
+			const signature = signatureAt >= 0 ? (fields[signatureAt + 1] ?? '') : ''
+			// only reports signed by a game server count: Valkey access alone cannot mint rewards
+			if (!verifyMessage(this.rewardKey, text, signature)) {
+				this.log.error({ id }, 'unsigned or forged reward report dropped')
+				await this.valkey.xack(this.stream, GROUP, id)
+				continue
+			}
 			let body: unknown = null
 			try {
-				body = at >= 0 ? JSON.parse(fields[at + 1] ?? '') : null
+				body = JSON.parse(text)
 			} catch {
 				body = null
 			}

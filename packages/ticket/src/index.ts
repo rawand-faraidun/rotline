@@ -82,6 +82,19 @@ export function verifyTicket(key: KeyObject, ticket: string, now = Date.now()): 
 	return { ok: true, payload: result.data }
 }
 
+/** Signs any text (reward reports): base64url Ed25519 signature. */
+export function signMessage(key: KeyObject, text: string): string {
+	return sign(null, Buffer.from(text), key).toString('base64url')
+}
+
+export function verifyMessage(key: KeyObject, text: string, signature: string): boolean {
+	try {
+		return verify(null, Buffer.from(text), key, Buffer.from(signature, 'base64url'))
+	} catch {
+		return false
+	}
+}
+
 /** Remembers used nonces until their ticket would have expired anyway. */
 export class NonceStore {
 	private readonly used = new Map<string, number>()

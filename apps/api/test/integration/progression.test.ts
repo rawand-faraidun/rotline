@@ -1,6 +1,6 @@
 import { createPublicKey } from 'node:crypto'
 import { buildProblem, economy, upgradeCost, xpToNext } from '@rotline/game-data'
-import { loadPrivateKey, verifyTicket } from '@rotline/ticket'
+import { loadPrivateKey, signMessage, verifyTicket } from '@rotline/ticket'
 import { describe, expect, it } from 'vitest'
 import { loadBuild } from '../../src/lib/build.ts'
 import { grantReward, RewardWorker } from '../../src/rewards.ts'
@@ -8,6 +8,14 @@ import type { ProgressView } from '../../src/routes/progress.ts'
 import { harness, type Jar } from './helpers.ts'
 
 const { env, db, valkey, parties, seats, log, call, enlist } = harness('progression.rotline.test')
+
+const rewardKey = loadPrivateKey(process.env.GAME_REWARD_PRIVATE_KEY ?? '')
+const rewardPublic = createPublicKey(rewardKey)
+/** Appends a report signed like a game server does. */
+async function signed(stream: string, report: object) {
+	const text = JSON.stringify(report)
+	await valkey.xadd(stream, '*', 'report', text, 'sig', signMessage(rewardKey, text))
+}
 
 const progress = async (jar: Jar) => (await (await call(jar, '/api/progress')).json()) as ProgressView
 
@@ -187,15 +195,17 @@ describe('progression', () => {
 		const { id } = await enlist('Hal')
 		await pay(id, 0, 50)
 		await expect(db.$executeRaw`UPDATE ledger_entry SET amount = 1000 WHERE player_id = ${id}::uuid`).rejects.toThrow(
-			/append-only/
+			/append-only|permission denied/
 		)
-		await expect(db.$executeRaw`DELETE FROM ledger_entry WHERE player_id = ${id}::uuid`).rejects.toThrow(/append-only/)
+		await expect(db.$executeRaw`DELETE FROM ledger_entry WHERE player_id = ${id}::uuid`).rejects.toThrow(
+			/append-only|permission denied/
+		)
 	})
 
 	it('turns reward reports from the stream into XP and Salvage', async () => {
 		const { jar, id } = await enlist('Ivo')
 		const stream = `rewards-test-${crypto.randomUUID()}`
-		const worker = new RewardWorker(db, valkey, env.VALKEY_URL, log, 'test', stream)
+		const worker = new RewardWorker(db, valkey, env.VALKEY_URL, log, 'test', rewardPublic, stream)
 		await worker.start()
 		try {
 			const report = {
@@ -207,20 +217,14 @@ describe('progression', () => {
 				kills: 12
 			}
 			// a report naming another player, or granting too much, is refused
-			await valkey.xadd(
-				stream,
-				'*',
-				'report',
-				JSON.stringify({ ...report, grantKey: `squad-${crypto.randomUUID()}:${crypto.randomUUID()}:0a1b2c3d:0` })
-			)
-			await valkey.xadd(
-				stream,
-				'*',
-				'report',
-				JSON.stringify({ ...report, grantKey: `squad-${crypto.randomUUID()}:${id}:0a1b2c3d:1`, salvage: 1e6 })
-			)
-			await valkey.xadd(stream, '*', 'report', JSON.stringify(report))
-			await valkey.xadd(stream, '*', 'report', JSON.stringify(report))
+			await signed(stream, { ...report, grantKey: `squad-${crypto.randomUUID()}:${crypto.randomUUID()}:0a1b2c3d:0` })
+			await signed(stream, { ...report, grantKey: `squad-${crypto.randomUUID()}:${id}:0a1b2c3d:1`, salvage: 1e6 })
+			// a report without a game server's signature, or with a forged one, pays nothing
+			const forged = { ...report, grantKey: `squad-${crypto.randomUUID()}:${id}:0a1b2c3d:2`, salvage: 999 }
+			await valkey.xadd(stream, '*', 'report', JSON.stringify(forged))
+			await valkey.xadd(stream, '*', 'report', JSON.stringify(forged), 'sig', 'AAAA')
+			await signed(stream, report)
+			await signed(stream, report)
 			let view = await progress(jar)
 			for (let i = 0; i < 50 && view.salvage === 0; i++) {
 				await new Promise(resolve => setTimeout(resolve, 100))
@@ -284,13 +288,13 @@ describe('progression', () => {
 
 	it('drops malformed and orphaned reward reports instead of retrying them forever', async () => {
 		const stream = `rewards-test-${crypto.randomUUID()}`
-		const worker = new RewardWorker(db, valkey, env.VALKEY_URL, log, 'test', stream)
+		const worker = new RewardWorker(db, valkey, env.VALKEY_URL, log, 'test', rewardPublic, stream)
 		await worker.start()
 		try {
 			await valkey.xadd(stream, '*', 'report', 'not json')
 			await valkey.xadd(stream, '*', 'other', '1')
 			const ghost = { grantKey: 'ghost', userId: crypto.randomUUID(), class: 'medic', xp: 0, salvage: 5, kills: 0 }
-			await valkey.xadd(stream, '*', 'report', JSON.stringify(ghost))
+			await signed(stream, ghost)
 			let pending = 3
 			for (let i = 0; i < 50 && pending > 0; i++) {
 				await new Promise(resolve => setTimeout(resolve, 100))

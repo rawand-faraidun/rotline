@@ -10,7 +10,7 @@ import {
 } from '@rotline/protocol'
 import { DT } from '@rotline/sim'
 import { announceInstance, createValkey, publishReward, touchRoom, type Valkey } from '@rotline/state'
-import { loadPublicKey, NonceStore, verifyTicket } from '@rotline/ticket'
+import { loadPrivateKey, loadPublicKey, NonceStore, signMessage, verifyTicket } from '@rotline/ticket'
 import type { Logger } from 'pino'
 import type { GameEnv } from './env.ts'
 import { type Connection, Room } from './room.ts'
@@ -52,6 +52,7 @@ export class GameServer {
 	private readonly app: TemplatedApp
 	private listenSocket: us_listen_socket | null = null
 	private readonly nonces = new NonceStore()
+	private readonly rewardKey: ReturnType<typeof loadPrivateKey> | null
 	private readonly publicKey
 	private readonly writer = new Writer(64)
 	private timer: ReturnType<typeof setTimeout> | null = null
@@ -69,6 +70,8 @@ export class GameServer {
 		this.env = env
 		this.log = log
 		this.publicKey = loadPublicKey(env.GAME_TICKET_PUBLIC_KEY)
+		this.rewardKey = env.GAME_REWARD_PRIVATE_KEY ? loadPrivateKey(env.GAME_REWARD_PRIVATE_KEY) : null
+		if (!this.rewardKey) log.warn('GAME_REWARD_PRIVATE_KEY is not set: rewards will not be reported')
 		this.valkey = env.VALKEY_URL ? createValkey(env.VALKEY_URL, `rotline-game-${env.GAME_INSTANCE_ID}`) : null
 		this.app = uws.App()
 		this.app.get('/health', response => {
@@ -267,8 +270,9 @@ export class GameServer {
 				return
 			}
 			room = new Room(payload.room, payload.mode, this.roomSeed++, this.rooms.size, report => {
-				if (!this.valkey) return
-				publishReward(this.valkey, report).catch(error =>
+				if (!this.valkey || !this.rewardKey) return
+				const key = this.rewardKey
+				publishReward(this.valkey, report, text => signMessage(key, text)).catch(error =>
 					this.log.error({ err: error, grantKey: report.grantKey }, 'reward report failed')
 				)
 			})
@@ -341,6 +345,7 @@ export class GameServer {
 			room.tick(wall)
 			if (room.emptySince > 0 && wall - room.emptySince > EMPTY_ROOM_MS) {
 				room.reportAll()
+				for (const flagged of room.suspicious()) this.log.warn({ room: id, ...flagged }, 'unusually accurate player')
 				this.rooms.delete(id)
 				this.log.info({ room: id }, 'room closed')
 				if (this.draining && this.rooms.size === 0) this.onDrained?.()
