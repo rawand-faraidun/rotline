@@ -1,4 +1,15 @@
 export { createValkey, type Valkey } from './client.ts'
 export { notify, type PlayerEvent, userChannel } from './notify.ts'
 export { PARTY_SIZE, type Party, PartyError, type PartyState, PartyStore } from './parties.ts'
+export { clearPresence, getPresence, type Presence, type PresenceStatus, setPresence } from './presence.ts'
 export { announceInstance, type InstanceInfo, liveInstances, pickInstance, roomExists, touchRoom } from './registry.ts'
+export {
+	DEFAULT_CAPACITY,
+	IDLE_RELEASE_SECONDS,
+	IDLE_WARNING_SECONDS,
+	PASS_MS,
+	QUEUE_STALE_MS,
+	SEAT_GRACE_MS,
+	type SeatStatus,
+	Seats
+} from './seats.ts'

@@ -1,0 +1,36 @@
+{
+	"name": "@rotline/queue",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "node --env-file-if-exists=../../.env --watch src/index.ts",
+		"build": "node scripts/build.ts",
+		"start": "node dist/index.js",
+		"typecheck": "tsc",
+		"test:integration": "node --env-file-if-exists=../../.env ./node_modules/vitest/vitest.mjs run --config vitest.config.ts"
+	},
+	"dependencies": {
+		"@hono/node-server": "^2.1.5",
+		"@hono/zod-validator": "^0.9.1",
+		"@prisma/adapter-pg": "^7.10.0",
+		"@prisma/client": "^7.10.0",
+		"@rotline/auth": "workspace:*",
+		"@rotline/db": "workspace:*",
+		"@rotline/state": "workspace:*",
+		"better-auth": "^1.7.8",
+		"hono": "^4.13.13",
+		"ioredis": "^6.0.0",
+		"pino": "^10.4.0",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"@types/node": "catalog:",
+		"esbuild": "^0.28.2",
+		"pino-pretty": "^13.2.0",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

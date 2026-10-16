@@ -1,7 +1,9 @@
+import { enabledProviders } from '@rotline/auth'
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
-import { enabledProviders } from './auth.ts'
 import type { AppEnv, Services } from './context.ts'
+import { adminRoutes } from './routes/admin.ts'
+import { friendRoutes } from './routes/friends.ts'
 import { partyRoutes } from './routes/party.ts'
 import { playerRoutes } from './routes/player.ts'
 
@@ -38,6 +40,8 @@ export function createApp(services: Services) {
 		})
 		.route('/', playerRoutes(services))
 		.route('/', partyRoutes(services))
+		.route('/', friendRoutes(services))
+		.route('/', adminRoutes(services))
 
 	api.onError((error, c) => {
 		log.error({ err: error, path: c.req.path }, 'unhandled error')

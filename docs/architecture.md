@@ -105,32 +105,40 @@ sequenceDiagram
 
 ## Seats and the queue
 
-The game admits a set number of concurrent players (an admin setting, 24 by default). A concurrent player is a signed-in player connected to the lobby, the firing range or a mission.
+The game admits a set number of concurrent players (an admin setting, 24 by default). A concurrent player is a signed-in player with the lobby, the firing range or a mission open. The queue service (`apps/queue`) owns seats; it is small and separate from the API so the queue keeps answering when everything else is busy.
 
 ```mermaid
 sequenceDiagram
   participant B as Browser
   participant Q as Queue service
   participant V as Valkey
-  B->>Q: enter (session)
-  Q->>V: seats used < capacity?
+  B->>Q: enter (opening the lobby or a mission)
+  Q->>V: free seat and nobody waiting?
   alt seat free
     Q->>V: take a seat
-    Q-->>B: admitted, go to the lobby
+    Q-->>B: admitted
   else full
-    Q->>V: add to the queue (join time, party size)
-    Q-->>B: position and estimated wait
-    Q-->>B: live updates while waiting
-    Note over Q,V: when a seat frees, the first entry gets a 90-second admission pass;<br/>a party is admitted when enough seats are free for all of it
+    Q->>V: join the end of the queue
+    Q-->>B: queued: go to the queue page
+    loop every 4 seconds
+      B->>Q: status
+      Q-->>B: position, estimated wait
+    end
+    Note over Q,V: once a second, one queue process (holding a short lock)<br/>gives the first in line a 90-second admission pass for each free seat
+    Q-->>B: pass
+    B->>Q: enter
     Q-->>B: admitted
   end
 ```
 
-- First come, first served. Parties queue together.
-- Connected players keep their seat; a player who disconnects mid-mission keeps it for the reconnect grace period.
-- Players idle in the lobby are warned and then lose their seat.
-- Effective capacity lowers itself when server health degrades (slow ticks), and recovers when healthy. Lowering never removes anyone; it only stops admitting.
-- The queue page is a small static page that keeps working when game servers are busy. It shows the position, an estimated wait, friends online, tips and bestiary entries.
+- First come, first served: queue order is a counter, not the clock. Players queue one by one; squads form in the lobby once admitted.
+- A seat is kept by a heartbeat from the open app every 30 seconds and lapses 120 seconds after the last one (the reconnect grace). Signing out frees it at once.
+- An unused pass counts as a taken seat until it expires. A queued player whose page stops asking for 30 seconds (tab closed) leaves the line.
+- The heartbeat carries how long the player has been idle: at 10 minutes the app warns, at 12 the seat is released and the player goes to the queue page.
+- The API hands out game tickets only to players holding a seat.
+- Game servers publish their slowest recent tick. While any is slower than 10 ms, the effective capacity drops by 10 % a minute (never below half); when healthy it recovers by one seat a minute. Lowering never removes anyone; it only stops admitting.
+- The capacity is stored in the database (`admin_setting`) and mirrored into Valkey when the API starts and whenever an admin changes it.
+- The queue page is static (`/queue`): position, estimated wait (from how fast seats recently turned over), players in the game, friends online, rotating tips and bestiary entries, an optional browser notification and a sound when the pass arrives, and a countdown to use it.
 
 ## Joining a match
 
@@ -173,7 +181,11 @@ Each open app tab keeps one Server-Sent Events connection to the API (`/api/even
 
 ## Presence and friends
 
-Game servers and the API keep each player's presence (lobby, mission name, queue, firing range, offline) in Valkey and publish every change. Each client has one push channel and receives changes only for its friends. Nothing polls.
+- Presence (lobby, mission, queue, firing range, offline) lives in Valkey with a 75-second expiry. The API refreshes it while a player's event stream is open and the queue service while they wait; each change is pushed to that player's friends through the event stream. Nothing polls.
+- Friend requests go by player name. A request to someone who already asked you accepts both. A friendship is stored once per pair (smaller id first, enforced by a check constraint).
+- Blocking removes any friendship and hides you from the other player: their requests to you fail exactly as if your name did not exist.
+- Friends can invite each other into their squad (a live notification with a Join button) or join a friend's squad directly from the friends list.
+- Everyone who deploys together is remembered as each other's recent players (the newest 50), so people met in a mission can be added afterwards.
 
 ## Game client and interface
 

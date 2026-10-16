@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import { notify, type Party, PartyError, pickInstance, roomExists } from '@rotline/state'
+import { friendIds } from '@rotline/db'
+import { notify, type Party, PartyError, pickInstance, roomExists, setPresence } from '@rotline/state'
 import { loadPrivateKey, signTicket } from '@rotline/ticket'
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { z } from 'zod'
 import type { AppEnv, Services } from '../context.ts'
+import { recordRecentPlayers } from './friends.ts'
 
 /** Path the browser connects to for the game (same origin; the reverse proxy routes it). */
 export const GAME_PATH = '/game'
@@ -23,7 +25,7 @@ const errorStatus = {
 } as const
 
 export function partyRoutes(services: Services) {
-	const { db, env, parties, valkey, events } = services
+	const { db, env, parties, seats, valkey, events } = services
 	const key = loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY)
 
 	/** Parties stuck "in mission" after their room closed go back to the lobby. */
@@ -131,6 +133,7 @@ export function partyRoutes(services: Services) {
 			const instance = (await pickInstance(valkey)) ?? env.GAME_INSTANCE_ID
 			const party = await parties.start(user.id, `squad-${randomUUID()}`, instance)
 			await changed(party.id)
+			if (party.members.length > 1) await recordRecentPlayers(db, party.members)
 			return c.json(await view(party, user.id), 200)
 		})
 		.post('/game/ticket', async c => {
@@ -140,6 +143,8 @@ export function partyRoutes(services: Services) {
 			if (!player) return c.json({ error: 'no-player' as const }, 404)
 			const party = await settle(await parties.current(user.id))
 			if (party.state !== 'mission') return c.json({ error: 'no-mission' as const }, 409)
+			// only players holding a seat may play; everyone else waits in the queue
+			if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
 			const { ticket, payload } = signTicket(key, {
 				sub: user.id,
 				name: player.name,
@@ -152,15 +157,33 @@ export function partyRoutes(services: Services) {
 		.get('/events', async c => {
 			const user = c.get('user')
 			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+			// an open stream means the player is online: keep their presence fresh and tell friends when it changes
+			const announce = async () => {
+				const party = await parties.current(user.id)
+				const status = party.state === 'mission' ? 'mission' : 'lobby'
+				const detail = party.state === 'mission' ? 'The Yard' : ''
+				if (await setPresence(valkey, user.id, { status, detail })) {
+					await notify(valkey, await friendIds(db, user.id), { type: 'presence', userId: user.id, status, detail })
+				}
+			}
 			return streamSSE(c, async stream => {
 				const unsubscribe = await events.subscribe(user.id, event => {
 					void stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+					// a squad change may change what friends see (lobby or in a mission)
+					if (event.type === 'party') void announce()
 				})
-				stream.onAbort(() => void unsubscribe())
+				stream.onAbort(() => {
+					void unsubscribe()
+					// let presence lapse soon unless another tab keeps it alive
+					void valkey.expire(`presence:${user.id}`, 20)
+				})
 				await stream.writeSSE({ event: 'hello', data: '{}' })
+				await announce()
 				while (!stream.aborted) {
 					await stream.sleep(HEARTBEAT_MS)
-					if (!stream.aborted) await stream.write(': keep-alive\n\n')
+					if (stream.aborted) break
+					await stream.write(': keep-alive\n\n')
+					await announce()
 				}
 			})
 		})

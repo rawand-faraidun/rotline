@@ -21,12 +21,14 @@ export function playerRoutes({ db }: Services) {
 		avatarSeed: string
 		activeClass: string
 		salvage: bigint
+		isAdmin: boolean
 	}) => ({
 		name: player.name,
 		avatarStyle: player.avatarStyle,
 		avatarSeed: player.avatarSeed,
 		activeClass: player.activeClass,
-		salvage: Number(player.salvage)
+		salvage: Number(player.salvage),
+		isAdmin: player.isAdmin
 	})
 
 	return new Hono<AppEnv>()

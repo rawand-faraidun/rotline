@@ -1,0 +1,20 @@
+{
+	"name": "@rotline/auth",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc"
+	},
+	"dependencies": {
+		"@rotline/db": "workspace:*",
+		"better-auth": "^1.7.8"
+	},
+	"devDependencies": {
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"@types/node": "catalog:",
+		"typescript": "catalog:"
+	}
+}

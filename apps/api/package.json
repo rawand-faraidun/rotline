@@ -19,6 +19,7 @@
 		"@hono/zod-validator": "^0.9.1",
 		"@prisma/adapter-pg": "^7.10.0",
 		"@prisma/client": "^7.10.0",
+		"@rotline/auth": "workspace:*",
 		"@rotline/constants": "workspace:*",
 		"@rotline/db": "workspace:*",
 		"@rotline/state": "workspace:*",

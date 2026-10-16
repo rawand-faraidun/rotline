@@ -26,6 +26,8 @@ jobs:
             dockerfile: packages/db/Dockerfile
           - name: game
             dockerfile: apps/game-server/Dockerfile
+          - name: queue
+            dockerfile: apps/queue/Dockerfile
     steps:
       - uses: actions/checkout@v7
         with:

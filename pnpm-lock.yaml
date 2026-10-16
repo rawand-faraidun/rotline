@@ -78,6 +78,9 @@ importers:
       '@prisma/client':
         specifier: ^7.10.0
         version: 7.10.0(prisma@7.10.0(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3)
+      '@rotline/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@rotline/constants':
         specifier: workspace:*
         version: link:../../packages/constants
@@ -223,6 +226,67 @@ importers:
         specifier: ^8.22.0
         version: 8.22.0
 
+  apps/queue:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^2.1.5
+        version: 2.1.5(hono@4.13.13)
+      '@hono/zod-validator':
+        specifier: ^0.9.1
+        version: 0.9.1(hono@4.13.13)(zod@4.6.7)
+      '@prisma/adapter-pg':
+        specifier: ^7.10.0
+        version: 7.10.0
+      '@prisma/client':
+        specifier: ^7.10.0
+        version: 7.10.0(prisma@7.10.0(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3)
+      '@rotline/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@rotline/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@rotline/state':
+        specifier: workspace:*
+        version: link:../../packages/state
+      better-auth:
+        specifier: ^1.7.8
+        version: 1.7.8(@prisma/client@7.10.0(prisma@7.10.0(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3))(mysql2@3.24.6(@types/node@26.6.5))(pg@8.23.1)(prisma@7.10.0(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.4)
+      hono:
+        specifier: ^4.13.13
+        version: 4.13.13
+      ioredis:
+        specifier: ^6.0.0
+        version: 6.0.0
+      pino:
+        specifier: ^10.4.0
+        version: 10.4.0
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@rotline/biome-config':
+        specifier: workspace:*
+        version: link:../../tooling/biome
+      '@rotline/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+      pino-pretty:
+        specifier: ^13.2.0
+        version: 13.2.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@26.6.5)(@vitest/coverage-v8@5.0.4)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
   apps/web:
     dependencies:
       '@astrojs/react':
@@ -246,6 +310,9 @@ importers:
       '@rotline/constants':
         specifier: workspace:*
         version: link:../../packages/constants
+      '@rotline/game-data':
+        specifier: workspace:*
+        version: link:../../packages/game-data
       '@rotline/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -280,6 +347,9 @@ importers:
       '@rotline/biome-config':
         specifier: workspace:*
         version: link:../../tooling/biome
+      '@rotline/state':
+        specifier: workspace:*
+        version: link:../../packages/state
       '@rotline/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
@@ -298,6 +368,28 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
+  packages/auth:
+    dependencies:
+      '@rotline/db':
+        specifier: workspace:*
+        version: link:../db
+      better-auth:
+        specifier: ^1.7.8
+        version: 1.7.8(@prisma/client@7.10.0(prisma@7.10.0(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3))(mysql2@3.24.6(@types/node@26.6.5))(pg@8.23.1)(prisma@7.10.0(@types/node@26.6.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.4)
+    devDependencies:
+      '@rotline/biome-config':
+        specifier: workspace:*
+        version: link:../../tooling/biome
+      '@rotline/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

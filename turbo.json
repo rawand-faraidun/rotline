@@ -24,7 +24,9 @@
 		"GAME_TICKET_PUBLIC_KEY",
 		"GAME_INSTANCE_ID",
 		"GAME_PORT",
-		"GAME_PROXY_TARGET"
+		"GAME_PROXY_TARGET",
+		"QUEUE_PORT",
+		"QUEUE_PROXY_TARGET"
 	],
 	"tasks": {
 		"build": {

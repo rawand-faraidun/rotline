@@ -2,14 +2,26 @@ import type { Database } from '@rotline/db'
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { genericOAuth } from 'better-auth/plugins/generic-oauth'
-import type { Env } from './env.ts'
+/** The settings sign-in needs; services pass the relevant part of their environment. */
+export type AuthEnv = {
+	NODE_ENV: 'development' | 'test' | 'production'
+	PUBLIC_ORIGIN: string
+	BETTER_AUTH_SECRET: string
+	GITHUB_CLIENT_ID?: string | undefined
+	GITHUB_CLIENT_SECRET?: string | undefined
+	GOOGLE_CLIENT_ID?: string | undefined
+	GOOGLE_CLIENT_SECRET?: string | undefined
+	AUTH_TEST_PROVIDER_ISSUER?: string | undefined
+	AUTH_TEST_PROVIDER_CLIENT_ID?: string | undefined
+	AUTH_TEST_PROVIDER_CLIENT_SECRET?: string | undefined
+}
 
 export const TEST_PROVIDER_ID = 'test'
 
 export type SignInProvider = 'github' | 'google' | typeof TEST_PROVIDER_ID
 
 /** Providers that have credentials configured, in the order the sign-in page shows them. */
-export function enabledProviders(env: Env): SignInProvider[] {
+export function enabledProviders(env: AuthEnv): SignInProvider[] {
 	const list: SignInProvider[] = []
 	if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) list.push('github')
 	if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) list.push('google')
@@ -17,7 +29,7 @@ export function enabledProviders(env: Env): SignInProvider[] {
 	return list
 }
 
-export function createAuth(env: Env, db: Database) {
+export function createAuth(env: AuthEnv, db: Database) {
 	const socialProviders: Parameters<typeof betterAuth>[0]['socialProviders'] = {}
 	if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
 		socialProviders.github = { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET }
@@ -54,7 +66,9 @@ export function createAuth(env: Env, db: Database) {
 		plugins,
 		session: {
 			expiresIn: 60 * 60 * 24 * 30,
-			updateAge: 60 * 60 * 24
+			updateAge: 60 * 60 * 24,
+			// a signed copy of the session in a cookie: most requests (and the queue page) skip the database
+			cookieCache: { enabled: true, maxAge: 5 * 60 }
 		},
 		account: {
 			// A second provider is linked only by a signed-in player from settings, never by matching email

@@ -99,5 +99,72 @@ model Player {
   updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  friendshipsA   Friendship[]   @relation("friendship_a")
+  friendshipsB   Friendship[]   @relation("friendship_b")
+  blocking       Block[]        @relation("blocking")
+  blockedBy      Block[]        @relation("blocked_by")
+  recentPlayers  RecentPlayer[] @relation("recent_owner")
+  recentlySeenBy RecentPlayer[] @relation("recent_other")
+
   @@map("player")
+}
+
+// Social: one row per pair, with player_a < player_b so a pair can only exist once.
+
+enum FriendshipStatus {
+  pending
+  accepted
+
+  @@map("friendship_status")
+}
+
+model Friendship {
+  playerA     String           @map("player_a") @db.Uuid
+  playerB     String           @map("player_b") @db.Uuid
+  status      FriendshipStatus
+  requestedBy String           @map("requested_by") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  acceptedAt  DateTime?        @map("accepted_at") @db.Timestamptz
+  a           Player           @relation("friendship_a", fields: [playerA], references: [userId], onDelete: Cascade)
+  b           Player           @relation("friendship_b", fields: [playerB], references: [userId], onDelete: Cascade)
+
+  @@id([playerA, playerB])
+  @@index([playerB, status])
+  @@map("friendship")
+}
+
+model Block {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  blocker   Player   @relation("blocking", fields: [blockerId], references: [userId], onDelete: Cascade)
+  blocked   Player   @relation("blocked_by", fields: [blockedId], references: [userId], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("block")
+}
+
+/// People a player finished or played a mission with; the newest 50 are kept.
+model RecentPlayer {
+  playerId String   @map("player_id") @db.Uuid
+  otherId  String   @map("other_id") @db.Uuid
+  playedAt DateTime @default(now()) @map("played_at") @db.Timestamptz
+  owner    Player   @relation("recent_owner", fields: [playerId], references: [userId], onDelete: Cascade)
+  other    Player   @relation("recent_other", fields: [otherId], references: [userId], onDelete: Cascade)
+
+  @@id([playerId, otherId])
+  @@index([playerId, playedAt(sort: Desc)])
+  @@map("recent_player")
+}
+
+// Administration
+
+model AdminSetting {
+  key       String   @id
+  value     Json
+  updatedBy String?  @map("updated_by") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("admin_setting")
 }

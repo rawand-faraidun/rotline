@@ -148,6 +148,8 @@ export class GameServer {
 
 	/** Tells the registry this instance is alive and which rooms exist (every second). */
 	private announced = 0
+	/** slowest tick since the last announcement */
+	private windowMax = 0
 	private async announce(): Promise<void> {
 		if (!this.valkey) return
 		try {
@@ -159,8 +161,10 @@ export class GameServer {
 					id: this.env.GAME_INSTANCE_ID,
 					rooms: this.rooms.size,
 					players: this.playerCount(),
-					draining: this.draining
+					draining: this.draining,
+					tickMaxMs: Number(this.windowMax.toFixed(2))
 				})
+				this.windowMax = 0
 			}
 		} catch (error) {
 			this.log.warn({ err: error }, 'registry update failed')
@@ -305,6 +309,7 @@ export class GameServer {
 		this.stats.count++
 		this.stats.total += took
 		if (took > this.stats.max) this.stats.max = took
+		if (took > this.windowMax) this.windowMax = took
 	}
 
 	private metrics(): string {

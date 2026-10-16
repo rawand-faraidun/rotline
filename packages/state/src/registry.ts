@@ -1,7 +1,15 @@
 import type { Valkey } from './client.ts'
 
 /** Game-server instances announce themselves here; the API places rooms on the least busy one. */
-export type InstanceInfo = { id: string; rooms: number; players: number; draining: boolean; updated: number }
+export type InstanceInfo = {
+	id: string
+	rooms: number
+	players: number
+	draining: boolean
+	/** slowest tick since the last announcement, ms */
+	tickMaxMs: number
+	updated: number
+}
 
 const INSTANCE_TTL_SECONDS = 15
 const ROOM_TTL_SECONDS = 10
@@ -31,6 +39,7 @@ export async function liveInstances(valkey: Valkey): Promise<InstanceInfo[]> {
 			rooms: Number(raw.rooms),
 			players: Number(raw.players),
 			draining: raw.draining === '1',
+			tickMaxMs: Number(raw.tickMaxMs ?? 0),
 			updated: Number(raw.updated)
 		})
 	}
