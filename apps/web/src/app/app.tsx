@@ -9,10 +9,13 @@ import {
 } from '@tanstack/react-router'
 import { fetchMe, fetchProviders } from '../lib/api.ts'
 import { requireSeat } from '../lib/seat.ts'
+import { ArmoryScreen } from './screens/armory-screen.tsx'
 import { ErrorScreen } from './screens/error-screen.tsx'
 import { LobbyScreen } from './screens/lobby-screen.tsx'
 import { MissionScreen } from './screens/mission-screen.tsx'
+import { ShopScreen } from './screens/shop-screen.tsx'
 import { SignInScreen } from './screens/sign-in-screen.tsx'
+import { SkillsScreen } from './screens/skills-screen.tsx'
 import { WelcomeScreen } from './screens/welcome-screen.tsx'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } })
@@ -83,8 +86,34 @@ const missionRoute = createRoute({
 	component: MissionScreen
 })
 
+/** Lobby-side screens: signed in, enlisted, holding a seat. */
+function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop'>(path: P, component: () => React.ReactNode) {
+	return createRoute({
+		getParentRoute: () => rootRoute,
+		path,
+		beforeLoad: async ({ context }) => {
+			const target = await destination(context.queryClient)
+			if (target !== '/play/lobby') throw redirect({ to: target })
+			await requireSeat()
+		},
+		component
+	})
+}
+
+const skillsRoute = hubRoute('/play/skills', SkillsScreen)
+const armoryRoute = hubRoute('/play/armory', ArmoryScreen)
+const shopRoute = hubRoute('/play/shop', ShopScreen)
+
 const router = createRouter({
-	routeTree: rootRoute.addChildren([signInRoute, welcomeRoute, lobbyRoute, missionRoute]),
+	routeTree: rootRoute.addChildren([
+		signInRoute,
+		welcomeRoute,
+		lobbyRoute,
+		skillsRoute,
+		armoryRoute,
+		shopRoute,
+		missionRoute
+	]),
 	context: { queryClient },
 	defaultPreload: 'intent'
 })

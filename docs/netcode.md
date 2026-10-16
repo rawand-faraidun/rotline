@@ -43,9 +43,9 @@ Reload, weapon swap, interact and abilities are bits in the `input` button field
 
 | Type | Contents | Delivery |
 |---|---|---|
-| `welcome` | room, your entity id, map, game-data version, server tick, full snapshot | reliable |
+| `welcome` | your entity id, map, server tick, your build (class, level, skills, loadout with upgrades), so prediction uses the server's numbers | reliable |
 | `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state, other players, acid pools, changed zombies, removals | unreliable |
-| `event` | batched one-off events: shots, hits, kills, explosions, pickups, buffs, objective updates, mutation alerts, downed, revived | reliable |
+| `event` | batched one-off events: shots, hits, kills, grenades launched and exploding, bursts, pickups, buffs, objective updates, mutation alerts, downed, revived | reliable |
 | `mission` | checkpoint reached, mission result | reliable |
 | `ping` | server time | unreliable |
 | `kick` | reason | reliable |

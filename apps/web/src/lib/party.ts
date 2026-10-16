@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { queryOptions, useQueryClient } from '@tanstack/react-query'
 import { api } from './api.ts'
 import { friendsQuery } from './friends.ts'
+import { progressQuery } from './progress.ts'
 
 export type PartyMember = {
 	id: string
@@ -9,6 +10,7 @@ export type PartyMember = {
 	avatarStyle: string
 	avatarSeed: string
 	activeClass: 'assault' | 'medic' | 'heavy'
+	level: number
 	ready: boolean
 	leader: boolean
 }
@@ -75,6 +77,12 @@ export function usePlayerEvents(onInvite?: (invite: Invite) => void): void {
 		source.addEventListener('party', refreshParty)
 		source.addEventListener('friends', refreshFriends)
 		source.addEventListener('presence', refreshFriends)
+		// rewards from a mission (XP, levels, Salvage)
+		source.addEventListener('progress', () => {
+			void queryClient.invalidateQueries({ queryKey: progressQuery.queryKey })
+			// squad cards show class levels
+			refreshParty()
+		})
 		source.addEventListener('invite', event => {
 			const invite = JSON.parse((event as MessageEvent<string>).data) as Invite
 			inviteHandler.current?.(invite)
@@ -83,6 +91,7 @@ export function usePlayerEvents(onInvite?: (invite: Invite) => void): void {
 		source.addEventListener('hello', () => {
 			refreshParty()
 			refreshFriends()
+			void queryClient.invalidateQueries({ queryKey: progressQuery.queryKey })
 		})
 		return () => source.close()
 	}, [queryClient])

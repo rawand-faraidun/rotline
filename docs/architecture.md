@@ -164,7 +164,26 @@ sequenceDiagram
 ```
 
 - Tickets are signed with Ed25519 by the API and verified by the game server with the public key, with no database call.
+- The ticket also carries the player's **build**: class, class level, skill ranks, equipped abilities, and the loadout with each item's upgrade level and perks. The game server turns it into stats with the same game-data code the API and the browser use, and repeats it in the welcome message so client prediction uses exactly the server's numbers. The build is fixed for the mission: class, skills, loadout and upgrades cannot change while the squad is in one.
 - Mission progress is held in memory and saved at checkpoints and at mission end. Each save is one transaction with a unique grant key, so a retried save cannot pay twice. A mission in progress can be lost in a crash; anything saved cannot.
+
+## Rewards
+
+```mermaid
+sequenceDiagram
+  participant G as Game server
+  participant V as Valkey (stream "rewards")
+  participant A as API
+  participant D as PostgreSQL
+  G->>V: XADD report (grant key, player, class, XP, Salvage)
+  A->>V: XREADGROUP (consumer group shared by all API instances)
+  A->>D: one transaction: reward_grant row, class XP, ledger row, balance
+  A->>V: XACK; notify the player (progress changed)
+```
+
+- A room adds up what each player earns (XP and Salvage per kill from game data, score converted to XP, a bonus per wave cleared) and reports it at every wave cleared, when the player's reconnect grace runs out, when the room closes and on shutdown. Fractions carry over to the next report.
+- Each report's grant key (`room:player:sequence`) is recorded in the same transaction as the XP and Salvage, so a report delivered twice pays once. Reports are acknowledged only after their transaction commits; one an API instance was holding when it died is claimed by another after a minute.
+- A mission in progress can be lost in a crash (up to one wave of rewards); anything granted cannot.
 
 ## Squads
 

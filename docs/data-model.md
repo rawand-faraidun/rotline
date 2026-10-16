@@ -54,12 +54,12 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 | Table | Columns | Constraints and notes |
 |---|---|---|
 | `player` | `user_id` PK → user, `player_name` citext, `avatar_style`, `avatar_seed`, `avatar_options` jsonb, `active_class` (`assault`/`medic`/`heavy`), `currency_balance` bigint, `title_id`, `banner_id`, `is_admin` bool | `player_name` unique, 3–16 chars, filter-checked in the API; `currency_balance >= 0`; balance is a cache of the ledger (checked by a nightly job and in tests) |
-| `class_progress` | `player_id`, `class`, `level`, `xp` bigint, `skill_points` int | PK (`player_id`, `class`); three rows created with the player |
+| `class_progress` | `player_id`, `class`, `xp` bigint | PK (`player_id`, `class`); three rows created with the player. Level and skill points are derived from the XP total and the game data, so a curve change never needs a migration |
 | `skill_allocation` | `player_id`, `class`, `node_id`, `rank` | PK (`player_id`, `class`, `node_id`); prerequisites checked against game data |
 | `ability_slot` | `player_id`, `class`, `slot` (1–3), `ability_id` | PK (`player_id`, `class`, `slot`) |
-| `inventory_item` | `id`, `player_id`, `item_id`, `kind` (`main`/`pistol`/`armour`/`utility`), `upgrade_level` int, `perk_choices` jsonb, `source` (`starter`/`shop`/`drop`), `acquired_at` | **unique (`player_id`, `item_id`)**: one copy of each item, no rarity |
+| `inventory_item` | `player_id`, `item_id`, `upgrade_level` int (0–20), `perks` text[] (one chosen perk per perk level reached), `source` (`starter`/`shop`/`drop`), `acquired_at` | **PK (`player_id`, `item_id`)**: one copy of each item, no rarity. The item's slot comes from game data |
 | `item_duplicate` | `id`, `player_id`, `item_id`, `match_id`, `found_at` | A found copy of something already owned; its only action is "discard for currency" |
-| `loadout` | `player_id` PK, `main_1`, `main_2`, `pistol`, `armour`, `utility_1`, `utility_2` → inventory_item | Shared across classes; `main_1 <> main_2`; kind checked by trigger |
+| `loadout` | `player_id` PK, `main_1`, `main_2`, `pistol`, `armour`, `utility_1`, `utility_2` (item ids) | Each is a foreign key to (`player_id`, `item_id`) in `inventory_item`, so only owned items can be equipped; shared across classes; `main_1 <> main_2`; slots are checked against game data by the API |
 | `mission_progress` | `player_id`, `mission_id`, `difficulty`, `completions`, `best_time_ms`, `best_score`, `mastery` (`none`/`bronze`/`silver`/`gold`) | PK (`player_id`, `mission_id`, `difficulty`) |
 | `bestiary_entry` | `player_id`, `zombie_type`, `first_kill_at`, `kills` bigint, `mutations_seen` text[] | PK (`player_id`, `zombie_type`) |
 | `achievement_unlock` | `player_id`, `achievement_id`, `unlocked_at` | PK both ids |
@@ -69,8 +69,9 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 
 | Table | Columns | Constraints and notes |
 |---|---|---|
-| `ledger_entry` | `id` bigint identity, `player_id` uuid, `amount` bigint (signed), `balance_after` bigint, `reason` enum (`kill`, `objective`, `mission`, `score`, `contract`, `discard`, `purchase`, `upgrade`, `respec`, `admin`), `ref_type`, `ref_id`, `grant_key` text, `created_at` | **Append-only**: the application role has `INSERT, SELECT` only, and a trigger rejects `UPDATE`/`DELETE`. **unique (`grant_key`)** makes rewards idempotent. Index (`player_id`, `id`) |
+| `ledger_entry` | `id` bigint identity, `player_id` uuid, `amount` bigint (signed, never 0), `balance_after` bigint (never negative), `reason` enum (`kill`, `wave`, `objective`, `mission`, `score`, `contract`, `discard`, `purchase`, `upgrade`, `perk`, `respec`, `admin`), `ref_type`, `ref_id`, `grant_key` text, `created_at` | **Append-only**: the application role has `INSERT, SELECT` only, and a trigger rejects `UPDATE`/`DELETE`. **unique (`grant_key`)** makes rewards idempotent. Index (`player_id`, `id`) |
 | `purchase` | `id`, `player_id`, `sku`, `price`, `ledger_entry_id` → ledger_entry, `created_at` | One row per shop purchase; written in the same transaction as its ledger row and the item |
+| `reward_grant` | `grant_key` PK, `player_id`, `class`, `xp`, `salvage`, `created_at` | One row per reward report from a game server. Inserted first in the grant's transaction, so a report delivered twice grants nothing the second time |
 
 Every currency change runs in one transaction: lock the player row (`SELECT … FOR UPDATE`), check the balance, insert the ledger row with `balance_after`, update `currency_balance`, apply the item, upgrade or reward. Prices come from the active game-data version, never from the client.
 

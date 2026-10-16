@@ -3,24 +3,14 @@ import type { AvatarStyle } from '@rotline/constants'
 import { AvatarFrame, Badge, Button, cn, Input, Label, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { en } from '../../i18n/en.ts'
-import { signOut } from '../../lib/api.ts'
+import { en, format } from '../../i18n/en.ts'
 import { useAvatar } from '../../lib/avatar.ts'
-import {
-	type Invite,
-	type PartyMember,
-	type PartyProblem,
-	type PartyView,
-	partyActions,
-	partyQuery,
-	usePlayerEvents
-} from '../../lib/party.ts'
-import { leaveSeat } from '../../lib/seat.ts'
+import { type PartyMember, type PartyProblem, type PartyView, partyActions, partyQuery } from '../../lib/party.ts'
 import { meQuery } from '../app.tsx'
 import { AdminPanel } from './admin-panel.tsx'
+import { ClassPanel, LoadoutSummary } from './class-panel.tsx'
 import { FriendsPanel } from './friends-panel.tsx'
-import { SeatKeeper } from './seat-keeper.tsx'
-import { Shell } from './shell.tsx'
+import { GameShell } from './game-shell.tsx'
 
 const t = en.app.lobby
 
@@ -46,7 +36,9 @@ function MemberCard({
 			<AvatarFrame src={avatar} alt="" size={88} />
 			<span className="max-w-full truncate font-bold">{member.name}</span>
 			<div className="flex flex-wrap justify-center gap-1.5">
-				<Badge tone="lime">{t.classes[member.activeClass]}</Badge>
+				<Badge tone="lime">
+					{t.classes[member.activeClass]} · {format(en.app.progression.level, { level: String(member.level) })}
+				</Badge>
 				{member.leader && <Badge tone="bone">{t.leader}</Badge>}
 			</div>
 			<Badge tone={member.ready ? 'lime' : 'warning'}>{member.ready ? t.ready : t.notReady}</Badge>
@@ -73,9 +65,6 @@ export function LobbyScreen() {
 	const [problem, setProblem] = useState<PartyProblem | null>(null)
 	const [copied, setCopied] = useState(false)
 	const player = me.status === 'signed-in' ? me.player : null
-	const avatar = useAvatar((player?.avatarStyle ?? 'pixel-art') as AvatarStyle, player?.avatarSeed ?? '')
-	const [invite, setInvite] = useState<Invite | null>(null)
-	usePlayerEvents(setInvite)
 
 	const view = party.data
 	// when the leader deploys, everyone in the squad follows (but returning to the lobby does not bounce back)
@@ -105,53 +94,14 @@ export function LobbyScreen() {
 		else queryClient.setQueryData(partyQuery.queryKey, result)
 	}
 
-	const leave = async () => {
-		await leaveSeat()
-		await signOut()
-		queryClient.clear()
-		await navigate({ to: '/play' })
-	}
-
 	const youMember = view?.members.find(member => member.id === view.you)
 	const isLeader = view?.leader === view?.you
 	const solo = (view?.members.length ?? 1) === 1
 	const inviteLink = view ? `${location.origin}/play/lobby?join=${view.code}` : ''
 
 	return (
-		<Shell
-			aside={
-				<div className="flex items-center gap-3">
-					<AvatarFrame src={avatar} alt="" size={40} />
-					<span className="font-bold tracking-wide">{player.name}</span>
-					<Button variant="ghost" size="sm" onClick={() => void leave()}>
-						{t.signOut}
-					</Button>
-				</div>
-			}
-		>
-			<SeatKeeper />
-			{invite && (
-				<div role="status" className="fixed right-4 bottom-4 z-40 w-80">
-					<Panel className="gap-3 [--frame-color:var(--color-rot-lime)]">
-						<p className="font-bold">{en.app.friends.inviteToast.replace('{name}', invite.from)}</p>
-						<div className="flex gap-2">
-							<Button
-								size="sm"
-								onClick={() => {
-									setInvite(null)
-									void act(() => partyActions.join(invite.code))
-								}}
-							>
-								{en.app.friends.joinSquad}
-							</Button>
-							<Button size="sm" variant="ghost" onClick={() => setInvite(null)}>
-								{en.app.friends.dismiss}
-							</Button>
-						</div>
-					</Panel>
-				</div>
-			)}
-			<h1 className="mt-6 mb-8 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
+		<GameShell>
+			<h1 className="mb-8 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
 			<div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
 				<Panel className="lg:self-start">
 					<PanelHeader>
@@ -260,17 +210,12 @@ export function LobbyScreen() {
 							</div>
 						</form>
 					</Panel>
-					<Panel>
-						<PanelHeader>
-							<PanelTitle>{t.salvage}</PanelTitle>
-							<span className="font-display text-3xl text-rot-lime tabular-nums">{player.salvage}</span>
-						</PanelHeader>
-						<p className="text-muted">{t.deployHint}</p>
-					</Panel>
+					<ClassPanel />
+					<LoadoutSummary />
 					<FriendsPanel squad={view?.members.map(member => member.id) ?? []} />
 					{player.isAdmin && <AdminPanel />}
 				</div>
 			</div>
-		</Shell>
+		</GameShell>
 	)
 }

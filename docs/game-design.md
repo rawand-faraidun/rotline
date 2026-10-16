@@ -46,6 +46,10 @@ One profile per player; class is switched in the lobby only. Per class: level, X
 
 **Respec:** 2,500 Salvage per class (about 35 minutes of play at Veteran), refunding all points.
 
+**Tier rule:** a tier opens after 5 points in the branch's earlier tiers (tier 5 needs 20). Each branch has 22 nodes and 24 ranks; most nodes have one rank, a few two. Node ids, effects and ranks are in `packages/game-data/data/skills/`.
+
+**Earning XP (until missions arrive):** each kill gives class XP by zombie type (Drudge 4, Bolter 6, Swell 15) plus score converted at 1 XP per 20 score, and every wave cleared gives 40 XP and 25 Salvage. XP goes to the class the player deployed with.
+
 ## 4. Skill trees
 
 Each class has three branches of 22 nodes in five tiers. A tier unlocks after 5 points in the branch's previous tiers. Each branch has 2 active abilities and 1 capstone passive.
@@ -104,9 +108,9 @@ Weapon tiers for pricing: tier 1 = 6,000, tier 2 = 14,000, tier 3 = 28,000.
 
 ### Upgrades
 
-- 10 levels per item. Cost of level *n* = `tierBase × 1.4^(n−1)`, rounded to 10: tier 1 base 800 (all ten levels: 55,850), tier 2 base 1,400 (97,740), tier 3 base 2,200 (153,580).
+- 10 levels per item. Cost of level *n* = `tierBase × 1.4^(n−1)`, rounded to 10: starter items base 600 (all ten levels: 41,890), tier 1 base 800 (55,850), tier 2 base 1,400 (97,740), tier 3 base 2,200 (153,580). Starter items can be bought again for 1,500 if discarded.
 - Each level raises the item's stats along its own curve, for example: damage +6 %, fire rate +2 %, reload speed +3 %, magazine +5 %, accuracy +3 %, **max carried ammunition +8 %** (main weapons only). The max ammo buff fills a weapon to its *upgraded* maximum.
-- **Perk choices at levels 5 and 10**: pick one of two, switchable later for a small fee (500). Example (K-71): level 5 "Extended mag (+25 % magazine)" or "Hollow points (+15 % damage to unarmoured)"; level 10 "Incendiary rounds (20 % of damage as fire)" or "Rapid chamber (+15 % fire rate)".
+- **Perk choices at levels 5 and 10**: pick one of two (the first choice is free), switchable later for a small fee (500). Example (K-71): level 5 "Extended mag (+25 % magazine)" or "Hollow points (+15 % damage to unarmoured)"; level 10 "Incendiary rounds (20 % of damage as fire)" or "Rapid chamber (+15 % fire rate)".
 
 ### Gear
 
@@ -121,8 +125,8 @@ Armour absorbs a share of incoming damage: `damage × (1 − armour / (armour + 
 
 - About **2–3 item drops per mission per player**, from elites (8 % chance each), objective completions (guaranteed one per mission from the final objective), and 1–2 hidden caches per map.
 - Drops are **per player** (each player sees their own), are rolled by the server from data-driven drop tables, and are saved to the account at the next checkpoint for use in later missions.
-- **Found items always arrive at level 0.** If the player does not own the item, it is a new unlock. If they own it (any level), it becomes a duplicate (`item_duplicate`) whose only action is **Discard for Salvage**: tier 1: 600, tier 2: 1,200, tier 3: 2,400.
-- **Discarding owned items**: allowed for anything except the last pistol and the last two main weapons. Equipped or upgraded items require a second confirmation that shows the upgrade level and the Salvage that was spent on it; there is no refund for upgrades.
+- **Found items always arrive at level 0.** If the player does not own the item, it is a new unlock. If they own it (any level), it becomes a duplicate (`item_duplicate`) whose only action is **Discard for Salvage**: starter items 300, tier 1: 600, tier 2: 1,200, tier 3: 2,400.
+- **Discarding owned items**: allowed for anything except the last pistol and the last two main weapons. Discarding an owned item pays the same amounts. Equipped or upgraded items require a second confirmation that shows the upgrade level and the Salvage that was spent on it; there is no refund for upgrades. An equipped item is replaced in the loadout by a spare one of the same kind.
 
 ### Starter kit
 
