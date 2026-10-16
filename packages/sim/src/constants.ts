@@ -28,7 +28,3 @@ export const DOWNED_SPEED = 1
 export const NEVER = 0x7fffffff
 /** seconds of protection after respawning */
 export const RESPAWN_SAFE_SECONDS = 2
-/** a kill within this many seconds of the last one extends the chain */
-export const CHAIN_SECONDS = 2.5
-/** firing-range dummies heal back to full this long after the last hit */
-export const DUMMY_RESET_SECONDS = 3

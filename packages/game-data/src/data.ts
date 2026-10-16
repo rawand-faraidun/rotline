@@ -114,6 +114,15 @@ for (const [classKey, tree] of Object.entries(skillTrees) as [ClassId, SkillTree
 		}
 	}
 }
+// discards never pay more than buying costs
+for (const tierKey of ['0', '1', '2', '3'] as const) {
+	check(
+		economy.discard[tierKey] < economy.tierPrices[tierKey],
+		`economy: discard for tier ${tierKey} must be below its price`
+	)
+}
+check(maps.range?.range !== undefined, 'maps/range: needs its range section')
+
 for (const ability of abilities) {
 	check(
 		[...skillNodes.values()].some(entry => entry.node.ability === ability.id),
@@ -136,6 +145,14 @@ export const zombieIndex = (id: string): number => {
 	if (index < 0) throw new Error(`unknown zombie ${id}`)
 	return index
 }
+
+/** A capstone's numbers by its special id (e.g. 'momentum'). */
+export function specialParams(special: string): Record<string, number> {
+	for (const entry of skillNodes.values()) if (entry.node.special === special) return entry.node.params ?? {}
+	return {}
+}
+
+export const combat = classes.combat
 
 export const classDef = (id: ClassId) =>
 	classes.classes.find(entry => entry.id === id) as (typeof classes.classes)[number]

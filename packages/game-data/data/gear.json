@@ -53,7 +53,8 @@
 			"damageType": "explosive",
 			"damage": 120,
 			"radius": 3.5,
-			"seconds": 0
+			"seconds": 0,
+			"throwRange": 14
 		},
 		{
 			"id": "incendiary-grenades",
@@ -64,7 +65,8 @@
 			"damageType": "fire",
 			"damage": 30,
 			"radius": 3.5,
-			"seconds": 6
+			"seconds": 6,
+			"throwRange": 14
 		},
 		{
 			"id": "shock-grenades",
@@ -75,7 +77,8 @@
 			"damageType": "shock",
 			"damage": 40,
 			"radius": 4,
-			"seconds": 2
+			"seconds": 2,
+			"throwRange": 14
 		},
 		{
 			"id": "sticky-mines",
@@ -86,7 +89,9 @@
 			"damageType": "explosive",
 			"damage": 150,
 			"radius": 3,
-			"seconds": 60
+			"seconds": 60,
+			"armSeconds": 1,
+			"triggerRadius": 1.5
 		},
 		{
 			"id": "decoy-beacon",
@@ -97,7 +102,8 @@
 			"damageType": "ballistic",
 			"damage": 0,
 			"radius": 10,
-			"seconds": 8
+			"seconds": 8,
+			"throwRange": 14
 		},
 		{
 			"id": "mini-sentry",
@@ -108,7 +114,8 @@
 			"damageType": "ballistic",
 			"damage": 18,
 			"radius": 14,
-			"seconds": 30
+			"seconds": 30,
+			"shotsPerSecond": 10
 		}
 	]
 }

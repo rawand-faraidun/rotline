@@ -68,6 +68,8 @@ Each class has three branches of 22 nodes in five tiers. A tier unlocks after 5 
 
 **Using abilities.** Equipped abilities sit on F, C and V; the two utility slots on G and T (rebinding comes with the settings screen). Cooldowns shrink with ability-cooldown skills. Thrown abilities and grenades land where the cursor is, up to their range (14 m for grenades, 25 m for the mortar). Utility charges refill when each wave starts (at checkpoints once missions have them).
 
+The Defibrillator works once per wave (once per checkpoint when missions have them); with nobody downed in reach it does nothing and its cooldown is given back. A player can have at most 12 zones, mines, decoys, sentries and barricades at once; the oldest goes.
+
 **Statuses on zombies**: stunned (no movement or attacks), slowed, marked (takes more damage), poisoned (damage over time) and taunted (chases the Heavy or a decoy). They show on the zombie as a colour tint.
 
 Coverage in a squad: Assault handles mobile threats and elites (Marksman), Medic keeps the squad alive and answers status effects (Grabber pins, Spitter acid, Shocker), Heavy holds chokepoints and crowds (Brutes, swarms). Every class can solo: each has a self-heal or survival tool (Assault: Adrenaline life-steal node; Medic: Stim; Heavy: high health and Barricade).
@@ -299,7 +301,7 @@ Squad-size scaling of enemy count: 1 player ×0.5, 2 ×0.7, 3 ×0.85, 4 ×1.0. A
 
 ## 15. Firing range
 
-A small map reached from the lobby. Target dummies (2,000 health, heal back three seconds after the last hit, never die), a spawner for zombie types, damage numbers on your own hits, and a damage-per-second meter over the last three seconds. Abilities have no cooldown and utilities never run out. Nobody goes down: health comes back instead. Nothing earned counts toward progression. It runs on the server like everything else, as a room of one.
+A small map reached from the lobby. Target dummies (2,000 health, heal back three seconds after the last hit, never die), a spawner for zombie types, damage numbers on your own hits, and a damage-per-second meter over the last three seconds. Abilities recharge in one second and utilities never run out. Nobody goes down: health comes back instead. At most 60 spawned zombies at once. Nothing earned counts toward progression. It runs on the server like everything else, as a room of one.
 
 Planned with the bestiary and later content: moving and armoured dummies with weak points, and limiting the spawner to types (and mutation stages) the player has already met.
 

@@ -1,9 +1,12 @@
 import {
+	abilityById,
 	type Build,
+	combat,
 	type DamageType,
 	damageTaken,
 	type MapDef,
 	player as playerDef,
+	specialParams,
 	type WavesDef,
 	type WeaponStats,
 	waves as wavesDef,
@@ -16,9 +19,7 @@ import {
 	BLEEDOUT_MIN_SECONDS,
 	BLEEDOUT_SECONDS,
 	BLEEDOUT_STEP_SECONDS,
-	CHAIN_SECONDS,
 	DT,
-	DUMMY_RESET_SECONDS,
 	FLOW_EVERY,
 	HASH_CELL,
 	HISTORY_TICKS,
@@ -49,6 +50,7 @@ export type SimEvent =
 	| { type: 'player-up'; player: number }
 	| { type: 'wipe'; wave: number }
 	| { type: 'wave'; wave: number }
+	| { type: 'cleared'; wave: number }
 	/** someone used an ability (index into game-data abilities), for its sound and flash */
 	| { type: 'ability'; player: number; ability: number; x: number; y: number; angle: number }
 
@@ -104,6 +106,10 @@ export type WorldObject = {
 	cells: number[]
 	/** sentry: next shot; mine: armed from this tick */
 	nextTick: number
+	/** sentry: ticks between shots */
+	interval: number
+	/** mine: a zombie this close sets it off */
+	trigger: number
 }
 
 /** A blast waiting to go off (mortar shells, bombardment, bomblets). */
@@ -124,15 +130,24 @@ export type BlastOptions = { stunTicks?: number; knockback?: number }
 
 /** Explosions deal full damage at the centre and half at the edge. */
 const EDGE_DAMAGE = 0.5
-/** extra zombies an Overwatch shot passes through */
-const OVERWATCH_PIERCE = 4
 /** metres per second of a thrown grenade */
 const LOB_SPEED = 16
 /** weapon index in launch and shot events for thrown things and fragments */
 export const THROWN = 255
-const SHRAPNEL_DAMAGE = 40
-const CONTAGION_RADIUS = 3
-const CONTAGION_DPS = 12
+/** extra zombies an Overwatch shot passes through */
+const OVERWATCH_PIERCE = abilityById.get('overwatch')?.params.pierce ?? 0
+const CHAIN_TICKS = combat.chainSeconds * TICK_RATE
+// capstone numbers, from the skill data
+const MOMENTUM = specialParams('momentum')
+const EXECUTIONER = specialParams('executioner')
+const SECOND_WIND = specialParams('second-wind')
+const SUPPRESSION = specialParams('suppression')
+const AFTERSHOCK = specialParams('aftershock')
+const SHRAPNEL = specialParams('shrapnel')
+const CONTAGION = specialParams('contagion')
+const LAST_RITES = specialParams('last-rites')
+const p = (params: Record<string, number>, key: string) => params[key] ?? 0
+const ABILITY_BITS = [Step.ability1, Step.ability2, Step.ability3] as const
 /** at most this many zombies are collected along one ray (pierce limit + 1) */
 const MAX_RAY_HITS = 12
 
@@ -208,6 +223,7 @@ export class World {
 	readonly objects: WorldObject[] = []
 	readonly pendingBlasts: PendingBlast[] = []
 	readonly range: boolean
+	private readonly dummyResetTicks: number
 	private nextProjectileId = 1
 	private nextObjectId = 1
 	private readonly rayHits = new Int32Array(MAX_RAY_HITS)
@@ -223,6 +239,7 @@ export class World {
 		this.rng = new Rng(options.seed)
 		this.wavesDef = options.waves ?? wavesDef
 		this.range = options.range ?? false
+		this.dummyResetTicks = Math.round((options.map.range?.resetSeconds ?? 3) * TICK_RATE)
 		this.flowPhase = (options.flowPhase ?? 0) % FLOW_EVERY
 		const cells = this.grid.width * this.grid.height
 		this.distance = new Uint16Array(cells)
@@ -258,8 +275,9 @@ export class World {
 	 * Advances one tick. `inputs` holds this tick's input per player. A player without an input this
 	 * tick does nothing: replaying an old input would move them twice and desync client prediction.
 	 */
-	step(inputs: ReadonlyMap<number, PlayerInput>): void {
-		this.events = []
+	step(inputs: ReadonlyMap<number, PlayerInput>, keepEvents = false): void {
+		// the server keeps the events of catch-up inputs it applied just before this step
+		if (!keepEvents) this.events = []
 		for (const state of this.players.values()) {
 			if (!state.alive && this.tick >= state.respawnTick) this.respawn(state)
 			const input = inputs.get(state.id)
@@ -288,11 +306,14 @@ export class World {
 	applyInput(state: PlayerState, input: PlayerInput): void {
 		const result = stepPlayer(this.grid, state, input, this.tick)
 		if (result === 0) return
-		if (result & Step.fired) this.fire(state, input.viewTick, (result & Step.piercing) !== 0)
-		const abilityBits = [Step.ability1, Step.ability2, Step.ability3]
-		for (const [slot, bit] of abilityBits.entries()) {
+		if (result & Step.fired) {
+			this.fire(state, input.viewTick, (result & Step.piercing) !== 0, (result & Step.minigun) !== 0)
+		}
+		for (let slot = 0; slot < 3; slot++) {
 			const id = state.stats.abilities[slot]
-			if (result & bit && id) useAbility(this, state, id, input)
+			if (!(result & (ABILITY_BITS[slot] as number)) || !id) continue
+			// an ability with nothing to act on (no downed teammate in reach) gives its cooldown back
+			if (!useAbility(this, state, id, input)) state.abilityReady[slot] = this.tick
 		}
 		if (result & Step.utility1) useUtility(this, state, 0, input)
 		if (result & Step.utility2) useUtility(this, state, 1, input)
@@ -327,18 +348,19 @@ export class World {
 			state.health = state.stats.maxHealth
 			return
 		}
-		const guarded = this.tick < state.guardUntil ? 0.5 : 1
+		const guarded = this.tick < state.guardUntil ? p(SECOND_WIND, 'damageTaken') : 1
 		const amount = damageTaken(state.stats, raw, type) * guarded
 		state.health = Math.max(0, state.health - amount)
 		this.events.push({ type: 'player-hurt', player: state.id, amount })
 		// Last Rites: once per mission, a lethal hit leaves 1 health
 		if (state.health <= 0 && !state.lastRitesUsed && state.stats.specials.includes('last-rites')) {
 			state.lastRitesUsed = true
-			state.health = 1
+			state.health = p(LAST_RITES, 'health') || 1
 		}
 		if (state.health > 0) return
-		// zero health: downed, bleeding out, until a teammate revives them
+		// zero health: downed, bleeding out, until a teammate revives them; the kill chain is lost
 		state.downed = true
+		state.chain = 0
 		state.reviveProgress = 0
 		const seconds =
 			Math.max(BLEEDOUT_MIN_SECONDS, BLEEDOUT_SECONDS - BLEEDOUT_STEP_SECONDS * state.downs) +
@@ -394,7 +416,9 @@ export class World {
 		downed.health = downed.stats.maxHealth * downed.stats.revivedHealth
 		downed.slot = downed.previousSlot === 2 ? 0 : downed.previousSlot
 		// Second Wind: the reviver's capstone shields the revived player for a moment
-		if (reviver.stats.specials.includes('second-wind')) downed.guardUntil = this.tick + Math.round(3 * TICK_RATE)
+		if (reviver.stats.specials.includes('second-wind')) {
+			downed.guardUntil = this.tick + Math.round(p(SECOND_WIND, 'seconds') * TICK_RATE)
+		}
 		this.events.push({ type: 'player-revived', player: downed.id, by: reviver.id })
 	}
 
@@ -428,8 +452,8 @@ export class World {
 
 	// --- shooting --------------------------------------------------------------------------
 
-	private fire(state: PlayerState, viewTick: number, piercing: boolean): void {
-		const weapon = activeWeapon(state, this.tick)
+	private fire(state: PlayerState, viewTick: number, piercing: boolean, minigun: boolean): void {
+		const weapon = activeWeapon(state, minigun)
 		const rewound = Math.max(this.tick - MAX_REWIND_TICKS, Math.min(this.tick, viewTick))
 		const base = (state.aim / 65536) * Math.PI * 2
 		const spread = (weapon.spreadDegrees * Math.PI) / 180
@@ -443,7 +467,8 @@ export class World {
 			const dirX = Math.cos(angle)
 			const dirY = Math.sin(angle)
 			if (behaviour.type === 'projectile') {
-				this.launch(state, weapon, angle, behaviour.speed, behaviour.blastRadius * state.stats.blastRadius)
+				// skill bonuses to blast radius are already in the weapon's stats
+				this.launch(state, weapon, angle, behaviour.speed, behaviour.blastRadius)
 				continue
 			}
 			const wall = this.grid.rayToWall(state.x, state.y, dirX, dirY, weapon.range)
@@ -680,7 +705,16 @@ export class World {
 		}
 	}
 
+	/** Adds a zone, barricade, mine, decoy, sentry or marker; a player's oldest goes past the cap. */
 	addObject(object: Omit<WorldObject, 'id'>): WorldObject {
+		let owned = 0
+		let oldest: WorldObject | null = null
+		for (const existing of this.objects) {
+			if (existing.owner !== object.owner || existing.kind === ObjectKind.marker) continue
+			owned++
+			oldest ??= existing
+		}
+		if (oldest && owned >= combat.maxObjectsPerPlayer && object.kind !== ObjectKind.marker) this.removeObject(oldest)
 		const added = { ...object, id: this.nextObjectId++ }
 		this.objects.push(added)
 		return added
@@ -702,12 +736,12 @@ export class World {
 			}
 			if (this.alive[i] === 0) continue
 			const def = zombieDefs[this.type[i] as number] as ZombieDef
-			if (def.dummy && this.tick - (this.lastHitTick[i] as number) > DUMMY_RESET_SECONDS * TICK_RATE) {
+			if (def.dummy && this.tick - (this.lastHitTick[i] as number) > this.dummyResetTicks) {
 				this.health[i] = def.health
 			}
 		}
 		for (const state of this.players.values()) {
-			if (state.chain > 0 && this.tick - state.lastKillTick > CHAIN_SECONDS * TICK_RATE) state.chain = 0
+			if (state.chain > 0 && this.tick - state.lastKillTick > CHAIN_TICKS) state.chain = 0
 		}
 	}
 
@@ -787,8 +821,15 @@ export class World {
 		let scaled = amount
 		if (attacker) {
 			const specials = attacker.stats.specials
-			if (specials.includes('momentum')) scaled *= 1 + Math.min(0.25, 0.01 * attacker.chain)
-			if (specials.includes('executioner') && (this.health[index] as number) < def.health * 0.25) scaled *= 1.5
+			if (specials.includes('momentum')) {
+				scaled *= 1 + Math.min(p(MOMENTUM, 'max'), p(MOMENTUM, 'perKill') * attacker.chain)
+			}
+			if (
+				specials.includes('executioner') &&
+				(this.health[index] as number) < def.health * p(EXECUTIONER, 'healthBelow')
+			) {
+				scaled *= p(EXECUTIONER, 'multiplier')
+			}
 			if ((this.slowUntil[index] as number) > this.tick) scaled *= 1 + attacker.stats.damageVsSlowed
 		}
 		if ((this.markUntil[index] as number) > this.tick) scaled *= 1 + (this.markAmount[index] as number)
@@ -821,7 +862,7 @@ export class World {
 		this.score += def.score
 		this.events.push({ type: 'kill', zombie: index, zombieType: this.type[index] as number, x, y, by })
 		if (attacker) {
-			attacker.chain = this.tick - attacker.lastKillTick <= CHAIN_SECONDS * TICK_RATE ? attacker.chain + 1 : 1
+			attacker.chain = this.tick - attacker.lastKillTick <= CHAIN_TICKS ? attacker.chain + 1 : 1
 			attacker.lastKillTick = this.tick
 			if (attacker.alive && !attacker.downed && attacker.stats.killHeal > 0) {
 				this.heal(attacker, attacker.stats.killHeal, null)
@@ -834,30 +875,35 @@ export class World {
 	/** Suppression and Aftershock slow the zombies that survive a hit. */
 	private afterHit(index: number, attacker: PlayerState, type: DamageType): void {
 		const specials = attacker.stats.specials
-		if (type === 'ballistic' && specials.includes('suppression')) this.slow(index, 0.15, TICK_RATE)
-		if (type === 'explosive' && specials.includes('aftershock')) this.slow(index, 0.4, 3 * TICK_RATE)
+		if (type === 'ballistic' && specials.includes('suppression')) {
+			this.slow(index, p(SUPPRESSION, 'slow'), Math.round(p(SUPPRESSION, 'seconds') * TICK_RATE))
+		}
+		if (type === 'explosive' && specials.includes('aftershock')) {
+			this.slow(index, p(AFTERSHOCK, 'slow'), Math.round(p(AFTERSHOCK, 'seconds') * TICK_RATE))
+		}
 	}
 
 	/** Shrapnel and Contagion: some kills spread. */
 	private afterKill(x: number, y: number, attacker: PlayerState, type: DamageType): void {
 		const specials = attacker.stats.specials
 		if (type === 'explosive' && specials.includes('shrapnel')) {
-			for (let n = 0; n < 3; n++) {
+			const range = p(SHRAPNEL, 'range')
+			for (let n = 0; n < p(SHRAPNEL, 'fragments'); n++) {
 				const angle = this.rng.next() * Math.PI * 2
-				const target = this.zombieOnRay(x, y, angle, 8)
+				const target = this.zombieOnRay(x, y, angle, range)
 				const length =
 					target >= 0
 						? (this.rayDistances[0] as number)
-						: this.grid.rayToWall(x, y, Math.cos(angle), Math.sin(angle), 8)
+						: this.grid.rayToWall(x, y, Math.cos(angle), Math.sin(angle), range)
 				this.events.push({ type: 'shot', player: 0, x, y, angle, length, weapon: THROWN })
-				if (target >= 0) this.damageZombie(target, SHRAPNEL_DAMAGE, attacker.id, 'explosive', false)
+				if (target >= 0) this.damageZombie(target, p(SHRAPNEL, 'damage'), attacker.id, 'explosive', false)
 			}
 		}
 		if (type === 'chemical' && specials.includes('contagion')) {
 			for (let i = 0; i < MAX_ZOMBIES; i++) {
 				if (this.alive[i] === 0) continue
-				if (Math.hypot((this.x[i] as number) - x, (this.y[i] as number) - y) > CONTAGION_RADIUS) continue
-				this.poison(i, CONTAGION_DPS, 4 * TICK_RATE, attacker.id)
+				if (Math.hypot((this.x[i] as number) - x, (this.y[i] as number) - y) > p(CONTAGION, 'radius')) continue
+				this.poison(i, p(CONTAGION, 'damagePerSecond'), Math.round(p(CONTAGION, 'seconds') * TICK_RATE), attacker.id)
 			}
 		}
 	}
@@ -958,6 +1004,8 @@ export class World {
 			}
 			if (spawning.queue.length === 0) spawning.accumulator = 0
 		} else if (spawning.nextWaveTick < 0 && this.aliveCount === 0) {
+			// the wave is cleared: rewards are paid on this, never on a wave restarted after a wipe
+			this.events.push({ type: 'cleared', wave: spawning.wave + 1 })
 			spawning.wave++
 			spawning.nextWaveTick = this.tick + Math.round(this.wavesDef.breakSeconds * TICK_RATE)
 		}

@@ -1,4 +1,5 @@
 import { economy, starterBuild, zombieIndex, zombies } from '@rotline/game-data'
+import { RangeAction } from '@rotline/protocol'
 import { angleToAim, Button } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
 import { type Connection, Room } from '../src/room.ts'
@@ -67,5 +68,61 @@ describe('room rewards', () => {
 			xp: economy.rewards.waveClear.xp,
 			salvage: economy.rewards.waveClear.salvage
 		})
+	})
+})
+
+describe('room input handling', () => {
+	it('lets a reconnecting player move again with inputs numbered from 1', () => {
+		const room = new Room('room-r', 'squad', 1, 0)
+		room.join('user-a', 'A', starterBuild(), connection())
+		const input = (n: number) => ({ seq: n, moveX: 127, moveY: 0, aim: 0, buttons: 0, viewTick: 0, reach: 0 })
+		for (let n = 1; n <= 10; n++) {
+			room.receiveInputs('user-a', [input(n)])
+			room.tick(Date.now())
+		}
+		room.join('user-a', 'A', starterBuild(), connection())
+		const player = room.world.players.get(1)
+		const before = player?.x ?? 0
+		room.receiveInputs('user-a', [input(1)])
+		room.tick(Date.now())
+		expect(player?.x).toBeGreaterThan(before)
+		expect(player?.lastSeq).toBe(1)
+	})
+
+	it('credits kills made by catch-up inputs', () => {
+		const reports: { kills: number }[] = []
+		const room = new Room('room-c', 'squad', 1, 0, report => reports.push(report))
+		room.join('user-a', 'A', starterBuild(), connection())
+		const player = room.world.players.get(1)
+		if (!player) throw new Error()
+		const target = room.world.spawnZombie(zombieIndex('drudge'), { x: player.x + 2, y: player.y })
+		room.world.health[target] = 1
+		// a backlog after a stall: the first input (which fires) is applied as a catch-up input
+		const inputs = Array.from({ length: 6 }, (_, k) => ({
+			seq: k + 1,
+			moveX: 0,
+			moveY: 0,
+			aim: angleToAim(0),
+			buttons: k === 0 ? Button.fire : 0,
+			viewTick: room.world.tick,
+			reach: 0
+		}))
+		room.receiveInputs('user-a', inputs)
+		room.tick(Date.now())
+		expect(room.world.alive[target]).toBe(0)
+		room.reportAll()
+		expect(reports[0]?.kills).toBe(1)
+	})
+
+	it('limits firing-range spawning by rate and by count', () => {
+		const room = new Room('range-1', 'range', 1, 0)
+		room.join('user-a', 'A', starterBuild(), connection())
+		const drudge = zombieIndex('drudge')
+		const start = room.world.aliveCount
+		for (let n = 0; n < 50; n++) room.rangeCommand(RangeAction.spawn, drudge, 20, 1000)
+		// a burst of six commands, five zombies each
+		expect(room.world.aliveCount - start).toBe(30)
+		for (let t = 0; t < 100; t++) room.rangeCommand(RangeAction.spawn, drudge, 5, 2000 + t * 1000)
+		expect(room.world.aliveCount - start).toBe(60)
 	})
 })

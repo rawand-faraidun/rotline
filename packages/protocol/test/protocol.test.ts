@@ -184,6 +184,7 @@ describe('server messages', () => {
 			{ type: 'player-out', player: 2 },
 			{ type: 'player-revived', player: 2, by: 3 },
 			{ type: 'wipe', wave: 4 },
+			{ type: 'cleared', wave: 3 },
 			{ type: 'launch', id: 7, player: 1, x: 3, y: 4, angle: 0, speed: 25, weapon: 8 },
 			{ type: 'explode', id: 7, x: 13, y: 4, radius: 3.5 }
 		]
@@ -267,10 +268,10 @@ describe('snapshots', () => {
 		const me = world.addPlayer(1)
 		me.abilityReady = [10, 20, 30]
 		me.utilityCharges = [2, 1]
-		me.hasteUntil = 99
+		me.hasteSteps = 99
 		me.hasteSpeed = 0.25
 		me.dashX = 0.75
-		me.minigunUntil = 77
+		me.minigunSteps = 77
 		const zombie = world.spawnZombie(zombieIndex('drudge'), { x: me.x + 3, y: me.y })
 		world.stunUntil[zombie] = 1000
 		world.markUntil[zombie] = 1000
@@ -286,21 +287,30 @@ describe('snapshots', () => {
 			maxHealth: 300,
 			amount: 0,
 			damageType: 'ballistic',
-			cells: [],
-			nextTick: 0
+			cells: [41, 42],
+			nextTick: 0,
+			interval: 0,
+			trigger: 0
 		})
 		const table = new ZombieTable()
 		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), table)
 		expect(frame.self).toMatchObject({
 			abilityReady: [10, 20, 30],
 			utilityCharges: [2, 1],
-			hasteUntil: 99,
+			hasteSteps: 99,
 			dashX: 0.75,
-			minigunUntil: 77
+			minigunSteps: 77
 		})
 		expect(frame.self.hasteSpeed).toBeCloseTo(0.25)
 		expect(frame.objects).toHaveLength(1)
-		expect(frame.objects[0]).toMatchObject({ kind: ObjectKind.barricade, x: 10, y: 12, radius: 2, secondsLeft: 3 })
+		expect(frame.objects[0]).toMatchObject({
+			kind: ObjectKind.barricade,
+			x: 10,
+			y: 12,
+			radius: 2,
+			secondsLeft: 3,
+			cells: [41, 42]
+		})
 		expect(frame.objects[0]?.health).toBeCloseTo(0.5, 1)
 		expect(table.status[zombie]).toBe(ZombieStatus.stunned | ZombieStatus.marked)
 	})

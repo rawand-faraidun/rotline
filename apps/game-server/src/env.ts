@@ -10,6 +10,8 @@ const schema = z.object({
 	/** optional: without it the server runs alone, without the room registry (tests, quick local runs) */
 	VALKEY_URL: z.url().optional(),
 	GAME_MAX_ROOMS: z.coerce.number().int().positive().default(64),
+	/** firing-range rooms on this instance (they cost as much as a mission and earn nothing) */
+	GAME_MAX_RANGE_ROOMS: z.coerce.number().int().positive().default(8),
 	LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')
 })
 

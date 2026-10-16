@@ -1,6 +1,7 @@
 import type { Auth } from '@rotline/auth'
 import { type Database, friendIds } from '@rotline/db'
 import {
+	allow,
 	IDLE_RELEASE_SECONDS,
 	IDLE_WARNING_SECONDS,
 	notify,
@@ -15,13 +16,6 @@ import { z } from 'zod'
 export type QueueServices = { auth: Auth; db: Database; seats: Seats; valkey: Valkey; origin: string }
 
 type QueueEnvVars = { Variables: { userId: string } }
-
-/** Fixed-window rate limit in Valkey: at most `limit` calls per window per key. */
-async function allow(valkey: Valkey, key: string, limit: number, windowMs: number): Promise<boolean> {
-	const count = await valkey.incr(key)
-	if (count === 1) await valkey.pexpire(key, windowMs)
-	return count <= limit
-}
 
 /**
  * The queue's HTTP surface: tiny and cheap. Sessions are read from the signed cookie cache, so

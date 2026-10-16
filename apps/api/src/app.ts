@@ -1,4 +1,5 @@
 import { enabledProviders } from '@rotline/auth'
+import { allow } from '@rotline/state'
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
 import type { AppEnv, Services } from './context.ts'
@@ -7,6 +8,15 @@ import { friendRoutes } from './routes/friends.ts'
 import { partyRoutes } from './routes/party.ts'
 import { playerRoutes } from './routes/player.ts'
 import { progressRoutes } from './routes/progress.ts'
+
+/** Write limits by path: progress changes, game tickets, and everything else social. */
+function writeLimit(path: string): { name: string; count: number; windowMs: number } | null {
+	if (path.startsWith('/api/progress/')) return { name: 'progress', count: 20, windowMs: 1000 }
+	if (path.startsWith('/api/game/')) return { name: 'game', count: 6, windowMs: 10_000 }
+	if (path.startsWith('/api/party') || path.startsWith('/api/friends'))
+		return { name: 'social', count: 20, windowMs: 10_000 }
+	return null
+}
 
 export function createApp(services: Services) {
 	const { auth, db, env, log } = services
@@ -26,6 +36,16 @@ export function createApp(services: Services) {
 		.use(async (c, next) => {
 			const session = await auth.api.getSession({ headers: c.req.raw.headers })
 			c.set('user', session ? { id: session.user.id, email: session.user.email } : null)
+			await next()
+		})
+		// per-player limits on writes, so one client cannot flood the database or the game servers
+		.use(async (c, next) => {
+			const user = c.get('user')
+			const write = c.req.method === 'POST' || c.req.method === 'PUT'
+			const limit = user && write ? writeLimit(c.req.path) : null
+			if (limit && !(await allow(services.valkey, `rl:${limit.name}:${user?.id}`, limit.count, limit.windowMs))) {
+				return c.json({ error: 'slow-down' as const }, 429)
+			}
 			await next()
 		})
 		.on(['GET', 'POST'], '/auth/*', c => auth.handler(c.req.raw))

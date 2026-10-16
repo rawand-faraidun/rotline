@@ -251,7 +251,8 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "immovable",
-					"effects": []
+					"effects": [],
+					"params": {}
 				},
 				{
 					"id": "unyielding",
@@ -539,7 +540,11 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "aftershock",
-					"effects": []
+					"effects": [],
+					"params": {
+						"slow": 0.4,
+						"seconds": 3
+					}
 				},
 				{
 					"id": "barrage",
@@ -833,7 +838,11 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "suppression",
-					"effects": []
+					"effects": [],
+					"params": {
+						"slow": 0.15,
+						"seconds": 1
+					}
 				},
 				{
 					"id": "minigun-mastery",

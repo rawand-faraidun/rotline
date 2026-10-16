@@ -254,7 +254,11 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "momentum",
-					"effects": []
+					"effects": [],
+					"params": {
+						"perKill": 0.01,
+						"max": 0.25
+					}
 				},
 				{
 					"id": "overdrive",
@@ -543,7 +547,12 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "shrapnel",
-					"effects": []
+					"effects": [],
+					"params": {
+						"fragments": 3,
+						"damage": 40,
+						"range": 8
+					}
 				},
 				{
 					"id": "ordnance",
@@ -831,7 +840,11 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "executioner",
-					"effects": []
+					"effects": [],
+					"params": {
+						"healthBelow": 0.25,
+						"multiplier": 1.5
+					}
 				},
 				{
 					"id": "ballistics",

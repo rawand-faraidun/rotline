@@ -214,7 +214,8 @@ describe('firing range', () => {
 		world.step(press(Button.ability1))
 		world.step(press(0))
 		world.step(press(Button.ability1))
-		expect(player(world).abilityReady[0]).toBeLessThanOrEqual(world.tick)
+		// a short cooldown keeps one player from flooding the room
+		expect(player(world).abilityReady[0]).toBeLessThanOrEqual(world.tick + TICK_RATE)
 		world.damageZombie(dummy, 1e6, 1)
 		expect(world.alive[dummy]).toBe(1)
 		world.damageZombie(dummy, 500, 1)

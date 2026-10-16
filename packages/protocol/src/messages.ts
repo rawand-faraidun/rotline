@@ -3,10 +3,12 @@ import {
 	MAX_ZOMBIES,
 	type PlayerInput,
 	type PlayerState,
+	type Pool,
 	REVIVE_COMPLETE,
 	type SimEvent,
 	TICK_RATE,
-	type World
+	type World,
+	type WorldObject
 } from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
@@ -163,7 +165,7 @@ export function writeKick(w: Writer, reason: number): Uint8Array<ArrayBuffer> {
 /** Everything client prediction needs about its own player (server-only fields stay out). */
 export type SelfState = Omit<
 	PlayerState,
-	'id' | 'lastSeq' | 'stats' | 'guardUntil' | 'immuneUntil' | 'lastRitesUsed' | 'chain' | 'lastKillTick'
+	'id' | 'lastSeq' | 'stats' | 'guardUntil' | 'immuneUntil' | 'lastRitesUsed' | 'defibUsed' | 'chain' | 'lastKillTick'
 >
 
 export type OtherPlayer = {
@@ -194,6 +196,8 @@ export type ObjectState = {
 	/** 0..1 for barricades */
 	health: number
 	secondsLeft: number
+	/** barricades: the grid cells they wall off */
+	cells: number[]
 }
 
 /** Zombie status bits, for drawing (stunned zombies sparkle, marked ones glow red, ...). */
@@ -289,9 +293,9 @@ export class SnapshotEncoder {
 			for (const weapon of s.weapons) w.u8(weapon.def).u16(weapon.mag).i16(weapon.reserve)
 			for (const ready of s.abilityReady) w.u32(ready)
 			w.u8(s.utilityCharges[0]).u8(s.utilityCharges[1]).u32(s.utilityReady)
-			w.u32(s.hasteUntil).f32(s.hasteSpeed).f32(s.hasteFire)
-			w.u32(s.dashUntil).f64(s.dashX).f64(s.dashY)
-			w.u16(s.overwatchShots).u32(s.minigunUntil)
+			w.u16(s.hasteSteps).f64(s.hasteSpeed).f64(s.hasteFire)
+			w.u16(s.dashSteps).f64(s.dashX).f64(s.dashY)
+			w.u16(s.overwatchShots).u16(s.minigunSteps)
 		}
 
 		// everyone else, quantised
@@ -306,26 +310,31 @@ export class SnapshotEncoder {
 		}
 
 		// pools
-		w.u8(Math.min(255, world.pools.length))
-		for (const pool of world.pools.slice(0, 255))
+		const poolCount = Math.min(255, world.pools.length)
+		w.u8(poolCount)
+		for (let n = 0; n < poolCount; n++) {
+			const pool = world.pools[n] as Pool
 			w.u16(q(pool.x))
 				.u16(q(pool.y))
 				.u8(Math.round(pool.radius * 10))
+		}
 
 		// zones, barricades, mines, decoys, sentries, markers: few, all sent every time
-		const objects = world.objects.slice(0, 255)
-		w.u8(objects.length)
-		for (const object of objects) {
-			w.u16(object.id & 0xffff)
-				.u8(object.kind)
-				.u16(q(object.x))
-				.u16(q(object.y))
+		const objectCount = Math.min(255, world.objects.length)
+		w.u8(objectCount)
+		for (let o = 0; o < objectCount; o++) {
+			const object = world.objects[o] as WorldObject
+			w.u32(object.id).u8(object.kind).u16(q(object.x)).u16(q(object.y))
 			w.u8(Math.min(255, Math.round(object.radius * 10)))
 			w.u16(Math.round(((((object.angle % TAU) + TAU) % TAU) / TAU) * 65536) & 0xffff)
 			w.u8(
 				object.maxHealth > 0 ? Math.max(0, Math.min(255, Math.round((object.health / object.maxHealth) * 255))) : 255
 			)
 			w.u8(Math.max(0, Math.min(255, Math.ceil((object.untilTick - world.tick) / TICK_RATE))))
+			// barricades carry their exact cells: the client's grid must match the server's
+			const cells = Math.min(255, object.cells.length)
+			w.u8(cells)
+			for (let c = 0; c < cells; c++) w.u16(object.cells[c] as number)
 		}
 
 		// zombies: deltas within the interest radius
@@ -435,14 +444,14 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		const abilityReady: SelfState['abilityReady'] = [r.u32(), r.u32(), r.u32()]
 		const utilityCharges: SelfState['utilityCharges'] = [r.u8(), r.u8()]
 		const utilityReady = r.u32()
-		const hasteUntil = r.u32()
-		const hasteSpeed = r.f32()
-		const hasteFire = r.f32()
-		const dashUntil = r.u32()
+		const hasteSteps = r.u16()
+		const hasteSpeed = r.f64()
+		const hasteFire = r.f64()
+		const dashSteps = r.u16()
 		const dashX = r.f64()
 		const dashY = r.f64()
 		const overwatchShots = r.u16()
-		const minigunUntil = r.u32()
+		const minigunSteps = r.u16()
 		self = {
 			x,
 			y,
@@ -464,14 +473,14 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			abilityReady,
 			utilityCharges,
 			utilityReady,
-			hasteUntil,
+			hasteSteps,
 			hasteSpeed,
 			hasteFire,
-			dashUntil,
+			dashSteps,
 			dashX,
 			dashY,
 			overwatchShots,
-			minigunUntil,
+			minigunSteps,
 			free: (flags & 8) !== 0
 		}
 	}
@@ -505,16 +514,20 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 	const objects: ObjectState[] = []
 	const objectCount = r.u8()
 	for (let i = 0; i < objectCount; i++) {
-		objects.push({
-			id: r.u16(),
+		const object: ObjectState = {
+			id: r.u32(),
 			kind: r.u8(),
 			x: dq(r.u16()),
 			y: dq(r.u16()),
 			radius: r.u8() / 10,
 			angle: (r.u16() / 65536) * TAU,
 			health: r.u8() / 255,
-			secondsLeft: r.u8()
-		})
+			secondsLeft: r.u8(),
+			cells: []
+		}
+		const cellCount = r.u8()
+		for (let c = 0; c < cellCount; c++) object.cells.push(r.u16())
+		objects.push(object)
 	}
 
 	const count = r.u16()
@@ -574,14 +587,14 @@ const EMPTY_SELF: SelfState = {
 	abilityReady: [0, 0, 0],
 	utilityCharges: [0, 0],
 	utilityReady: 0,
-	hasteUntil: 0,
+	hasteSteps: 0,
 	hasteSpeed: 0,
 	hasteFire: 0,
-	dashUntil: 0,
+	dashSteps: 0,
 	dashX: 0,
 	dashY: 0,
 	overwatchShots: 0,
-	minigunUntil: 0,
+	minigunSteps: 0,
 	free: false
 }
 
@@ -612,7 +625,8 @@ const EventType = {
 	wipe: 11,
 	launch: 12,
 	explode: 13,
-	ability: 14
+	ability: 14,
+	cleared: 15
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -668,6 +682,7 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'wave':
 			case 'wipe':
+			case 'cleared':
 				w.u16(event.wave)
 				break
 		}
@@ -746,6 +761,9 @@ export function readEvents(r: Reader): SimEvent[] {
 				break
 			case EventType.wipe:
 				events.push({ type: 'wipe', wave: r.u16() })
+				break
+			case EventType.cleared:
+				events.push({ type: 'cleared', wave: r.u16() })
 				break
 			default:
 				throw new ProtocolError(`unknown event ${type}`)

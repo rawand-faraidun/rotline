@@ -422,6 +422,11 @@ export function progressRoutes(services: Services) {
 			const result = await change(user.id, { lockedInMission: false }, async tx => {
 				const duplicate = await tx.itemDuplicate.findFirst({ where: { id: c.req.valid('json').id, playerId: user.id } })
 				if (!duplicate) throw new Refused('not-found')
+				// an item removed from the game data pays nothing and is simply cleared
+				if (!itemById.has(duplicate.itemId)) {
+					await tx.itemDuplicate.delete({ where: { id: duplicate.id } })
+					return
+				}
 				await tx.itemDuplicate.delete({ where: { id: duplicate.id } })
 				await changeSalvage(tx, user.id, discardValue(duplicate.itemId), LedgerReason.discard, {
 					type: 'duplicate',

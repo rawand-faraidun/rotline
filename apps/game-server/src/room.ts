@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { type Build, economy, maps, zombieIndex, zombies } from '@rotline/game-data'
+import { type Build, economy, type MapDef, maps, zombieIndex, zombies } from '@rotline/game-data'
 import {
 	RangeAction,
 	SnapshotEncoder,
@@ -21,8 +21,11 @@ const CATCH_UP_BACKLOG = 3
 /** Input rate limit (token bucket): the normal rate plus room for one stall's burst. */
 const INPUT_RATE = 30
 const INPUT_BURST = 24
-/** Where the firing range's target dummies stand. */
-const RANGE_DUMMIES = [9, 15, 21]
+/** Firing-range commands per second (and burst), so one client cannot flood the room. */
+const RANGE_COMMAND_RATE = 4
+const RANGE_COMMAND_BURST = 6
+/** The firing range does not hold a place for long: there is nothing to come back to. */
+const RANGE_GRACE_SECONDS = 10
 /** Seconds a disconnected player keeps their place in the room. */
 export const RECONNECT_GRACE_SECONDS = 120
 
@@ -89,12 +92,26 @@ export class Room {
 		this.capacity = range ? 1 : 4
 		const map = (range ? maps.range : maps.yard) as NonNullable<typeof maps.yard>
 		this.world = new World({ seed, map, flowPhase, range })
-		if (range) for (const y of RANGE_DUMMIES) this.world.spawnZombie(zombieIndex('target-dummy'), { x: 26, y })
+		this.rangeRules = map.range ?? null
+		for (const spot of this.rangeRules?.dummies ?? []) this.world.spawnZombie(zombieIndex('target-dummy'), spot)
 	}
 
+	private readonly rangeRules: MapDef['range'] | null
+	/** firing-range commands: a few a second at most */
+	private rangeTokens = RANGE_COMMAND_BURST
+	private rangeTokensAt = 0
+
 	/** Firing-range controls from the player: spawn zombies they want to practise on, or clear them. */
-	rangeCommand(action: number, zombieType: number, count: number): void {
-		if (this.mode !== 'range') return
+	rangeCommand(action: number, zombieType: number, count: number, now = performance.now()): void {
+		const rules = this.rangeRules
+		if (this.mode !== 'range' || !rules) return
+		this.rangeTokens = Math.min(
+			RANGE_COMMAND_BURST,
+			this.rangeTokens + ((now - this.rangeTokensAt) / 1000) * RANGE_COMMAND_RATE
+		)
+		this.rangeTokensAt = now
+		if (this.rangeTokens < 1) return
+		this.rangeTokens -= 1
 		if (action === RangeAction.clear) {
 			for (let i = 0; i < this.world.alive.length; i++) {
 				if (this.world.alive[i] === 1 && !zombies[this.world.type[i] as number]?.dummy) {
@@ -106,7 +123,9 @@ export class Room {
 		}
 		const def = zombies[zombieType]
 		if (action !== RangeAction.spawn || !def || def.dummy) return
-		for (let n = 0; n < Math.min(count, 20); n++) this.world.spawnZombie(zombieType)
+		const dummies = rules.dummies.length
+		const room = Math.max(0, rules.maxZombies + dummies - this.world.aliveCount)
+		for (let n = 0; n < Math.min(count, rules.spawnPerCommand, room); n++) this.world.spawnZombie(zombieType)
 	}
 
 	get playerCount(): number {
@@ -150,6 +169,19 @@ export class Room {
 			// a fresh encoder makes the next snapshot complete for the new connection
 			member.encoder = new SnapshotEncoder(member.slot)
 			member.queue = []
+			// the new connection numbers its inputs from 1 again
+			member.lastQueuedSeq = 0
+			const state = this.world.players.get(member.slot)
+			if (state) {
+				state.lastSeq = 0
+				state.heldButtons = 0
+			}
+			// the firing range always uses the build the player arrives with
+			if (this.mode === 'range') {
+				this.world.removePlayer(member.slot)
+				this.world.addPlayer(member.slot, build)
+				member.build = build
+			}
 		}
 		member.connection = connection
 		member.disconnectedAt = 0
@@ -205,6 +237,8 @@ export class Room {
 	/** Advances the simulation by one tick and sends what changed. */
 	tick(now: number): void {
 		this.inputs.clear()
+		// events of catch-up inputs (applied before the step) must reach players and rewards too
+		this.world.events = []
 		for (const member of this.members.values()) {
 			// at most one input per tick; a player whose input is late simply waits this tick
 			if (member.queue.length > CATCH_UP_BACKLOG) {
@@ -215,13 +249,14 @@ export class Room {
 			const next = member.queue.shift()
 			if (next) this.inputs.set(member.slot, next)
 		}
-		this.world.step(this.inputs)
+		this.world.step(this.inputs, true)
 		for (const event of this.world.events) {
 			this.pendingEvents.push(event)
 			if (event.type === 'kill') this.credit(event.by, event.zombieType)
-			// a new wave means the last one was cleared: everyone still here is paid and reported
-			else if (event.type === 'wave' && event.wave > 1) {
+			// a cleared wave pays everyone connected (not on a restart after a wipe, not the absent)
+			else if (event.type === 'cleared') {
 				for (const member of this.members.values()) {
+					if (!member.connection) continue
 					member.earnings.xp += economy.rewards.waveClear.xp
 					member.earnings.salvage += economy.rewards.waveClear.salvage
 					this.report(member)
@@ -248,7 +283,7 @@ export class Room {
 			if (
 				!member.connection &&
 				member.disconnectedAt > 0 &&
-				now - member.disconnectedAt > RECONNECT_GRACE_SECONDS * 1000
+				now - member.disconnectedAt > (this.mode === 'range' ? RANGE_GRACE_SECONDS : RECONNECT_GRACE_SECONDS) * 1000
 			) {
 				this.report(member)
 				this.world.removePlayer(member.slot)

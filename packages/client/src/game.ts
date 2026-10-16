@@ -4,7 +4,6 @@ import {
 	activeWeapon,
 	aimToAngle,
 	angleToAim,
-	barricadeCells,
 	Grid,
 	ObjectKind,
 	type PlayerInput,
@@ -92,6 +91,8 @@ export function startGame(options: GameOptions): GameHandle {
 	let pingMs = 0
 	let lastOwnShotAt = -1
 	let predictorTick = 0
+	/** the weapons and abilities HUD is rebuilt only after a tick or a snapshot, not every frame */
+	let hudDirty = true
 	let stopped = false
 	const recent: PlayerInput[] = []
 	const drawn = { x: 0, y: 0 }
@@ -127,6 +128,7 @@ export function startGame(options: GameOptions): GameHandle {
 			interpolator.push(snapshot.tick, table, snapshot.others, snapshot.pools, receivedAt, snapshot.objects)
 			syncBarricades(snapshot.objects)
 			predictor?.reconcile(snapshot.self, snapshot.lastSeq, snapshot.tick)
+			hudDirty = true
 			if (snapshot.rttMs > 0) pingMs = snapshot.rttMs
 			const self = snapshot.self
 			const teammates = snapshot.others.map(other => ({
@@ -245,22 +247,14 @@ export function startGame(options: GameOptions): GameHandle {
 	})
 
 	/** Barricades are walls: the client's grid must match the server's or prediction slides through them. */
-	function syncBarricades(
-		objects: readonly { id: number; kind: number; x: number; y: number; angle: number; radius: number }[]
-	) {
+	function syncBarricades(objects: readonly { id: number; kind: number; cells: number[] }[]) {
 		const live = new Set<number>()
 		for (const object of objects) {
 			if (object.kind !== ObjectKind.barricade) continue
 			live.add(object.id)
 			if (barricades.has(object.id)) continue
-			// the barricade's centre is 1.5 m ahead of where it was deployed from
-			const cells = barricadeCells(
-				grid,
-				object.x - Math.cos(object.angle) * 1.5,
-				object.y - Math.sin(object.angle) * 1.5,
-				object.angle,
-				object.radius * 2
-			).filter(cell => grid.walls[cell] === 0)
+			// exactly the server's cells, so prediction stops where the server does
+			const cells = object.cells.filter(cell => grid.walls[cell] === 0)
 			for (const cell of cells) grid.walls[cell] = 2
 			barricades.set(object.id, cells)
 		}
@@ -369,10 +363,11 @@ export function startGame(options: GameOptions): GameHandle {
 				accumulator -= TICK_MS
 				const input = sampleInput(renderTick)
 				const result = predictor.apply(input)
+				hudDirty = true
 				predictorTick = predictor.tick
 				if (result & Step.fired) {
 					const angle = aimToAngle(predictor.state.aim)
-					const held = activeWeapon(predictor.state, predictor.tick)
+					const held = activeWeapon(predictor.state, (result & Step.minigun) !== 0)
 					const { x, y } = predictor.state
 					if (held.behaviour.type === 'cone') {
 						const half = (held.behaviour.angleDegrees * Math.PI) / 360
@@ -388,7 +383,10 @@ export function startGame(options: GameOptions): GameHandle {
 				if (recent.length > INPUT_REDUNDANCY) recent.shift()
 				connection.sendInputs(recent)
 			}
-			updateWeaponsHud(now)
+			if (hudDirty) {
+				updateWeaponsHud(now)
+				hudDirty = false
+			}
 		}
 
 		// draw

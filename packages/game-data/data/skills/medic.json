@@ -252,7 +252,11 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "second-wind",
-					"effects": []
+					"effects": [],
+					"params": {
+						"damageTaken": 0.5,
+						"seconds": 3
+					}
 				},
 				{
 					"id": "chief-medic",
@@ -543,7 +547,12 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "contagion",
-					"effects": []
+					"effects": [],
+					"params": {
+						"radius": 3,
+						"damagePerSecond": 12,
+						"seconds": 4
+					}
 				},
 				{
 					"id": "master-chemist",
@@ -825,7 +834,10 @@
 					"maxRank": 1,
 					"kind": "capstone",
 					"special": "last-rites",
-					"effects": []
+					"effects": [],
+					"params": {
+						"health": 1
+					}
 				},
 				{
 					"id": "second-heart",

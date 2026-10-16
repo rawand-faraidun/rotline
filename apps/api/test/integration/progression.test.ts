@@ -198,7 +198,27 @@ describe('progression', () => {
 		const worker = new RewardWorker(db, valkey, env.VALKEY_URL, log, 'test', stream)
 		await worker.start()
 		try {
-			const report = { grantKey: `stream:${id}`, userId: id, class: 'heavy', xp: 250, salvage: 40, kills: 12 }
+			const report = {
+				grantKey: `squad-${crypto.randomUUID()}:${id}:0a1b2c3d:0`,
+				userId: id,
+				class: 'heavy',
+				xp: 250,
+				salvage: 40,
+				kills: 12
+			}
+			// a report naming another player, or granting too much, is refused
+			await valkey.xadd(
+				stream,
+				'*',
+				'report',
+				JSON.stringify({ ...report, grantKey: `squad-${crypto.randomUUID()}:${crypto.randomUUID()}:0a1b2c3d:0` })
+			)
+			await valkey.xadd(
+				stream,
+				'*',
+				'report',
+				JSON.stringify({ ...report, grantKey: `squad-${crypto.randomUUID()}:${id}:0a1b2c3d:1`, salvage: 1e6 })
+			)
 			await valkey.xadd(stream, '*', 'report', JSON.stringify(report))
 			await valkey.xadd(stream, '*', 'report', JSON.stringify(report))
 			let view = await progress(jar)
@@ -282,5 +302,11 @@ describe('progression', () => {
 			await worker.stop()
 			await valkey.del(stream)
 		}
+	})
+
+	it('limits how fast one player can write', async () => {
+		const { jar } = await enlist('Max')
+		const answers = await Promise.all(Array.from({ length: 30 }, () => post(jar, 'class', { class: 'medic' })))
+		expect(answers.some(answer => answer.status === 429)).toBe(true)
 	})
 })

@@ -30,7 +30,11 @@
 			"xp": 40,
 			"salvage": 25
 		},
-		"scorePerXp": 20
+		"scorePerXp": 20,
+		"maxPerReport": {
+			"xp": 20000,
+			"salvage": 5000
+		}
 	},
 	"starter": {
 		"items": ["vex-9", "k-71", "p9-service", "kevlar-vest", "frag-grenades"],

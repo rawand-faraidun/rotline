@@ -1,4 +1,4 @@
-import { classDef, classes, economy, gear, skillNodes, upgrades, weaponIndex, weapons } from './data.ts'
+import { classDef, classes, combat, economy, gear, skillNodes, upgrades, weaponIndex, weapons } from './data.ts'
 import { itemById, perkOptions } from './items.ts'
 import { validateAbilities, validateSkills } from './progression.ts'
 import type {
@@ -84,9 +84,6 @@ const WEAPON_STATS = new Set<StatKey>([
 	'blastRadius'
 ])
 
-/** Base revived health share, before skills. */
-const REVIVED_BASE = 0.3
-
 function appliesTo(effect: Effect, weapon: WeaponDef): boolean {
 	return (
 		(!effect.kinds || effect.kinds.includes(weapon.kind)) &&
@@ -146,6 +143,10 @@ export type UtilityStats = {
 	id: string
 	type: UtilityDef['type']
 	charges: number
+	throwRange: number
+	armSeconds: number
+	triggerRadius: number
+	shotsPerSecond: number
 	damageType: DamageType
 	damage: number
 	radius: number
@@ -167,7 +168,11 @@ function utilityStats(ref: ItemRef | null, effects: readonly Effect[], extraChar
 		radius:
 			def.radius *
 			(1 + (upgrades.utility.blastRadius ?? 0) * ref.level + (def.type === 'grenade' ? sum('blastRadius') : 0)),
-		seconds: def.seconds
+		seconds: def.seconds,
+		throwRange: def.throwRange ?? 0,
+		armSeconds: def.armSeconds ?? 0,
+		triggerRadius: def.triggerRadius ?? 0,
+		shotsPerSecond: def.shotsPerSecond ?? 0
 	}
 }
 
@@ -193,7 +198,7 @@ export function computeStats(build: Build): PlayerStats {
 	const resist = {} as Record<DamageType, number>
 	for (const type of ['ballistic', 'explosive', 'fire', 'shock', 'chemical'] as const) {
 		resist[type] = Math.min(
-			0.75,
+			combat.resistCap,
 			(armourDef?.resist[type] ?? 0) + total('resist', effect => effect.damageType === type)
 		)
 	}
@@ -204,16 +209,16 @@ export function computeStats(build: Build): PlayerStats {
 		level: build.level,
 		maxHealth: Math.round(cls.health * healthScale * (1 + total('maxHealth'))),
 		speed: cls.speed * (1 + total('moveSpeed') + (armourDef?.speed ?? 0)),
-		reviveSeconds: Math.max(1.5, cls.reviveSeconds + total('reviveTime')),
+		reviveSeconds: Math.max(combat.reviveFloorSeconds, cls.reviveSeconds + total('reviveTime')),
 		armour: (armourBase + total('armour')) * (1 + total('armourPct')) * cls.armourEffectiveness,
-		damageReduction: Math.min(0.5, total('damageReduction')),
+		damageReduction: Math.min(combat.damageReductionCap, total('damageReduction')),
 		resist,
 		killHeal: total('killHeal'),
 		healing: 1 + total('healing'),
 		healingReceived: 1 + total('healingReceived'),
-		revivedHealth: Math.min(1, REVIVED_BASE + total('revivedHealth')),
+		revivedHealth: Math.min(1, combat.revivedHealth + total('revivedHealth')),
 		bleedoutBonusSeconds: total('bleedout'),
-		abilityCooldown: Math.max(0.4, 1 + total('abilityCooldown')),
+		abilityCooldown: Math.max(combat.cooldownFloor, 1 + total('abilityCooldown')),
 		critDamage: total('critDamage'),
 		damageByType: Object.fromEntries(
 			(['ballistic', 'explosive', 'fire', 'shock', 'chemical'] as const).map(type => [
@@ -240,7 +245,7 @@ export function computeStats(build: Build): PlayerStats {
 
 /** Damage after armour, damage reduction and resistance. Melee has no damage type. */
 export function damageTaken(stats: PlayerStats, amount: number, type: DamageType | null): number {
-	const armour = stats.armour / (stats.armour + 60)
+	const armour = stats.armour / (stats.armour + combat.armourConstant)
 	const resist = type ? stats.resist[type] : 0
 	return amount * (1 - armour) * (1 - stats.damageReduction) * (1 - resist)
 }

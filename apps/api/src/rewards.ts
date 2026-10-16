@@ -1,10 +1,13 @@
 import { type Database, LedgerReason, PlayerClass, Prisma } from '@rotline/db'
+import { economy } from '@rotline/game-data'
 import { createValkey, notify, REWARDS_STREAM, type RewardReport, type Valkey } from '@rotline/state'
 import type { Logger } from 'pino'
 import { z } from 'zod'
 import { changeSalvage, PlayerMissing } from './lib/ledger.ts'
 
 const GROUP = 'api'
+/** room:player:membership:sequence, from squad rooms only (the firing range reports nothing) */
+const GRANT_KEY = /^squad-[0-9a-f-]{36}:([0-9a-f-]{36}):[0-9a-f]{8}:\d{1,6}$/
 /** Reports a crashed consumer left unacknowledged are taken over after this long. */
 const CLAIM_IDLE_MS = 60_000
 
@@ -153,7 +156,14 @@ export class RewardWorker {
 				body = null
 			}
 			const parsed = report.safeParse(body)
-			if (!parsed.success) {
+			// the key must name this player, and no report may grant more than one wave plausibly can
+			const owner = parsed.success ? GRANT_KEY.exec(parsed.data.grantKey)?.[1] : undefined
+			const plausible =
+				parsed.success &&
+				owner === parsed.data.userId &&
+				parsed.data.xp <= economy.rewards.maxPerReport.xp &&
+				parsed.data.salvage <= economy.rewards.maxPerReport.salvage
+			if (!parsed.success || !plausible) {
 				this.log.error({ id }, 'malformed reward report dropped')
 				await this.valkey.xack(this.stream, GROUP, id)
 				continue

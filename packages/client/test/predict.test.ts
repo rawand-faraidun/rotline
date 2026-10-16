@@ -110,6 +110,54 @@ describe('prediction', () => {
 		predictAgainstServer(build, seq => (seq % 30 < 25 ? Button.fire : 0) | (seq === 5 ? Button.ability1 : 0))
 	})
 
+	it('predicts Slide Dash and haste exactly when the server catches up or skips a tick', () => {
+		const build: Build = {
+			...starterBuild('assault'),
+			level: 30,
+			skills: { 'adrenaline-burst': 1, 'slide-dash': 1 },
+			abilities: ['adrenaline-burst', 'slide-dash']
+		}
+		const world = quietWorld()
+		world.addPlayer(1, build)
+		const encoder = new SnapshotEncoder(1)
+		const table = new ZombieTable()
+		const predictor = new Predictor(new Grid(yard), 1, build)
+		const first = snapshot(world, encoder, table)
+		predictor.reconcile(first.self, first.lastSeq, first.tick)
+		const queue: PlayerInput[] = []
+		// inputs arriving per server tick: late ones, then two at once
+		const arrivals = [1, 1, 0, 2, 1, 0, 0, 3, 1, 1, 0, 2]
+		let seq = 0
+		for (let round = 0; round < 6; round++) {
+			for (const count of arrivals) {
+				for (let n = 0; n < 1; n++) {
+					seq++
+					const input: PlayerInput = {
+						seq,
+						moveX: 127,
+						moveY: Math.round(Math.sin(seq / 7) * 127),
+						aim: 0,
+						buttons: seq === 3 ? Button.ability2 : seq === 20 ? Button.ability1 : seq === 40 ? Button.ability2 : 0,
+						viewTick: 0,
+						reach: 0
+					}
+					predictor.apply(input)
+					queue.push(input)
+				}
+				// the server applies what has arrived: catch-up inputs first, then one in the step
+				const ready = queue.splice(0, Math.min(count, queue.length))
+				const state = world.players.get(1)
+				if (!state) throw new Error()
+				for (const extra of ready.slice(0, -1)) world.applyInput(state, extra)
+				const last = ready[ready.length - 1]
+				world.step(last ? new Map([[1, last]]) : new Map())
+				const frame = snapshot(world, encoder, table)
+				predictor.reconcile(frame.self, frame.lastSeq, frame.tick)
+			}
+		}
+		expect(predictor.corrections).toBe(0)
+	})
+
 	it('eases small corrections and snaps big ones', () => {
 		const predictor = new Predictor(new Grid(yard), 1)
 		const world = quietWorld()

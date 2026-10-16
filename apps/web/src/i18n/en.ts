@@ -195,7 +195,7 @@ export const en = {
 				bleedout: '{value} s bleed-out time',
 				abilityCooldown: '{value} ability cooldown',
 				utilityCharges: '{value} utility charges',
-				critDamage: '{value} weak-point damage',
+				critDamage: '{value} weak-point damage (weak points arrive with the next zombie types)',
 				damageVsSlowed: '{value} damage to slowed zombies'
 			},
 			withKinds: '{effect} with {kinds}',
@@ -207,7 +207,7 @@ export const en = {
 				'second-wind': 'Allies you revive take 50 % less damage for 3 s.',
 				contagion: 'Chemical kills spread the poison to nearby zombies.',
 				'last-rites': 'Once per mission, survive a lethal hit with 1 health.',
-				immovable: 'Immune to knock-back and stuns.',
+				immovable: 'Immune to knock-back and stuns (they arrive with Rams and Clutches).',
 				aftershock: 'Explosions slow survivors by 40 % for 3 s.',
 				suppression: 'Zombies hit by your bullets move 15 % slower.'
 			},

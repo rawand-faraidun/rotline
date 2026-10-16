@@ -159,6 +159,24 @@ export const classesSchema = z.object({
 		pointsPerTier: z.number().int().min(1),
 		abilitySlots: z.array(z.object({ level: z.number().int().min(1), slots: z.number().int().min(1).max(3) })).min(1)
 	}),
+	/** combat rules that are not per class */
+	combat: z.object({
+		/** share of max health a revived player gets back, before skills */
+		revivedHealth: z.number().positive().max(1),
+		resistCap: z.number().min(0).max(0.95),
+		reviveFloorSeconds: z.number().positive(),
+		damageReductionCap: z.number().min(0).max(0.9),
+		cooldownFloor: z.number().positive().max(1),
+		/** damage taken = damage × (1 − armour / (armour + armourConstant)) */
+		armourConstant: z.number().positive(),
+		throwIntervalSeconds: z.number().min(0),
+		/** a kill within this long of the last one extends the kill chain */
+		chainSeconds: z.number().positive(),
+		/** zones, mines, decoys, sentries and barricades one player can have at once (the oldest goes) */
+		maxObjectsPerPlayer: z.number().int().min(1),
+		/** abilities in the firing range */
+		rangeCooldownSeconds: z.number().min(0)
+	}),
 	classes: z
 		.array(
 			z.object({
@@ -191,7 +209,9 @@ export const skillNodeSchema = z
 		/** values are per rank */
 		effects: z.array(effectSchema),
 		ability: id.optional(),
-		special: id.optional()
+		special: id.optional(),
+		/** a capstone's numbers */
+		params: z.record(z.string(), z.number()).optional()
 	})
 	.refine(node => (node.kind === 'active') === (node.ability !== undefined), {
 		message: 'active nodes name an ability',
@@ -237,23 +257,36 @@ export const gearSchema = z.object({
 			damage: z.number().min(0),
 			radius: z.number().positive(),
 			/** how long it lasts: a fire zone, a stun, a decoy, a sentry (0 = instant) */
-			seconds: z.number().min(0)
+			seconds: z.number().min(0),
+			/** grenades and decoys: how far they can be thrown */
+			throwRange: z.number().positive().optional(),
+			/** mines: armed after this long, triggered by a zombie this close */
+			armSeconds: z.number().min(0).optional(),
+			triggerRadius: z.number().positive().optional(),
+			/** sentries */
+			shotsPerSecond: z.number().positive().optional()
 		})
 	)
 })
 
+const positiveByTier = z.object({
+	'0': z.number().int().positive(),
+	'1': z.number().int().positive(),
+	'2': z.number().int().positive(),
+	'3': z.number().int().positive()
+})
 const byTier = z.object({
 	'0': z.number().int().min(0),
-	'1': z.number().int(),
-	'2': z.number().int(),
-	'3': z.number().int()
+	'1': z.number().int().min(0),
+	'2': z.number().int().min(0),
+	'3': z.number().int().min(0)
 })
 
 export const economySchema = z.object({
-	tierPrices: byTier,
+	tierPrices: positiveByTier,
 	upgrade: z.object({
 		maxLevel: z.number().int().min(1).max(20),
-		tierBase: byTier,
+		tierBase: positiveByTier,
 		growth: z.number().min(1),
 		roundTo: z.number().int().min(1),
 		perkLevels: z.array(z.number().int().min(1)),
@@ -265,7 +298,9 @@ export const economySchema = z.object({
 	estimate: z.object({ salvagePerHour: z.number().positive(), note: z.string() }),
 	rewards: z.object({
 		waveClear: z.object({ xp: z.number().min(0), salvage: z.number().min(0) }),
-		scorePerXp: z.number().positive()
+		scorePerXp: z.number().positive(),
+		/** the most one report from a game server may grant; anything above is refused and logged */
+		maxPerReport: z.object({ xp: z.number().int().positive(), salvage: z.number().int().positive() })
 	}),
 	starter: z.object({
 		items: z.array(id).min(1),
@@ -299,7 +334,16 @@ export const mapSchema = z.object({
 	height: z.number().int().positive().max(1000),
 	walls: z.array(rect),
 	playerSpawns: z.array(point).min(4),
-	zombieSpawns: z.array(point).min(1)
+	zombieSpawns: z.array(point).min(1),
+	/** firing-range maps: where dummies stand, how fast they heal, how many zombies may be spawned */
+	range: z
+		.object({
+			dummies: z.array(point).min(1),
+			resetSeconds: z.number().positive(),
+			maxZombies: z.number().int().positive().max(300),
+			spawnPerCommand: z.number().int().positive().max(20)
+		})
+		.optional()
 })
 
 export const wavesSchema = z.object({

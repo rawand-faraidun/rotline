@@ -1,6 +1,7 @@
 import {
 	abilityById,
 	type Build,
+	combat,
 	computeStats,
 	type PlayerStats,
 	player as playerDef,
@@ -58,18 +59,20 @@ export type PlayerState = {
 	utilityCharges: [number, number]
 	/** no throws or placements before this tick */
 	utilityReady: number
-	/** Adrenaline Burst and Stim: faster movement (and fire) until this tick */
-	hasteUntil: number
+	// Timed effects count the player's own steps, not server ticks: prediction applies inputs one
+	// step at a time, while the server may run two in one tick or none after a stall.
+	/** Adrenaline Burst and Stim: steps of faster movement (and fire) left */
+	hasteSteps: number
 	hasteSpeed: number
 	hasteFire: number
-	/** Slide Dash: moving by (dashX, dashY) metres a tick until this tick */
-	dashUntil: number
+	/** Slide Dash: steps left moving by (dashX, dashY) metres a step */
+	dashSteps: number
 	dashX: number
 	dashY: number
 	/** Overwatch: shots left that pierce */
 	overwatchShots: number
-	/** Minigun Spin-up: firing the minigun until this tick */
-	minigunUntil: number
+	/** Minigun Spin-up: steps left firing the minigun */
+	minigunSteps: number
 	/** firing range: abilities have no cooldown and utilities no limit */
 	free: boolean
 	// server only (not predicted): capstones and buffs from teammates
@@ -79,6 +82,8 @@ export type PlayerState = {
 	immuneUntil: number
 	/** Last Rites has been used this mission */
 	lastRitesUsed: boolean
+	/** the Defibrillator has been used this wave (once per checkpoint, once those exist) */
+	defibUsed: boolean
 	/** kills in the current chain (Momentum) and the tick of the last one */
 	chain: number
 	lastKillTick: number
@@ -93,12 +98,14 @@ export const Step = {
 	utility1: 16,
 	utility2: 32,
 	/** the shot pierces (Overwatch) */
-	piercing: 64
+	piercing: 64,
+	/** the shot came from the minigun */
+	minigun: 128
 } as const
 
 /** Throws and placements are this far apart at least. */
-const UTILITY_COOLDOWN_TICKS = TICK_RATE
-const DASH_TICKS = 8
+const UTILITY_COOLDOWN_TICKS = Math.round(combat.throwIntervalSeconds * TICK_RATE)
+const RANGE_COOLDOWN_TICKS = Math.round(combat.rangeCooldownSeconds * TICK_RATE)
 
 const fullWeapon = (weapon: WeaponStats): WeaponState => ({
 	def: weapon.index,
@@ -132,25 +139,27 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 		abilityReady: [0, 0, 0],
 		utilityCharges: [stats.utilities[0]?.charges ?? 0, stats.utilities[1]?.charges ?? 0],
 		utilityReady: 0,
-		hasteUntil: 0,
+		hasteSteps: 0,
 		hasteSpeed: 0,
 		hasteFire: 0,
-		dashUntil: 0,
+		dashSteps: 0,
 		dashX: 0,
 		dashY: 0,
 		overwatchShots: 0,
-		minigunUntil: 0,
+		minigunSteps: 0,
 		free: false,
 		guardUntil: 0,
 		immuneUntil: 0,
 		lastRitesUsed: false,
+		defibUsed: false,
 		chain: 0,
 		lastKillTick: -1000
 	}
 }
 
-/** Utility charges back to full (a new wave). */
+/** Utility charges back to full and once-a-wave abilities ready again (a new wave). */
 export function refillUtilities(state: PlayerState): void {
+	state.defibUsed = false
 	state.utilityCharges[0] = state.stats.utilities[0]?.charges ?? 0
 	state.utilityCharges[1] = state.stats.utilities[1]?.charges ?? 0
 }
@@ -164,9 +173,9 @@ export function clonePlayer(source: PlayerState): PlayerState {
 	}
 }
 
-/** The held weapon's stats, with upgrades, perks and skills applied (the minigun while it lasts). */
-export function activeWeapon(state: PlayerState, tick = -1): WeaponStats {
-	if (tick >= 0 && tick < state.minigunUntil) return state.stats.minigun
+/** The held weapon's stats, with upgrades, perks and skills applied; `minigun` for minigun shots. */
+export function activeWeapon(state: PlayerState, minigun = false): WeaponStats {
+	if (minigun) return state.stats.minigun
 	return state.stats.weapons[state.slot as 0 | 1 | 2]
 }
 
@@ -183,7 +192,7 @@ function startAbility(state: PlayerState, id: string, input: PlayerInput, tick: 
 	switch (id) {
 		case 'adrenaline-burst':
 		case 'stim':
-			state.hasteUntil = tick + seconds('durationSeconds')
+			state.hasteSteps = seconds('durationSeconds')
 			state.hasteSpeed = params.speed ?? 0
 			state.hasteFire = params.fireRate ?? 0
 			break
@@ -195,10 +204,11 @@ function startAbility(state: PlayerState, id: string, input: PlayerInput, tick: 
 				dy = Math.sin(aimToAngle(input.aim))
 			}
 			const length = Math.hypot(dx, dy)
-			const step = (params.distance ?? 0) / DASH_TICKS
+			const steps = Math.max(1, seconds('dashSeconds'))
+			const step = (params.distance ?? 0) / steps
 			state.dashX = (dx / length) * step
 			state.dashY = (dy / length) * step
-			state.dashUntil = tick + DASH_TICKS
+			state.dashSteps = steps
 			state.safeUntilTick = Math.max(state.safeUntilTick, tick + seconds('invulnerableSeconds'))
 			break
 		}
@@ -206,7 +216,7 @@ function startAbility(state: PlayerState, id: string, input: PlayerInput, tick: 
 			state.overwatchShots = activeWeapon(state).magazine
 			break
 		case 'minigun-spin-up':
-			state.minigunUntil = tick + seconds('durationSeconds')
+			state.minigunSteps = seconds('durationSeconds')
 			break
 	}
 }
@@ -256,21 +266,23 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	const pressed = input.buttons & ~state.heldButtons
 	state.heldButtons = input.buttons
 
-	// abilities and utilities (not while downed)
+	// abilities fire while their key is held and they are ready (a press right at the end of a
+	// cooldown is not lost if client and server disagree by a tick); utilities need a fresh press
 	if (!state.downed) {
-		for (const slot of [0, 1, 2] as const) {
+		const ready = state.abilityReady
+		for (let slot = 0; slot < 3; slot++) {
 			const id = state.stats.abilities[slot]
-			if (!id || !(pressed & ABILITY_BUTTONS[slot]) || tick < state.abilityReady[slot]) continue
+			if (!id || !(input.buttons & (ABILITY_BUTTONS[slot] as number)) || tick < (ready[slot] as number)) continue
 			const cooldown = (abilityById.get(id)?.cooldownSeconds ?? 0) * state.stats.abilityCooldown
-			state.abilityReady[slot] = state.free ? tick : tick + Math.round(cooldown * TICK_RATE)
+			ready[slot] = tick + (state.free ? RANGE_COOLDOWN_TICKS : Math.round(cooldown * TICK_RATE))
 			startAbility(state, id, input, tick)
-			result |= ABILITY_STEPS[slot]
+			result |= ABILITY_STEPS[slot] as number
 		}
-		for (const slot of [0, 1] as const) {
+		for (let slot = 0; slot < 2; slot++) {
 			const button = slot === 0 ? Button.utility1 : Button.utility2
 			if (!(pressed & button) || tick < state.utilityReady) continue
 			if (!state.stats.utilities[slot] || (state.utilityCharges[slot] === 0 && !state.free)) continue
-			if (!state.free) state.utilityCharges[slot] -= 1
+			if (!state.free) state.utilityCharges[slot] = (state.utilityCharges[slot] as number) - 1
 			state.utilityReady = tick + UTILITY_COOLDOWN_TICKS
 			result |= slot === 0 ? Step.utility1 : Step.utility2
 		}
@@ -284,10 +296,10 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 		mx /= length
 		my /= length
 	}
-	if (tick < state.dashUntil && !state.downed) {
+	if (state.dashSteps > 0 && !state.downed) {
 		grid.moveCircle(state.x, state.y, state.dashX, state.dashY, playerDef.radius, position)
 	} else {
-		const haste = tick < state.hasteUntil ? state.hasteSpeed : 0
+		const haste = state.hasteSteps > 0 ? state.hasteSpeed : 0
 		const step = (state.downed ? DOWNED_SPEED : state.stats.speed * (1 + haste)) * DT
 		grid.moveCircle(state.x, state.y, mx * step, my * step, playerDef.radius, position)
 	}
@@ -303,14 +315,16 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	else if (pressed & Button.slot3) switchTo(state, 2, tick)
 	else if (pressed & Button.swap) switchTo(state, state.previousSlot, tick)
 
-	const fireRateScale = 1 + (tick < state.hasteUntil ? state.hasteFire : 0)
+	const fireRateScale = 1 + (state.hasteSteps > 0 ? state.hasteFire : 0)
+	const minigunActive = state.minigunSteps > 0
+	countDown(state)
 
 	// the minigun needs no ammunition and no reloads while it lasts
-	if (tick < state.minigunUntil && !state.downed) {
+	if (minigunActive && !state.downed) {
 		const minigun = state.stats.minigun
 		if (!(input.buttons & Button.fire) || tick < state.nextFireTick) return result
 		state.nextFireTick = Math.max(state.nextFireTick, tick) + (60 * TICK_RATE) / (minigun.fireRate * fireRateScale)
-		return result | Step.fired
+		return result | Step.fired | Step.minigun
 	}
 
 	const weapon = activeWeapon(state)
@@ -339,6 +353,13 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 		result |= Step.piercing
 	}
 	return result
+}
+
+/** One step of each timed effect has been used. */
+function countDown(state: PlayerState): void {
+	if (state.hasteSteps > 0) state.hasteSteps--
+	if (state.dashSteps > 0) state.dashSteps--
+	if (state.minigunSteps > 0) state.minigunSteps--
 }
 
 export function aimAngle(state: PlayerState): number {

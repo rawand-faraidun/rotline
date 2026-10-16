@@ -8,11 +8,53 @@
 		"bonusPoints": 2,
 		"healthPerLevel": 0.01,
 		"pointsPerTier": 5,
-		"abilitySlots": [{ "level": 1, "slots": 2 }, { "level": 20, "slots": 3 }]
+		"abilitySlots": [
+			{
+				"level": 1,
+				"slots": 2
+			},
+			{
+				"level": 20,
+				"slots": 3
+			}
+		]
 	},
 	"classes": [
-		{ "id": "assault", "name": "Assault", "health": 100, "speed": 5.4, "reviveSeconds": 4, "armourEffectiveness": 1 },
-		{ "id": "medic", "name": "Medic", "health": 100, "speed": 5, "reviveSeconds": 2.5, "armourEffectiveness": 1 },
-		{ "id": "heavy", "name": "Heavy", "health": 140, "speed": 4.4, "reviveSeconds": 4, "armourEffectiveness": 1.2 }
-	]
+		{
+			"id": "assault",
+			"name": "Assault",
+			"health": 100,
+			"speed": 5.4,
+			"reviveSeconds": 4,
+			"armourEffectiveness": 1
+		},
+		{
+			"id": "medic",
+			"name": "Medic",
+			"health": 100,
+			"speed": 5,
+			"reviveSeconds": 2.5,
+			"armourEffectiveness": 1
+		},
+		{
+			"id": "heavy",
+			"name": "Heavy",
+			"health": 140,
+			"speed": 4.4,
+			"reviveSeconds": 4,
+			"armourEffectiveness": 1.2
+		}
+	],
+	"combat": {
+		"revivedHealth": 0.3,
+		"resistCap": 0.75,
+		"reviveFloorSeconds": 1.5,
+		"damageReductionCap": 0.5,
+		"cooldownFloor": 0.4,
+		"armourConstant": 60,
+		"throwIntervalSeconds": 1,
+		"chainSeconds": 2.5,
+		"maxObjectsPerPlayer": 12,
+		"rangeCooldownSeconds": 1
+	}
 }

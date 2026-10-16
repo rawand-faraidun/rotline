@@ -84,5 +84,24 @@
 			"x": 34,
 			"y": 20
 		}
-	]
+	],
+	"range": {
+		"dummies": [
+			{
+				"x": 26,
+				"y": 9
+			},
+			{
+				"x": 26,
+				"y": 15
+			},
+			{
+				"x": 26,
+				"y": 21
+			}
+		],
+		"resetSeconds": 3,
+		"maxZombies": 60,
+		"spawnPerCommand": 5
+	}
 }

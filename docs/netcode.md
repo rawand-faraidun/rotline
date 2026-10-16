@@ -66,7 +66,8 @@ With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 
 3. Each snapshot carries the server's state for this player and the last input it processed. The client resets to that state and replays every later input.
 4. Corrections under 0.5 m are eased over 100 ms; larger ones (knock-back, being grabbed) snap.
 5. Firing is predicted for feedback (muzzle flash, tracer, sound, magazine count); damage, kills and drops appear only when the server confirms them.
-6. Abilities are predicted only for what they do to the player: cooldowns, utility charges, Adrenaline and Stim haste, Slide Dash, Overwatch and the minigun. Their effect on zombies and teammates (blasts, heals, stuns, barricades) comes from the server. Barricades are walls in the client's grid too, so prediction stops at them.
+6. Timed effects (haste, Slide Dash, the minigun) count the player's own input steps, not server ticks, so prediction stays exact when the server applies two inputs in one tick or none after a stall. Abilities trigger while their key is held and they are ready.
+7. Abilities are predicted only for what they do to the player: cooldowns, utility charges, Adrenaline and Stim haste, Slide Dash, Overwatch and the minigun. Their effect on zombies and teammates (blasts, heals, stuns, barricades) comes from the server. Barricades are walls in the client's grid too: snapshots carry their exact cells, so prediction stops where the server does.
 
 The simulation is deterministic: fixed steps, server-owned seeded randomness, and no `Date.now()` or `Math.random()` in `packages/sim`.
 
@@ -74,7 +75,9 @@ The simulation is deterministic: fixed steps, server-owned seeded randomness, an
 
 - Each player's inputs wait in a queue; the server applies at most one per tick.
 - A player whose input has not arrived simply does nothing that tick. The server never replays an old input, because that would move the player twice and break prediction.
-- After a network stall the queue may hold several inputs; above three, the server applies two per tick until the player has caught up.
+- After a network stall the queue may hold several inputs; above three, the server applies two per tick until the player has caught up. Events from the extra input (shots, kills, throws) are sent and counted like any other.
+- Every socket has a message budget (120 a second, bursts of 60); a client that keeps exceeding it is disconnected. Firing-range commands have their own small budget, and a range room holds at most 60 spawned zombies.
+- A reconnecting client numbers its inputs from 1 again; the server resets its record of the last input for that player.
 - Inputs are rate-limited with a token bucket (30 per second, bursts up to 24), so a modified client cannot move faster by sending more inputs.
 
 ## Interpolation

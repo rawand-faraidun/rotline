@@ -1,17 +1,16 @@
-import { abilities, abilityById, type DamageType } from '@rotline/game-data'
+import {
+	abilities,
+	abilityById,
+	type DamageType,
+	player as playerDef,
+	type ZombieDef,
+	zombies as zombieDefs
+} from '@rotline/game-data'
 import { DT, MAX_ZOMBIES, NEVER, TICK_RATE } from './constants.ts'
 import type { Grid } from './grid.ts'
 import { aimToAngle, type PlayerInput, REACH_STEP } from './input.ts'
 import type { PlayerState } from './player.ts'
 import { ObjectKind, type World, type WorldObject } from './world.ts'
-
-/** Default throw distance when an ability names none. */
-const THROW_RANGE = 14
-/** Mines: armed after a second, triggered by a zombie this close. */
-const MINE_ARM_TICKS = TICK_RATE
-const MINE_TRIGGER = 1.5
-/** Sentries: one shot every this many ticks (600 rounds a minute). */
-const SENTRY_EVERY = 3
 
 const ticks = (seconds: number) => Math.round(seconds * TICK_RATE)
 
@@ -65,14 +64,28 @@ function zone(
 		amount: perSecond * DT,
 		damageType,
 		cells: [],
-		nextTick: 0
+		nextTick: 0,
+		interval: 0,
+		trigger: 0
 	})
 }
 
-/** Resolves the world side of an ability: blasts, zones, heals, statuses, barricades. */
-export function useAbility(world: World, state: PlayerState, id: string, input: PlayerInput): void {
+/** A cell (a 1 m box) against a circle. */
+function cellTouchesCircle(grid: Grid, cell: number, x: number, y: number, radius: number): boolean {
+	const cx = cell % grid.width
+	const cy = Math.floor(cell / grid.width)
+	const nx = Math.max(cx, Math.min(x, cx + 1))
+	const ny = Math.max(cy, Math.min(y, cy + 1))
+	return (x - nx) ** 2 + (y - ny) ** 2 < radius * radius
+}
+
+/**
+ * Resolves the world side of an ability: blasts, zones, heals, statuses, barricades. Returns false
+ * when it had nothing to act on (the caller then gives the cooldown back).
+ */
+export function useAbility(world: World, state: PlayerState, id: string, input: PlayerInput): boolean {
 	const ability = abilityById.get(id)
-	if (!ability) return
+	if (!ability) return false
 	const p = ability.params
 	const n = (key: string) => p[key] ?? 0
 	const angle = aimToAngle(input.aim)
@@ -91,7 +104,7 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 			world.heal(state, n('heal'), state)
 			break
 		case 'cluster-grenade': {
-			const target = targetPoint(world, state, input, n('throwRange') || THROW_RANGE)
+			const target = targetPoint(world, state, input, n('throwRange'))
 			world.lob(state, target.x, target.y, (w, x, y) => {
 				for (let b = 0; b < n('bomblets'); b++) {
 					const spread = b === 0 ? 0 : 1.6
@@ -141,7 +154,7 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 			break
 		}
 		case 'mark-target': {
-			const target = world.zombieOnRay(state.x, state.y, angle, 40)
+			const target = world.zombieOnRay(state.x, state.y, angle, n('range'))
 			if (target >= 0) world.mark(target, n('damageTaken'), ticks(n('durationSeconds')))
 			break
 		}
@@ -172,7 +185,7 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 			)
 			break
 		case 'toxin-grenade': {
-			const target = targetPoint(world, state, input, n('throwRange') || THROW_RANGE)
+			const target = targetPoint(world, state, input, n('throwRange'))
 			world.lob(state, target.x, target.y, (w, x, y) => {
 				zone(
 					w,
@@ -192,6 +205,7 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 			for (const player of world.players.values()) player.immuneUntil = world.tick + ticks(n('immunitySeconds'))
 			break
 		case 'defibrillator': {
+			if (state.defibUsed) return false
 			let best: PlayerState | null = null
 			let bestDistance = n('range')
 			for (const other of world.players.values()) {
@@ -202,19 +216,26 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 					bestDistance = d
 				}
 			}
-			if (best) world.revive(best, state)
+			if (!best) return false
+			world.revive(best, state)
+			state.defibUsed = true
 			break
 		}
 		case 'deploy-barricade': {
 			const cells = barricadeCells(world.grid, state.x, state.y, angle, n('width')).filter(cell => {
 				if (world.grid.walls[cell] !== 0) return false
-				const cx = (cell % world.grid.width) + 0.5
-				const cy = Math.floor(cell / world.grid.width) + 0.5
-				// never wall a player in
-				for (const player of world.players.values()) if (Math.hypot(player.x - cx, player.y - cy) < 1) return false
+				// never wall anyone in: no cell may touch a player or a zombie
+				for (const player of world.players.values()) {
+					if (cellTouchesCircle(world.grid, cell, player.x, player.y, playerDef.radius)) return false
+				}
+				for (let i = 0; i < MAX_ZOMBIES; i++) {
+					if (world.alive[i] === 0) continue
+					const radius = (zombieDefs[world.type[i] as number] as ZombieDef).radius
+					if (cellTouchesCircle(world.grid, cell, world.x[i] as number, world.y[i] as number, radius)) return false
+				}
 				return true
 			})
-			if (cells.length === 0) break
+			if (cells.length === 0) return false
 			for (const cell of cells) world.grid.walls[cell] = 2
 			world.addObject({
 				kind: ObjectKind.barricade,
@@ -229,7 +250,9 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 				amount: 0,
 				damageType: 'ballistic',
 				cells,
-				nextTick: 0
+				nextTick: 0,
+				interval: 0,
+				trigger: 0
 			})
 			break
 		}
@@ -287,6 +310,7 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 			})
 			break
 	}
+	return true
 }
 
 /** Throws a grenade or places a mine, decoy or sentry from a utility slot. */
@@ -304,7 +328,7 @@ export function useUtility(world: World, state: PlayerState, slot: 0 | 1, input:
 	}
 	switch (utility.type) {
 		case 'grenade': {
-			const target = targetPoint(world, state, input, THROW_RANGE)
+			const target = targetPoint(world, state, input, utility.throwRange)
 			world.lob(state, target.x, target.y, (w, x, y) => {
 				if (utility.damageType === 'fire') {
 					zone(w, state, ObjectKind.fire, x, y, utility.radius, utility.seconds, utility.damage * scale, 'fire')
@@ -326,11 +350,13 @@ export function useUtility(world: World, state: PlayerState, slot: 0 | 1, input:
 				radius: utility.radius,
 				untilTick: world.tick + ticks(utility.seconds),
 				amount: utility.damage * scale,
-				nextTick: world.tick + MINE_ARM_TICKS
+				nextTick: world.tick + ticks(utility.armSeconds),
+				interval: 0,
+				trigger: utility.triggerRadius
 			})
 			break
 		case 'decoy': {
-			const target = targetPoint(world, state, input, THROW_RANGE)
+			const target = targetPoint(world, state, input, utility.throwRange)
 			world.addObject({
 				...base,
 				kind: ObjectKind.decoy,
@@ -339,7 +365,9 @@ export function useUtility(world: World, state: PlayerState, slot: 0 | 1, input:
 				radius: utility.radius,
 				untilTick: world.tick + ticks(utility.seconds),
 				amount: 0,
-				nextTick: 0
+				nextTick: 0,
+				interval: 0,
+				trigger: 0
 			})
 			world.taunt(target.x, target.y, utility.radius, ticks(utility.seconds), 0)
 			break
@@ -353,7 +381,9 @@ export function useUtility(world: World, state: PlayerState, slot: 0 | 1, input:
 				radius: utility.radius,
 				untilTick: world.tick + ticks(utility.seconds),
 				amount: utility.damage * scale,
-				nextTick: world.tick
+				nextTick: world.tick,
+				interval: Math.max(1, Math.round(TICK_RATE / utility.shotsPerSecond)),
+				trigger: 0
 			})
 			break
 	}
@@ -389,7 +419,7 @@ export function stepObjects(world: World): void {
 				let triggered = false
 				for (let i = 0; i < MAX_ZOMBIES && !triggered; i++) {
 					if (world.alive[i] === 0) continue
-					if (Math.hypot((world.x[i] as number) - object.x, (world.y[i] as number) - object.y) <= MINE_TRIGGER)
+					if (Math.hypot((world.x[i] as number) - object.x, (world.y[i] as number) - object.y) <= object.trigger)
 						triggered = true
 				}
 				if (triggered) {
@@ -412,7 +442,7 @@ export function stepObjects(world: World): void {
 					bestDistance = d
 				}
 				if (best < 0) break
-				object.nextTick = world.tick + SENTRY_EVERY
+				object.nextTick = world.tick + object.interval
 				const a = Math.atan2((world.y[best] as number) - object.y, (world.x[best] as number) - object.x)
 				object.angle = a
 				// player 0: every client draws it, the owner's too

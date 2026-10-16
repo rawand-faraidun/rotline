@@ -25,10 +25,19 @@ const HELLO_TIMEOUT_MS = 5000
 const MAX_BUFFERED_BYTES = 1 << 20
 /** Rooms with nobody left are closed after this long. */
 const EMPTY_ROOM_MS = 30_000
+/** Messages a socket may send per second (and in a burst); inputs come at 30 a second. */
+const MESSAGE_RATE = 120
+const MESSAGE_BURST = 60
+/** Dropped messages in a row before the socket is closed. */
+const MAX_DROPPED = 300
 /** At most this many ticks are run back to back to catch up after a stall. */
 const MAX_CATCH_UP = 3
 
 type SocketData = {
+	/** message rate limit (token bucket) and how many were dropped in a row */
+	tokens: number
+	tokensAt: number
+	dropped: number
 	userId: string | null
 	roomId: string | null
 	helloTimer: ReturnType<typeof setTimeout> | null
@@ -82,7 +91,15 @@ export class GameServer {
 			sendPingsAutomatically: true,
 			upgrade: (response, request, context) => {
 				response.upgrade<SocketData>(
-					{ userId: null, roomId: null, helloTimer: null, connection: null },
+					{
+						tokens: MESSAGE_BURST,
+						tokensAt: performance.now(),
+						dropped: 0,
+						userId: null,
+						roomId: null,
+						helloTimer: null,
+						connection: null
+					},
 					request.getHeader('sec-websocket-key'),
 					request.getHeader('sec-websocket-protocol'),
 					request.getHeader('sec-websocket-extensions'),
@@ -98,6 +115,17 @@ export class GameServer {
 					this.kick(socket, KickReason.protocol)
 					return
 				}
+				// every message costs a token: a client flooding the server is cut off, not served
+				const data = socket.getUserData()
+				const now = performance.now()
+				data.tokens = Math.min(MESSAGE_BURST, data.tokens + ((now - data.tokensAt) / 1000) * MESSAGE_RATE)
+				data.tokensAt = now
+				if (data.tokens < 1) {
+					if (++data.dropped > MAX_DROPPED) this.kick(socket, KickReason.protocol)
+					return
+				}
+				data.tokens -= 1
+				data.dropped = 0
 				try {
 					this.onMessage(socket, new Uint8Array(message))
 				} catch (error) {
@@ -230,7 +258,11 @@ export class GameServer {
 		}
 		let room = this.rooms.get(payload.room)
 		if (!room) {
-			if (this.draining || this.rooms.size >= this.env.GAME_MAX_ROOMS) {
+			const ranges = [...this.rooms.values()].filter(existing => existing.mode === 'range').length
+			const full =
+				this.rooms.size >= this.env.GAME_MAX_ROOMS ||
+				(payload.mode === 'range' && ranges >= this.env.GAME_MAX_RANGE_ROOMS)
+			if (this.draining || full) {
 				this.kick(socket, KickReason.roomFull)
 				return
 			}

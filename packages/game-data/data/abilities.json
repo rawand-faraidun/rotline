@@ -4,113 +4,193 @@
 		"name": "Adrenaline Burst",
 		"class": "assault",
 		"cooldownSeconds": 40,
-		"params": { "durationSeconds": 6, "speed": 0.3, "fireRate": 0.3 }
+		"params": {
+			"durationSeconds": 6,
+			"speed": 0.3,
+			"fireRate": 0.3
+		}
 	},
 	{
 		"id": "slide-dash",
 		"name": "Slide Dash",
 		"class": "assault",
 		"cooldownSeconds": 12,
-		"params": { "distance": 6, "invulnerableSeconds": 0.4 }
+		"params": {
+			"distance": 6,
+			"invulnerableSeconds": 0.4,
+			"dashSeconds": 0.27
+		}
 	},
 	{
 		"id": "cluster-grenade",
 		"name": "Cluster Grenade",
 		"class": "assault",
 		"cooldownSeconds": 25,
-		"params": { "bomblets": 5, "damage": 90, "radius": 2.5, "throwRange": 14 }
+		"params": {
+			"bomblets": 5,
+			"damage": 90,
+			"radius": 2.5,
+			"throwRange": 14
+		}
 	},
 	{
 		"id": "breaching-charge",
 		"name": "Breaching Charge",
 		"class": "assault",
 		"cooldownSeconds": 30,
-		"params": { "damage": 160, "length": 7, "angleDegrees": 60, "knockback": 3 }
+		"params": {
+			"damage": 160,
+			"length": 7,
+			"angleDegrees": 60,
+			"knockback": 3
+		}
 	},
 	{
 		"id": "mark-target",
 		"name": "Mark Target",
 		"class": "assault",
 		"cooldownSeconds": 20,
-		"params": { "durationSeconds": 8, "damageTaken": 0.4 }
+		"params": {
+			"durationSeconds": 8,
+			"damageTaken": 0.4,
+			"range": 40
+		}
 	},
-	{ "id": "overwatch", "name": "Overwatch", "class": "assault", "cooldownSeconds": 35, "params": { "pierce": 4 } },
+	{
+		"id": "overwatch",
+		"name": "Overwatch",
+		"class": "assault",
+		"cooldownSeconds": 35,
+		"params": {
+			"pierce": 4
+		}
+	},
 	{
 		"id": "medkit-drop",
 		"name": "Medkit Drop",
 		"class": "medic",
 		"cooldownSeconds": 25,
-		"params": { "heal": 60, "durationSeconds": 5, "radius": 3 }
+		"params": {
+			"heal": 60,
+			"durationSeconds": 5,
+			"radius": 3
+		}
 	},
 	{
 		"id": "healing-field",
 		"name": "Healing Field",
 		"class": "medic",
 		"cooldownSeconds": 45,
-		"params": { "healPerSecond": 20, "durationSeconds": 6, "radius": 5 }
+		"params": {
+			"healPerSecond": 20,
+			"durationSeconds": 6,
+			"radius": 5
+		}
 	},
 	{
 		"id": "toxin-grenade",
 		"name": "Toxin Grenade",
 		"class": "medic",
 		"cooldownSeconds": 25,
-		"params": { "damagePerSecond": 40, "durationSeconds": 6, "radius": 3.5, "throwRange": 14 }
+		"params": {
+			"damagePerSecond": 40,
+			"durationSeconds": 6,
+			"radius": 3.5,
+			"throwRange": 14
+		}
 	},
 	{
 		"id": "antidote-shot",
 		"name": "Antidote Shot",
 		"class": "medic",
 		"cooldownSeconds": 60,
-		"params": { "immunitySeconds": 5 }
+		"params": {
+			"immunitySeconds": 5
+		}
 	},
 	{
 		"id": "stim",
 		"name": "Stim",
 		"class": "medic",
 		"cooldownSeconds": 30,
-		"params": { "heal": 40, "durationSeconds": 5, "speed": 0.2 }
+		"params": {
+			"heal": 40,
+			"durationSeconds": 5,
+			"speed": 0.2
+		}
 	},
-	{ "id": "defibrillator", "name": "Defibrillator", "class": "medic", "cooldownSeconds": 90, "params": { "range": 8 } },
+	{
+		"id": "defibrillator",
+		"name": "Defibrillator",
+		"class": "medic",
+		"cooldownSeconds": 90,
+		"params": {
+			"range": 8
+		}
+	},
 	{
 		"id": "deploy-barricade",
 		"name": "Deploy Barricade",
 		"class": "heavy",
 		"cooldownSeconds": 30,
-		"params": { "health": 300, "width": 4 }
+		"params": {
+			"health": 300,
+			"width": 4
+		}
 	},
 	{
 		"id": "taunt",
 		"name": "Taunt",
 		"class": "heavy",
 		"cooldownSeconds": 35,
-		"params": { "radius": 10, "durationSeconds": 5 }
+		"params": {
+			"radius": 10,
+			"durationSeconds": 5
+		}
 	},
 	{
 		"id": "aerial-bombardment",
 		"name": "Aerial Bombardment",
 		"class": "heavy",
 		"cooldownSeconds": 60,
-		"params": { "shells": 8, "damage": 120, "radius": 2.5, "length": 10, "durationSeconds": 3 }
+		"params": {
+			"shells": 8,
+			"damage": 120,
+			"radius": 2.5,
+			"length": 10,
+			"durationSeconds": 3
+		}
 	},
 	{
 		"id": "mortar-shot",
 		"name": "Mortar Shot",
 		"class": "heavy",
 		"cooldownSeconds": 20,
-		"params": { "damage": 200, "radius": 6, "delaySeconds": 1.2, "throwRange": 25 }
+		"params": {
+			"damage": 200,
+			"radius": 6,
+			"delaySeconds": 1.2,
+			"throwRange": 25
+		}
 	},
 	{
 		"id": "shock-pulse",
 		"name": "Shock Pulse",
 		"class": "heavy",
 		"cooldownSeconds": 25,
-		"params": { "radius": 6, "stunSeconds": 2, "damage": 30 }
+		"params": {
+			"radius": 6,
+			"stunSeconds": 2,
+			"damage": 30
+		}
 	},
 	{
 		"id": "minigun-spin-up",
 		"name": "Minigun Spin-up",
 		"class": "heavy",
 		"cooldownSeconds": 75,
-		"params": { "durationSeconds": 8 }
+		"params": {
+			"durationSeconds": 8
+		}
 	}
 ]

@@ -1,7 +1,7 @@
 import { type Build, type ClassId, starterBuild, zombieIndex } from '@rotline/game-data'
 import { describe, expect, it } from 'vitest'
-import { angleToAim, Button, ObjectKind, type PlayerInput, REACH_STEP, TICK_RATE, type World } from '../src/index.ts'
-import { input, quietWorld, steps } from './helpers.ts'
+import { angleToAim, Button, ObjectKind, type PlayerInput, REACH_STEP, TICK_RATE, World } from '../src/index.ts'
+import { input, quietWorld, steps, yard } from './helpers.ts'
 
 function build(cls: ClassId, abilities: string[], specials: string[] = [], utility?: string): Build {
 	const base = starterBuild(cls)
@@ -175,5 +175,96 @@ describe('more capstones', () => {
 		downed.bleedoutTick = 1e6
 		world.revive(downed, medic)
 		expect(downed.guardUntil).toBeGreaterThan(world.tick)
+	})
+})
+
+describe('rules from the reviews', () => {
+	it('pays a cleared wave once: a wipe restarts the wave without a cleared event', () => {
+		const world = new World({
+			seed: 1,
+			map: yard,
+			waves: {
+				firstWaveDelaySeconds: 0,
+				breakSeconds: 1,
+				spawnPerSecond: 30,
+				maxAlive: 300,
+				waves: [{ drudge: 1 }],
+				growthPerWave: 1
+			}
+		})
+		const player = world.addPlayer(1)
+		const seen: string[] = []
+		for (let i = 0; i < 20 * TICK_RATE && seen.filter(e => e === 'wave').length < 3; i++) {
+			world.step(new Map())
+			for (const event of world.events)
+				if (event.type === 'wave' || event.type === 'cleared' || event.type === 'wipe') seen.push(event.type)
+			// clear the first wave, then let the second one wipe the squad
+			if (seen.filter(e => e === 'cleared').length === 0) {
+				for (let z = 0; z < 300; z++) if (world.alive[z]) world.damageZombie(z, 1e6, 1)
+			} else if (!seen.includes('wipe')) {
+				player.safeUntilTick = 0
+				player.health = 0.1
+				const z = world.spawnZombie(drudge, { x: player.x + 0.6, y: player.y })
+				world.stunUntil[z] = 0
+			}
+		}
+		// the wipe brings the wave back, but only real clears pay
+		expect(seen).toContain('wipe')
+		expect(seen.filter(e => e === 'wave').length).toBeGreaterThanOrEqual(2)
+		expect(seen.filter(e => e === 'cleared')).toHaveLength(1)
+	})
+
+	it('loses the kill chain when going down', () => {
+		const world = quietWorld()
+		const state = world.addPlayer(1)
+		world.addPlayer(2)
+		state.chain = 12
+		state.health = 1
+		world.spawnZombie(drudge, { x: state.x + 0.6, y: state.y })
+		for (let i = 0; i < 60 && !state.downed; i++) world.step(new Map())
+		expect(state.downed).toBe(true)
+		expect(state.chain).toBe(0)
+	})
+
+	it('gives the Defibrillator cooldown back with nobody to revive, and allows it once a wave', () => {
+		const world = arena(build('medic', ['defibrillator']))
+		const medic = world.players.get(1)
+		if (!medic) throw new Error()
+		world.step(press(Button.ability1))
+		expect(medic.abilityReady[0]).toBeLessThanOrEqual(world.tick)
+		const downed = world.addPlayer(2)
+		world.addPlayer(3)
+		downed.x = 34
+		downed.y = 24
+		downed.health = 0
+		downed.downed = true
+		downed.bleedoutTick = 1e6
+		world.step(press(0))
+		world.step(press(Button.ability1))
+		expect(downed.downed).toBe(false)
+		expect(medic.defibUsed).toBe(true)
+	})
+
+	it('keeps at most a dozen objects per player, removing the oldest', () => {
+		const world = arena(build('medic', ['medkit-drop']))
+		const medic = world.players.get(1)
+		if (!medic) throw new Error()
+		medic.free = true
+		for (let n = 0; n < 20; n++) {
+			world.step(press(Button.ability1))
+			steps(world, TICK_RATE / 10)
+			medic.abilityReady[0] = 0
+			world.step(press(0))
+		}
+		expect(world.objects.filter(object => object.owner === 1).length).toBeLessThanOrEqual(12)
+	})
+
+	it('does not wall a zombie in with a barricade', () => {
+		const world = arena(build('heavy', ['deploy-barricade']))
+		const zombie = pinned(world, drudge, 33.5, 24)
+		world.step(press(Button.ability1))
+		const barricade = world.objects.find(object => object.kind === ObjectKind.barricade)
+		const cell = Math.floor(world.y[zombie] as number) * world.grid.width + Math.floor(world.x[zombie] as number)
+		expect(barricade?.cells.includes(cell) ?? false).toBe(false)
 	})
 })

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { friendIds } from '@rotline/db'
 import { buildProblem, levelFromXp } from '@rotline/game-data'
-import { notify, type Party, PartyError, pickInstance, roomExists, setPresence } from '@rotline/state'
+import { liveInstances, notify, type Party, PartyError, pickInstance, roomExists, setPresence } from '@rotline/state'
 import { loadPrivateKey, signTicket } from '@rotline/ticket'
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
@@ -17,6 +17,8 @@ export const GAME_PATH = '/game'
 /** A mission whose room never appeared (nobody connected) is given up after this long. */
 const ROOM_START_GRACE_MS = 30_000
 const HEARTBEAT_MS = 20_000
+/** How long a player's firing range stays on the same game server. */
+const RANGE_STICKY_SECONDS = 15 * 60
 
 const errorStatus = {
 	'not-found': 404,
@@ -30,6 +32,21 @@ const errorStatus = {
 export function partyRoutes(services: Services) {
 	const { db, env, log, parties, seats, valkey, events } = services
 	const key = loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY)
+
+	/**
+	 * The game server holding a player's firing range: the same one each time while it is alive, so
+	 * one player cannot open a range room on every instance.
+	 */
+	async function rangeInstance(userId: string): Promise<string> {
+		const assigned = await valkey.get(`range:${userId}`)
+		const live = await liveInstances(valkey)
+		const instance =
+			(assigned && live.some(entry => entry.id === assigned && !entry.draining) ? assigned : null) ??
+			(await pickInstance(valkey)) ??
+			env.GAME_INSTANCE_ID
+		await valkey.set(`range:${userId}`, instance, 'EX', RANGE_STICKY_SECONDS)
+		return instance
+	}
 
 	/** Parties stuck "in mission" after their room closed go back to the lobby. */
 	async function settle(party: Party): Promise<Party> {
@@ -180,7 +197,9 @@ export function partyRoutes(services: Services) {
 				const player = await db.player.findUnique({ where: { userId: user.id }, select: { name: true } })
 				if (!player) return c.json({ error: 'no-player' as const }, 404)
 				if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
-				if ((await parties.current(user.id)).state === 'mission') return c.json({ error: 'in-mission' as const }, 409)
+				if ((await settle(await parties.current(user.id))).state === 'mission') {
+					return c.json({ error: 'in-mission' as const }, 409)
+				}
 				await ensureStarterKit(db, user.id)
 				const build = await loadBuild(db, user.id)
 				if (!build || buildProblem(build)) return c.json({ error: 'invalid-build' as const }, 409)
@@ -188,7 +207,7 @@ export function partyRoutes(services: Services) {
 					sub: user.id,
 					name: player.name,
 					room: `range-${user.id}`,
-					inst: (await pickInstance(valkey)) ?? env.GAME_INSTANCE_ID,
+					inst: await rangeInstance(user.id),
 					mode: 'range',
 					build
 				})
