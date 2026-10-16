@@ -1,0 +1,25 @@
+{
+	"name": "@rotline/bots",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "node --env-file-if-exists=../../.env src/index.ts",
+		"typecheck": "tsc"
+	},
+	"dependencies": {
+		"@rotline/client": "workspace:*",
+		"@rotline/game-data": "workspace:*",
+		"@rotline/protocol": "workspace:*",
+		"@rotline/sim": "workspace:*",
+		"@rotline/ticket": "workspace:*",
+		"ws": "^8.22.0"
+	},
+	"devDependencies": {
+		"@rotline/biome-config": "workspace:*",
+		"@rotline/tsconfig": "workspace:*",
+		"@types/node": "catalog:",
+		"@types/ws": "^8.18.1",
+		"typescript": "catalog:"
+	}
+}

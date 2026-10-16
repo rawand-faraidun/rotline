@@ -65,10 +65,14 @@ jobs:
       oauth-mock:
         image: ghcr.io/navikt/mock-oauth2-server:6.0.7
         ports: ['8090:8080']
+      valkey:
+        image: valkey/valkey:9.1.2-trixie
+        ports: ['6379:6379']
     env:
       DATABASE_URL: postgresql://rotline:rotline@localhost:5432/rotline
       DATABASE_DIRECT_URL: postgresql://rotline:rotline@localhost:5432/rotline
       AUTH_TEST_PROVIDER_ISSUER: http://localhost:8090/rotline
+      VALKEY_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -131,6 +135,7 @@ jobs:
         run: |
           docker run -d --name postgres -p 5432:5432 -e POSTGRES_DB=rotline -e POSTGRES_USER=rotline -e POSTGRES_PASSWORD=rotline postgres:18.6-trixie
           docker run -d --name oauth-mock -p 8090:8080 ghcr.io/navikt/mock-oauth2-server:6.0.7
+          docker run -d --name valkey -p 6379:6379 valkey/valkey:9.1.2-trixie
           until docker exec postgres pg_isready -U rotline -d rotline; do sleep 1; done
           docker run --rm --network host -e DATABASE_DIRECT_URL=postgresql://rotline:rotline@localhost:5432/rotline rotline-migrate:ci
           # host networking: the API reaches the OAuth mock at the same address the browser uses
@@ -138,8 +143,10 @@ jobs:
             -e NODE_ENV=test -e DATABASE_URL=postgresql://rotline:rotline@localhost:5432/rotline \
             -e PUBLIC_ORIGIN=http://localhost:8080 -e BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             -e AUTH_TEST_PROVIDER_ISSUER=http://localhost:8090/rotline \
-            -e GAME_TICKET_PRIVATE_KEY=$GAME_TICKET_PRIVATE_KEY -e GAME_INSTANCE_ID=ci-1 rotline-api:ci
-          docker run -d --name game --network host -e GAME_TICKET_PUBLIC_KEY=$GAME_TICKET_PUBLIC_KEY -e GAME_INSTANCE_ID=ci-1 rotline-game:ci
+            -e GAME_TICKET_PRIVATE_KEY=$GAME_TICKET_PRIVATE_KEY -e GAME_INSTANCE_ID=ci-1 \
+            -e VALKEY_URL=redis://localhost:6379 rotline-api:ci
+          docker run -d --name game --network host -e GAME_TICKET_PUBLIC_KEY=$GAME_TICKET_PUBLIC_KEY -e GAME_INSTANCE_ID=ci-1 \
+            -e VALKEY_URL=redis://localhost:6379 rotline-game:ci
           gateway=$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')
           docker run -d --name web -p 8080:8080 -e API_UPSTREAM=http://$gateway:3100 -e GAME_UPSTREAM=http://$gateway:3200 rotline-web:ci
           for i in $(seq 1 30); do curl -sf http://localhost:8080/api/health && break; sleep 2; done
