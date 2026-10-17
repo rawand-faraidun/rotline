@@ -1,4 +1,4 @@
-import { type Build, buildSchema, dataVersion } from '@rotline/game-data'
+import { type Build, buildSchema, classes, dataVersion, weapons } from '@rotline/game-data'
 import {
 	CHAIN_TICKS,
 	currentObjective,
@@ -17,7 +17,7 @@ import {
 } from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
-export const PROTOCOL_VERSION = 6
+export const PROTOCOL_VERSION = 7
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
@@ -222,7 +222,31 @@ function readBuild(text: string): Build {
 	return result.data
 }
 
-export type RosterEntry = { slot: number; name: string; connected: boolean }
+export type RosterEntry = {
+	slot: number
+	name: string
+	connected: boolean
+	/** index into the class list, so teammates are drawn as their class */
+	classIndex: number
+	/** weapon indexes of main 1, main 2 and the pistol (255: none), for the gun in their hands */
+	weapons: readonly [number, number, number]
+}
+
+/** How a player looks to the others: their class and the weapons in their loadout. */
+export function lookOf(build: Build): Pick<RosterEntry, 'classIndex' | 'weapons'> {
+	const weapon = (id: string) => {
+		const index = weapons.findIndex(entry => entry.id === id)
+		return index < 0 ? 255 : index
+	}
+	const { main, pistol } = build.loadout
+	return {
+		classIndex: Math.max(
+			0,
+			classes.classes.findIndex(entry => entry.id === build.class)
+		),
+		weapons: [weapon(main[0].id), weapon(main[1].id), weapon(pistol.id)]
+	}
+}
 
 /** Who is in the room, by player slot; sent whenever someone joins, leaves or reconnects. */
 export function writeRoster(w: Writer, entries: readonly RosterEntry[]): Uint8Array<ArrayBuffer> {
@@ -231,6 +255,10 @@ export function writeRoster(w: Writer, entries: readonly RosterEntry[]): Uint8Ar
 		w.u8(entry.slot)
 			.u8(entry.connected ? 1 : 0)
 			.string(entry.name)
+			.u8(entry.classIndex)
+			.u8(entry.weapons[0])
+			.u8(entry.weapons[1])
+			.u8(entry.weapons[2])
 	return w.finish()
 }
 
@@ -1129,7 +1157,14 @@ export function readServerHeader(r: Reader): ServerToClient {
 			const count = r.u8()
 			if (count > 8) throw new ProtocolError('roster too long')
 			const entries: RosterEntry[] = []
-			for (let i = 0; i < count; i++) entries.push({ slot: r.u8(), connected: r.u8() === 1, name: r.string(64) })
+			for (let i = 0; i < count; i++)
+				entries.push({
+					slot: r.u8(),
+					connected: r.u8() === 1,
+					name: r.string(64),
+					classIndex: r.u8(),
+					weapons: [r.u8(), r.u8(), r.u8()]
+				})
 			return { type: 'roster', entries }
 		}
 		case ServerMessage.results: {

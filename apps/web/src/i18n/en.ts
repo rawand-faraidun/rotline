@@ -81,7 +81,8 @@ export const en = {
 	credits: {
 		title: 'Credits',
 		intro:
-			'Rotline is built from free and open assets. Thank you to everyone who shared their work. Assets marked CC BY 4.0 were changed for the game: turned, rescaled and given smaller textures.',
+			'Rotline is built from free and open assets. Thank you to everyone who shared their work. Assets marked CC BY 4.0 were changed for the game: turned, rescaled, simplified and given smaller textures.',
+		characters: 'Characters, gear and animations',
 		weapons: 'Weapon models',
 		other: 'Sounds, fonts and other models',
 		by: '{name} by {author}',

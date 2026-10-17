@@ -1,0 +1,58 @@
+{
+	"models": [
+		{
+			"name": "Universal Base Characters",
+			"author": "Quaternius",
+			"page": "https://quaternius.com/packs/universalbasecharacters.html",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Universal Animation Library",
+			"author": "Quaternius",
+			"page": "https://quaternius.com/packs/universalanimationlibrary.html",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "PBR Tactical Helmet",
+			"author": "simoncoenen",
+			"page": "https://sketchfab.com/3d-models/ad5de2de22af429cbcaf2a96e3520b80",
+			"licence": "CC BY 4.0"
+		},
+		{
+			"name": "MICH Helmet [V1]",
+			"author": "x3dv3s",
+			"page": "https://sketchfab.com/3d-models/18a7e45390ce44e98bb28c2f856d9697",
+			"licence": "CC BY 4.0"
+		},
+		{
+			"name": "Combat helmet K6-3",
+			"author": "shamanoff",
+			"page": "https://sketchfab.com/3d-models/94701874d8b949718708b018c8d4f61d",
+			"licence": "CC BY 4.0"
+		},
+		{
+			"name": "Tactical Plate Carrier Vest",
+			"author": "txyrm70",
+			"page": "https://sketchfab.com/3d-models/3b51e6329dbb4b0aa14e43f12eb6c42a",
+			"licence": "CC BY 4.0"
+		},
+		{
+			"name": "Vest Armor Holster LowPoly GameReady Pack",
+			"author": "00amza",
+			"page": "https://sketchfab.com/3d-models/7c41d35e505c4057abe60f89537408bd",
+			"licence": "CC BY 4.0"
+		},
+		{
+			"name": "Medical BackPack",
+			"author": "deangothard",
+			"page": "https://sketchfab.com/3d-models/2aedfbd7581f47f5abcf89d39de57b67",
+			"licence": "CC BY 4.0"
+		},
+		{
+			"name": "Military Tactical Backpack",
+			"author": "liamch",
+			"page": "https://sketchfab.com/3d-models/9fa2da2c42234b58896e8d23393cac24",
+			"licence": "CC BY 4.0"
+		}
+	]
+}

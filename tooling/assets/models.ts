@@ -2,48 +2,24 @@
 // `SKETCHFAB_API_TOKEN=… pnpm assets:models`. Each model is downloaded once (cached), cleaned up
 // (duplicates and unused data removed, textures shrunk to WebP), turned so the muzzle points along +X
 // with the grip down, scaled to its length in metres and written as one .glb per weapon.
-import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { type Document, NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { dedup, flatten, getBounds, prune, textureCompress, weld } from '@gltf-transform/functions'
 import sharp from 'sharp'
+import { publicAssets, sketchfabModel } from './sources.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const cache = join(here, 'node_modules', '.cache', 'models')
-const out = join(here, '..', '..', 'apps', 'web', 'public', 'assets', 'models', 'weapons')
-const token = process.env.SKETCHFAB_API_TOKEN
-if (!token) throw new Error('set SKETCHFAB_API_TOKEN (from the setup secrets) to download models')
+const out = join(publicAssets, 'models', 'weapons')
 
 type Weapon = { id: string; uid: string; name: string; author: string; length: number; flip?: boolean }
 const { collection, weapons } = JSON.parse(readFileSync(join(here, 'model-sources.json'), 'utf8')) as {
 	collection: string
 	weapons: Weapon[]
 }
-mkdirSync(cache, { recursive: true })
 mkdirSync(out, { recursive: true })
-
-/** The model's glTF on disk: downloaded once through the Sketchfab API, unpacked once. */
-async function fetchModel(uid: string): Promise<string> {
-	const folder = join(cache, uid)
-	if (!existsSync(folder)) {
-		const response = await fetch(`https://api.sketchfab.com/v3/models/${uid}/download`, {
-			headers: { authorization: `Token ${token}` }
-		})
-		if (!response.ok) throw new Error(`${uid}: download link refused (${response.status})`)
-		const links = (await response.json()) as { gltf?: { url: string } }
-		if (!links.gltf) throw new Error(`${uid}: no glTF download`)
-		const archive = await fetch(links.gltf.url)
-		const zip = `${folder}.zip`
-		writeFileSync(zip, Buffer.from(await archive.arrayBuffer()))
-		execFileSync('unzip', ['-q', '-o', zip, '-d', folder])
-	}
-	const gltf = readdirSync(folder).find(file => file.endsWith('.gltf'))
-	if (!gltf) throw new Error(`${uid}: no .gltf in the archive`)
-	return join(folder, gltf)
-}
 
 /**
  * Turns and scales the whole scene: the longest axis becomes +X (the barrel), the model is centred
@@ -95,7 +71,7 @@ function multiply(a: number[], b: number[]): [number, number, number, number] {
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
 const credits: { id: string; name: string; author: string; page: string; licence: string }[] = []
 for (const weapon of weapons) {
-	const document = await io.read(await fetchModel(weapon.uid))
+	const document = await io.read(await sketchfabModel(weapon.uid))
 	normalise(document, weapon.length, weapon.flip ?? false)
 	await document.transform(
 		dedup(),

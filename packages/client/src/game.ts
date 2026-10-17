@@ -2,6 +2,7 @@ import {
 	abilityById,
 	abilities as abilityDefs,
 	buffs as buffDefs,
+	classes as classDefs,
 	type DifficultyId,
 	difficultyDef,
 	economy,
@@ -133,6 +134,9 @@ export function startGame(options: GameOptions): GameHandle {
 	const aimPoint = new THREE.Vector3()
 	const pointer = new THREE.Vector2()
 	const others = new Map<number, PlayerFigure>()
+	/** each player's class and loadout (from the roster), and the weapon they last fired */
+	const looks = new Map<number, { classIndex: number; weapons: readonly [number, number, number] }>()
+	const lastFired = new Map<number, { weapon: number; at: number }>()
 	const names = new Map<number, { name: string; connected: boolean }>()
 	let mission: MissionDef | null = null
 	let openedCaches = 0
@@ -192,7 +196,9 @@ export function startGame(options: GameOptions): GameHandle {
 			// zombies are solid, as on the server (against where they are drawn)
 			predictor.collide = state =>
 				separateFromZombies(grid, state, interpolator.view.count, interpolator.view.x, interpolator.view.y, viewRadius)
-			me = new PlayerFigure(slot, true)
+			me?.dispose()
+			me = new PlayerFigure(slot, true, options.assets)
+			me.setClass(build.class)
 			stage.scene.add(me.group)
 			mission = missionById(missionId) ?? null
 			rewardScale = difficultyDef(difficulty as DifficultyId)?.rewards ?? 1
@@ -223,7 +229,10 @@ export function startGame(options: GameOptions): GameHandle {
 			),
 		roster: entries => {
 			names.clear()
-			for (const entry of entries) names.set(entry.slot, { name: entry.name, connected: entry.connected })
+			for (const entry of entries) {
+				names.set(entry.slot, { name: entry.name, connected: entry.connected })
+				looks.set(entry.slot, { classIndex: entry.classIndex, weapons: entry.weapons })
+			}
 			// someone joined: the game no longer pauses for one player's menu
 			if (paused && entries.length > 1) {
 				paused = false
@@ -349,7 +358,11 @@ export function startGame(options: GameOptions): GameHandle {
 						if (event.player === you && behaviour !== 'chain') break
 						// sentries and turrets (player 0) sound like a light rifle
 						if (event.player === 0) audio.sound('rifle', { x: event.x, y: event.y, rate: 1.3, volume: 0.45 })
-						else if (event.player !== you) shotSound(event.weapon, { x: event.x, y: event.y })
+						else if (event.player !== you) {
+							shotSound(event.weapon, { x: event.x, y: event.y })
+							others.get(event.player)?.fired()
+							lastFired.set(event.player, { weapon: event.weapon, at: now * 1000 })
+						}
 						if (behaviour === 'cone') {
 							effects.flame(event.x, event.y, event.angle, event.length, 0.3, weapon?.damageType === 'chemical', now)
 						} else {
@@ -740,6 +753,7 @@ export function startGame(options: GameOptions): GameHandle {
 						effects.tracer(x, y, angle, stop, now / 1000, 1.05, held.behaviour.type === 'chain' ? 0x7fd8ff : 0xffe2a0)
 					}
 					effects.muzzleFlash(x, y, angle, now / 1000)
+					me?.fired()
 					lastOwnShotAt = now / 1000
 					shotSound(held.index, undefined, (result & Step.minigun) !== 0)
 					// the feel of it: the camera kicks back, a case flies out, sparks where it hits a wall
@@ -754,6 +768,7 @@ export function startGame(options: GameOptions): GameHandle {
 				if (own.reloadEndTick !== 0 && lastReloadEnd === 0) {
 					const sound = weapons[activeWeapon(own).index]?.sound
 					if (sound) audio.sound(sound.reload, { volume: 0.8 })
+					me?.reloading((own.reloadEndTick - predictor.tick) / TICK_RATE)
 				}
 				lastReloadEnd = own.reloadEndTick
 				if (input.buttons & Button.fire && own.weapons[own.slot as 0 | 1 | 2].mag === 0 && own.reloadEndTick === 0) {
@@ -777,6 +792,8 @@ export function startGame(options: GameOptions): GameHandle {
 			predictor.renderPosition(accumulator / TICK_MS, dt, drawn)
 			audio.setListener(drawn.x, drawn.y)
 			const own = predictor.state
+			const held = weapons[activeWeapon(own, own.minigunSteps > 0).index]
+			if (held) me.setWeapon(held.id, held.kind === 'pistol')
 			me.set(drawn.x, drawn.y, aimToAngle(own.aim), own.alive, own.downed, own.reviveProgress / REVIVE_COMPLETE)
 			const aimAngle = aimToAngle(predictor.state.aim)
 			const aimX = controls.pointer.inside ? aimPoint.x : drawn.x + Math.cos(aimAngle) * 8
@@ -811,9 +828,18 @@ export function startGame(options: GameOptions): GameHandle {
 			for (const other of interpolator.others) {
 				let figure = others.get(other.id)
 				if (!figure) {
-					figure = new PlayerFigure(other.id, false)
+					figure = new PlayerFigure(other.id, false, options.assets)
 					others.set(other.id, figure)
 					stage.scene.add(figure.group)
+				}
+				// dressed as their class, holding the weapon of their slot (or the one they just fired)
+				const look = looks.get(other.id)
+				if (look) {
+					figure.setClass(classDefs.classes[look.classIndex]?.id ?? 'assault')
+					const fired = lastFired.get(other.id)
+					const index = fired && now - fired.at < 1500 ? fired.weapon : look.weapons[other.slot as 0 | 1 | 2]
+					const held = index === undefined ? undefined : weapons[index]
+					if (held) figure.setWeapon(held.id, held.kind === 'pistol')
 				}
 				figure.set(other.x, other.y, aimToAngle(other.aim), other.alive, other.downed, other.revive)
 			}

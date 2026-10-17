@@ -1,5 +1,6 @@
 ---
 import { Panel, PanelHeader, PanelTitle } from '@rotline/ui'
+import characterCredits from '../../public/assets/models/characters/credits.json'
 import weaponCredits from '../../public/assets/models/weapons/credits.json'
 import { en, format } from '../i18n/en.ts'
 import Base from '../layouts/base.astro'
@@ -7,6 +8,7 @@ import Base from '../layouts/base.astro'
 const t = en.credits
 type Credit = { name: string; author: string; page: string; licence: string }
 const sections: { title: string; credits: readonly Credit[] }[] = [
+	{ title: t.characters, credits: characterCredits.models },
 	{ title: t.weapons, credits: weaponCredits.models },
 	{ title: t.other, credits: t.others }
 ]

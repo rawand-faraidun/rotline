@@ -187,8 +187,8 @@ describe('server messages', () => {
 			reason: KickReason.badTicket
 		})
 		const entries = [
-			{ slot: 1, name: 'Rook', connected: true },
-			{ slot: 2, name: 'Ghost', connected: false }
+			{ slot: 1, name: 'Rook', connected: true, classIndex: 0, weapons: [3, 4, 0] as const },
+			{ slot: 2, name: 'Ghost', connected: false, classIndex: 2, weapons: [5, 255, 1] as const }
 		]
 		expect(readServerHeader(new Reader(writeRoster(w, entries)))).toEqual({ type: 'roster', entries })
 	})
@@ -297,7 +297,13 @@ describe('snapshots', () => {
 		const r = new Reader(bad)
 		readServerHeader(r)
 		expect(() => readSnapshot(r, new ZombieTable())).toThrow(ProtocolError)
-		const roster = Array.from({ length: 9 }, (_, slot) => ({ slot, name: 'x', connected: true }))
+		const roster = Array.from({ length: 9 }, (_, slot) => ({
+			slot,
+			name: 'x',
+			connected: true,
+			classIndex: 0,
+			weapons: [0, 0, 0] as const
+		}))
 		expect(() => readServerHeader(new Reader(writeRoster(new Writer(), roster)))).toThrow(ProtocolError)
 	})
 

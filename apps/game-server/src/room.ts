@@ -15,6 +15,7 @@ import {
 	zombies
 } from '@rotline/game-data'
 import {
+	lookOf,
 	RangeAction,
 	SnapshotEncoder,
 	Writer,
@@ -396,7 +397,8 @@ export class Room {
 			[...this.members.values()].map(member => ({
 				slot: member.slot,
 				name: member.name,
-				connected: member.connection !== null
+				connected: member.connection !== null,
+				...lookOf(member.build)
 			}))
 		)
 		for (const member of this.members.values()) member.connection?.send(roster)
