@@ -42,6 +42,7 @@ test('classes, skills, armory and shop', async ({ page }) => {
 	await page.getByRole('link', { name: /^armory$/i }).click()
 	await page.getByTestId('item-k-71').click()
 	await expect(page.getByTestId('item-detail')).toContainText('K-71')
+	await expect(page.getByRole('img', { name: /3d model of the k-71/i })).toBeVisible()
 	await page.getByRole('button', { name: /equip as main 1/i }).click()
 	await expect(page.getByRole('button', { name: /main 1.*k-71/i })).toBeVisible()
 	// with no Salvage, the upgrade is refused
@@ -53,6 +54,14 @@ test('classes, skills, armory and shop', async ({ page }) => {
 	await expect(page.getByTestId('shop-k-71')).toContainText(/owned/i)
 	await expect(page.getByTestId('shop-mower').getByRole('button', { name: /^buy$/i })).toBeDisabled()
 	await expect(page.getByTestId('salvage')).toContainText('0')
+	// any weapon can be looked at before buying it
+	await page
+		.getByTestId('shop-mower')
+		.getByRole('button', { name: /^inspect$/i })
+		.click()
+	await expect(page.getByRole('dialog').getByRole('img', { name: /3d model of the mower/i })).toBeVisible()
+	await page.keyboard.press('Escape')
+	await expect(page.getByRole('dialog')).toBeHidden()
 
 	// the firing range: dummies to shoot, a damage meter, and the Medkit on F
 	await page.getByRole('link', { name: /firing range/i }).click()

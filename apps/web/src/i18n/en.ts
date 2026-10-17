@@ -9,6 +9,7 @@ export const en = {
 		play: 'Play',
 		privacy: 'Privacy',
 		terms: 'Terms',
+		credits: 'Credits',
 		home: 'Home'
 	},
 	landing: {
@@ -76,6 +77,55 @@ export const en = {
 			bolter: 'Fresh turned and still fast. Bolters close the gap before you finish reloading.',
 			swell: 'A walking blister of acid. Bursts when killed and leaves the ground burning.'
 		}
+	},
+	credits: {
+		title: 'Credits',
+		intro:
+			'Rotline is built from free and open assets. Thank you to everyone who shared their work. Assets marked CC BY 4.0 were changed for the game: turned, rescaled and given smaller textures.',
+		weapons: 'Weapon models',
+		other: 'Sounds, fonts and other models',
+		by: '{name} by {author}',
+		licence: 'Licence: {licence}',
+		collection: 'Every model we use is listed in our Sketchfab collection.',
+		others: [
+			{ name: 'Animated Zombie', author: 'Quaternius', page: 'https://quaternius.com/', licence: 'CC0 1.0' },
+			{
+				name: 'Gunshot sounds',
+				author: 'Tabasco',
+				page: 'https://opengameart.org/content/gunshot-sounds',
+				licence: 'CC0 1.0'
+			},
+			{
+				name: 'Gun reload sounds',
+				author: 'SpringySpringo',
+				page: 'https://opengameart.org/content/gun-reload-sounds',
+				licence: 'CC0 1.0'
+			},
+			{
+				name: 'Zombie noises and moans',
+				author: 'ianzazz',
+				page: 'https://opengameart.org/content/zombie-noises-and-moans',
+				licence: 'CC0 1.0'
+			},
+			{
+				name: 'Saira Stencil One',
+				author: 'Omnibus-Type',
+				page: 'https://fonts.google.com/specimen/Saira+Stencil+One',
+				licence: 'SIL Open Font License 1.1'
+			},
+			{
+				name: 'Chakra Petch',
+				author: 'Cadson Demak',
+				page: 'https://fonts.google.com/specimen/Chakra+Petch',
+				licence: 'SIL Open Font License 1.1'
+			},
+			{
+				name: 'DiceBear avatar styles',
+				author: 'DiceBear and contributors',
+				page: 'https://www.dicebear.com/licenses/',
+				licence: 'CC0 1.0'
+			}
+		]
 	},
 	legal: {
 		draft: 'Draft',
@@ -334,7 +384,8 @@ export const en = {
 				radius: 'Radius'
 			},
 			units: { rpm: '{value} rpm', seconds: '{value} s', metres: '{value} m', perSecond: '{value}/s' },
-			selectHint: 'Pick an item to see its stats and upgrades.'
+			selectHint: 'Pick an item to see its stats and upgrades.',
+			modelOf: '3D model of the {name}, drag to turn it'
 		},
 		shop: {
 			title: 'Shop',
@@ -342,6 +393,8 @@ export const en = {
 			buy: 'Buy',
 			confirmBuy: 'Buy for {price}',
 			owned: 'Owned',
+			inspect: 'Inspect',
+			close: 'Close',
 			categories: { main: 'Main weapons', pistol: 'Pistols', armour: 'Armour', utility: 'Utilities' }
 		},
 		range: {

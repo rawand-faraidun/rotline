@@ -26,6 +26,7 @@ import {
 } from '../../lib/progress.ts'
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
+import { WeaponViewer } from './weapon-viewer.tsx'
 
 const t = en.app.armory
 const p = en.app.progression
@@ -86,6 +87,9 @@ function ItemDetail({
 				{equippedIn.length > 0 && <Badge tone="lime">{t.equipped}</Badge>}
 			</PanelHeader>
 			<p className="text-muted text-sm">{kindLabel(id)}</p>
+			{(def.slot === 'main' || def.slot === 'pistol') && (
+				<WeaponViewer id={id} label={format(t.modelOf, { name: def.name })} />
+			)}
 			<div className="flex flex-col gap-1">
 				<span className="font-bold text-sm">{format(t.level, { level: String(owned.level), max: String(MAX) })}</span>
 				<span className="flex gap-0.5" aria-hidden="true">

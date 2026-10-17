@@ -5,7 +5,8 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
-		"./headless": "./src/headless.ts"
+		"./headless": "./src/headless.ts",
+		"./viewer": "./src/viewer.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc",

@@ -1,0 +1,84 @@
+{
+	"collection": "https://sketchfab.com/rawand-faraidun/collections/rotline-8437e3bd1e044db3bbc2397a4b3639cb",
+	"weapons": [
+		{
+			"id": "p9-service",
+			"uid": "c23394d709d14772adf355da84408edc",
+			"name": "Sci-fi pistol",
+			"author": "Eugen Vahrushin",
+			"length": 0.24,
+			"flip": true
+		},
+		{
+			"id": "halcyon-45",
+			"uid": "0bada928716d44a08fd70ea8323013f2",
+			"name": "Absolute 357",
+			"author": "Frostoise",
+			"length": 0.32
+		},
+		{
+			"id": "vex-9",
+			"uid": "3a5f98f75e804e5888379cbe640cc883",
+			"name": "SMG-M32",
+			"author": "Frostoise",
+			"length": 0.62
+		},
+		{ "id": "k-71", "uid": "f32fe06215434fb2a159d29343079a1e", "name": "AR-181", "author": "Frostoise", "length": 0.9 },
+		{
+			"id": "breacher-12",
+			"uid": "c54ce41b7b854834a13ef1ed42aed6ba",
+			"name": "RL0N-25",
+			"author": "Frostoise",
+			"length": 0.95
+		},
+		{
+			"id": "mower",
+			"uid": "533204d3a9f240f78b65973b323cba7c",
+			"name": "HMG-379",
+			"author": "Frostoise",
+			"length": 1.05
+		},
+		{
+			"id": "longstride",
+			"uid": "5f7c2c15212242ccb9640aac9924ae1b",
+			"name": "SSR-56",
+			"author": "Frostoise",
+			"length": 1.2
+		},
+		{
+			"id": "kiln",
+			"uid": "dafa264a92344b8e98277267b532ba79",
+			"name": "AR77-90",
+			"author": "Frostoise",
+			"length": 1.0
+		},
+		{
+			"id": "thumper",
+			"uid": "8d3db25145904a818e081f010328e3d0",
+			"name": "PSR-13",
+			"author": "Frostoise",
+			"length": 0.85
+		},
+		{
+			"id": "arclight",
+			"uid": "4b38c160243743d681d6fdaf3bd77ddb",
+			"name": "AR-H470",
+			"author": "Frostoise",
+			"length": 0.95
+		},
+		{
+			"id": "viper",
+			"uid": "de66c5d5ebe5479f986f72fb5c3c3d2f",
+			"name": "SM-237",
+			"author": "Frostoise",
+			"length": 0.8
+		},
+		{
+			"id": "minigun",
+			"uid": "8f008c3e18934707a834cde8c72364f5",
+			"name": "M134 handheld (Minigun)",
+			"author": "Alexander_Borisevich",
+			"length": 1.1
+		}
+	]
+}

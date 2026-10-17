@@ -21,7 +21,8 @@
 		"changeset": "changeset",
 		"version-packages": "changeset version",
 		"release:tag": "node scripts/tag-release.ts",
-		"assets:audio": "pnpm --filter @rotline/assets audio"
+		"assets:audio": "pnpm --filter @rotline/assets audio",
+		"assets:models": "pnpm --filter @rotline/assets models"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.15",

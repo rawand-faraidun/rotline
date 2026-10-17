@@ -1,0 +1,49 @@
+---
+import { Panel, PanelHeader, PanelTitle } from '@rotline/ui'
+import weaponCredits from '../../public/assets/models/weapons/credits.json'
+import { en, format } from '../i18n/en.ts'
+import Base from '../layouts/base.astro'
+
+const t = en.credits
+type Credit = { name: string; author: string; page: string; licence: string }
+const sections: { title: string; credits: readonly Credit[] }[] = [
+	{ title: t.weapons, credits: weaponCredits.models },
+	{ title: t.other, credits: t.others }
+]
+---
+
+<Base title={`${t.title} · Rotline`}>
+	<main class="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-12">
+		<a href="/" class="w-fit">
+			<img src="/brand/svg/rotline-logo-horizontal.svg" alt={en.nav.home} width="148" height="32" class="h-8 w-auto" />
+		</a>
+		<Panel>
+			<PanelHeader>
+				<PanelTitle>{t.title}</PanelTitle>
+			</PanelHeader>
+			<p class="text-bone/85 leading-relaxed">{t.intro}</p>
+			<p class="text-bone/85 leading-relaxed">
+				<a class="text-rot-lime underline" href={weaponCredits.collection}>{t.collection}</a>
+			</p>
+		</Panel>
+		{
+			sections.map(section => (
+				<Panel>
+					<PanelHeader>
+						<PanelTitle className="text-xl">{section.title}</PanelTitle>
+					</PanelHeader>
+					<ul class="flex flex-col gap-2">
+						{section.credits.map(credit => (
+							<li class="flex flex-wrap justify-between gap-x-4 text-sm">
+								<a class="hover:text-rot-lime" href={credit.page}>
+									{format(t.by, { name: credit.name, author: credit.author })}
+								</a>
+								<span class="text-muted">{format(t.licence, { licence: credit.licence })}</span>
+							</li>
+						))}
+					</ul>
+				</Panel>
+			))
+		}
+	</main>
+</Base>

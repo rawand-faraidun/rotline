@@ -8,6 +8,7 @@ engineStrict: true
 allowBuilds:
   esbuild: true
   ffmpeg-static: true
+  sharp: true
   lefthook: true
   prisma: true
   '@prisma/engines': true
