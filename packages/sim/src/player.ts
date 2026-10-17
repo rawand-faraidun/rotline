@@ -5,6 +5,7 @@ import {
 	computeStats,
 	type PlayerStats,
 	player as playerDef,
+	propsDef,
 	starterBuild,
 	type WeaponStats
 } from '@rotline/game-data'
@@ -75,6 +76,8 @@ export type PlayerState = {
 	minigunSteps: number
 	/** firing range: abilities have no cooldown and utilities no limit */
 	free: boolean
+	/** carrying a mission object: slower (predicted, so the server's word arrives in snapshots) */
+	carrying: boolean
 	// server only (not predicted): capstones and buffs from teammates
 	/** Second Wind: half damage until this tick */
 	guardUntil: number
@@ -94,6 +97,8 @@ export type PlayerState = {
 	/** items found and not yet reported, and how many were reported (drops are capped per mission) */
 	foundItems: string[]
 	itemsReported: number
+	/** objective score not yet counted: the room adds it at the next checkpoint for those who took part */
+	pendingScore: number
 	/** the final objective's guaranteed item, if this player got one (withheld from non-participants) */
 	finalItem: string | null
 	/** caches this player has opened (each opens once per player) */
@@ -102,6 +107,12 @@ export type PlayerState = {
 	doubledScore: number
 	/** the last tick this player moved, aimed or pressed anything */
 	lastActiveTick: number
+	/** disconnected (the room sets it): extraction does not wait for them */
+	away: boolean
+	/** ticks interact has been held in a row */
+	interactTicks: number
+	/** interact presses since the world last looked (counted per input, so a quick tap is never lost) */
+	interactPresses: number
 }
 
 /** What a step did, as bits: the world resolves shots, abilities and throws. */
@@ -163,6 +174,7 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 		overwatchShots: 0,
 		minigunSteps: 0,
 		free: false,
+		carrying: false,
 		guardUntil: 0,
 		immuneUntil: 0,
 		lastRitesUsed: false,
@@ -174,9 +186,13 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 		foundItems: [],
 		itemsReported: 0,
 		openedCaches: [],
+		pendingScore: 0,
 		finalItem: null,
 		doubledScore: 0,
-		lastActiveTick: 0
+		lastActiveTick: 0,
+		away: false,
+		interactTicks: 0,
+		interactPresses: 0
 	}
 }
 
@@ -288,6 +304,7 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	let result = 0
 	const pressed = input.buttons & ~state.heldButtons
 	state.heldButtons = input.buttons
+	if (pressed & Button.interact) state.interactPresses++
 
 	// abilities fire while their key is held and they are ready (a press right at the end of a
 	// cooldown is not lost if client and server disagree by a tick); utilities need a fresh press
@@ -323,7 +340,8 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 		grid.moveCircle(state.x, state.y, state.dashX, state.dashY, playerDef.radius, position)
 	} else {
 		const haste = state.hasteSteps > 0 ? state.hasteSpeed : 0
-		const step = (state.downed ? DOWNED_SPEED : state.stats.speed * (1 + haste)) * DT
+		const carry = state.carrying ? propsDef.carry.speedMultiplier : 1
+		const step = (state.downed ? DOWNED_SPEED : state.stats.speed * (1 + haste) * carry) * DT
 		grid.moveCircle(state.x, state.y, mx * step, my * step, playerDef.radius, position)
 	}
 	state.x = position.x

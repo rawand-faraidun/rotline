@@ -25,6 +25,8 @@ export {
 	stepPlayer,
 	type WeaponState
 } from './player.ts'
+export { damageProp, interactProps } from './prop-step.ts'
+export { applyCells, blocks, createProps, PROP_CELL, type Prop, PropKind, PropState, setPropState } from './props.ts'
 export { Rng } from './rng.ts'
 export {
 	CHAIN_TICKS,

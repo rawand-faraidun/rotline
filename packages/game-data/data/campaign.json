@@ -1,0 +1,10 @@
+{
+	"zones": [
+		{
+			"id": "ashgate",
+			"name": "Ashgate",
+			"description": "The town where it started. The first mutations, the first survivors, and the road out.",
+			"missions": ["landfall", "yard-sweep", "power-out", "survivors", "yard-stand"]
+		}
+	]
+}

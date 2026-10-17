@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { friendIds } from '@rotline/db'
 import {
 	buildProblem,
+	campaign,
 	type DifficultyId,
 	difficultyId,
 	levelFromXp,
@@ -38,7 +39,10 @@ const ROOM_START_GRACE_MS = 30_000
 const HEARTBEAT_MS = 20_000
 /** How long a player's firing range stays on the same game server. */
 const RANGE_STICKY_SECONDS = 15 * 60
-const DEFAULT_MISSION = missions[0]?.id ?? ''
+/** The campaign's first mission: always open, the default until the leader chooses. */
+const DEFAULT_MISSION = campaign.zones[0]?.missions[0] ?? missions[0]?.id ?? ''
+/** After abandoning a mission, a new one can start this much later (restarts cannot farm objectives). */
+const ABANDON_COOLDOWN_SECONDS = 30
 const DEFAULT_DIFFICULTY: DifficultyId = 'veteran'
 const MASTERY = ['none', 'bronze', 'silver', 'gold'] as const
 
@@ -53,6 +57,28 @@ function storedView(party: Party, seen: { mission: string; difficulty: string } 
 		if (seen.mission === chosen.id && seen.difficulty === chosen.difficulty) return { mission: '', difficulty: '' }
 	}
 	return seen
+}
+
+/**
+ * Missions a player may choose: the campaign in order — a mission opens once the one before it in
+ * its zone is done (any difficulty); a zone opens once the previous zone's last mission is done.
+ */
+export async function openMissions(db: Services['db'], playerId: string): Promise<Set<string>> {
+	const done = new Set(
+		(
+			await db.missionProgress.findMany({ where: { playerId, completions: { gt: 0 } }, select: { missionId: true } })
+		).map(record => record.missionId)
+	)
+	const open = new Set<string>()
+	let previous: string | null = null
+	for (const zone of campaign.zones) {
+		for (const id of zone.missions) {
+			if (previous !== null && !done.has(previous)) return open
+			open.add(id)
+			previous = id
+		}
+	}
+	return open
 }
 
 /** The party's mission and difficulty, or the defaults until the leader chooses. */
@@ -187,6 +213,7 @@ export function partyRoutes(services: Services) {
 				const current = await parties.current(user.id)
 				if (current.state !== 'mission') return c.json(await view(current, user.id), 200)
 				await releasePlayerRoom(valkey, user.id, current.room)
+				await valkey.set(`abandoned:${user.id}`, '1', 'EX', ABANDON_COOLDOWN_SECONDS)
 				if (current.members.length === 1) {
 					await parties.endMission(current.id)
 					await changed(current.id)
@@ -234,6 +261,9 @@ export function partyRoutes(services: Services) {
 					const user = c.get('user')
 					if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
 					const { mission, difficulty } = c.req.valid('json')
+					// only missions the leader has opened in the campaign (Survival is always open)
+					if (mission !== SURVIVAL && !(await openMissions(db, user.id)).has(mission))
+						return c.json({ error: 'locked' as const }, 409)
 					const party = await parties.setMission(user.id, mission, difficulty)
 					await changed(party.id)
 					return c.json(await view(party, user.id), 200)
@@ -243,9 +273,11 @@ export function partyRoutes(services: Services) {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
 				const records = await db.missionProgress.findMany({ where: { playerId: user.id } })
+				const open = await openMissions(db, user.id)
 				return c.json(
 					missions.map(mission => ({
 						id: mission.id,
+						open: open.has(mission.id),
 						difficulties: records
 							.filter(record => record.missionId === mission.id)
 							.map(record => ({
@@ -262,12 +294,24 @@ export function partyRoutes(services: Services) {
 			.post('/party/start', zValidator('json', z.object({ seen: seenMission })), async c => {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-				// one squad room at a time: not while still playing in another
+				// one squad room at a time: not while still playing in another, nor right after abandoning one
 				if (await playerRoom(valkey, user.id)) return c.json({ error: 'elsewhere' as const }, 409)
+				if (await valkey.exists(`abandoned:${user.id}`)) return c.json({ error: 'cooldown' as const }, 429)
 				const instance = (await pickInstance(valkey)) ?? env.GAME_INSTANCE_ID
 				const room = `squad-${randomUUID()}`
 				const current = await parties.current(user.id)
-				const party = await parties.start(user.id, room, instance, storedView(current, c.req.valid('json').seen))
+				// a new leader may not have opened the mission the squad had chosen
+				const wanted = chosenMission(current).id
+				if (wanted !== SURVIVAL && !(await openMissions(db, user.id)).has(wanted))
+					return c.json({ error: 'locked' as const }, 409)
+				// the start goes ahead only for the mission checked above (or the one the client saw)
+				const seen = c.req.valid('json').seen
+				const party = await parties.start(
+					user.id,
+					room,
+					instance,
+					seen ? storedView(current, seen) : { mission: current.mission, difficulty: current.difficulty }
+				)
 				// the API's own record of what this room plays, checked against the room's reports
 				const chosen = chosenMission(party)
 				await recordRoomMission(valkey, room, chosen.id === SURVIVAL ? null : chosen)

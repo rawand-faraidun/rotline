@@ -1,4 +1,4 @@
-import { type Build, buildSchema } from '@rotline/game-data'
+import { type Build, buildSchema, dataVersion } from '@rotline/game-data'
 import {
 	CHAIN_TICKS,
 	currentObjective,
@@ -17,7 +17,7 @@ import {
 } from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
-export const PROTOCOL_VERSION = 5
+export const PROTOCOL_VERSION = 6
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
@@ -150,6 +150,8 @@ export type WelcomeMessage = {
 	build: Build
 	missionId: string
 	difficulty: string
+	/** a fingerprint of the game data: a client built from other data must reload */
+	dataVersion: number
 }
 
 export function writeWelcome(
@@ -171,6 +173,7 @@ export function writeWelcome(
 		.string(JSON.stringify(build))
 		.string(missionId)
 		.string(difficulty)
+		.u32(dataVersion)
 		.finish()
 }
 
@@ -258,8 +261,12 @@ export type SelfState = Omit<
 	| 'itemsReported'
 	| 'openedCaches'
 	| 'finalItem'
+	| 'pendingScore'
 	| 'doubledScore'
 	| 'lastActiveTick'
+	| 'interactTicks'
+	| 'interactPresses'
+	| 'away'
 >
 
 /** Where the mission stands, and this player's own score and kill chain. */
@@ -331,6 +338,24 @@ export type SnapshotFrame = {
 	others: OtherPlayer[]
 	pools: PoolState[]
 	objects: ObjectState[]
+	/** map props that changed since the last snapshot (all of them in the first) */
+	props: PropUpdate[]
+}
+
+/** A map prop's state as clients see it: what it is doing, its health and hold progress, where it is. */
+export type PropUpdate = {
+	index: number
+	state: number
+	/** 0..1 of its maximum */
+	health: number
+	/** 0..1 of a hold interaction */
+	progress: number
+	powered: boolean
+	/** a trap still cooling down */
+	cooling: boolean
+	/** survivors and carried objects move; the rest stay where the map put them */
+	x: number
+	y: number
 }
 
 /** Client-side copy of every zombie the server has told this client about. */
@@ -375,6 +400,12 @@ export class SnapshotEncoder {
 	private readonly sentHealth = new Uint8Array(MAX_ZOMBIES)
 	private readonly sentState = new Uint8Array(MAX_ZOMBIES)
 	private readonly sentType = new Uint8Array(MAX_ZOMBIES)
+	// what each map prop looked like in the last snapshot (255 state: never sent)
+	private sentPropState = new Uint8Array(0)
+	private sentPropHealth = new Uint8Array(0)
+	private sentPropProgress = new Uint8Array(0)
+	private sentPropX = new Uint16Array(0)
+	private sentPropY = new Uint16Array(0)
 	private nextId = 1
 
 	readonly playerId: number
@@ -400,7 +431,13 @@ export class SnapshotEncoder {
 		{
 			const s = self ?? EMPTY_SELF
 			w.f64(s.x).f64(s.y).u16(s.aim).f32(s.health)
-			w.u8((s.alive ? 1 : 0) | (s.reloadEndTick !== 0 ? 2 : 0) | (s.downed ? 4 : 0) | (s.free ? 8 : 0))
+			w.u8(
+				(s.alive ? 1 : 0) |
+					(s.reloadEndTick !== 0 ? 2 : 0) |
+					(s.downed ? 4 : 0) |
+					(s.free ? 8 : 0) |
+					(s.carrying ? 16 : 0)
+			)
 			w.u32(s.bleedoutTick).u8(s.downs).u16(Math.round(s.reviveProgress))
 			w.u8(s.slot).u8(s.previousSlot).u32(s.respawnTick).u32(s.safeUntilTick)
 			w.u32(s.reloadEndTick).f64(s.nextFireTick).u16(s.heldButtons)
@@ -450,6 +487,9 @@ export class SnapshotEncoder {
 				.u16(q(pool.y))
 				.u8(Math.round(pool.radius * 10))
 		}
+
+		// map props: only what changed since the last snapshot
+		this.writeProps(w, world)
 
 		// zones, barricades, mines, decoys, sentries, markers: few, all sent every time
 		const objectCount = Math.min(255, world.objects.length)
@@ -545,6 +585,51 @@ export class SnapshotEncoder {
 		w.offset = end
 		return w.finish()
 	}
+
+	/** Map props whose state, health, progress or position changed since the last snapshot. */
+	private writeProps(w: Writer, world: World): void {
+		const props = world.props
+		if (this.sentPropState.length !== props.length) {
+			this.sentPropState = new Uint8Array(props.length).fill(255)
+			this.sentPropHealth = new Uint8Array(props.length)
+			this.sentPropProgress = new Uint8Array(props.length)
+			this.sentPropX = new Uint16Array(props.length)
+			this.sentPropY = new Uint16Array(props.length)
+		}
+		const countAt = w.offset
+		w.u16(0)
+		let count = 0
+		for (const prop of props) {
+			const i = prop.index
+			const health =
+				prop.maxHealth > 0 ? Math.max(0, Math.min(255, Math.round((prop.health / prop.maxHealth) * 255))) : 255
+			const progress = Math.round(prop.progress * 255)
+			// state, plus powered (turrets and lights) and cooling down (traps) as flag bits
+			const cooling = prop.def.kind === 'trap' && world.tick < prop.readyTick
+			const state = prop.state | (prop.powered ? 0x80 : 0) | (cooling ? 0x40 : 0)
+			const px = q(prop.x)
+			const py = q(prop.y)
+			if (
+				state === this.sentPropState[i] &&
+				health === this.sentPropHealth[i] &&
+				progress === this.sentPropProgress[i] &&
+				px === this.sentPropX[i] &&
+				py === this.sentPropY[i]
+			)
+				continue
+			w.u16(i).u8(state).u8(health).u8(progress).u16(px).u16(py)
+			this.sentPropState[i] = state
+			this.sentPropHealth[i] = health
+			this.sentPropProgress[i] = progress
+			this.sentPropX[i] = px
+			this.sentPropY[i] = py
+			count++
+		}
+		const end = w.offset
+		w.offset = countAt
+		w.u16(count)
+		w.offset = end
+	}
 }
 
 /** Reads a snapshot (after its type byte), applying zombie changes to `table`. */
@@ -614,7 +699,8 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			dashY,
 			overwatchShots,
 			minigunSteps,
-			free: (flags & 8) !== 0
+			free: (flags & 8) !== 0,
+			carrying: (flags & 16) !== 0
 		}
 	}
 	const mission: MissionFrame = {
@@ -656,6 +742,23 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 	const pools: PoolState[] = []
 	const poolCount = r.u8()
 	for (let i = 0; i < poolCount; i++) pools.push({ x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })
+	const props: PropUpdate[] = []
+	const propCount = r.u16()
+	if (propCount > 4096) throw new ProtocolError('too many props')
+	for (let i = 0; i < propCount; i++) {
+		const index = r.u16()
+		const state = r.u8()
+		props.push({
+			index,
+			state: state & 0x3f,
+			powered: (state & 0x80) !== 0,
+			cooling: (state & 0x40) !== 0,
+			health: r.u8() / 255,
+			progress: r.u8() / 255,
+			x: dq(r.u16()),
+			y: dq(r.u16())
+		})
+	}
 	const objects: ObjectState[] = []
 	const objectCount = r.u8()
 	for (let i = 0; i < objectCount; i++) {
@@ -705,7 +808,7 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		if (flags & Flag.status) table.status[index] = r.u8()
 		else if (flags & Flag.fresh) table.status[index] = 0
 	}
-	return { id, tick, lastSeq, wave, kills, score, rttMs, self, mission, others, pools, objects }
+	return { id, tick, lastSeq, wave, kills, score, rttMs, self, mission, others, pools, objects, props }
 }
 
 const EMPTY_SELF: SelfState = {
@@ -741,7 +844,8 @@ const EMPTY_SELF: SelfState = {
 	dashY: 0,
 	overwatchShots: 0,
 	minigunSteps: 0,
-	free: false
+	free: false,
+	carrying: false
 }
 
 const secondsUntil = (world: World, until: number) =>
@@ -783,7 +887,9 @@ const EventType = {
 	cache: 20,
 	buff: 21,
 	threshold: 22,
-	'run-over': 23
+	'run-over': 23,
+	prop: 24,
+	failed: 25
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -850,6 +956,12 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'run-over':
 				w.u16(event.wave)
+				break
+			case 'prop':
+				w.u16(event.index).u8(event.state)
+				break
+			case 'failed':
+				w.i16(event.index)
 				break
 			case 'mission-complete':
 				break
@@ -949,6 +1061,12 @@ export function readEvents(r: Reader): SimEvent[] {
 			case EventType['run-over']:
 				events.push({ type: 'run-over', wave: r.u16() })
 				break
+			case EventType.prop:
+				events.push({ type: 'prop', index: r.u16(), state: r.u8() })
+				break
+			case EventType.failed:
+				events.push({ type: 'failed', index: r.i16() })
+				break
 			case EventType.checkpoint:
 				events.push({ type: 'checkpoint', index: r.u8() })
 				break
@@ -996,7 +1114,8 @@ export function readServerHeader(r: Reader): ServerToClient {
 				tick: r.u32(),
 				build: readBuild(r.string(4096)),
 				missionId: r.string(64),
-				difficulty: r.string(32)
+				difficulty: r.string(32),
+				dataVersion: r.u32()
 			}
 		case ServerMessage.snapshot:
 			return { type: 'snapshot' }

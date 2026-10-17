@@ -37,6 +37,8 @@ export type PartyProblem =
 	| 'not-member'
 	| 'changed'
 	| 'elsewhere'
+	| 'locked'
+	| 'cooldown'
 
 export const partyQuery = queryOptions({
 	queryKey: ['party'],
@@ -59,6 +61,8 @@ async function send(path: string, body?: unknown): Promise<PartyView | { error: 
 /** A player's records on one mission, one per difficulty played. */
 export type MissionRecord = {
 	id: string
+	/** opened in the campaign (the mission before it is done) */
+	open: boolean
 	difficulties: {
 		difficulty: DifficultyId
 		completions: number
@@ -70,15 +74,21 @@ export type MissionRecord = {
 }
 
 /** The best mastery and the best time across difficulties. */
-export function bestOf(record: MissionRecord | undefined): { mastery: number; bestTimeMs: number | null } {
+export function bestOf(record: MissionRecord | undefined): {
+	mastery: number
+	bestTimeMs: number | null
+	completions: number
+} {
 	let mastery = 0
 	let bestTimeMs: number | null = null
+	let completions = 0
 	for (const entry of record?.difficulties ?? []) {
 		mastery = Math.max(mastery, entry.mastery)
+		completions += entry.completions
 		if (entry.bestTimeMs !== null && (bestTimeMs === null || entry.bestTimeMs < bestTimeMs))
 			bestTimeMs = entry.bestTimeMs
 	}
-	return { mastery, bestTimeMs }
+	return { mastery, bestTimeMs, completions }
 }
 
 export const missionsQuery = queryOptions({

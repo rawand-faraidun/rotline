@@ -42,7 +42,8 @@ describe('mission objectives', () => {
 		world.step(new Map())
 		expect(world.mission?.index).toBe(1)
 		expect(world.events.some(event => event.type === 'objective' && event.index === 0)).toBe(true)
-		expect(state.score).toBeGreaterThanOrEqual(economy.rewards.objective.score)
+		// objective score is held until a checkpoint (the room settles it)
+		expect(state.pendingScore).toBe(economy.rewards.objective.score)
 	})
 
 	it('completes a reach objective when someone stands in the area, saving a checkpoint there', () => {
@@ -311,6 +312,7 @@ describe('fair payouts', () => {
 		expect(world.events.find(event => event.type === 'objective')).toMatchObject({ first: false })
 		// only the kills scored, not the objective again
 		expect(state.score - firstScore).toBeLessThan(economy.rewards.objective.score)
+		expect(state.pendingScore).toBe(economy.rewards.objective.score)
 	})
 
 	it('spawns nothing while the whole squad is down', () => {

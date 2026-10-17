@@ -1,5 +1,104 @@
 [
 	{
+		"id": "landfall",
+		"name": "Landfall",
+		"zone": "ashgate",
+		"map": "landfall",
+		"description": "The transport went down short of Ashgate. Get off the landing zone, through the gate and onto the pad before the next bird leaves.",
+		"parTimeSeconds": 300,
+		"scoreTarget": 15000,
+		"enemyLevel": 1,
+		"recommendedLevel": 1,
+		"spawn": {
+			"perSecond": 0.9,
+			"maxAlive": 50,
+			"composition": {
+				"drudge": 85,
+				"bolter": 15
+			}
+		},
+		"caches": [
+			{
+				"x": 36.5,
+				"y": 14.5
+			},
+			{
+				"x": 2.5,
+				"y": 1.5
+			}
+		],
+		"gates": {
+			"gate": {
+				"openOn": 2
+			}
+		},
+		"objectives": [
+			{
+				"type": "reach",
+				"label": "Get clear of the wreck",
+				"area": {
+					"x": 20,
+					"y": 20,
+					"radius": 3
+				},
+				"sections": [0],
+				"spawnScale": 0.5
+			},
+			{
+				"type": "retrieve",
+				"label": "Recover the flight recorder",
+				"item": "recorder",
+				"area": {
+					"x": 20.5,
+					"y": 15.5,
+					"radius": 2.5
+				},
+				"sections": [0],
+				"checkpoint": true
+			},
+			{
+				"type": "kill",
+				"label": "Clear the street",
+				"count": 25,
+				"sections": [0],
+				"checkpointAt": {
+					"x": 20.5,
+					"y": 17.5
+				},
+				"checkpoint": true
+			},
+			{
+				"type": "reach",
+				"label": "Through the gate",
+				"area": {
+					"x": 20.5,
+					"y": 11.5,
+					"radius": 3
+				},
+				"sections": [0, 1],
+				"checkpoint": true
+			},
+			{
+				"type": "extract",
+				"label": "Reach the landing pad",
+				"area": {
+					"x": 20,
+					"y": 4,
+					"radius": 4
+				},
+				"seconds": 90,
+				"sections": [1],
+				"spawnScale": 1.5
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 60",
+				"count": 60,
+				"optional": true
+			}
+		]
+	},
+	{
 		"id": "yard-sweep",
 		"name": "Yard Sweep",
 		"zone": "ashgate",
@@ -61,6 +160,185 @@
 				"label": "Survive until the convoy is through",
 				"seconds": 40,
 				"spawnScale": 2
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 120",
+				"count": 120,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "power-out",
+		"name": "Power Out",
+		"zone": "ashgate",
+		"map": "substation",
+		"description": "Ashgate's substation went dark. Restart the generators, keep the transformer alive while the grid comes back, then get out.",
+		"parTimeSeconds": 480,
+		"scoreTarget": 40000,
+		"enemyLevel": 2,
+		"recommendedLevel": 2,
+		"spawn": {
+			"perSecond": 1.8,
+			"maxAlive": 110,
+			"composition": {
+				"drudge": 60,
+				"bolter": 25,
+				"swell": 15
+			}
+		},
+		"caches": [
+			{
+				"x": 6.5,
+				"y": 11.5
+			},
+			{
+				"x": 66.5,
+				"y": 5.5
+			}
+		],
+		"objectives": [
+			{
+				"type": "interact",
+				"label": "Restart the three generators",
+				"props": ["generator-west", "generator-east", "generator-south"],
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 36,
+					"y": 30
+				}
+			},
+			{
+				"type": "defend",
+				"label": "Keep the transformer running",
+				"prop": "transformer",
+				"seconds": 90,
+				"spawnScale": 1.6,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 36,
+					"y": 30
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Out through the north road",
+				"area": {
+					"x": 36,
+					"y": 3,
+					"radius": 4
+				},
+				"seconds": 90,
+				"spawnScale": 1.4
+			},
+			{
+				"type": "kill",
+				"label": "Optional: thin them out",
+				"count": 150,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "survivors",
+		"name": "Survivors",
+		"zone": "ashgate",
+		"map": "depot",
+		"description": "Two depot workers are holed up inside. Break in, find them, walk them to the truck. The doors lock behind you.",
+		"parTimeSeconds": 600,
+		"scoreTarget": 50000,
+		"enemyLevel": 3,
+		"recommendedLevel": 4,
+		"spawn": {
+			"perSecond": 2.0,
+			"maxAlive": 120,
+			"composition": {
+				"drudge": 55,
+				"bolter": 30,
+				"swell": 15
+			}
+		},
+		"caches": [
+			{
+				"x": 36.5,
+				"y": 55.5
+			},
+			{
+				"x": 93.5,
+				"y": 61.5
+			}
+		],
+		"gates": {
+			"gate-west": {
+				"openOn": 0,
+				"closeOn": 1,
+				"side": {
+					"x": 44.5,
+					"y": 32.5
+				}
+			},
+			"gate-east": {
+				"openOn": 1,
+				"closeOn": 2,
+				"side": {
+					"x": 78.5,
+					"y": 32.5
+				}
+			}
+		},
+		"objectives": [
+			{
+				"type": "kill",
+				"label": "Break into the depot",
+				"count": 25,
+				"sections": [0],
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 28.5,
+					"y": 32.5
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Find out where they are hiding",
+				"props": ["office-terminal"],
+				"sections": [1],
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 44.5,
+					"y": 32.5
+				}
+			},
+			{
+				"type": "rescue",
+				"label": "Walk the survivors to the truck",
+				"survivors": ["survivor-a", "survivor-b"],
+				"area": {
+					"x": 80,
+					"y": 32,
+					"radius": 4
+				},
+				"sections": [1, 2],
+				"checkpoint": true
+			},
+			{
+				"type": "extract",
+				"label": "Everyone on the truck",
+				"area": {
+					"x": 80,
+					"y": 6,
+					"radius": 4
+				},
+				"seconds": 90,
+				"sections": [2],
+				"spawnScale": 1.5
+			},
+			{
+				"type": "interact",
+				"label": "Optional: crack the armoury safe",
+				"props": ["armoury-safe"],
+				"optional": true
 			}
 		]
 	},
@@ -69,7 +347,7 @@
 		"name": "Last Stand",
 		"zone": "ashgate",
 		"map": "yard",
-		"description": "Hold the centre of the yard against a growing horde.",
+		"description": "Hold the centre of the yard against a growing horde, then break out before it closes in.",
 		"parTimeSeconds": 360,
 		"scoreTarget": 45000,
 		"enemyLevel": 2,
@@ -106,7 +384,11 @@
 				"label": "Break the second wave",
 				"count": 80,
 				"spawnScale": 1.4,
-				"checkpoint": true
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 32,
+					"y": 24
+				}
 			},
 			{
 				"type": "hold",
@@ -117,7 +399,25 @@
 					"radius": 6
 				},
 				"seconds": 90,
-				"spawnScale": 1.8
+				"spawnScale": 1.8,
+				"checkpoint": true
+			},
+			{
+				"type": "extract",
+				"label": "Get to the north gate",
+				"area": {
+					"x": 32,
+					"y": 4,
+					"radius": 4
+				},
+				"seconds": 90,
+				"spawnScale": 1.5
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 200",
+				"count": 200,
+				"optional": true
 			}
 		]
 	}

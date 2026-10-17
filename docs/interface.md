@@ -56,7 +56,7 @@ A full-screen, on-brand waiting room: the logo with the slogan; slow animated fo
 
 ## HUD
 
-Health and armour, ammunition (magazine and reserve; the pistol shows ∞), ability cooldowns, the score multiplier and chain timer (top centre, large), objective tracker, teammate status with downed timers, active buff timers, mutation alerts, objective arrows or a minimap, and the ping wheel. HUD panels use the same cut-corner frames at low opacity so the battlefield stays visible.
+Health and armour, ammunition (magazine and reserve; the pistol shows ∞), ability cooldowns, the score multiplier and chain timer (top centre, large), objective tracker, an interact prompt (what pressing or holding E would do, with a progress bar for holds), teammate status with downed timers, active buff timers, mutation alerts, objective arrows or a minimap, and the ping wheel. HUD panels use the same cut-corner frames at low opacity so the battlefield stays visible.
 
 ## Settings
 

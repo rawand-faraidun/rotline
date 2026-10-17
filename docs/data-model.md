@@ -1,6 +1,6 @@
 # Data model
 
-PostgreSQL 18 holds everything that must survive. Valkey holds only state that can be rebuilt (presence, queue, seats, parties and lobbies, room registry, rate limits, tickets).
+PostgreSQL 18 holds everything that must survive. Valkey holds only state that can be rebuilt (presence, queue, seats, parties and lobbies, room registry, rate limits, tickets, abandon cooldowns).
 
 Balance data (weapons, zombies, skills, missions, prices, drop tables) is **not** in these tables. It lives in versioned, validated files in `packages/game-data`; the database stores only ids that point into it (`item_id`, `mission_id`, …) plus the admin panel's edits as new versions (`game_data_version`).
 
@@ -60,7 +60,7 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 | `inventory_item` | `player_id`, `item_id`, `upgrade_level` int (0–20), `perks` text[] (one chosen perk per perk level reached), `source` (`starter`/`shop`/`drop`), `acquired_at` | **PK (`player_id`, `item_id`)**: one copy of each item, no rarity. The item's slot comes from game data |
 | `item_duplicate` | `id`, `player_id`, `item_id`, `match_id`, `found_at` | A found copy of something already owned; its only action is "discard for currency". Until match records exist, `match_id` holds the id of the room the item was found in |
 | `loadout` | `player_id` PK, `main_1`, `main_2`, `pistol`, `armour`, `utility_1`, `utility_2` (item ids) | Each is a foreign key to (`player_id`, `item_id`) in `inventory_item`, so only owned items can be equipped; shared across classes; `main_1 <> main_2`; slots are checked against game data by the API |
-| `mission_progress` | `player_id`, `mission_id`, `difficulty` enum (`recruit`/`veteran`/`nightmare`/`apocalypse`), `completions` int, `best_time_ms` int, `best_score` bigint, `mastery` enum (`none`/`bronze`/`silver`/`gold`), `updated_at` | PK (`player_id`, `mission_id`, `difficulty`). Checks: `completions >= 0`, `best_time_ms > 0`, `best_score >= 0`, and `best_time_ms` is null exactly when there are no completions. Written from signed mission results (successful ones only): completions count up, best time, best score and mastery keep the best |
+| `mission_progress` | `player_id`, `mission_id`, `difficulty` enum (`recruit`/`veteran`/`nightmare`/`apocalypse`), `completions` int, `best_time_ms` int, `best_score` bigint, `mastery` enum (`none`/`bronze`/`silver`/`gold`), `updated_at` | PK (`player_id`, `mission_id`, `difficulty`). Checks: `completions >= 0`, `best_time_ms > 0`, `best_score >= 0`, and `best_time_ms` is null exactly when there are no completions. Written from signed mission results (successful ones only): completions count up, best time, best score and mastery keep the best. These rows also decide which campaign missions a player has opened: a mission opens once the one before it (in the campaign order in game data) has a row with `completions > 0` |
 | `bestiary_entry` | `player_id`, `zombie_type`, `first_kill_at`, `kills` bigint, `mutations_seen` text[] | PK (`player_id`, `zombie_type`) |
 | `achievement_unlock` | `player_id`, `achievement_id`, `unlocked_at` | PK both ids |
 | `cosmetic_unlock` | `player_id`, `cosmetic_id`, `source`, `unlocked_at` | PK both ids |

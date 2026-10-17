@@ -2,7 +2,7 @@
 export type HudState = {
 	/** 'over': the mission is complete and the room has closed; the game is paused while 'paused' */
 	/** 'elsewhere': the player joined another squad room, so this one let them go */
-	status: 'connecting' | 'playing' | 'down' | 'out' | 'disconnected' | 'kicked' | 'over' | 'elsewhere'
+	status: 'connecting' | 'playing' | 'down' | 'out' | 'disconnected' | 'kicked' | 'over' | 'elsewhere' | 'outdated'
 	health: number
 	maxHealth: number
 	weapons: { name: string; mag: number; magazine: number; reserve: number | null; active: boolean }[]
@@ -17,6 +17,8 @@ export type HudState = {
 	beingRevived: number
 	/** name of the downed teammate you can revive right now */
 	reviveHint: string | null
+	/** what holding or pressing interact would do right now, and how far a hold has got (0..1) */
+	interactHint: { action: InteractAction; progress: number } | null
 	teammates: {
 		slot: number
 		name: string
@@ -29,7 +31,7 @@ export type HudState = {
 	}[]
 	/** short announcements: new wave, squad wiped, objective done, checkpoint, mission complete */
 	banner: {
-		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over'
+		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over' | 'failed'
 		wave: number
 		at: number
 	} | null
@@ -58,16 +60,30 @@ export type HudState = {
 	kickReason: number | null
 }
 
+export type InteractAction =
+	| 'open'
+	| 'close'
+	| 'weld'
+	| 'repair'
+	| 'power'
+	| 'hack'
+	| 'free'
+	| 'pickup'
+	| 'trap'
+	| 'cache'
+
 export type MissionHud = {
 	id: string
 	name: string
 	difficulty: string
-	/** current objective, 0-based, out of `count` */
+	/** current objective (index into the mission's objectives) */
 	objective: number
+	/** its number among the steps (optional objectives are not steps), 1-based, out of `count` */
+	step: number
 	count: number
 	label: string
-	type: 'kill' | 'reach' | 'hold' | 'survive'
-	/** kills, or seconds for hold and survive */
+	type: 'kill' | 'reach' | 'hold' | 'survive' | 'interact' | 'defend' | 'rescue' | 'retrieve' | 'extract'
+	/** kills, things done, or seconds (extract: seconds left) */
 	progress: number
 	goal: number
 	complete: boolean
@@ -110,6 +126,7 @@ export const initialHud: HudState = {
 	bleedoutSeconds: 0,
 	beingRevived: 0,
 	reviveHint: null,
+	interactHint: null,
 	teammates: [],
 	banner: null,
 	mission: null,

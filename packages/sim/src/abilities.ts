@@ -223,7 +223,8 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 		}
 		case 'deploy-barricade': {
 			const cells = barricadeCells(world.grid, state.x, state.y, angle, n('width')).filter(cell => {
-				if (world.grid.walls[cell] !== 0) return false
+				// never on a door or other prop's cells: they change state, and the grid must stay one layer
+				if (world.grid.walls[cell] !== 0 || (world.propCell[cell] as number) >= 0) return false
 				// never wall anyone in: no cell may touch a player or a zombie
 				for (const player of world.players.values()) {
 					if (cellTouchesCircle(world.grid, cell, player.x, player.y, playerDef.radius)) return false

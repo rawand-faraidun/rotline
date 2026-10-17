@@ -49,9 +49,12 @@ import {
 	rollItem,
 	scoreThreshold,
 	stepMission,
+	updateTargets,
 	wipeMission
 } from './mission.ts'
 import { activeWeapon, createPlayer, type PlayerState, refillUtilities, Step, stepPlayer } from './player.ts'
+import { damageProp, drop, interactProps, stepProps } from './prop-step.ts'
+import { createProps, type Prop, PropState } from './props.ts'
 import { Rng } from './rng.ts'
 
 export type SimEvent =
@@ -85,6 +88,10 @@ export type SimEvent =
 	| { type: 'buff'; player: number; buff: number }
 	/** a player's score passed a threshold (Salvage and a heal) */
 	| { type: 'threshold'; player: number; index: number }
+	/** a map prop changed state (index into the map's props) */
+	| { type: 'prop'; index: number; state: number }
+	/** the current objective failed (a survivor or defend target lost, time ran out): back to the checkpoint */
+	| { type: 'failed'; index: number }
 
 export type Pool = { x: number; y: number; radius: number; damagePerTick: number; untilTick: number }
 
@@ -160,7 +167,8 @@ export type PendingBlast = {
 	marker: number
 }
 
-export type BlastOptions = { stunTicks?: number; knockback?: number }
+/** `playerDamage`: an explosion of the world (a barrel) also hurts players, by this much at the centre. */
+export type BlastOptions = { stunTicks?: number; knockback?: number; playerDamage?: number; playerOnly?: number }
 
 /** Explosions deal full damage at the centre and half at the edge. */
 const EDGE_DAMAGE = 0.5
@@ -192,6 +200,8 @@ export const ZombieState = { moving: 0, attacking: 1 } as const
 const DX = [1, -1, 0, 0, 1, 1, -1, -1]
 const DY = [0, 0, 1, -1, 1, -1, 1, -1]
 const UNREACHED = 0xffff
+/** Pathing rebuilt after a prop change at most this often. */
+const PROP_FLOW_TICKS = 3
 
 type Spawning = { wave: number; queue: number[]; accumulator: number; nextWaveTick: number }
 
@@ -207,6 +217,27 @@ export type WorldOptions = {
 	survival?: boolean
 	/** seeds the loot rolls (items, buffs), kept apart from everything else the fight uses */
 	lootSeed?: number
+}
+
+/** Zombies go for survivors still to be saved, a target still standing and a generator running up. */
+function targetable(prop: Prop): boolean {
+	switch (prop.def.kind) {
+		case 'survivor':
+			return prop.state === PropState.idle || prop.state === PropState.following
+		case 'defend':
+			return prop.state !== PropState.destroyed
+		case 'generator':
+			return prop.state === PropState.active
+		default:
+			return false
+	}
+}
+
+/** Distance from (x, y) to a prop's edge (its centre for props on a point). */
+function edgeDistance(prop: Prop, x: number, y: number): number {
+	const halfW = prop.cells.length > 0 ? (prop.def.w ?? 1) / 2 : 0.3
+	const halfH = prop.cells.length > 0 ? (prop.def.h ?? 1) / 2 : 0.3
+	return Math.hypot(Math.max(0, Math.abs(x - prop.x) - halfW), Math.max(0, Math.abs(y - prop.y) - halfH))
 }
 
 /**
@@ -282,6 +313,24 @@ export class World {
 	private readonly hashCell = new Int32Array(MAX_ZOMBIES)
 	private readonly flowPhase: number
 
+	/** the map's props (barrels, cover, doors, generators, survivors, ...) and which cell holds which */
+	readonly props: Prop[]
+	readonly propCell: Int16Array
+	readonly propById = new Map<string, Prop>()
+	/** a door opened or closed, cover broke: the flow field is rebuilt soon */
+	propsChanged = false
+	private propFlowTick = -1000
+	/** props zombies go for right now (survivors and targets of the current objective) */
+	targetProps: Prop[] = []
+	/** objective props that may be worked now (null: all, outside missions) */
+	workableProps: Set<Prop> | null = null
+	/** doors, for zombies clawing at them */
+	readonly doors: Prop[]
+	/** map sections zombies spawn in right now (null: all) */
+	spawnSections: readonly number[] | null = null
+	private sectionCache: { key: readonly number[] | null; points: MapDef['zombieSpawns'] } = { key: null, points: [] }
+	/** cells of doors zombies can break: pathing goes through them, bodies do not */
+	private readonly breakable: Uint8Array
 	readonly pools: Pool[] = []
 	readonly projectiles: Projectile[] = []
 	readonly objects: WorldObject[] = []
@@ -313,6 +362,15 @@ export class World {
 		this.queue = new Int32Array(Math.max(cells, MAX_ZOMBIES))
 		this.hashWidth = Math.ceil(Math.max(this.grid.width, this.grid.height) / HASH_CELL)
 		this.hashStart = new Int32Array(this.hashWidth * this.hashWidth + 1)
+		this.props = createProps(options.map, this.grid)
+		this.propCell = new Int16Array(cells).fill(-1)
+		this.breakable = new Uint8Array(cells)
+		for (const prop of this.props) {
+			this.propById.set(prop.def.id, prop)
+			for (const cell of prop.cells) this.propCell[cell] = prop.index
+		}
+		this.doors = this.props.filter(prop => prop.def.kind === 'door')
+		this.markBreakable()
 		this.spawning = {
 			wave: 0,
 			queue: [],
@@ -339,6 +397,100 @@ export class World {
 		return state
 	}
 
+	/** Doors zombies can break (closed or welded, not mission gates) let pathing through. */
+	private markBreakable(): void {
+		this.breakable.fill(0)
+		for (const prop of this.props) {
+			if (prop.def.kind !== 'door') continue
+			if (prop.state !== PropState.closed && prop.state !== PropState.welded) continue
+			for (const cell of prop.cells) this.breakable[cell] = 1
+		}
+	}
+
+	/**
+	 * A survivor or a defend target was lost: the objective fails and the squad goes back to the
+	 * last checkpoint, as after a wipe.
+	 */
+	propLost(prop: Prop): void {
+		// only what the current objective protects fails it; a rescue fails once every survivor is lost
+		if (!this.mission || this.finished || !this.targetProps.includes(prop)) return
+		if (prop.def.kind === 'survivor') {
+			const survivors = this.targetProps.filter(other => other.def.kind === 'survivor')
+			if (survivors.some(other => other.state !== PropState.destroyed)) return
+		}
+		this.events.push({ type: 'failed', index: prop.index })
+		this.wipe()
+	}
+
+	/**
+	 * A gate closed behind the squad: whoever cannot reach (x, y) any more is brought there, and
+	 * zombies shut out on the other side are gone.
+	 */
+	gatherBehind(gx: number, gy: number): void {
+		const { width, height, walls } = this.grid
+		const reached = new Uint8Array(width * height)
+		// the search starts on floor, never in a wall
+		const { x, y } = this.freeSpotNear(gx, gy, playerDef.radius)
+		const start = Math.floor(y) * width + Math.floor(x)
+		if (start < 0 || start >= reached.length) return
+		const queue = this.queue
+		let head = 0
+		let tail = 0
+		reached[start] = 1
+		queue[tail++] = start
+		while (head < tail) {
+			const c = queue[head++] as number
+			const cx = c % width
+			const cy = (c - cx) / width
+			for (let d = 0; d < 4; d++) {
+				const nx = cx + (DX[d] as number)
+				const ny = cy + (DY[d] as number)
+				if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
+				const n = ny * width + nx
+				// map walls and locked gates divide the map; doors and cover can be opened or broken
+				const prop = this.propCell[n] as number
+				if (reached[n] || walls[n] === 1 || (prop >= 0 && this.props[prop]?.state === PropState.locked)) continue
+				reached[n] = 1
+				queue[tail++] = n
+			}
+		}
+		const cell = (px: number, py: number) => Math.floor(py) * width + Math.floor(px)
+		// players left behind, or caught in the gate itself, come through
+		for (const state of this.players.values()) {
+			if (!state.alive) continue
+			if (reached[cell(state.x, state.y)] && !this.grid.circleHitsWall(state.x, state.y, playerDef.radius)) continue
+			this.placeNear(state, x, y)
+		}
+		// so do survivors walking with the squad and anything still to be carried
+		for (const prop of this.props) {
+			const moving =
+				(prop.def.kind === 'survivor' && prop.state === PropState.following) ||
+				(prop.def.kind === 'carry' && prop.state === PropState.idle)
+			if (!moving || reached[cell(prop.x, prop.y)]) continue
+			const spot = this.freeSpotNear(x, y, 0.4)
+			prop.x = spot.x
+			prop.y = spot.y
+		}
+		// zombies shut out (or caught in the gate) are gone
+		for (let i = 0; i < MAX_ZOMBIES; i++) {
+			if (this.alive[i] === 0) continue
+			const zx = this.x[i] as number
+			const zy = this.y[i] as number
+			const radius = (zombieDefs[this.type[i] as number] as ZombieDef).radius
+			if (!reached[cell(zx, zy)] || this.grid.circleHitsWall(zx, zy, radius * 0.8)) {
+				this.alive[i] = 0
+				this.aliveCount--
+			}
+		}
+	}
+
+	/** The extraction timer ran out: back to the last checkpoint. */
+	timeUp(): void {
+		if (!this.mission || this.finished) return
+		this.events.push({ type: 'failed', index: -1 })
+		this.wipe()
+	}
+
 	/** Missions and Survival keep score and drop buffs; the firing range does neither. */
 	get scoring(): boolean {
 		return this.mission !== null || this.survival
@@ -359,7 +511,14 @@ export class World {
 	}
 
 	removePlayer(id: number): void {
+		const state = this.players.get(id)
 		this.players.delete(id)
+		// whatever they carried drops where they stood; survivors find someone else to follow
+		for (const prop of this.props) {
+			if (prop.with !== id) continue
+			if (prop.def.kind === 'carry' && prop.state === PropState.carried) drop(this, prop, state)
+			else prop.with = 0
+		}
 	}
 
 	get wave(): number {
@@ -373,21 +532,37 @@ export class World {
 	step(inputs: ReadonlyMap<number, PlayerInput>, keepEvents = false): void {
 		// the server keeps the events of catch-up inputs it applied just before this step
 		if (!keepEvents) this.events = []
+		updateTargets(this)
 		for (const state of this.players.values()) {
 			if (!state.alive && this.tick >= state.respawnTick) this.respawn(state)
 			const input = inputs.get(state.id)
 			if (input) this.applyInput(state, input)
-			if (this.mission && !this.finished) openCaches(this, state, (state.heldButtons & Button.interact) !== 0)
+			const interacting = (state.heldButtons & Button.interact) !== 0
+			state.interactTicks = interacting ? state.interactTicks + 1 : 0
+			// a press is latched per input, so one made during a catch-up input still counts
+			const pressed = state.interactPresses > 0
+			state.interactPresses = 0
+			if (!this.finished) {
+				if (this.props.length > 0) interactProps(this, state, interacting || pressed, pressed)
+				if (this.mission) openCaches(this, state, interacting)
+			}
 		}
 		this.revives()
 		this.moveProjectiles()
 		this.blasts()
 		stepObjects(this)
+		if (this.props.length > 0) stepProps(this)
 		this.statuses()
 		if (this.scoring && !this.finished) pickUpBuffs(this)
 		if (this.mission) stepMission(this)
 		else if (!this.range && !this.finished) this.direct()
-		if (this.tick % FLOW_EVERY === this.flowPhase) this.buildFlow()
+		// a prop change rebuilds pathing soon, but at most every few ticks (door toggles cannot force it every tick)
+		if (this.propsChanged && this.tick - this.propFlowTick >= PROP_FLOW_TICKS) {
+			this.propsChanged = false
+			this.propFlowTick = this.tick
+			this.markBreakable()
+			this.buildFlow()
+		} else if (this.tick % FLOW_EVERY === this.flowPhase) this.buildFlow()
 		this.buildHash()
 		this.moveZombies()
 		this.applyPools()
@@ -458,8 +633,37 @@ export class World {
 				return
 			}
 		}
-		state.x = x
-		state.y = y
+		const spot = this.freeSpotNear(x, y, playerDef.radius)
+		state.x = spot.x
+		state.y = spot.y
+	}
+
+	/** The nearest cell centre to (x, y) where a body of this radius fits (searching outwards). */
+	freeSpotNear(x: number, y: number, radius: number): { x: number; y: number } {
+		if (!this.grid.circleHitsWall(x, y, radius)) return { x, y }
+		const { width, height } = this.grid
+		const cx = Math.floor(x)
+		const cy = Math.floor(y)
+		for (let ring = 1; ring < 16; ring++) {
+			let best: { x: number; y: number } | null = null
+			let bestDistance = Number.POSITIVE_INFINITY
+			for (let gy = cy - ring; gy <= cy + ring; gy++) {
+				for (let gx = cx - ring; gx <= cx + ring; gx++) {
+					if (Math.max(Math.abs(gx - cx), Math.abs(gy - cy)) !== ring) continue
+					if (gx < 0 || gy < 0 || gx >= width || gy >= height) continue
+					const px = gx + 0.5
+					const py = gy + 0.5
+					if (this.grid.circleHitsWall(px, py, radius)) continue
+					const d = Math.hypot(px - x, py - y)
+					if (d < bestDistance) {
+						bestDistance = d
+						best = { x: px, y: py }
+					}
+				}
+			}
+			if (best) return best
+		}
+		return { x, y }
 	}
 
 	/** Players who can still fight: in the world and not downed. */
@@ -635,10 +839,27 @@ export class World {
 			for (let k = 0; k < this.rayCount; k++) {
 				this.damageZombie(this.rayHits[k] as number, weapon.damage, state.id, weapon.damageType)
 			}
+			// a shot that reached a wall may have hit a barrel or cover
+			if (last === wall && wall < weapon.range)
+				this.shootProp(state.x + dirX * (wall + 0.05), state.y + dirY * (wall + 0.05), weapon.damage, state.id)
 			if (behaviour.type === 'chain' && this.rayCount > 0) {
 				this.chain(state, weapon, this.rayHits[0] as number, behaviour.chains, behaviour.chainRange)
 			}
 		}
+	}
+
+	/** Players' shots break barrels and cover (never doors, survivors or what they must defend). */
+	private shootProp(x: number, y: number, damage: number, by: number): void {
+		const cx = Math.floor(x)
+		const cy = Math.floor(y)
+		if (cx < 0 || cy < 0 || cx >= this.grid.width || cy >= this.grid.height) return
+		const index = this.propCell[cy * this.grid.width + cx] as number
+		const prop = index >= 0 ? this.props[index] : undefined
+		if (!prop) return
+		const kind = prop.def.kind
+		// doors too: a closed or welded door can always be shot open (never a mission gate)
+		if (kind === 'barrel' || kind === 'crate' || kind === 'sandbags' || kind === 'door')
+			damageProp(this, prop, damage, by)
 	}
 
 	/** A flamethrower or sprayer: every zombie in the cone and in sight takes this shot's damage. */
@@ -821,6 +1042,22 @@ export class World {
 		id = 0
 	): void {
 		this.events.push({ type: 'explode', id, x, y, radius })
+		// explosions break barrels (which go off in turn), cover and doors
+		if (damage > 0 && this.props.length > 0) {
+			for (const prop of this.props) {
+				const kind = prop.def.kind
+				if (kind !== 'barrel' && kind !== 'crate' && kind !== 'sandbags' && kind !== 'door') continue
+				const d = Math.hypot(prop.x - x, prop.y - y)
+				if (d < radius + 0.5) damageProp(this, prop, damage * (1 - (1 - EDGE_DAMAGE) * Math.min(1, d / radius)), owner)
+			}
+		}
+		if (options.playerDamage) {
+			for (const state of this.players.values()) {
+				if (options.playerOnly && state.id !== options.playerOnly) continue
+				const d = Math.hypot(state.x - x, state.y - y)
+				if (d < radius) this.hurt(state, options.playerDamage * (1 - (1 - EDGE_DAMAGE) * (d / radius)), 'explosive')
+			}
+		}
 		for (let i = 0; i < MAX_ZOMBIES; i++) {
 			if (this.alive[i] === 0) continue
 			const zx = this.x[i] as number
@@ -1036,8 +1273,9 @@ export class World {
 	}
 
 	/** Score for a player; each threshold passed pays Salvage (in the room) and heals 30 %. */
-	addScore(state: PlayerState, amount: number): void {
-		if (this.finished || amount <= 0) return
+	addScore(state: PlayerState, amount: number, settling = false): void {
+		// nothing scores once the mission is over, except objective score being settled at the end
+		if ((this.finished && !settling) || amount <= 0) return
 		state.score += amount
 		// score earned during Double XP gives its XP again
 		if (this.tick < this.doubleXpUntil) state.doubledScore += amount
@@ -1224,8 +1462,19 @@ export class World {
 		return index
 	}
 
+	/** Spawn points in the map sections the current objective uses (all of them when it names none). */
+	private spawnPoints(): MapDef['zombieSpawns'] {
+		const sections = this.spawnSections
+		if (!sections) return this.map.zombieSpawns
+		if (this.sectionCache.key !== sections) {
+			const points = this.map.zombieSpawns.filter(point => sections.includes(point.section ?? 0))
+			this.sectionCache = { key: sections, points: points.length > 0 ? points : this.map.zombieSpawns }
+		}
+		return this.sectionCache.points
+	}
+
 	private pickSpawnPoint(): { x: number; y: number } {
-		const points = this.map.zombieSpawns
+		const points = this.spawnPoints()
 		// prefer points away from every player, so zombies do not appear on top of anyone
 		for (let attempt = 0; attempt < 8; attempt++) {
 			const point = points[this.rng.int(points.length)] as { x: number; y: number }
@@ -1259,6 +1508,24 @@ export class World {
 				this.queue[tail++] = c
 			}
 		}
+		// survivors and what the squad defends draw zombies too
+		for (const prop of this.targetProps) {
+			if (!targetable(prop)) continue
+			if (prop.cells.length === 0) {
+				const c = Math.floor(prop.y) * width + Math.floor(prop.x)
+				if (c >= 0 && c < distance.length && distance[c] !== 0) {
+					distance[c] = 0
+					this.queue[tail++] = c
+				}
+				continue
+			}
+			for (const c of prop.cells) {
+				if (distance[c] === 0) continue
+				distance[c] = 0
+				this.queue[tail++] = c
+			}
+		}
+		const breakable = this.breakable
 		while (head < tail) {
 			const c = this.queue[head++] as number
 			const cx = c % width
@@ -1269,7 +1536,7 @@ export class World {
 				const ny = cy + (DY[d] as number)
 				if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
 				const n = ny * width + nx
-				if (walls[n] !== 0 || (distance[n] as number) <= next) continue
+				if ((walls[n] !== 0 && breakable[n] === 0) || (distance[n] as number) <= next) continue
 				distance[n] = next
 				this.queue[tail++] = n
 			}
@@ -1285,7 +1552,8 @@ export class World {
 				const ny = cy + (DY[d] as number)
 				if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
 				const n = ny * width + nx
-				if (walls[n] !== 0) continue
+				// zombies may press into a door they can break (and claw at it)
+				if (walls[n] !== 0 && breakable[n] === 0) continue
 				if (d >= 4 && (walls[cy * width + nx] !== 0 || walls[ny * width + cx] !== 0)) continue
 				if ((distance[n] as number) < best) {
 					best = distance[n] as number
@@ -1345,10 +1613,22 @@ export class World {
 					target = state
 				}
 			}
+			// or a survivor, or what the squad must defend, if that is nearer
+			let propTarget: Prop | null = null
+			for (const prop of this.targetProps) {
+				if (!targetable(prop)) continue
+				const d = edgeDistance(prop, x, y)
+				if (d < targetDistance) {
+					targetDistance = d
+					propTarget = prop
+					target = null
+				}
+			}
 			const taunted = (this.tauntUntil[i] as number) > this.tick
 			const taunter = taunted ? this.players.get(this.tauntTarget[i] as number) : undefined
 			if (taunter?.alive && !taunter.downed) {
 				target = taunter
+				propTarget = null
 				targetDistance = Math.hypot(taunter.x - x, taunter.y - y)
 			}
 
@@ -1364,6 +1644,10 @@ export class World {
 				// close in directly once near
 				wantX = (target.x - x) / targetDistance
 				wantY = (target.y - y) / targetDistance
+			} else if (propTarget && targetDistance < 3) {
+				const toward = Math.hypot(propTarget.x - x, propTarget.y - y) || 1
+				wantX = (propTarget.x - x) / toward
+				wantY = (propTarget.y - y) / toward
 			} else {
 				const dir = this.flow[Math.floor(y) * width + Math.floor(x)] as number
 				if (dir >= 0) {
@@ -1373,7 +1657,11 @@ export class World {
 				}
 			}
 			const slowed = (this.slowUntil[i] as number) > this.tick ? 1 - (this.slowAmount[i] as number) : 1
-			const speed = stunned || (target && targetDistance < reach) ? 0 : def.speed * slowed
+			const propReach = def.radius + def.meleeRange + 0.2
+			const speed =
+				stunned || (target && targetDistance < reach) || (propTarget && targetDistance < propReach)
+					? 0
+					: def.speed * slowed
 			let ax = wantX * speed
 			let ay = wantY * speed
 
@@ -1425,7 +1713,13 @@ export class World {
 					this.hurt(target, def.meleeDamage * this.damageScale, null)
 					this.cooldown[i] = Math.round(def.meleeCooldownSeconds * TICK_RATE)
 				}
-			} else if (this.cooldown[i] === 0 && this.objects.length > 0) {
+			} else if (propTarget && edgeDistance(propTarget, this.moved.x, this.moved.y) < propReach) {
+				this.state[i] = ZombieState.attacking
+				if (this.cooldown[i] === 0) {
+					damageProp(this, propTarget, def.meleeDamage * this.damageScale, 0)
+					this.cooldown[i] = Math.round(def.meleeCooldownSeconds * TICK_RATE)
+				}
+			} else if (this.cooldown[i] === 0 && (this.objects.length > 0 || this.props.length > 0)) {
 				this.attackBarricade(i, def)
 			}
 		}
@@ -1451,6 +1745,15 @@ export class World {
 				this.events.push({ type: 'explode', id: 0, x: object.x, y: object.y, radius: 0 })
 				this.removeObject(object)
 			}
+			return
+		}
+		// closed and welded doors in the way are clawed down too
+		for (const prop of this.doors) {
+			if (prop.state !== PropState.closed && prop.state !== PropState.welded) continue
+			if (edgeDistance(prop, x, y) > def.radius + def.meleeRange + 0.2) continue
+			this.state[i] = ZombieState.attacking
+			damageProp(this, prop, def.meleeDamage * this.damageScale, 0)
+			this.cooldown[i] = Math.round(def.meleeCooldownSeconds * TICK_RATE)
 			return
 		}
 	}

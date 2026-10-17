@@ -1,4 +1,4 @@
-import { type MissionDef, maps, missionById, starterBuild, zombieIndex } from '@rotline/game-data'
+import { dataVersion, type MissionDef, maps, missionById, starterBuild, zombieIndex } from '@rotline/game-data'
 import {
 	aimToAngle,
 	angleToAim,
@@ -6,8 +6,10 @@ import {
 	MissionStatus,
 	ObjectKind,
 	type PlayerInput,
+	PropState,
 	quantiseAxis,
 	type SimEvent,
+	setPropState,
 	World
 } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
@@ -155,7 +157,8 @@ describe('server messages', () => {
 			tick: 500,
 			build,
 			missionId: '',
-			difficulty: ''
+			difficulty: '',
+			dataVersion
 		})
 		expect(readServerHeader(new Reader(writeWelcome(w, 1, 'yard', 0, build, 'yard-sweep', 'nightmare')))).toMatchObject(
 			{
@@ -214,6 +217,8 @@ describe('server messages', () => {
 			{ type: 'explode', id: 7, x: 13, y: 4, radius: 3.5 },
 			{ type: 'objective', index: 1, first: true },
 			{ type: 'run-over', wave: 12 },
+			{ type: 'prop', index: 300, state: 3 },
+			{ type: 'failed', index: -1 },
 			{ type: 'checkpoint', index: 1 },
 			{ type: 'mission-complete' },
 			{ type: 'item-found', player: 2, item: 11 },
@@ -450,5 +455,31 @@ describe('missions in snapshots', () => {
 		// health is relative to the scaled maximum, not the base one
 		expect((table.health[zombie] as number) / 255).toBeCloseTo(0.5, 1)
 		expect(frame.others[0]?.healthPercent).toBe(1)
+	})
+})
+
+describe('props in snapshots', () => {
+	it('sends every prop once, then only the ones that change, and the carrying flag', () => {
+		const map = maps.substation as NonNullable<typeof maps.substation>
+		const world = new World({ seed: 3, map })
+		const me = world.addPlayer(1)
+		const encoder = new SnapshotEncoder(1)
+		const table = new ZombieTable()
+		const first = decode(encoder.write(new Writer(), world), table)
+		expect(first.props).toHaveLength(world.props.length)
+		const second = decode(encoder.write(new Writer(), world), table)
+		expect(second.props).toHaveLength(0)
+		const door = world.propById.get('door-west')
+		if (!door) throw new Error()
+		setPropState(world.grid, door, PropState.closed)
+		door.progress = 0.5
+		me.carrying = true
+		const third = decode(encoder.write(new Writer(), world), table)
+		expect(third.props).toEqual([
+			expect.objectContaining({ index: door.index, state: PropState.closed, progress: expect.closeTo(0.5, 1) })
+		])
+		expect(third.self.carrying).toBe(true)
+		const turret = world.propById.get('turret-north')
+		expect(first.props.find(prop => prop.index === turret?.index)?.powered).toBe(false)
 	})
 })

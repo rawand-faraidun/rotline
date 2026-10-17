@@ -1,11 +1,11 @@
-// Tick cost of full rooms: 4 players firing and moving, the horde at its cap. `pnpm bench [rooms] [ticks]`
+// Tick cost of full rooms: 4 players firing and moving, the horde at its cap. `pnpm bench [rooms] [ticks] [map]`
 import { maps, zombieIndex } from '@rotline/game-data'
 import { SnapshotEncoder, Writer } from '@rotline/protocol'
 import { angleToAim, Button, MAX_ZOMBIES, type PlayerInput, World } from '@rotline/sim'
 
 const rooms = Number(process.argv[2] ?? 8)
 const ticks = Number(process.argv[3] ?? 900)
-const yard = maps.yard as NonNullable<typeof maps.yard>
+const yard = (maps[process.argv[4] ?? 'yard'] ?? maps.yard) as NonNullable<typeof maps.yard>
 const types = ['drudge', 'bolter', 'swell'].map(zombieIndex)
 
 const worlds = Array.from({ length: rooms }, (_, r) => {

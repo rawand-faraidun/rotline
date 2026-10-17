@@ -25,7 +25,7 @@ If a tick runs late, the server runs the missed ticks back to back (up to 3) ins
 
 ## Messages
 
-All messages are binary; the first byte is the message type. Encoding lives in `packages/protocol`, shared by server and client, with round-trip tests for every type. The protocol is versioned (currently version 5); the `hello` carries the client's version.
+All messages are binary; the first byte is the message type. Encoding lives in `packages/protocol`, shared by server and client, with round-trip tests for every type. The protocol is versioned (currently version 6); the `hello` carries the client's version.
 
 ### Client to server
 
@@ -45,15 +45,17 @@ Reload, weapon swap, interact, the three abilities and the two utilities are bit
 
 | Type | Contents | Delivery |
 |---|---|---|
-| `welcome` | your entity id, map, server tick, your build (class, level, skills, loadout with upgrades), so prediction uses the server's numbers; the mission id and difficulty (empty outside missions) | reliable |
-| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state (including cooldowns, charges, haste, dash and minigun timers), the mission frame (below), other players, acid pools, objects (zones, barricades, mines, decoys, sentries, mortar markers, buff pickups with a variant byte naming the buff), changed zombies with their status bits, removals | unreliable |
-| `event` | batched one-off events: shots, hits, kills, grenades launched and exploding, bursts, abilities, player hurt, downed, back up, out and revived, waves started and cleared, squad wipes, objective done (with a flag for the first time), checkpoint, mission complete, buff picked up, score threshold, Survival run over; item found and cache opened are sent only to the player concerned | reliable |
+| `welcome` | your entity id, map, server tick, your build (class, level, skills, loadout with upgrades), so prediction uses the server's numbers; the mission id and difficulty (empty outside missions); a fingerprint of the game data (maps, props, missions, zombies, weapons, the campaign) | reliable |
+| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state (including cooldowns, charges, haste, dash and minigun timers, and whether you are carrying something), the mission frame (below), other players, acid pools, map prop changes (below), objects (zones, barricades, mines, decoys, sentries, mortar markers, buff pickups with a variant byte naming the buff), changed zombies with their status bits, removals | unreliable |
+| `event` | batched one-off events: shots, hits, kills, grenades launched and exploding, bursts, abilities, player hurt, downed, back up, out and revived, waves started and cleared, squad wipes, objective done (with a flag for the first time; optional objectives too), objective failed (a survivor or defend target lost, or the extraction timer run out), checkpoint, map prop changed state, mission complete, buff picked up, score threshold, Survival run over; item found and cache opened are sent only to the player concerned | reliable |
 | `roster` | names and connection state of everyone in the room | reliable |
 | `results` | your results: success, rounds survived (Survival), time, score, kills, XP, Salvage, downs, items found, mastery | reliable |
 | `ping` | server time | unreliable |
 | `kick` | reason (bad ticket, room full, protocol error, replaced, shutdown, idle, mission complete, playing elsewhere) | reliable |
 
-The mission frame in each snapshot holds the mission status, the current objective, its progress and goal, the seconds left on team buffs (Double XP, Instakill), your own score, your kill chain (0 once its timer has run out) and how much of the chain timer is left, and a bitmask of the caches you have opened.
+The mission frame in each snapshot holds the mission status, the current objective, its progress and goal, the seconds left on team buffs (Double XP, Instakill), your own score, your kill chain (0 once its timer has run out) and how much of the chain timer is left, and a bitmask of the caches you have opened. For an extraction the progress is the time used, so the client shows the time left.
+
+A client whose game data has another fingerprint than the server's closes the connection and asks the player to reload: its map props, collisions and prediction would not match the server's.
 
 The `results` message is sent after the events of the tick that ended the mission or run, so the client shows the final moments first, and is sent again to a player who reconnects during the 20-second results window.
 
@@ -61,9 +63,10 @@ The `results` message is sent after the events of the tick that ended the missio
 
 - Each zombie record is a varint id (relative to the previous id), a flag byte, and only the fields that changed: position as a 1-byte delta per axis for small moves (1/64 m steps) or 2 bytes absolute; facing in 1 byte; health in 1 byte; type in 1 byte when the zombie first appears.
 - A zombie that died or left the interest radius is its id plus a flag.
+- Map props (barrels, cover, doors, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets) are not limited by the interest radius. Each record is 9 bytes: the prop's index, its state with two flag bits (powered, for turrets and floodlights; cooling down, for traps), its health and hold progress as fractions of 255, and its position. The first snapshot on a connection carries every prop; after that only props whose state, health, progress or position changed. A snapshot holds at most 4,096 props.
 - A client that connects or reconnects gets a full snapshot first.
 
-With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 9–10 KB/s per player; with the whole horde of 300 in view and moving, about 21 KB/s. A full room's tick, including encoding four snapshots, costs about 0.12 ms.
+With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 9–10 KB/s per player; with the whole horde of 300 in view and moving, about 21 KB/s. A full room's tick, including encoding four snapshots, costs about 0.12 ms, about the same on the Depot, the largest map with props (`pnpm bench [rooms] [ticks] [map]` in the game server).
 
 ## Prediction and reconciliation
 
@@ -74,12 +77,14 @@ With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 
 5. Firing is predicted for feedback (muzzle flash, tracer, sound, magazine count); damage, kills and drops appear only when the server confirms them.
 6. Timed effects (haste, Slide Dash, the minigun) count the player's own input steps, not server ticks, so prediction stays exact when the server applies two inputs in one tick or none after a stall. Abilities trigger while their key is held and they are ready.
 7. Abilities are predicted only for what they do to the player: cooldowns, utility charges, Adrenaline and Stim haste, Slide Dash, Overwatch and the minigun. Their effect on zombies and teammates (blasts, heals, stuns, barricades) comes from the server. Barricades are walls in the client's grid too: snapshots carry their exact cells, so prediction stops where the server does.
+8. Map props are built in the client from the same game data, and their blocking cells (closed and welded doors, cover, barrels, generators and the like) are walls in its grid. Each prop change in a snapshot is applied to that grid, so prediction collides where the server does. Carrying an object is predicted too: it slows the player to the same speed the server uses, and the snapshot's carrying flag corrects it.
 
 The simulation is deterministic: fixed steps, server-owned seeded randomness, and no `Date.now()` or `Math.random()` in `packages/sim`. Each room's seed, and a separate seed for loot (items and buffs), come from cryptographic randomness on the game server, so neither can be predicted, and loot rolls do not share a random stream with the fight.
 
 ## Input handling on the server
 
 - Each player's inputs wait in a queue; the server applies at most one per tick.
+- Interact presses are counted per input, so a quick tap carried by a catch-up input still opens a door or sets off a trap.
 - A player whose input has not arrived simply does nothing that tick. The server never replays an old input, because that would move the player twice and break prediction.
 - After a network stall the queue may hold several inputs; above three, the server applies two per tick until the player has caught up. Events from the extra input (shots, kills, throws) are sent and counted like any other.
 - Every socket has a message budget (120 a second, bursts of 60); a client that keeps exceeding it is disconnected. Firing-range commands have their own small budget, and a range room holds at most 60 spawned zombies.
@@ -110,7 +115,7 @@ The server keeps 8 ticks of zombie positions. A shot carries the tick the client
 
 - **Connect**: the game ticket is checked, then `welcome` is sent.
 - **Heartbeat**: `ping`/`pong` every second for clock sync and latency display; 5 seconds of silence counts as a disconnect.
-- **Disconnect mid-mission**: the character stays in the world and the seat is held for **120 seconds**.
+- **Disconnect mid-mission**: the character stays in the world and the seat is held for **120 seconds**. The character is marked away: its held buttons are cleared (it works nothing), and an extraction does not wait for it. Reconnecting clears the mark.
 - **Reconnect**: the client gets a new ticket for the same room, receives a full snapshot and resumes. A player reconnecting during the results window gets the results again.
 - **Grace expired**: the character leaves the mission and the seat is released.
 - **Mission complete or run over**: the room leaves the registry at once, so the squad is back in the lobby; the room stays open 20 seconds for the results, then closes its connections (kick reason "complete"). A closed room's id is refused for 5 minutes, so no late ticket can start it again.

@@ -1,4 +1,4 @@
-import type { Build } from '@rotline/game-data'
+import { type Build, dataVersion } from '@rotline/game-data'
 import {
 	ProtocolError,
 	Reader,
@@ -21,6 +21,8 @@ export type ConnectionHandlers = {
 	events(events: SimEvent[]): void
 	roster(entries: RosterEntry[]): void
 	results(results: ResultsMessage): void
+	/** the server runs other game data: the page must reload */
+	outdated(): void
 	kicked(reason: number): void
 	closed(): void
 }
@@ -44,6 +46,13 @@ export class GameConnection {
 				const message = readServerHeader(reader)
 				switch (message.type) {
 					case 'welcome':
+						// built from other game data: prediction and props would not match the server
+						if (message.dataVersion !== dataVersion) {
+							this.finished = true
+							handlers.outdated()
+							this.socket.close()
+							break
+						}
 						handlers.welcome(
 							message.you,
 							message.tick,

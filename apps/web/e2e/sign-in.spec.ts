@@ -52,13 +52,15 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	const recruit = page.getByRole('button', { name: /^recruit/i })
 	await recruit.click()
 	await expect(recruit).toHaveAttribute('aria-pressed', 'true')
-	await expect(page.getByRole('button', { name: /yard sweep/i })).toHaveAttribute('aria-pressed', 'true')
+	// the campaign starts with Landfall; the next mission is locked
+	await expect(page.getByRole('button', { name: /landfall/i })).toHaveAttribute('aria-pressed', 'true')
+	await expect(page.getByRole('button', { name: /yard sweep/i })).toBeDisabled()
 
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition
 	await page.getByRole('button', { name: /^deploy$/i }).click()
 	await expect(page).toHaveURL(/\/play\/mission$/)
-	await expect(page.getByText(/objective 1 of 4/i)).toBeVisible({ timeout: 45_000 })
-	await expect(page.getByText(/thin the horde/i)).toBeVisible()
+	await expect(page.getByText(/objective 1 of 5/i)).toBeVisible({ timeout: 45_000 })
+	await expect(page.getByText(/get clear of the wreck/i)).toBeVisible()
 	await expect(page.getByText(/^multiplier$/i)).toBeVisible()
 	const magazine = page.locator('li', { hasText: 'Vex-9' }).locator('[data-slot="magazine"]')
 	await expect(magazine).toHaveText('32')

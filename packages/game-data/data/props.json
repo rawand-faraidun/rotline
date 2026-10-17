@@ -1,0 +1,60 @@
+{
+	"barrel": {
+		"health": 30,
+		"radius": 0.45,
+		"blastDamage": 150,
+		"blastRadius": 4,
+		"playerDamageShare": 0.5
+	},
+	"crate": {
+		"health": 200
+	},
+	"sandbags": {
+		"health": 400
+	},
+	"door": {
+		"weldSeconds": 4,
+		"weldedHealth": 500,
+		"closedHealth": 250,
+		"toggleSeconds": 0.6
+	},
+	"generator": {
+		"holdSeconds": 5,
+		"startSeconds": 20,
+		"health": 400
+	},
+	"terminal": {
+		"holdSeconds": 6
+	},
+	"turret": {
+		"damage": 22,
+		"shotsPerSecond": 8,
+		"range": 16,
+		"damageType": "ballistic"
+	},
+	"trap": {
+		"radius": 3,
+		"damagePerSecond": 120,
+		"activeSeconds": 5,
+		"cooldownSeconds": 30,
+		"damageType": "shock"
+	},
+	"survivor": {
+		"health": 150,
+		"speed": 4.2,
+		"followDistance": 2.2,
+		"freeSeconds": 2,
+		"radius": 0.3,
+		"stuckSeconds": 3
+	},
+	"carry": {
+		"speedMultiplier": 0.8,
+		"pickupSeconds": 1
+	},
+	"defend": {
+		"health": 1500
+	},
+	"interactRange": 1.6,
+	"repairPerSecond": 50,
+	"extractIdleSeconds": 15
+}

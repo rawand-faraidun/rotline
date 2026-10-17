@@ -427,7 +427,9 @@ export const en = {
 				'not-ready': 'Everyone has to be ready first.',
 				'not-member': 'That player is not in your squad.',
 				changed: 'The mission changed just now. Check it and try again.',
-				elsewhere: 'You are still in another mission. Leave it first.'
+				elsewhere: 'You are still in another mission. Leave it first.',
+				locked: 'That mission is not open yet. Finish the one before it first.',
+				cooldown: 'You just left a mission. Wait a few seconds before deploying again.'
 			}
 		},
 		missions: {
@@ -440,6 +442,10 @@ export const en = {
 			best: 'Best {time}',
 			objectives: '{count} objectives',
 			mastery: ['Not done', 'Bronze', 'Silver', 'Gold'],
+			zone: 'Zone: {name}',
+			locked: 'Locked',
+			done: 'Done',
+			lockedHint: 'Finish the mission before it to open this one.',
 			survival: 'Survival',
 			endless: 'Endless',
 			survivalDescription:
@@ -473,6 +479,21 @@ export const en = {
 			progressKills: '{progress} / {goal}',
 			progressSeconds: '{progress} / {goal} s',
 			progressReach: 'Get there',
+			progressCarry: 'Bring it there',
+			progressLeft: '{progress} s left',
+			failedBanner: 'Objective failed — back to the checkpoint',
+			interact: {
+				open: 'E — open the door',
+				close: 'E — close the door (hold to weld)',
+				weld: 'Hold E — welding',
+				repair: 'Hold E — repair',
+				power: 'Hold E — restart the generator',
+				hack: 'Hold E — work the terminal',
+				free: 'Hold E — free the survivor',
+				pickup: 'Hold E — pick it up',
+				trap: 'E — set off the trap',
+				cache: 'Hold E — search the cache'
+			},
 			multiplier: 'Multiplier',
 			round: 'Round',
 			chain: '{chain} chain',
@@ -503,6 +524,8 @@ export const en = {
 			lost: 'Connection lost',
 			kicked: 'Removed from the mission',
 			over: 'The mission is over',
+			outdated: 'A new version of the game is out',
+			reload: 'Reload',
 			elsewhere: 'You joined another mission, so you left this one',
 			menu: 'Menu',
 			runOverBanner: 'Run over — {wave} rounds survived',

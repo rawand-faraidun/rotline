@@ -1,0 +1,221 @@
+import type { Prop } from '@rotline/sim'
+import { PropState } from '@rotline/sim'
+import * as THREE from 'three'
+
+type Drawn = {
+	root: THREE.Group
+	/** health bar for things that can be lost (survivors, defend targets, doors under attack) */
+	bar: THREE.Mesh | null
+	glow: THREE.MeshStandardMaterial | null
+	light: THREE.PointLight | null
+	lastState: number
+}
+
+const BAR = new THREE.PlaneGeometry(1, 0.12).rotateX(-Math.PI / 2)
+
+/**
+ * The map's props: barrels, cover, doors, generators, terminals, turrets, floodlights, traps,
+ * survivors, carried objects and defend targets. Placeholder shapes until the art milestone; each
+ * shows its state (open, welded, powered, broken) plainly.
+ */
+export class PropRenderer {
+	private readonly scene: THREE.Scene
+	private readonly drawn: Drawn[] = []
+	private readonly box = new THREE.BoxGeometry(1, 1, 1)
+	private readonly cylinder = new THREE.CylinderGeometry(0.5, 0.5, 1, 16)
+	private readonly ring = new THREE.RingGeometry(0.9, 1, 40).rotateX(-Math.PI / 2)
+
+	constructor(scene: THREE.Scene, props: readonly Prop[]) {
+		this.scene = scene
+		for (const prop of props) {
+			const drawn = this.make(prop)
+			scene.add(drawn.root)
+			this.drawn.push(drawn)
+		}
+	}
+
+	private material(color: number, emissive = 0): THREE.MeshStandardMaterial {
+		return new THREE.MeshStandardMaterial({ color, roughness: 0.85, emissive, emissiveIntensity: emissive ? 0.8 : 0 })
+	}
+
+	private make(prop: Prop): Drawn {
+		const root = new THREE.Group()
+		const w = prop.def.w ?? 1
+		const h = prop.def.h ?? 1
+		let bar: THREE.Mesh | null = null
+		let glow: THREE.MeshStandardMaterial | null = null
+		let light: THREE.PointLight | null = null
+		const add = (mesh: THREE.Mesh, y: number) => {
+			mesh.position.y = y
+			mesh.castShadow = true
+			root.add(mesh)
+			return mesh
+		}
+		switch (prop.def.kind) {
+			case 'barrel': {
+				const body = add(new THREE.Mesh(this.cylinder, this.material(0xa8321e)), 0.5)
+				body.scale.set(0.8, 1, 0.8)
+				const band = add(new THREE.Mesh(this.cylinder, this.material(0xffc02e)), 0.65)
+				band.scale.set(0.82, 0.08, 0.82)
+				break
+			}
+			case 'crate':
+				add(new THREE.Mesh(this.box, this.material(0x6b5232)), 0.5).scale.set(w * 0.96, 1, h * 0.96)
+				break
+			case 'sandbags':
+				add(new THREE.Mesh(this.box, this.material(0x8a7a52)), 0.4).scale.set(w * 0.98, 0.8, h * 0.98)
+				break
+			case 'door': {
+				const slab = add(new THREE.Mesh(this.box, this.material(0x4c5a52)), 1.1)
+				slab.scale.set(w, 2.2, h)
+				break
+			}
+			case 'generator':
+			case 'terminal': {
+				const isGenerator = prop.def.kind === 'generator'
+				add(new THREE.Mesh(this.box, this.material(isGenerator ? 0x3d4a3f : 0x2f3533)), 0.6).scale.set(
+					w * 0.9,
+					1.2,
+					h * 0.9
+				)
+				glow = this.material(0x1a1a1a, 0xff3a2a)
+				add(new THREE.Mesh(this.box, glow), 1.25).scale.set(0.3, 0.1, 0.3)
+				bar = this.bar(root, 1.7)
+				break
+			}
+			case 'turret': {
+				add(new THREE.Mesh(this.cylinder, this.material(0x3a443b)), 0.4).scale.set(0.8, 0.8, 0.8)
+				glow = this.material(0x6b6b6b, 0x000000)
+				add(new THREE.Mesh(this.box, glow), 0.95).scale.set(0.2, 0.2, 0.9)
+				break
+			}
+			case 'floodlight': {
+				add(new THREE.Mesh(this.cylinder, this.material(0x55605a)), 1.5).scale.set(0.15, 3, 0.15)
+				glow = this.material(0x222222, 0x000000)
+				add(new THREE.Mesh(this.box, glow), 3.1).scale.set(0.6, 0.3, 0.4)
+				light = new THREE.PointLight(0xfff2cc, 0, 18, 1.4)
+				light.position.y = 3
+				root.add(light)
+				break
+			}
+			case 'trap': {
+				glow = new THREE.MeshStandardMaterial({ color: 0x3a3a34, emissive: 0x6fb8ff, emissiveIntensity: 0 })
+				const plate = add(new THREE.Mesh(this.cylinder, glow), 0.04)
+				plate.scale.set(2.4, 0.08, 2.4)
+				break
+			}
+			case 'survivor': {
+				add(new THREE.Mesh(this.cylinder, this.material(0xd9c9a3)), 0.8).scale.set(0.55, 1.6, 0.55)
+				add(new THREE.Mesh(this.box, this.material(0xffc02e)), 1.75).scale.set(0.35, 0.35, 0.35)
+				const ring = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: 0xffc02e, transparent: true, opacity: 0.7, depthWrite: false })
+				)
+				ring.scale.setScalar(0.7)
+				ring.position.y = 0.05
+				root.add(ring)
+				bar = this.bar(root, 2.2)
+				break
+			}
+			case 'carry': {
+				glow = this.material(0xffc02e, 0xffc02e)
+				add(new THREE.Mesh(this.box, glow), 0.35).scale.set(0.6, 0.5, 0.5)
+				break
+			}
+			case 'defend': {
+				add(new THREE.Mesh(this.box, this.material(0x56605c)), 1).scale.set(w * 0.95, 2, h * 0.95)
+				glow = this.material(0x111111, 0xb8f23c)
+				add(new THREE.Mesh(this.box, glow), 2.05).scale.set(w * 0.5, 0.1, h * 0.5)
+				bar = this.bar(root, 2.6)
+				break
+			}
+		}
+		root.position.set(prop.x, 0, prop.y)
+		return { root, bar, glow, light, lastState: -1 }
+	}
+
+	private bar(root: THREE.Group, height: number): THREE.Mesh {
+		const back = new THREE.Mesh(BAR, new THREE.MeshBasicMaterial({ color: 0x0d100e, depthTest: false }))
+		back.position.y = height
+		back.renderOrder = 10
+		const fill = new THREE.Mesh(BAR, new THREE.MeshBasicMaterial({ color: 0xb8f23c, depthTest: false }))
+		fill.position.y = height + 0.01
+		fill.renderOrder = 11
+		root.add(back, fill)
+		return fill
+	}
+
+	/** Brings every prop's look up to its state; `progress` bars show hold work, health bars health. */
+	update(props: readonly Prop[], timeSeconds: number, dt: number): void {
+		for (const prop of props) {
+			const drawn = this.drawn[prop.index]
+			if (!drawn) continue
+			const root = drawn.root
+			// moving props glide to where the server put them
+			const ease = 1 - Math.exp(-12 * dt)
+			root.position.x += (prop.x - root.position.x) * ease
+			root.position.z += (prop.y - root.position.z) * ease
+			const gone = prop.state === PropState.destroyed || prop.state === PropState.delivered
+			root.visible = !gone || prop.def.kind === 'door' || prop.def.kind === 'defend'
+			switch (prop.def.kind) {
+				case 'door': {
+					const slab = root.children[0] as THREE.Mesh
+					const open = prop.state === PropState.open || prop.state === PropState.destroyed
+					// an open door sinks into the floor; a broken one stays down
+					slab.position.y = open ? -0.95 : 1.1
+					const material = slab.material as THREE.MeshStandardMaterial
+					material.color.setHex(
+						prop.state === PropState.welded ? 0x8a5a2a : prop.state === PropState.locked ? 0x2a302d : 0x4c5a52
+					)
+					break
+				}
+				case 'generator':
+				case 'terminal':
+					drawn.glow?.emissive.setHex(prop.state === PropState.done ? 0xb8f23c : 0xff3a2a)
+					this.setBar(drawn.bar, prop.state === PropState.done ? 0 : prop.progress)
+					break
+				case 'turret':
+				case 'floodlight':
+					drawn.glow?.emissive.setHex(prop.powered ? 0xfff2cc : 0x000000)
+					if (drawn.light) drawn.light.intensity = prop.powered ? 40 : 0
+					break
+				case 'trap':
+					if (drawn.glow) {
+						drawn.glow.emissiveIntensity = prop.state === PropState.active ? 0.6 + 0.4 * Math.sin(timeSeconds * 30) : 0
+					}
+					break
+				case 'survivor':
+					this.setBar(drawn.bar, prop.state === PropState.idle ? prop.progress : prop.health / prop.maxHealth)
+					break
+				case 'carry':
+					root.position.y = prop.state === PropState.carried ? 1.1 : 0
+					break
+				case 'defend':
+					this.setBar(drawn.bar, prop.health / prop.maxHealth)
+					break
+			}
+			drawn.lastState = prop.state
+		}
+	}
+
+	private setBar(bar: THREE.Mesh | null, value: number): void {
+		if (!bar) return
+		const v = Math.max(0, Math.min(1, value))
+		bar.visible = v > 0
+		bar.scale.x = Math.max(0.001, v)
+		bar.position.x = (v - 1) / 2
+	}
+
+	dispose(): void {
+		for (const drawn of this.drawn) {
+			this.scene.remove(drawn.root)
+			drawn.root.traverse(node => {
+				const mesh = node as THREE.Mesh
+				if (mesh.material) (mesh.material as THREE.Material).dispose()
+			})
+		}
+		this.box.dispose()
+		this.cylinder.dispose()
+		this.ring.dispose()
+	}
+}

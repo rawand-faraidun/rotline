@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { type DifficultyId, difficulties, missions, SURVIVAL } from '@rotline/game-data'
+import { campaign, type DifficultyId, difficulties, missionById, SURVIVAL } from '@rotline/game-data'
 import { Badge, cn, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { en, format } from '../../i18n/en.ts'
@@ -37,40 +37,66 @@ export function MissionPanel({ view }: { view: PartyView }) {
 				<PanelTitle>{t.title}</PanelTitle>
 				{!leader && <span className="text-muted text-sm">{t.leaderChooses}</span>}
 			</PanelHeader>
+			{campaign.zones.map(zone => (
+				<section key={zone.id} className="flex flex-col gap-2">
+					<h3 className="font-bold text-muted text-xs uppercase tracking-[0.2em]">
+						{format(t.zone, { name: zone.name })} ·{' '}
+						<span className="normal-case tracking-normal">{zone.description}</span>
+					</h3>
+					<ul className="grid gap-3 md:grid-cols-2">
+						{zone.missions.flatMap((id, order) => {
+							const mission = missionById(id)
+							if (!mission) return []
+							const chosen = view.mission.id === mission.id
+							const entry = records.data?.find(record => record.id === mission.id)
+							const record = bestOf(entry)
+							// until the records load, only the first mission is known to be open
+							const open = entry?.open ?? order === 0
+							return [
+								<li key={mission.id}>
+									<button
+										type="button"
+										aria-pressed={chosen}
+										disabled={!editable || !open}
+										onClick={() => void choose(mission.id, view.mission.difficulty)}
+										className={cn(
+											'frame cut flex h-full w-full flex-col gap-2 p-4 text-left',
+											chosen
+												? '[--frame-color:var(--color-rot-lime)]'
+												: editable && open && 'hover:[--frame-color:var(--color-bone)]',
+											(!open || (!editable && !chosen)) && 'opacity-50'
+										)}
+									>
+										<span className="flex items-start justify-between gap-3">
+											<span className="font-display text-2xl uppercase">
+												<span className="text-muted">{order + 1}.</span> {mission.name}
+											</span>
+											{open ? (
+												<Badge tone={masteryTone[record.mastery] ?? 'muted'}>
+													{record.mastery === 0 && record.completions > 0 ? t.done : t.mastery[record.mastery]}
+												</Badge>
+											) : (
+												<Badge tone="muted">{t.locked}</Badge>
+											)}
+										</span>
+										<span className="text-bone/80 text-sm">{mission.description}</span>
+										<span className="flex flex-wrap gap-x-4 gap-y-1 text-muted text-xs uppercase tracking-wider">
+											<span>{format(t.recommended, { level: String(mission.recommendedLevel) })}</span>
+											<span>{format(t.par, { time: clock(mission.parTimeSeconds) })}</span>
+											<span>{format(t.objectives, { count: String(mission.objectives.length) })}</span>
+											{record.bestTimeMs ? (
+												<span>{format(t.best, { time: clock(record.bestTimeMs / 1000) })}</span>
+											) : null}
+										</span>
+										{!open && <span className="text-muted text-xs">{t.lockedHint}</span>}
+									</button>
+								</li>
+							]
+						})}
+					</ul>
+				</section>
+			))}
 			<ul className="grid gap-3 md:grid-cols-2">
-				{missions.map(mission => {
-					const chosen = view.mission.id === mission.id
-					const record = bestOf(records.data?.find(entry => entry.id === mission.id))
-					return (
-						<li key={mission.id}>
-							<button
-								type="button"
-								aria-pressed={chosen}
-								disabled={!editable}
-								onClick={() => void choose(mission.id, view.mission.difficulty)}
-								className={cn(
-									'frame cut flex h-full w-full flex-col gap-2 p-4 text-left',
-									chosen
-										? '[--frame-color:var(--color-rot-lime)]'
-										: editable && 'hover:[--frame-color:var(--color-bone)]',
-									!editable && !chosen && 'opacity-60'
-								)}
-							>
-								<span className="flex items-start justify-between gap-3">
-									<span className="font-display text-2xl uppercase">{mission.name}</span>
-									<Badge tone={masteryTone[record.mastery] ?? 'muted'}>{t.mastery[record.mastery]}</Badge>
-								</span>
-								<span className="text-bone/80 text-sm">{mission.description}</span>
-								<span className="flex flex-wrap gap-x-4 gap-y-1 text-muted text-xs uppercase tracking-wider">
-									<span>{format(t.recommended, { level: String(mission.recommendedLevel) })}</span>
-									<span>{format(t.par, { time: clock(mission.parTimeSeconds) })}</span>
-									<span>{format(t.objectives, { count: String(mission.objectives.length) })}</span>
-									{record.bestTimeMs ? <span>{format(t.best, { time: clock(record.bestTimeMs / 1000) })}</span> : null}
-								</span>
-							</button>
-						</li>
-					)
-				})}
 				<li>
 					<button
 						type="button"

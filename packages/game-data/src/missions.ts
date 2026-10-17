@@ -1,4 +1,4 @@
-import { difficulties, economy } from './data.ts'
+import { difficulties, economy, propsDef } from './data.ts'
 import type { DifficultyId, MissionDef } from './schema.ts'
 
 export const Mastery = { none: 0, bronze: 1, silver: 2, gold: 3 } as const
@@ -54,7 +54,13 @@ export function minimumSeconds(mission: MissionDef): number {
 	let seconds = 0
 	for (const objective of mission.objectives) {
 		if (objective.optional) continue
-		if (objective.type === 'hold' || objective.type === 'survive') seconds += objective.seconds
+		if (objective.type === 'hold' || objective.type === 'survive' || objective.type === 'defend')
+			seconds += objective.seconds
+		// work that takes a hold: the longest of an objective's props (they can be worked side by side)
+		if (objective.type === 'interact')
+			seconds += Math.min(propsDef.terminal.holdSeconds, propsDef.generator.holdSeconds)
+		if (objective.type === 'rescue') seconds += propsDef.survivor.freeSeconds
+		if (objective.type === 'retrieve') seconds += propsDef.carry.pickupSeconds
 	}
 	return seconds
 }

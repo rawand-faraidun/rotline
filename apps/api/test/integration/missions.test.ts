@@ -4,6 +4,7 @@ import { claimPlayerRoom, recordRoomMission, releasePlayerRoom } from '@rotline/
 import { loadPrivateKey, signMessage, verifyTicket } from '@rotline/ticket'
 import { describe, expect, it } from 'vitest'
 import { grantReward, plausibleResult, RewardWorker } from '../../src/rewards.ts'
+import { openMissions } from '../../src/routes/party.ts'
 import { harness } from './helpers.ts'
 
 const { env, db, valkey, parties, seats, log, call, enlist } = harness('missions.rotline.test')
@@ -20,7 +21,7 @@ const result = (timeMs: number, score = 0, difficulty: 'veteran' | 'nightmare' =
 	score,
 	downs: 0,
 	squad: 1,
-	optionalDone: 0
+	optionalDone: 1
 })
 
 async function party(jar: Awaited<ReturnType<typeof enlist>>['jar'], path: string, body: unknown) {
@@ -36,13 +37,17 @@ describe('missions', () => {
 			code: string
 			mission: { id: string; difficulty: string }
 		}
-		expect(mission).toEqual({ id: 'yard-sweep', difficulty: 'veteran' })
+		// the campaign starts with its first mission
+		expect(mission).toEqual({ id: 'landfall', difficulty: 'veteran' })
 		await party(guest.jar, 'join', { code })
-		expect((await party(guest.jar, 'mission', { mission: 'yard-stand', difficulty: 'nightmare' })).status).toBe(403)
+		expect((await party(guest.jar, 'mission', { mission: 'landfall', difficulty: 'nightmare' })).status).toBe(403)
 		expect((await party(host.jar, 'mission', { mission: 'nowhere', difficulty: 'nightmare' })).status).toBe(400)
-		expect((await party(host.jar, 'mission', { mission: 'yard-stand', difficulty: 'godlike' })).status).toBe(400)
-		const chosen = await party(host.jar, 'mission', { mission: 'yard-stand', difficulty: 'nightmare' })
-		expect(chosen.body.mission).toEqual({ id: 'yard-stand', difficulty: 'nightmare' })
+		expect((await party(host.jar, 'mission', { mission: 'landfall', difficulty: 'godlike' })).status).toBe(400)
+		// later missions open one after another
+		expect((await party(host.jar, 'mission', { mission: 'yard-stand', difficulty: 'nightmare' })).status).toBe(409)
+		expect((await party(host.jar, 'mission', { mission: 'survival', difficulty: 'veteran' })).status).toBe(200)
+		const chosen = await party(host.jar, 'mission', { mission: 'landfall', difficulty: 'nightmare' })
+		expect(chosen.body.mission).toEqual({ id: 'landfall', difficulty: 'nightmare' })
 
 		await party(guest.jar, 'ready', { ready: true })
 		await seats.enter(host.id)
@@ -51,9 +56,9 @@ describe('missions', () => {
 		expect(response.status).toBe(200)
 		const { ticket } = (await response.json()) as { ticket: string }
 		const check = verifyTicket(createPublicKey(loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY)), ticket)
-		expect(check.ok && check.payload.mission).toEqual({ id: 'yard-stand', difficulty: 'nightmare' })
+		expect(check.ok && check.payload.mission).toEqual({ id: 'landfall', difficulty: 'nightmare' })
 		// fixed once started
-		expect((await party(host.jar, 'mission', { mission: 'yard-sweep', difficulty: 'veteran' })).status).toBe(409)
+		expect((await party(host.jar, 'mission', { mission: 'survival', difficulty: 'veteran' })).status).toBe(409)
 		await parties.endMission((await parties.current(host.id)).id)
 		await seats.release(host.id)
 	})
@@ -61,12 +66,10 @@ describe('missions', () => {
 	it('refuses a start for a mission the leader no longer sees, and lets a player abandon', async () => {
 		const solo = await enlist('Uma')
 		await seats.enter(solo.id)
-		await party(solo.jar, 'mission', { mission: 'yard-stand', difficulty: 'veteran' })
+		await party(solo.jar, 'mission', { mission: 'survival', difficulty: 'veteran' })
 		// the client still showed the default
-		expect((await party(solo.jar, 'start', { seen: { mission: 'yard-sweep', difficulty: 'veteran' } })).status).toBe(
-			409
-		)
-		const started = await party(solo.jar, 'start', { seen: { mission: 'yard-stand', difficulty: 'veteran' } })
+		expect((await party(solo.jar, 'start', { seen: { mission: 'landfall', difficulty: 'veteran' } })).status).toBe(409)
+		const started = await party(solo.jar, 'start', { seen: { mission: 'survival', difficulty: 'veteran' } })
 		expect(started.status).toBe(200)
 		expect((await parties.current(solo.id)).state).toBe('mission')
 		// abandoning a mission of one ends it
@@ -124,6 +127,7 @@ describe('missions', () => {
 		await grantReward(db, null, report(2, result(par * 0.9, 50, 'nightmare')))
 		const list = (await (await call(jar, '/api/missions')).json()) as {
 			id: string
+			open: boolean
 			difficulties: {
 				difficulty: string
 				completions: number
@@ -145,6 +149,9 @@ describe('missions', () => {
 			mastery: Mastery.bronze
 		})
 		expect(list.find(entry => entry.id === 'yard-stand')?.difficulties).toEqual([])
+		// a new player has only the first mission open
+		expect(list.find(entry => entry.id === 'landfall')).toMatchObject({ open: true })
+		expect(list.find(entry => entry.id === 'power-out')).toMatchObject({ open: false })
 	})
 
 	it('counts one mission result per room, however many reports carry one', async () => {
@@ -170,7 +177,7 @@ describe('missions', () => {
 		// faster than the timed objectives, more score than the time allows, unknown optional objectives
 		expect(plausibleResult(result(10_000))).toBe(false)
 		expect(plausibleResult(result(200_000, 1e9))).toBe(false)
-		expect(plausibleResult({ ...result(200_000), optionalDone: 1 })).toBe(false)
+		expect(plausibleResult({ ...result(200_000), optionalDone: 2 })).toBe(false)
 
 		const { id } = await enlist('Sol')
 		const stream = `rewards-test-${crypto.randomUUID()}`
@@ -210,5 +217,24 @@ describe('missions', () => {
 			await worker.stop()
 			await valkey.del(stream)
 		}
+	})
+})
+
+describe('campaign', () => {
+	it('opens each mission after the one before it', async () => {
+		const { id } = await enlist('Vic')
+		const landfall = missionById('landfall') as MissionDef
+		const open = async () => [...(await openMissions(db, id))]
+		expect(await open()).toEqual(['landfall'])
+		await grantReward(db, null, {
+			grantKey: `squad-${crypto.randomUUID()}:${id}:0a1b2c3d:0`,
+			userId: id,
+			class: 'assault',
+			xp: 1,
+			salvage: 1,
+			kills: 1,
+			result: { ...result(landfall.parTimeSeconds * 1000), missionId: 'landfall', difficulty: 'veteran' }
+		})
+		expect(await open()).toEqual(['landfall', 'yard-sweep'])
 	})
 })

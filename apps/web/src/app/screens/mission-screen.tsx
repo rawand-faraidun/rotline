@@ -134,6 +134,24 @@ function Abilities({ hud }: { hud: HudState }) {
 	)
 }
 
+/** "23 / 40", "12 / 45 s", "Get there", "38 s left"… for each objective type. */
+function objectiveProgress(mission: NonNullable<HudState['mission']>): string {
+	const values = { progress: String(mission.progress), goal: String(mission.goal) }
+	switch (mission.type) {
+		case 'reach':
+		case 'retrieve':
+			return mission.type === 'reach' ? t.progressReach : t.progressCarry
+		case 'hold':
+		case 'survive':
+		case 'defend':
+			return format(t.progressSeconds, values)
+		case 'extract':
+			return format(t.progressLeft, values)
+		default:
+			return format(t.progressKills, values)
+	}
+}
+
 /** The current objective, top right: what to do and how far along. */
 function ObjectiveTracker({ hud }: { hud: HudState }) {
 	const mission = hud.mission
@@ -149,7 +167,7 @@ function ObjectiveTracker({ hud }: { hud: HudState }) {
 				<span className="text-muted text-xs uppercase tracking-wider">{mission.difficulty}</span>
 			</span>
 			<span className="font-bold text-[10px] text-muted uppercase tracking-[0.25em]">
-				{format(t.objective, { index: String(mission.objective + 1), count: String(mission.count) })}
+				{format(t.objective, { index: String(Math.max(1, mission.step)), count: String(mission.count) })}
 			</span>
 			<span className="font-bold text-rot-lime uppercase tracking-wide" aria-live="polite">
 				{mission.label}
@@ -158,14 +176,7 @@ function ObjectiveTracker({ hud }: { hud: HudState }) {
 				<span className="h-1.5 flex-1 bg-surface-raised">
 					<span className="block h-full bg-rot-lime" style={{ width: `${fraction * 100}%` }} />
 				</span>
-				<span className="font-display text-lg tabular-nums">
-					{mission.type === 'reach'
-						? t.progressReach
-						: format(mission.type === 'kill' ? t.progressKills : t.progressSeconds, {
-								progress: String(mission.progress),
-								goal: String(mission.goal)
-							})}
-				</span>
+				<span className="font-display text-lg tabular-nums">{objectiveProgress(mission)}</span>
 			</span>
 		</section>
 	)
@@ -454,7 +465,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 			hud?.status === 'disconnected' ||
 			hud?.status === 'kicked' ||
 			hud?.status === 'over' ||
-			hud?.status === 'elsewhere')
+			hud?.status === 'elsewhere' ||
+			hud?.status === 'outdated')
 	const inMission = hud?.mission !== null && hud?.mission !== undefined
 
 	return (
@@ -510,6 +522,17 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						</ul>
 					)}
 
+					{!hud.reviveHint && hud.interactHint && hud.status === 'playing' && (
+						<p className="pointer-events-none absolute top-[58%] left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 bg-rot-black/80 px-3 py-1 font-bold text-rot-lime uppercase tracking-widest">
+							<span>{t.interact[hud.interactHint.action]}</span>
+							{hud.interactHint.progress > 0 && (
+								<span className="h-1 w-40 bg-surface-raised" aria-hidden="true">
+									<span className="block h-full bg-rot-lime" style={{ width: `${hud.interactHint.progress * 100}%` }} />
+								</span>
+							)}
+						</p>
+					)}
+
 					{hud.reviveHint && hud.status === 'playing' && (
 						<p className="pointer-events-none absolute top-[58%] left-1/2 -translate-x-1/2 bg-rot-black/80 px-3 py-1 font-bold text-rot-lime uppercase tracking-widest">
 							{format(t.reviveHint, { name: hud.reviveHint })}
@@ -538,9 +561,11 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 										? t.objectiveBanner
 										: hud.banner.text === 'checkpoint'
 											? t.checkpointBanner
-											: hud.banner.text === 'run-over'
-												? format(t.runOverBanner, { wave: String(hud.banner.wave) })
-												: t.completeBanner}
+											: hud.banner.text === 'failed'
+												? t.failedBanner
+												: hud.banner.text === 'run-over'
+													? format(t.runOverBanner, { wave: String(hud.banner.wave) })
+													: t.completeBanner}
 						</p>
 					)}
 
@@ -626,15 +651,21 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 				<div className="absolute inset-0 grid place-items-center bg-rot-black/80">
 					<Panel className="w-full max-w-sm [--frame-color:var(--color-alert)]">
 						<PanelTitle>
-							{hud?.status === 'over'
-								? t.over
-								: hud?.status === 'elsewhere'
-									? t.elsewhere
-									: hud?.status === 'kicked'
-										? t.kicked
-										: t.lost}
+							{hud?.status === 'outdated'
+								? t.outdated
+								: hud?.status === 'over'
+									? t.over
+									: hud?.status === 'elsewhere'
+										? t.elsewhere
+										: hud?.status === 'kicked'
+											? t.kicked
+											: t.lost}
 						</PanelTitle>
-						<Button onClick={() => void navigate({ to: '/play/lobby' })}>{t.backToLobby}</Button>
+						{hud?.status === 'outdated' ? (
+							<Button onClick={() => location.reload()}>{t.reload}</Button>
+						) : (
+							<Button onClick={() => void navigate({ to: '/play/lobby' })}>{t.backToLobby}</Button>
+						)}
 					</Panel>
 				</div>
 			)}

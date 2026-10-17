@@ -68,6 +68,9 @@ const DOUBLE_XP = buffs.buffs.find(buff => buff.id === 'double-xp')?.params.xp ?
 type Earnings = {
 	xp: number
 	salvage: number
+	/** objective pay waiting for the next checkpoint (or the end): an abandoned mission pays none of it */
+	pendingXp: number
+	pendingSalvage: number
 	/** the simulation's score (and the part of it earned under Double XP) already turned into XP and Salvage */
 	scoreReported: number
 	doubledReported: number
@@ -153,6 +156,8 @@ export class Room {
 	completedAt = 0
 	/** a room of one can be paused from the pause menu */
 	private pausedAt = 0
+	/** something paid the players who played this tick; their "played" marks are cleared after it */
+	private paidThisTick = false
 	private readonly onReward: RewardSink
 	/** the mission and difficulty every ticket to this room must name; null for Survival and the range */
 	readonly missionRoom: MissionRoom | null
@@ -298,6 +303,8 @@ export class Room {
 				earnings: {
 					xp: 0,
 					salvage: 0,
+					pendingXp: 0,
+					pendingSalvage: 0,
 					scoreReported: 0,
 					doubledReported: 0,
 					kills: 0,
@@ -346,6 +353,8 @@ export class Room {
 		}
 		member.connection = connection
 		member.disconnectedAt = 0
+		const joined = this.world.players.get(member.slot)
+		if (joined) joined.away = false
 		connection.send(
 			writeWelcome(
 				this.writer,
@@ -371,6 +380,13 @@ export class Room {
 		if (!member || member.connection !== connection) return
 		member.connection = null
 		member.disconnectedAt = now
+		// an absent character holds nothing down and does not hold up the extraction
+		const state = this.world.players.get(member.slot)
+		if (state) {
+			state.heldButtons = 0
+			state.interactTicks = 0
+			state.away = true
+		}
 		this.broadcastRoster()
 	}
 
@@ -459,13 +475,24 @@ export class Room {
 			else if (event.type === 'hit' && event.by > 0) this.count(event.by, 'hits')
 			// a cleared wave pays everyone connected who played it (not on a restart after a wipe,
 			// not the absent, not someone standing idle while the others play)
-			else if (event.type === 'cleared') this.payAll(economy.rewards.waveClear, true)
+			else if (event.type === 'cleared') this.payAll(economy.rewards.waveClear, 'now')
 			// objectives pay like waves, the first time only; checkpoints save what was earned and found
-			else if (event.type === 'objective' && event.first) this.payAll(economy.rewards.objective, false)
-			else if (event.type === 'checkpoint') for (const member of this.members.values()) this.report(member, true)
-			else if (event.type === 'threshold') this.paySalvage(event.player, economy.score.thresholdSalvage)
+			else if (event.type === 'objective' && event.first)
+				this.payAll(
+					this.missionDef?.objectives[event.index]?.optional ? economy.rewards.optional : economy.rewards.objective,
+					'pending'
+				)
+			else if (event.type === 'checkpoint') {
+				this.settlePending()
+				for (const member of this.members.values()) this.report(member, true)
+			} else if (event.type === 'threshold') this.paySalvage(event.player, economy.score.thresholdSalvage)
 			else if (event.type === 'mission-complete') this.complete(now)
 			else if (event.type === 'run-over') this.runOver(now, event.wave)
+		}
+		// several payments in one tick (an optional and a step objective) all reach the same players
+		if (this.paidThisTick) {
+			this.paidThisTick = false
+			for (const member of this.members.values()) member.earnings.active = false
 		}
 
 		if (this.world.tick % SNAPSHOT_EVERY === 0) {
@@ -512,14 +539,41 @@ export class Room {
 	 * Pays everyone connected who played since the last payment (not the absent, not someone
 	 * standing idle while the others play); `report` flushes it at once (waves).
 	 */
-	private payAll(amounts: { xp: number; salvage: number }, report: boolean): void {
+	/**
+	 * Pays everyone connected who played since the last payment (not the absent, not someone
+	 * standing idle while the others play). Waves are reported at once; objectives wait in a pending
+	 * bucket that the next checkpoint or the mission's end pays to those who took part.
+	 */
+	private payAll(amounts: { xp: number; salvage: number }, mode: 'now' | 'pending'): void {
 		const doubled = this.world.tick < this.world.doubleXpUntil ? DOUBLE_XP : 1
 		for (const member of this.members.values()) {
-			const played = member.earnings.active
-			member.earnings.active = false
-			if (!member.connection || !played) continue
-			this.add(member, amounts.xp * doubled * this.rewardScale, amounts.salvage * this.rewardScale)
-			if (report) this.report(member)
+			if (!member.connection || !member.earnings.active) continue
+			const xp = amounts.xp * doubled * this.rewardScale
+			const salvage = amounts.salvage * this.rewardScale
+			if (mode === 'pending') {
+				member.earnings.pendingXp += xp
+				member.earnings.pendingSalvage += salvage
+				continue
+			}
+			this.add(member, xp, salvage)
+			this.report(member)
+		}
+		this.paidThisTick = true
+	}
+
+	/** At a checkpoint or the end: pending objective pay goes to those who took part; the rest is dropped. */
+	private settlePending(): void {
+		for (const member of this.members.values()) {
+			const earnings = member.earnings
+			const state = this.world.players.get(member.slot)
+			if (this.tookPart(member)) {
+				this.add(member, earnings.pendingXp, earnings.pendingSalvage)
+				// objective score counts now too (and may pass a score threshold)
+				if (state) this.world.addScore(state, state.pendingScore, true)
+			}
+			if (state) state.pendingScore = 0
+			earnings.pendingXp = 0
+			earnings.pendingSalvage = 0
 		}
 	}
 
@@ -564,6 +618,7 @@ export class Room {
 		if (!mission || !def || !room || this.completedAt > 0) return
 		this.completedAt = now
 		const timeMs = ((mission.completedTick - mission.startTick) * DT * 1000) | 0
+		this.settlePending()
 		let squadScore = 0
 		for (const state of this.world.players.values()) squadScore += Math.floor(state.score)
 		const result: MissionResult = {
@@ -574,7 +629,7 @@ export class Room {
 			score: squadScore,
 			downs: mission.downs,
 			squad: this.world.players.size,
-			optionalDone: 0
+			optionalDone: mission.optionalDone.length
 		}
 		const mastery = masteryFor(def, result)
 		for (const member of this.members.values()) {

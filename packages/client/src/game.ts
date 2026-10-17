@@ -10,6 +10,7 @@ import {
 	type MissionDef,
 	maps,
 	missionById,
+	propsDef,
 	weapons
 } from '@rotline/game-data'
 import { INPUT_REDUNDANCY, KickReason, RangeAction, Writer, writePause, writeRange } from '@rotline/protocol'
@@ -18,19 +19,24 @@ import {
 	aimToAngle,
 	angleToAim,
 	chainMultiplier,
+	createProps,
 	Grid,
 	ObjectKind,
 	type PlayerInput,
+	type PlayerState,
+	type Prop,
+	PropState,
 	quantiseAxis,
 	REACH_STEP,
 	REVIVE_COMPLETE,
 	REVIVE_RANGE,
 	Step,
+	setPropState,
 	TICK_RATE
 } from '@rotline/sim'
 import * as THREE from 'three'
 import { Controls } from './controls.ts'
-import { HudStore, type MissionHud, type Toast } from './hud-store.ts'
+import { HudStore, type InteractAction, type MissionHud, type Toast } from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
@@ -38,6 +44,7 @@ import { Effects } from './render/effects.ts'
 import { MissionMarkers } from './render/mission.ts'
 import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
 import { PlayerFigure } from './render/players.ts'
+import { PropRenderer } from './render/props.ts'
 import { Stage } from './render/scene.ts'
 import { ZombieRenderer } from './render/zombies.ts'
 
@@ -83,9 +90,12 @@ export function startGame(options: GameOptions): GameHandle {
 	const hud = new HudStore()
 	const map = (maps[options.map ?? 'yard'] ?? maps.yard) as NonNullable<typeof maps.yard>
 	const grid = new Grid(map)
+	// the map's props, kept in step with the server's (their blocking cells match its grid)
+	const props = createProps(map, grid)
 	const stage = new Stage(options.canvas, map)
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene)
+	const propRenderer = new PropRenderer(stage.scene, props)
 	const showNumbers = options.damageNumbers ?? options.map === 'range'
 	const numbers = showNumbers ? new DamageNumbers(stage.scene) : null
 	const ownHits: { at: number; amount: number }[] = []
@@ -100,6 +110,7 @@ export function startGame(options: GameOptions): GameHandle {
 	const others = new Map<number, PlayerFigure>()
 	const names = new Map<number, { name: string; connected: boolean }>()
 	let mission: MissionDef | null = null
+	let openedCaches = 0
 	let rewardScale = 1
 	let menuOpen = false
 	let paused = false
@@ -165,7 +176,8 @@ export function startGame(options: GameOptions): GameHandle {
 					name: mission.name,
 					difficulty: difficultyDef(difficulty as DifficultyId)?.name ?? difficulty,
 					objective: 0,
-					count: mission.objectives.length,
+					step: 1,
+					count: mission.objectives.filter(objective => !objective.optional).length,
 					label: mission.objectives[0]?.label ?? '',
 					type: mission.objectives[0]?.type ?? 'kill',
 					progress: 0,
@@ -194,6 +206,17 @@ export function startGame(options: GameOptions): GameHandle {
 		snapshot: (snapshot, table, receivedAt) => {
 			interpolator.push(snapshot.tick, table, snapshot.others, snapshot.pools, receivedAt, snapshot.objects)
 			syncBarricades(snapshot.objects)
+			for (const update of snapshot.props) {
+				const prop = props[update.index]
+				if (!prop) continue
+				prop.health = update.health * prop.maxHealth
+				prop.progress = update.progress
+				prop.powered = update.powered
+				prop.readyTick = update.cooling ? Number.MAX_SAFE_INTEGER : 0
+				prop.x = update.x
+				prop.y = update.y
+				if (prop.state !== update.state) setPropState(grid, prop, update.state)
+			}
 			predictor?.reconcile(snapshot.self, snapshot.lastSeq, snapshot.tick)
 			hudDirty = true
 			if (snapshot.rttMs > 0) pingMs = snapshot.rttMs
@@ -201,13 +224,24 @@ export function startGame(options: GameOptions): GameHandle {
 			const progress = snapshot.mission
 			if (mission && missionHud) {
 				const objective = mission.objectives[progress.objective]
-				const timed = objective?.type === 'hold' || objective?.type === 'survive'
+				const timed =
+					objective?.type === 'hold' ||
+					objective?.type === 'survive' ||
+					objective?.type === 'defend' ||
+					objective?.type === 'extract'
 				const next: MissionHud = {
 					...missionHud,
 					objective: Math.min(progress.objective, mission.objectives.length - 1),
+					step: mission.objectives.slice(0, progress.objective + 1).filter(objective => !objective.optional).length,
 					label: objective?.label ?? missionHud.label,
 					type: objective?.type ?? missionHud.type,
-					progress: timed ? Math.floor(progress.progress / TICK_RATE) : progress.progress,
+					// extraction counts down
+					progress:
+						objective?.type === 'extract'
+							? Math.max(0, Math.ceil((progress.goal - progress.progress) / TICK_RATE))
+							: timed
+								? Math.floor(progress.progress / TICK_RATE)
+								: progress.progress,
 					goal: timed ? Math.round(progress.goal / TICK_RATE) : progress.goal,
 					complete: progress.status === 2
 				}
@@ -219,6 +253,7 @@ export function startGame(options: GameOptions): GameHandle {
 				)
 					missionHud = next
 				markers?.update(progress.objective, progress.status === 1, progress.caches, receivedAt / 1000)
+				openedCaches = progress.caches
 			}
 			const running: { id: string; name: string; seconds: number }[] = []
 			const buffName = (id: string) => buffDefs.buffs.find(buff => buff.id === id)?.name ?? id
@@ -356,6 +391,9 @@ export function startGame(options: GameOptions): GameHandle {
 							true
 						)
 						break
+					case 'failed':
+						hud.set({ banner: { text: 'failed', wave: 0, at: performance.now() } }, performance.now(), true)
+						break
 					case 'run-over':
 						hud.set({ banner: { text: 'run-over', wave: event.wave, at: performance.now() } }, performance.now(), true)
 						break
@@ -388,7 +426,8 @@ export function startGame(options: GameOptions): GameHandle {
 				performance.now(),
 				true
 			),
-		closed: () => hud.set({ status: 'disconnected' }, performance.now(), true)
+		closed: () => hud.set({ status: 'disconnected' }, performance.now(), true),
+		outdated: () => hud.set({ status: 'outdated' }, performance.now(), true)
 	})
 
 	/** Where a player is drawn (for effects at their feet). */
@@ -485,10 +524,62 @@ export function startGame(options: GameOptions): GameHandle {
 							]
 						: []
 				),
-				dps: dps(now)
+				dps: dps(now),
+				interactHint: interactHint(state)
 			},
 			now
 		)
+	}
+
+	/** Objective props that may be worked now: the current objective's and the optional ones'. */
+	let workableKey = -1
+	let workable: Set<string> | null = null
+	function workableIds(): Set<string> | null {
+		if (!mission || !missionHud) return null
+		if (workableKey === missionHud.objective) return workable
+		workableKey = missionHud.objective
+		const ids = new Set<string>()
+		const add = (objective: MissionDef['objectives'][number] | undefined) => {
+			if (!objective) return
+			if (objective.type === 'interact') for (const id of objective.props) ids.add(id)
+			if (objective.type === 'rescue') for (const id of objective.survivors) ids.add(id)
+			if (objective.type === 'retrieve') ids.add(objective.item)
+		}
+		add(mission.objectives[missionHud.objective])
+		for (const objective of mission.objectives) if (objective.optional) add(objective)
+		workable = ids
+		return ids
+	}
+
+	/** What interact would do where the player stands (the same rules the server applies). */
+	let lastHint: { action: InteractAction; progress: number } | null = null
+	function interactHint(state: PlayerState): { action: InteractAction; progress: number } | null {
+		let best: { action: InteractAction; progress: number } | null = null
+		if (state.alive && !state.downed) {
+			let nearest = propsDef.interactRange
+			const workable = workableIds()
+			for (const prop of props) {
+				const action = propAction(prop, state.carrying, predictorTick, workable)
+				if (!action) continue
+				const d = propReach(prop, state)
+				if (d > nearest || !propInSight(grid, prop, state)) continue
+				nearest = d
+				best = { action, progress: prop.progress }
+			}
+			if (!best && mission) {
+				for (const [index, cache] of mission.caches.entries()) {
+					if (openedCaches & (1 << index)) continue
+					if (Math.hypot(cache.x - state.x, cache.y - state.y) <= economy.drops.cacheRange)
+						best = { action: 'cache', progress: 0 }
+				}
+			}
+		}
+		// the same hint object while nothing changed, so the HUD does not re-render
+		if (best && lastHint && best.action === lastHint.action && Math.abs(best.progress - lastHint.progress) < 0.02)
+			return lastHint
+		if (!best && !lastHint) return null
+		lastHint = best
+		return best
 	}
 
 	/** The predicted tick: what cooldowns are measured against. */
@@ -567,6 +658,7 @@ export function startGame(options: GameOptions): GameHandle {
 			zombies?.update(interpolator.view, now / 1000)
 			effects.setPools(interpolator.pools)
 			objectRenderer.update(interpolator.objects, now / 1000)
+			propRenderer.update(props, now / 1000, dt)
 			for (const other of interpolator.others) {
 				let figure = others.get(other.id)
 				if (!figure) {
@@ -623,6 +715,7 @@ export function startGame(options: GameOptions): GameHandle {
 			controls.dispose()
 			window.removeEventListener('resize', onResize)
 			markers?.dispose()
+			propRenderer.dispose()
 			stage.dispose()
 		}
 	}
@@ -635,4 +728,48 @@ function sameBuffs(
 	return (
 		a.length === b.length && a.every((buff, index) => buff.id === b[index]?.id && buff.seconds === b[index]?.seconds)
 	)
+}
+
+/** What interact does to a prop right now, or null if nothing (mirrors the server's rules). */
+function propAction(prop: Prop, carrying: boolean, tick: number, workable: Set<string> | null): InteractAction | null {
+	const allowed = workable === null || workable.has(prop.def.id)
+	switch (prop.def.kind) {
+		case 'door':
+			if (prop.state === PropState.welded) return prop.health < prop.maxHealth ? 'repair' : null
+			if (prop.state === PropState.open) return 'close'
+			if (prop.state === PropState.closed) return prop.progress > 0 ? 'weld' : 'open'
+			return null
+		case 'generator':
+			return allowed && prop.state === PropState.idle ? 'power' : null
+		case 'terminal':
+			return allowed && prop.state === PropState.idle ? 'hack' : null
+		case 'trap':
+			return prop.state === PropState.idle && tick >= prop.readyTick ? 'trap' : null
+		case 'survivor':
+			return allowed && prop.state === PropState.idle ? 'free' : null
+		case 'carry':
+			return allowed && prop.state === PropState.idle && !carrying ? 'pickup' : null
+		case 'defend':
+			return prop.state !== PropState.destroyed && prop.health < prop.maxHealth ? 'repair' : null
+		default:
+			return null
+	}
+}
+
+/** Nothing in between the player and the prop (the server's rule: no working through walls). */
+function propInSight(grid: Grid, prop: Prop, player: { x: number; y: number }): boolean {
+	const halfW = prop.cells.length > 0 ? (prop.def.w ?? 1) / 2 : 0
+	const halfH = prop.cells.length > 0 ? (prop.def.h ?? 1) / 2 : 0
+	const tx = Math.max(prop.x - halfW, Math.min(prop.x + halfW, player.x))
+	const ty = Math.max(prop.y - halfH, Math.min(prop.y + halfH, player.y))
+	const d = Math.hypot(tx - player.x, ty - player.y)
+	if (d < 0.05) return true
+	const length = Math.max(0, d - 0.1)
+	return grid.rayToWall(player.x, player.y, (tx - player.x) / d, (ty - player.y) / d, length) >= length - 1e-6
+}
+
+function propReach(prop: Prop, player: { x: number; y: number }): number {
+	const halfW = prop.cells.length > 0 ? (prop.def.w ?? 1) / 2 : 0
+	const halfH = prop.cells.length > 0 ? (prop.def.h ?? 1) / 2 : 0
+	return Math.hypot(Math.max(0, Math.abs(player.x - prop.x) - halfW), Math.max(0, Math.abs(player.y - prop.y) - halfH))
 }

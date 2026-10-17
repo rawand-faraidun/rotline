@@ -306,6 +306,8 @@ export const economySchema = z.object({
 		/** per objective completed, and for finishing a mission (both times the difficulty's reward scale) */
 		objective: z.object({ xp: z.number().min(0), salvage: z.number().min(0), score: z.number().int().min(0) }),
 		completion: z.object({ xp: z.number().min(0), salvage: z.number().min(0) }),
+		/** per optional objective done (times the difficulty's reward scale) */
+		optional: z.object({ xp: z.number().min(0), salvage: z.number().min(0), score: z.number().int().min(0) }),
 		/** score also pays Salvage: one per this many points (times the difficulty's reward scale) */
 		scorePerSalvage: z.number().positive(),
 		/** no mission can score faster than this (the API refuses results above it) */
@@ -358,6 +360,47 @@ const rect = z.object({
 	h: z.number().int().positive()
 })
 
+export const propKindId = z.enum([
+	'barrel',
+	'crate',
+	'sandbags',
+	'door',
+	'generator',
+	'terminal',
+	'turret',
+	'floodlight',
+	'trap',
+	'survivor',
+	'carry',
+	'defend'
+])
+
+/**
+ * A map prop. Barrels, cover, doors, generators, terminals, turrets and defend targets stand on
+ * cells (x, y the top-left cell, w × h cells); the others stand on a point.
+ */
+export const mapPropSchema = z.object({
+	id,
+	kind: propKindId,
+	x: z.number(),
+	y: z.number(),
+	w: z.number().int().positive().max(16).optional(),
+	h: z.number().int().positive().max(16).optional(),
+	/** doors: start closed */
+	closed: z.boolean().optional(),
+	/** doors: a mission gate, closed and locked until a mission opens it */
+	locked: z.boolean().optional(),
+	/** defend targets: their health (default from props data) */
+	health: z.number().positive().optional(),
+	/** turrets and floodlights: the generator that powers them */
+	powerBy: id.optional()
+})
+
+const zombieSpawn = point.extend({
+	/** which part of the map this spawn belongs to; objectives choose the parts that spawn */
+	section: z.number().int().min(0).max(9).optional()
+})
+
 export const mapSchema = z.object({
 	id,
 	name: z.string(),
@@ -365,7 +408,8 @@ export const mapSchema = z.object({
 	height: z.number().int().positive().max(1000),
 	walls: z.array(rect),
 	playerSpawns: z.array(point).min(4),
-	zombieSpawns: z.array(point).min(1),
+	zombieSpawns: z.array(zombieSpawn).min(1),
+	props: z.array(mapPropSchema).max(4096).optional(),
 	/** firing-range maps: where dummies stand, how fast they heal, how many zombies may be spawned */
 	range: z
 		.object({
@@ -442,9 +486,13 @@ const objectiveBase = {
 	label: z.string().min(1),
 	/** a checkpoint is saved when this objective is done */
 	checkpoint: z.boolean().optional(),
+	/** where players come back after a checkpoint (objectives with an area use its centre) */
+	checkpointAt: point.optional(),
 	/** spawn rate while this objective runs, times the mission's */
 	spawnScale: z.number().positive().optional(),
-	/** optional objectives pay extra and count toward mastery (run from milestone 5b) */
+	/** map sections whose zombie spawns are used while this objective runs (default: all) */
+	sections: z.array(z.number().int().min(0).max(9)).min(1).optional(),
+	/** optional objectives run alongside the others, pay extra and count toward mastery */
 	optional: z.boolean().optional()
 }
 
@@ -452,7 +500,17 @@ export const objectiveSchema = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('kill'), count: z.number().int().positive(), ...objectiveBase }),
 	z.object({ type: z.literal('reach'), area, ...objectiveBase }),
 	z.object({ type: z.literal('hold'), area, seconds: z.number().positive(), ...objectiveBase }),
-	z.object({ type: z.literal('survive'), seconds: z.number().positive(), ...objectiveBase })
+	z.object({ type: z.literal('survive'), seconds: z.number().positive(), ...objectiveBase }),
+	/** work every listed generator or terminal (hold interact) */
+	z.object({ type: z.literal('interact'), props: z.array(id).min(1), ...objectiveBase }),
+	/** keep a defend target standing for a while */
+	z.object({ type: z.literal('defend'), prop: id, seconds: z.number().positive(), ...objectiveBase }),
+	/** free survivors and bring them to an area */
+	z.object({ type: z.literal('rescue'), survivors: z.array(id).min(1), area, ...objectiveBase }),
+	/** carry an object to an area */
+	z.object({ type: z.literal('retrieve'), item: id, area, ...objectiveBase }),
+	/** everyone standing reaches an area before the time runs out */
+	z.object({ type: z.literal('extract'), area, seconds: z.number().positive(), ...objectiveBase })
 ])
 
 export const missionSchema = z.object({
@@ -472,7 +530,88 @@ export const missionSchema = z.object({
 	}),
 	/** hidden caches: open with interact for an item drop */
 	caches: z.array(z.object({ x: z.number(), y: z.number() })).max(16),
+	/** locked doors this mission opens (and closes behind the squad) when an objective is done */
+	gates: z
+		.record(
+			id,
+			z.object({
+				openOn: z.number().int().min(0),
+				closeOn: z.number().int().min(0).optional(),
+				/** a point on the side the squad goes on to: whoever is left behind is brought here */
+				side: point.optional()
+			})
+		)
+		.optional(),
 	objectives: z.array(objectiveSchema).min(1)
+})
+
+/** The campaign: zones in order, each with its missions in order. */
+export const campaignSchema = z.object({
+	zones: z
+		.array(
+			z.object({
+				id,
+				name: z.string().min(1),
+				description: z.string().min(1),
+				missions: z.array(id).min(1)
+			})
+		)
+		.min(1)
+})
+
+/** Interactive map props: their numbers. */
+export const propsDataSchema = z.object({
+	barrel: z.object({
+		health: z.number().positive(),
+		radius: z.number().positive(),
+		blastDamage: z.number().min(0),
+		blastRadius: z.number().positive(),
+		playerDamageShare: z.number().min(0).max(1)
+	}),
+	crate: z.object({ health: z.number().positive() }),
+	sandbags: z.object({ health: z.number().positive() }),
+	door: z.object({
+		weldSeconds: z.number().positive(),
+		weldedHealth: z.number().positive(),
+		closedHealth: z.number().positive(),
+		toggleSeconds: z.number().min(0)
+	}),
+	/** a generator: a hold starts it, then it runs up (zombies come for it) until it is on */
+	generator: z.object({
+		holdSeconds: z.number().positive(),
+		startSeconds: z.number().min(0),
+		health: z.number().positive()
+	}),
+	terminal: z.object({ holdSeconds: z.number().positive() }),
+	turret: z.object({
+		damage: z.number().positive(),
+		shotsPerSecond: z.number().positive(),
+		range: z.number().positive(),
+		damageType
+	}),
+	trap: z.object({
+		radius: z.number().positive(),
+		damagePerSecond: z.number().positive(),
+		activeSeconds: z.number().positive(),
+		cooldownSeconds: z.number().min(0),
+		damageType
+	}),
+	survivor: z.object({
+		health: z.number().positive(),
+		speed: z.number().positive(),
+		followDistance: z.number().positive(),
+		freeSeconds: z.number().positive(),
+		radius: z.number().positive(),
+		/** a survivor stuck out of reach this long catches up with the one they follow */
+		stuckSeconds: z.number().positive()
+	}),
+	carry: z.object({ speedMultiplier: z.number().positive().max(1), pickupSeconds: z.number().positive() }),
+	defend: z.object({ health: z.number().positive() }),
+	interactRange: z.number().positive(),
+	/** holding interact on a damaged defend target or welded door mends it this fast */
+	repairPerSecond: z.number().positive(),
+	/** extraction waits only for players who acted this recently (not the idle or disconnected) */
+	extractIdleSeconds: z.number().positive()
 })
 
 /** One equipped item as the game sees it: which item, its upgrade level and the perks chosen. */
@@ -518,6 +657,10 @@ export type ArmourDef = GearDef['armour'][number]
 export type UtilityDef = GearDef['utility'][number]
 export type EconomyDef = z.infer<typeof economySchema>
 export type MapDef = z.infer<typeof mapSchema>
+export type MapProp = z.infer<typeof mapPropSchema>
+export type PropKindId = z.infer<typeof propKindId>
+export type PropsData = z.infer<typeof propsDataSchema>
+export type CampaignDef = z.infer<typeof campaignSchema>
 export type WavesDef = z.infer<typeof wavesSchema>
 export type ItemRef = z.infer<typeof itemRefSchema>
 export type DifficultyId = z.infer<typeof difficultyId>

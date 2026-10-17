@@ -8,11 +8,14 @@ import {
 	items,
 	type MissionDef,
 	type ObjectiveDef,
+	propsDef,
 	zombieIndex,
 	zombies
 } from '@rotline/game-data'
 import { DT, MAX_ZOMBIES, TICK_RATE } from './constants.ts'
 import { type PlayerState, refillUtilities } from './player.ts'
+import { resetProp } from './prop-step.ts'
+import { type Prop, PropState, setPropState } from './props.ts'
 import { ObjectKind, type World } from './world.ts'
 
 export type MissionSetup = { mission: MissionDef; difficulty: DifficultyId }
@@ -38,6 +41,12 @@ export type MissionState = {
 	downs: number
 	/** objectives up to here have paid out: one redone after a wipe pays nothing again */
 	rewardedThrough: number
+	/** kills since the mission started (optional kill objectives) */
+	kills: number
+	/** optional objectives done */
+	optionalDone: number[]
+	/** the objective `World.targetProps` was worked out for */
+	targetsFor: number
 	spawnAccumulator: number
 	/** composition as cumulative weights, for weighted picks */
 	pool: { type: number; upTo: number }[]
@@ -75,7 +84,7 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 	return {
 		def: setup.mission,
 		difficulty: difficultyDef(setup.difficulty),
-		index: 0,
+		index: nextStep(setup.mission, 0),
 		progress: 0,
 		status: MissionStatus.active,
 		startTick,
@@ -85,10 +94,20 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 		checkpointY: spawnY,
 		downs: 0,
 		rewardedThrough: 0,
+		kills: 0,
+		optionalDone: [],
+		targetsFor: -1,
 		spawnAccumulator: 0,
 		pool,
 		poolTotal: total
 	}
+}
+
+/** The first objective from `from` on that is a step (not optional); past the end when none is left. */
+export function nextStep(def: MissionDef, from: number): number {
+	let index = from
+	while (index < def.objectives.length && def.objectives[index]?.optional) index++
+	return index
 }
 
 export function currentObjective(mission: MissionState): ObjectiveDef | null {
@@ -105,7 +124,15 @@ export function objectiveGoal(objective: ObjectiveDef | null): number {
 			return 1
 		case 'hold':
 		case 'survive':
+		case 'defend':
+		case 'extract':
 			return Math.round(objective.seconds * TICK_RATE)
+		case 'interact':
+			return objective.props.length
+		case 'rescue':
+			return objective.survivors.length
+		case 'retrieve':
+			return 1
 	}
 }
 
@@ -132,6 +159,48 @@ function standing(world: World): boolean {
 	return false
 }
 
+/**
+ * What zombies go for and what may be worked follow the current objective; worked out again when it
+ * changes. Runs before players act each tick.
+ */
+export function updateTargets(world: World): void {
+	const mission = world.mission
+	if (!mission) return
+	const objective = currentObjective(mission)
+	if (!objective) return
+	if (mission.targetsFor !== mission.index) {
+		mission.targetsFor = mission.index
+		const ids =
+			objective.type === 'rescue'
+				? objective.survivors
+				: objective.type === 'defend'
+					? [objective.prop]
+					: objective.type === 'interact'
+						? objective.props
+						: []
+		world.targetProps = ids.flatMap(id => world.propById.get(id) ?? [])
+		// what may be worked now: this objective's props and any optional objective's
+		const workable = new Set<Prop>(world.targetProps)
+		if (objective.type === 'retrieve') {
+			const item = world.propById.get(objective.item)
+			if (item) workable.add(item)
+		}
+		for (const other of mission.def.objectives) {
+			if (!other.optional || other.type !== 'interact') continue
+			for (const id of other.props) {
+				const prop = world.propById.get(id)
+				if (prop) workable.add(prop)
+			}
+		}
+		world.workableProps = workable
+		// a defend target starts its defence whole
+		if (objective.type === 'defend') {
+			const prop = world.propById.get(objective.prop)
+			if (prop && prop.state !== PropState.destroyed) prop.health = prop.maxHealth
+		}
+	}
+}
+
 /** Spawns, objective progress and checkpoints; called once a tick while a mission runs. */
 export function stepMission(world: World): void {
 	const mission = world.mission
@@ -144,6 +213,8 @@ export function stepMission(world: World): void {
 	const squadScale = difficulties.squadEnemyCount[squad - 1] ?? 1
 	const count = mission.difficulty.enemyCount * squadScale
 	const maxAlive = Math.min(difficulties.maxAlive, Math.round(mission.def.spawn.maxAlive * count))
+	// zombies come from the parts of the map this objective names, and go for what it protects
+	world.spawnSections = objective.sections ?? null
 	// nothing spawns while the whole squad is down: they come back to the checkpoint, not into a horde
 	if (standing(world)) {
 		mission.spawnAccumulator += mission.def.spawn.perSecond * (objective.spawnScale ?? 1) * count * DT
@@ -171,14 +242,123 @@ export function stepMission(world: World): void {
 		case 'kill':
 			// counted as kills happen
 			break
+		case 'interact':
+			mission.progress = countDone(world, objective.props)
+			break
+		case 'defend':
+			// losing the target fails the objective (World.propLost)
+			if (standing(world)) mission.progress++
+			break
+		case 'rescue':
+			mission.progress = deliverSurvivors(world, objective.survivors, objective.area)
+			break
+		case 'retrieve':
+			mission.progress = deliverItem(world, objective.item, objective.area) ? 1 : 0
+			break
+		case 'extract':
+			if (standing(world)) mission.progress++
+			stepOptional(world, mission)
+			if (everyoneIn(world, objective.area)) {
+				completeObjective(world, mission, objective)
+				return
+			}
+			if (mission.progress >= objectiveGoal(objective)) world.timeUp()
+			return
 	}
+	// optional objectives first, so one done on the final tick still counts
+	stepOptional(world, mission)
 	if (mission.progress >= objectiveGoal(objective)) completeObjective(world, mission, objective)
+}
+
+/** Generators or terminals among `ids` that have been worked. */
+function countDone(world: World, ids: readonly string[]): number {
+	let done = 0
+	for (const id of ids) if (world.propById.get(id)?.state === PropState.done) done++
+	return done
+}
+
+/**
+ * Survivors who walked into the area are safe. Returns how far the rescue has got: every survivor
+ * either safe or lost counts, as long as at least one is safe (losing them all fails it).
+ */
+function deliverSurvivors(
+	world: World,
+	ids: readonly string[],
+	area: { x: number; y: number; radius: number }
+): number {
+	let safe = 0
+	let lost = 0
+	for (const id of ids) {
+		const prop = world.propById.get(id)
+		if (!prop) continue
+		if (prop.state === PropState.following && Math.hypot(prop.x - area.x, prop.y - area.y) <= area.radius) {
+			prop.state = PropState.delivered
+			world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+		}
+		if (prop.state === PropState.delivered) safe++
+		if (prop.state === PropState.destroyed) lost++
+	}
+	return safe > 0 ? safe + lost : safe
+}
+
+/** The carried object reached the area: delivered, and its carrier's hands are free. */
+function deliverItem(world: World, id: string, area: { x: number; y: number; radius: number }): boolean {
+	const prop = world.propById.get(id)
+	if (!prop) return false
+	if (prop.state === PropState.delivered) return true
+	if (prop.state !== PropState.carried || Math.hypot(prop.x - area.x, prop.y - area.y) > area.radius) return false
+	const carrier = world.players.get(prop.with)
+	if (carrier) carrier.carrying = false
+	prop.state = PropState.delivered
+	prop.with = 0
+	world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+	return true
+}
+
+const EXTRACT_IDLE_TICKS = Math.round(propsDef.extractIdleSeconds * TICK_RATE)
+
+/**
+ * Everyone still standing and playing is inside the area (and there is at least one). Players who are
+ * away, disconnected or idle do not hold the squad back.
+ */
+function everyoneIn(world: World, area: { x: number; y: number; radius: number }): boolean {
+	let any = false
+	for (const state of world.players.values()) {
+		if (!state.alive || state.downed || state.away) continue
+		if (world.tick - state.lastActiveTick > EXTRACT_IDLE_TICKS) continue
+		if (Math.hypot(state.x - area.x, state.y - area.y) > area.radius) return false
+		any = true
+	}
+	return any
+}
+
+/** Optional objectives run alongside the steps; each pays once when done. */
+function stepOptional(world: World, mission: MissionState): void {
+	if (mission.status !== MissionStatus.active) return
+	const objectives = mission.def.objectives
+	for (let index = 0; index < objectives.length; index++) {
+		const objective = objectives[index] as ObjectiveDef
+		if (!objective.optional || mission.optionalDone.includes(index)) continue
+		const done =
+			objective.type === 'kill'
+				? mission.kills >= objective.count
+				: objective.type === 'interact'
+					? countDone(world, objective.props) >= objective.props.length
+					: false
+		if (!done) continue
+		mission.optionalDone.push(index)
+		world.events.push({ type: 'objective', index, first: true })
+		for (const state of world.players.values()) {
+			if (isActive(world, state)) state.pendingScore += economy.rewards.optional.score
+		}
+	}
 }
 
 /** A kill by a player counts toward a kill objective. */
 export function countKill(world: World): void {
 	const mission = world.mission
 	if (!mission || mission.status !== MissionStatus.active) return
+	mission.kills++
 	if (currentObjective(mission)?.type === 'kill') mission.progress++
 }
 
@@ -189,15 +369,16 @@ function completeObjective(world: World, mission: MissionState, objective: Objec
 	world.events.push({ type: 'objective', index: mission.index, first })
 	if (first) {
 		for (const state of world.players.values()) {
-			if (isActive(world, state)) world.addScore(state, economy.rewards.objective.score)
+			if (isActive(world, state)) state.pendingScore += economy.rewards.objective.score
 		}
 	}
 	if (objective.checkpoint) {
 		mission.checkpointIndex = mission.index + 1
-		const centre = 'area' in objective ? objective.area : averagePosition(world)
+		const centre = 'area' in objective ? objective.area : (objective.checkpointAt ?? averagePosition(world))
 		mission.checkpointX = centre.x
 		mission.checkpointY = centre.y
 		world.events.push({ type: 'checkpoint', index: mission.index })
+		// the out return, the downed get up, everyone at full health (below)
 		// a checkpoint brings everyone back: the out return, the downed get up, all at full health
 		for (const state of world.players.values()) {
 			state.defibUsed = false
@@ -212,7 +393,8 @@ function completeObjective(world: World, mission: MissionState, objective: Objec
 			}
 		}
 	}
-	mission.index++
+	operateGates(world, mission, mission.index)
+	mission.index = nextStep(mission.def, mission.index + 1)
 	mission.progress = 0
 	if (mission.index >= mission.def.objectives.length) {
 		mission.status = MissionStatus.complete
@@ -237,11 +419,49 @@ function averagePosition(world: World): { x: number; y: number } {
 	return n > 0 ? { x: x / n, y: y / n } : { x: world.mission?.checkpointX ?? 0, y: world.mission?.checkpointY ?? 0 }
 }
 
+/**
+ * Gates this objective opens unlock; gates it closes shut behind the squad. Anyone still on the far
+ * side is brought to the checkpoint, and zombies left there are gone.
+ */
+function operateGates(world: World, mission: MissionState, index: number): void {
+	let side: { x: number; y: number } | null = null
+	for (const [id, gate] of Object.entries(mission.def.gates ?? {})) {
+		const prop = world.propById.get(id)
+		if (!prop) continue
+		if (gate.openOn === index) setPropState(world.grid, prop, PropState.open)
+		else if (gate.closeOn === index) {
+			setPropState(world.grid, prop, PropState.locked)
+			side = gate.side ?? { x: mission.checkpointX, y: mission.checkpointY }
+		} else continue
+		world.propsChanged = true
+		world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+	}
+	if (side) world.gatherBehind(side.x, side.y)
+}
+
 /** Everyone down: back to the last checkpoint, with that objective started again. */
 export function wipeMission(world: World, mission: MissionState): void {
-	mission.index = mission.checkpointIndex
+	mission.index = nextStep(mission.def, mission.checkpointIndex)
 	mission.progress = 0
 	mission.spawnAccumulator = 0
+	// what the objectives from the checkpoint on use goes back to how it was
+	for (const [index, objective] of mission.def.objectives.entries()) {
+		if (index < mission.checkpointIndex || objective.optional) continue
+		const ids =
+			objective.type === 'interact'
+				? objective.props
+				: objective.type === 'defend'
+					? [objective.prop]
+					: objective.type === 'rescue'
+						? objective.survivors
+						: objective.type === 'retrieve'
+							? [objective.item]
+							: []
+		for (const id of ids) {
+			const prop = world.propById.get(id)
+			if (prop) resetProp(world, prop)
+		}
+	}
 	world.events.push({ type: 'wipe', wave: mission.index + 1 })
 }
 

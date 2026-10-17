@@ -47,7 +47,12 @@
 		"scorePerSalvage": 1000,
 		"maxScorePerSecond": 20000,
 		"activeSeconds": 60,
-		"minParticipation": 0.5
+		"minParticipation": 0.5,
+		"optional": {
+			"xp": 150,
+			"salvage": 150,
+			"score": 1500
+		}
 	},
 	"starter": {
 		"items": ["vex-9", "k-71", "p9-service", "kevlar-vest", "frag-grenades"],
