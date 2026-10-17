@@ -1,0 +1,46 @@
+{
+	"props": [
+		{
+			"name": "Barrel 01",
+			"author": "Jorge Camacho",
+			"page": "https://polyhaven.com/a/Barrel_01",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Wooden Crate 01",
+			"author": "James Ray Cock",
+			"page": "https://polyhaven.com/a/wooden_crate_01",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Compost Bags",
+			"author": "James Ray Cock",
+			"page": "https://polyhaven.com/a/compost_bags",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Portable Generator",
+			"author": "James Ray Cock",
+			"page": "https://polyhaven.com/a/portable_generator",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Utility Box 02",
+			"author": "James Ray Cock",
+			"page": "https://polyhaven.com/a/utility_box_02",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Wooden Military Crate",
+			"author": "Prabhjinder Singh",
+			"page": "https://polyhaven.com/a/wooden_military_crate",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Ammo Box",
+			"author": "DanKit",
+			"page": "https://polyhaven.com/a/ammo_box",
+			"licence": "CC0 1.0"
+		}
+	]
+}

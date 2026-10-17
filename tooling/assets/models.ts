@@ -9,7 +9,7 @@ import { type Document, NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { dedup, flatten, getBounds, prune, textureCompress, weld } from '@gltf-transform/functions'
 import sharp from 'sharp'
-import { publicAssets, sketchfabModel } from './sources.ts'
+import { plainMaterials, publicAssets, sketchfabModel } from './sources.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const out = join(publicAssets, 'models', 'weapons')
@@ -72,6 +72,7 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
 const credits: { id: string; name: string; author: string; page: string; licence: string }[] = []
 for (const weapon of weapons) {
 	const document = await io.read(await sketchfabModel(weapon.uid))
+	plainMaterials(document)
 	normalise(document, weapon.length, weapon.flip ?? false)
 	await document.transform(
 		dedup(),

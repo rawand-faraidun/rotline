@@ -1,6 +1,33 @@
 import type { Prop } from '@rotline/sim'
 import { PropState } from '@rotline/sim'
 import * as THREE from 'three'
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+
+/** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
+const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend'])
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+const models = new Map<string, Promise<THREE.Object3D | null>>()
+
+function propModel(url: string): Promise<THREE.Object3D | null> {
+	let model = models.get(url)
+	if (!model) {
+		model = loader
+			.loadAsync(url)
+			.then(gltf => {
+				gltf.scene.traverse(node => {
+					if ((node as THREE.Mesh).isMesh) {
+						node.castShadow = true
+						node.receiveShadow = true
+					}
+				})
+				return gltf.scene as THREE.Object3D
+			})
+			.catch(() => null)
+		models.set(url, model)
+	}
+	return model
+}
 
 type Drawn = {
 	root: THREE.Group
@@ -25,13 +52,40 @@ export class PropRenderer {
 	private readonly cylinder = new THREE.CylinderGeometry(0.5, 0.5, 1, 16)
 	private readonly ring = new THREE.RingGeometry(0.9, 1, 40).rotateX(-Math.PI / 2)
 
-	constructor(scene: THREE.Scene, props: readonly Prop[]) {
+	private readonly assets: string
+
+	constructor(scene: THREE.Scene, props: readonly Prop[], assets = '/assets') {
 		this.scene = scene
+		this.assets = assets
 		for (const prop of props) {
 			const drawn = this.make(prop)
 			scene.add(drawn.root)
 			this.drawn.push(drawn)
 		}
+	}
+
+	/**
+	 * Swaps a prop's stand-in shape for its model once that has loaded: `body` is hidden, the model is
+	 * stretched to `size` (width, height, depth in metres), and status lights move onto its top.
+	 */
+	private dressUp(
+		prop: Prop,
+		root: THREE.Group,
+		body: THREE.Mesh[],
+		size: [number, number, number],
+		top: THREE.Mesh | null
+	) {
+		if (!MODELLED.has(prop.def.kind)) return
+		void propModel(`${this.assets}/models/props/${prop.def.kind}.glb`).then(model => {
+			if (!model || !root.parent) return
+			const copy = model.clone()
+			copy.scale.set(...size)
+			// barrels and crates do not all face the same way
+			copy.rotation.y = ((prop.index * 2.399) % (Math.PI * 2)) * (prop.def.kind === 'barrel' ? 1 : 0)
+			root.add(copy)
+			for (const mesh of body) mesh.visible = false
+			if (top) top.position.y = size[1] + 0.06
+		})
 	}
 
 	private material(color: number, emissive = 0): THREE.MeshStandardMaterial {
@@ -57,14 +111,21 @@ export class PropRenderer {
 				body.scale.set(0.8, 1, 0.8)
 				const band = add(new THREE.Mesh(this.cylinder, this.material(0xffc02e)), 0.65)
 				band.scale.set(0.82, 0.08, 0.82)
+				this.dressUp(prop, root, [body, band], [0.78, 1.05, 0.78], null)
 				break
 			}
-			case 'crate':
-				add(new THREE.Mesh(this.box, this.material(0x6b5232)), 0.5).scale.set(w * 0.96, 1, h * 0.96)
+			case 'crate': {
+				const body = add(new THREE.Mesh(this.box, this.material(0x6b5232)), 0.5)
+				body.scale.set(w * 0.96, 1, h * 0.96)
+				this.dressUp(prop, root, [body], [w * 0.96, 0.95, h * 0.96], null)
 				break
-			case 'sandbags':
-				add(new THREE.Mesh(this.box, this.material(0x8a7a52)), 0.4).scale.set(w * 0.98, 0.8, h * 0.98)
+			}
+			case 'sandbags': {
+				const body = add(new THREE.Mesh(this.box, this.material(0x8a7a52)), 0.4)
+				body.scale.set(w * 0.98, 0.8, h * 0.98)
+				this.dressUp(prop, root, [body], [w, 0.8, h], null)
 				break
+			}
 			case 'door': {
 				const slab = add(new THREE.Mesh(this.box, this.material(0x4c5a52)), 1.1)
 				slab.scale.set(w, 2.2, h)
@@ -73,14 +134,13 @@ export class PropRenderer {
 			case 'generator':
 			case 'terminal': {
 				const isGenerator = prop.def.kind === 'generator'
-				add(new THREE.Mesh(this.box, this.material(isGenerator ? 0x3d4a3f : 0x2f3533)), 0.6).scale.set(
-					w * 0.9,
-					1.2,
-					h * 0.9
-				)
+				const body = add(new THREE.Mesh(this.box, this.material(isGenerator ? 0x3d4a3f : 0x2f3533)), 0.6)
+				body.scale.set(w * 0.9, 1.2, h * 0.9)
 				glow = this.material(0x1a1a1a, 0xff3a2a)
-				add(new THREE.Mesh(this.box, glow), 1.25).scale.set(0.3, 0.1, 0.3)
-				bar = this.bar(root, 1.7)
+				const lamp = add(new THREE.Mesh(this.box, glow), 1.25)
+				lamp.scale.set(0.3, 0.1, 0.3)
+				bar = this.bar(root, 1.9)
+				this.dressUp(prop, root, [body], isGenerator ? [w * 0.9, 0.85, h * 0.75] : [w * 0.75, 1.5, h * 0.55], lamp)
 				break
 			}
 			case 'turret': {
@@ -119,14 +179,27 @@ export class PropRenderer {
 			}
 			case 'carry': {
 				glow = this.material(0xffc02e, 0xffc02e)
-				add(new THREE.Mesh(this.box, glow), 0.35).scale.set(0.6, 0.5, 0.5)
+				const body = add(new THREE.Mesh(this.box, glow), 0.35)
+				body.scale.set(0.6, 0.5, 0.5)
+				// the thing to carry is marked on the ground, so it stands out as a model too
+				const ring = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: 0xffc02e, transparent: true, opacity: 0.75, depthWrite: false })
+				)
+				ring.scale.setScalar(0.6)
+				ring.position.y = 0.04
+				root.add(ring)
+				this.dressUp(prop, root, [body], [0.62, 0.42, 0.34], null)
 				break
 			}
 			case 'defend': {
-				add(new THREE.Mesh(this.box, this.material(0x56605c)), 1).scale.set(w * 0.95, 2, h * 0.95)
+				const body = add(new THREE.Mesh(this.box, this.material(0x56605c)), 1)
+				body.scale.set(w * 0.95, 2, h * 0.95)
 				glow = this.material(0x111111, 0xb8f23c)
-				add(new THREE.Mesh(this.box, glow), 2.05).scale.set(w * 0.5, 0.1, h * 0.5)
+				const lamp = add(new THREE.Mesh(this.box, glow), 2.05)
+				lamp.scale.set(w * 0.5, 0.1, h * 0.5)
 				bar = this.bar(root, 2.6)
+				this.dressUp(prop, root, [body], [w * 0.95, 1.1, h * 0.95], lamp)
 				break
 			}
 		}

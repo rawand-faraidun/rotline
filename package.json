@@ -25,7 +25,8 @@
 		"assets:models": "pnpm --filter @rotline/assets models",
 		"assets:characters": "pnpm --filter @rotline/assets characters",
 		"assets:thumbnails": "pnpm --filter @rotline/assets thumbnails",
-		"assets:textures": "pnpm --filter @rotline/assets textures"
+		"assets:textures": "pnpm --filter @rotline/assets textures",
+		"assets:props": "pnpm --filter @rotline/assets props"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.15",

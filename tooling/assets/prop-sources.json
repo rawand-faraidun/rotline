@@ -1,0 +1,54 @@
+{
+	"props": [
+		{
+			"kind": "barrel",
+			"source": "Barrel_01",
+			"name": "Barrel 01",
+			"author": "Jorge Camacho",
+			"triangles": 600
+		},
+		{
+			"kind": "crate",
+			"source": "wooden_crate_01",
+			"name": "Wooden Crate 01",
+			"author": "James Ray Cock",
+			"triangles": 400
+		},
+		{
+			"kind": "sandbags",
+			"source": "compost_bags",
+			"name": "Compost Bags",
+			"author": "James Ray Cock",
+			"triangles": 800,
+			"tint": [0.72, 0.66, 0.5]
+		},
+		{
+			"kind": "generator",
+			"source": "portable_generator",
+			"name": "Portable Generator",
+			"author": "James Ray Cock",
+			"triangles": 1500
+		},
+		{
+			"kind": "terminal",
+			"source": "utility_box_02",
+			"name": "Utility Box 02",
+			"author": "James Ray Cock",
+			"triangles": 600
+		},
+		{
+			"kind": "defend",
+			"source": "wooden_military_crate",
+			"name": "Wooden Military Crate",
+			"author": "Prabhjinder Singh",
+			"triangles": 1200
+		},
+		{
+			"kind": "carry",
+			"source": "ammo_box",
+			"name": "Ammo Box",
+			"author": "DanKit",
+			"triangles": 500
+		}
+	]
+}

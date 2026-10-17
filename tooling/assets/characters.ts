@@ -32,7 +32,7 @@ import {
 } from '@gltf-transform/functions'
 import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer'
 import sharp from 'sharp'
-import { itchDownload, publicAssets, sketchfabModel } from './sources.ts'
+import { itchDownload, plainMaterials, publicAssets, sketchfabModel } from './sources.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const out = join(publicAssets, 'models', 'characters')
@@ -498,6 +498,7 @@ for (const libraryScene of libraryScenes) {
 }
 root.setDefaultScene(scene)
 
+plainMaterials(document)
 await document.transform(
 	// every merged source brought its own buffer; a .glb holds one
 	unpartition(),

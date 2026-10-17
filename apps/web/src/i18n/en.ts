@@ -84,6 +84,7 @@ export const en = {
 			'Rotline is built from free and open assets. Thank you to everyone who shared their work. Assets marked CC BY 4.0 were changed for the game: turned, rescaled, simplified and given smaller textures.',
 		characters: 'Characters, gear and animations',
 		weapons: 'Weapon models',
+		props: 'Props',
 		sounds: 'Sounds and music',
 		textures: 'Ground and wall textures',
 		other: 'Fonts, avatars and other models',

@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import type { Document } from '@gltf-transform/core'
 
 const here = dirname(fileURLToPath(import.meta.url))
 export const cacheRoot = join(here, 'node_modules', '.cache')
@@ -75,4 +76,18 @@ export async function itchDownload(creator: string, game: string, file: string):
 	writeFileSync(zip, Buffer.from(await (await fetch(url)).arrayBuffer()))
 	execFileSync('unzip', ['-q', '-o', zip, '-d', unpacked])
 	return unpacked
+}
+
+/**
+ * Drops material extensions that make three.js use its costly physical material (transmission, for
+ * one, renders the whole scene a second time every frame). Game assets look the same without them
+ * from the camera's height. Emissive strength is cheap and kept.
+ */
+export function plainMaterials(document: Document): void {
+	for (const extension of document.getRoot().listExtensionsUsed())
+		if (
+			extension.extensionName.startsWith('KHR_materials_') &&
+			extension.extensionName !== 'KHR_materials_emissive_strength'
+		)
+			extension.dispose()
 }

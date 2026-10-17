@@ -9,7 +9,8 @@
 		"models": "node models.ts",
 		"characters": "node characters.ts",
 		"thumbnails": "node thumbnails.ts",
-		"textures": "node textures.ts"
+		"textures": "node textures.ts",
+		"props": "node props.ts"
 	},
 	"devDependencies": {
 		"@gltf-transform/core": "^4.5.1",
