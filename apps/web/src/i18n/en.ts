@@ -584,6 +584,13 @@ export const en = {
 				interface: 'Interface',
 				mute: 'Mute all sound'
 			},
+			graphics: {
+				title: 'Graphics',
+				hint: 'Applies the next time a game loads.',
+				auto: 'Automatic',
+				high: 'High',
+				low: 'Low (faster)'
+			},
 			pause: {
 				title: 'Paused',
 				squadTitle: 'Menu',

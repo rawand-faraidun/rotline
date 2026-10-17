@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import type { AudioSettings, GameHandle, HudState } from '@rotline/client'
+import {
+	type AudioSettings,
+	type GameHandle,
+	type GraphicsSetting,
+	type HudState,
+	loadGraphicsSetting,
+	saveGraphicsSetting
+} from '@rotline/client'
 import { missionById, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useQueryClient } from '@tanstack/react-query'
@@ -311,6 +318,33 @@ function SoundSettings({ handle }: { handle: GameHandle }) {
 	)
 }
 
+/** Graphics detail: automatic (light on devices without a graphics card), high or low. */
+function GraphicsSettings() {
+	const [setting, setSetting] = useState<GraphicsSetting>(() => loadGraphicsSetting())
+	const g = t.graphics
+	return (
+		<label className="flex items-center justify-between gap-3 text-sm">
+			<span className="flex flex-col">
+				<span className="text-muted text-xs uppercase tracking-[0.2em]">{g.title}</span>
+				<span className="text-muted text-xs">{g.hint}</span>
+			</span>
+			<select
+				value={setting}
+				onChange={event => {
+					const next = event.target.value as GraphicsSetting
+					setSetting(next)
+					saveGraphicsSetting(next)
+				}}
+				className="frame cut-sm bg-rot-black px-2 py-1 text-sm"
+			>
+				<option value="auto">{g.auto}</option>
+				<option value="high">{g.high}</option>
+				<option value="low">{g.low}</option>
+			</select>
+		</label>
+	)
+}
+
 function PauseMenu({
 	handle,
 	range,
@@ -352,6 +386,7 @@ function PauseMenu({
 					)}
 				</div>
 				<SoundSettings handle={handle} />
+				<GraphicsSettings />
 				<p className="text-muted text-xs">{t.controls}</p>
 			</Panel>
 		</div>

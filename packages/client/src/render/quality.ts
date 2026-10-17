@@ -7,7 +7,32 @@ export type Quality = 'high' | 'low'
 
 const SOFTWARE = /swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i
 
+/** The player's choice: `auto` follows the device. Kept per browser. */
+export type GraphicsSetting = 'auto' | Quality
+const SETTING_KEY = 'rotline.graphics'
+
+export function loadGraphicsSetting(): GraphicsSetting {
+	try {
+		const value = localStorage.getItem(SETTING_KEY)
+		if (value === 'high' || value === 'low') return value
+	} catch {
+		// private window: auto
+	}
+	return 'auto'
+}
+
+export function saveGraphicsSetting(setting: GraphicsSetting): void {
+	try {
+		if (setting === 'auto') localStorage.removeItem(SETTING_KEY)
+		else localStorage.setItem(SETTING_KEY, setting)
+	} catch {
+		// not saved
+	}
+}
+
 export function detectQuality(gl: WebGLRenderingContext | WebGL2RenderingContext): Quality {
+	const chosen = loadGraphicsSetting()
+	if (chosen !== 'auto') return chosen
 	try {
 		const info = gl.getExtension('WEBGL_debug_renderer_info')
 		const renderer = String(
