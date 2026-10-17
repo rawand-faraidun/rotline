@@ -71,13 +71,16 @@ export function GameShell({ children }: { children: ReactNode }) {
 			}
 		>
 			<SeatKeeper />
-			<nav className="mb-6 flex shrink-0 flex-wrap gap-1 border-line border-b border-dashed" aria-label="Game">
+			<nav
+				className="-mx-6 mb-4 flex shrink-0 gap-1 overflow-x-auto border-line border-b border-dashed px-6 [scrollbar-width:none]"
+				aria-label="Game"
+			>
 				{tabs.map(tab => (
 					<Link
 						key={tab.to}
 						to={tab.to}
 						className={cn(
-							'cut-sm -mb-px border-transparent border-b-2 px-4 py-2.5 font-bold text-muted text-sm uppercase tracking-[0.18em] hover:text-bone',
+							'cut-sm -mb-px shrink-0 whitespace-nowrap border-transparent border-b-2 px-4 py-2.5 font-bold text-muted text-sm uppercase tracking-[0.18em] hover:text-bone',
 							'data-[status=active]:border-rot-lime data-[status=active]:text-rot-lime'
 						)}
 					>

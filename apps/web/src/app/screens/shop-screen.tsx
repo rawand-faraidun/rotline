@@ -10,6 +10,7 @@ import { uiSound } from '../../lib/ui-sound.ts'
 import { GameShell } from './game-shell.tsx'
 import { scroller } from './layout.ts'
 import { WeaponViewer } from './model-viewer.tsx'
+import { PageHeader } from './page-header.tsx'
 
 const t = en.app.shop
 const p = en.app.progression
@@ -28,8 +29,9 @@ export function ShopScreen() {
 
 	return (
 		<GameShell>
-			<h1 className="mb-2 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
-			<p className="mb-8 text-muted">{t.intro}</p>
+			<PageHeader title={t.title}>
+				<p className="text-muted text-sm">{t.intro}</p>
+			</PageHeader>
 			{problem && (
 				<p role="alert" className="mb-4 text-alert text-sm">
 					{p.problems[problem]}
@@ -54,6 +56,23 @@ export function ShopScreen() {
 													<PanelTitle className="text-lg">{entry.name}</PanelTitle>
 													{has && <Badge tone="lime">{t.owned}</Badge>}
 												</PanelHeader>
+												{weapon && (
+													<button
+														type="button"
+														aria-label={format(t.inspectOf, { name: entry.name })}
+														onClick={() => setInspecting(entry.id)}
+														className="cursor-zoom-in"
+													>
+														<img
+															src={`/assets/models/weapons/${entry.id}.webp`}
+															alt=""
+															width={480}
+															height={270}
+															loading="lazy"
+															className="aspect-[16/9] w-full object-contain"
+														/>
+													</button>
+												)}
 												<div className="flex items-center justify-between gap-2">
 													<p className="text-muted text-xs uppercase tracking-[0.16em]">
 														{weapon ? p.kinds[weapon.kind] : p.slotNames[entry.slot]}
@@ -73,8 +92,15 @@ export function ShopScreen() {
 													))}
 												</dl>
 												<div className="mt-auto flex items-center justify-between gap-2 pt-2">
-													<span className="font-display text-2xl text-rot-lime tabular-nums">
-														{salvage(entry.price)}
+													<span className="flex flex-col">
+														<span className="font-display text-2xl text-rot-lime tabular-nums">
+															{salvage(entry.price)}
+														</span>
+														{!has && !affordable && (
+															<span className="text-muted text-xs">
+																{format(t.needMore, { amount: salvage(entry.price - view.salvage) })}
+															</span>
+														)}
 													</span>
 													{!has &&
 														(confirming === entry.id ? (

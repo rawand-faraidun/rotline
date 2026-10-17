@@ -26,30 +26,39 @@ export function SignInScreen() {
 
 	return (
 		<Shell>
-			<Panel className="mx-auto mt-12 w-full max-w-md md:mt-24">
-				<PanelHeader>
-					<PanelTitle>{t.title}</PanelTitle>
-				</PanelHeader>
-				<PanelDescription>{t.body}</PanelDescription>
-				<div className="flex flex-col gap-3">
-					{providers.map(provider => (
-						<Button
-							key={provider}
-							variant={provider === 'test' ? 'secondary' : 'primary'}
-							disabled={pending !== null}
-							onClick={() => void start(provider)}
-						>
-							{format(t.with, { provider: t.providers[provider] })}
-						</Button>
-					))}
-					{providers.length === 0 && <p className="text-sm text-warning">{t.none}</p>}
-					{failed && (
-						<p role="alert" className="text-alert text-sm">
-							{en.app.error}
-						</p>
-					)}
-				</div>
-			</Panel>
+			<div className="mx-auto mt-10 flex w-full max-w-md flex-col items-center gap-8 md:mt-20">
+				<img
+					src="/brand/svg/rotline-logo-stacked-slogan.svg"
+					alt={en.meta.title}
+					width={220}
+					height={220}
+					className="h-40 w-auto md:h-48"
+				/>
+				<Panel className="w-full">
+					<PanelHeader>
+						<PanelTitle>{t.title}</PanelTitle>
+					</PanelHeader>
+					<PanelDescription>{t.body}</PanelDescription>
+					<div className="flex flex-col gap-3">
+						{providers.map(provider => (
+							<Button
+								key={provider}
+								variant={provider === 'test' ? 'secondary' : 'primary'}
+								disabled={pending !== null}
+								onClick={() => void start(provider)}
+							>
+								{format(t.with, { provider: t.providers[provider] })}
+							</Button>
+						))}
+						{providers.length === 0 && <p className="text-sm text-warning">{t.none}</p>}
+						{failed && (
+							<p role="alert" className="text-alert text-sm">
+								{en.app.error}
+							</p>
+						)}
+					</div>
+				</Panel>
+			</div>
 		</Shell>
 	)
 }

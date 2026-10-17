@@ -292,6 +292,7 @@ export const en = {
 		skills: {
 			title: 'Skills',
 			pointsLeft: '{points} points to spend',
+			pointLeft: '1 point to spend',
 			learn: 'Learn',
 			rank: 'Rank {rank} / {max}',
 			tier: 'Tier {tier}',
@@ -370,6 +371,7 @@ export const en = {
 			},
 			units: { rpm: '{value} rpm', seconds: '{value} s', metres: '{value} m', perSecond: '{value}/s' },
 			selectHint: 'Pick an item to see its stats and upgrades.',
+			ledgerEmpty: 'Nothing yet. Salvage from missions, upgrades and sales shows up here.',
 			modelOf: '3D model of the {name}, drag to turn it'
 		},
 		shop: {
@@ -379,6 +381,8 @@ export const en = {
 			confirmBuy: 'Buy for {price}',
 			owned: 'Owned',
 			inspect: 'Inspect',
+			inspectOf: 'Inspect the {name} in 3D',
+			needMore: '{amount} more needed',
 			close: 'Close',
 			categories: { main: 'Main weapons', pistol: 'Pistols', armour: 'Armour', utility: 'Utilities' }
 		},
@@ -434,6 +438,9 @@ export const en = {
 			signOut: 'Sign out',
 			classes: { assault: 'Assault', medic: 'Medic', heavy: 'Heavy' },
 			slotOpen: 'Open slot',
+			inviteSomeone: 'Copy invite link',
+			you: '(you)',
+			next: 'Next mission',
 			deploy: 'Deploy',
 			deploySquad: 'Deploy squad',
 			deployHint: 'Hold the yard against wave after wave.',

@@ -23,7 +23,8 @@
 		"release:tag": "node scripts/tag-release.ts",
 		"assets:audio": "pnpm --filter @rotline/assets audio",
 		"assets:models": "pnpm --filter @rotline/assets models",
-		"assets:characters": "pnpm --filter @rotline/assets characters"
+		"assets:characters": "pnpm --filter @rotline/assets characters",
+		"assets:thumbnails": "pnpm --filter @rotline/assets thumbnails"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.15",

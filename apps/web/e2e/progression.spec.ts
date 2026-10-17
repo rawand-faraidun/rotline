@@ -31,7 +31,7 @@ test('classes, skills, armory and shop', async ({ page }) => {
 
 	// skills: the Medic's first point buys the Medkit Drop and it can be slotted
 	await page.getByRole('link', { name: /^skills$/i }).click()
-	await expect(page.getByTestId('points-left')).toHaveText('1 points to spend')
+	await expect(page.getByTestId('points-left')).toHaveText('1 point to spend')
 	await page.getByTestId('node-medkit-drop').click()
 	await page.getByRole('button', { name: /^learn$/i }).click()
 	await expect(page.getByTestId('points-left')).toHaveText('0 points to spend')

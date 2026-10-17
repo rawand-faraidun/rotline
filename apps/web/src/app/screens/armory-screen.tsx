@@ -27,6 +27,7 @@ import {
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
 import { WeaponViewer } from './model-viewer.tsx'
+import { PageHeader } from './page-header.tsx'
 
 const t = en.app.armory
 const p = en.app.progression
@@ -254,11 +255,15 @@ export function ArmoryScreen() {
 
 	const groups: ItemSlot[] = ['main', 'pistol', 'armour', 'utility']
 	const equipped = new Set(Object.values(view.loadout).filter(Boolean))
-	const chosen = selected && view.inventory.some(entry => entry.itemId === selected) ? selected : null
+	// something is always shown in detail: the pick, else the first main weapon
+	const chosen =
+		selected && view.inventory.some(entry => entry.itemId === selected)
+			? selected
+			: (view.loadout.main1 ?? view.inventory[0]?.itemId ?? null)
 
 	return (
 		<GameShell>
-			<h1 className="mb-6 shrink-0 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
+			<PageHeader title={t.title} />
 			{problem && problem.error !== 'needs-confirmation' && (
 				<p role="alert" className="mb-4 text-alert text-sm">
 					{p.problems[problem.error]}
@@ -306,7 +311,7 @@ export function ArmoryScreen() {
 									<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">
 										{en.app.shop.categories[group]}
 									</span>
-									<ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+									<ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
 										{owned.map(entry => (
 											<li key={entry.itemId}>
 												<button
@@ -320,6 +325,16 @@ export function ArmoryScreen() {
 															: '[--frame-fill:var(--color-rot-black)] hover:[--frame-color:var(--color-bone)]'
 													)}
 												>
+													{(item(entry.itemId).slot === 'main' || item(entry.itemId).slot === 'pistol') && (
+														<img
+															src={`/assets/models/weapons/${entry.itemId}.webp`}
+															alt=""
+															width={480}
+															height={270}
+															loading="lazy"
+															className="aspect-[16/9] w-full object-contain"
+														/>
+													)}
 													<span className="font-bold">{item(entry.itemId).name}</span>
 													<span className="text-muted text-xs">{kindLabel(entry.itemId)}</span>
 													<span className="flex flex-wrap gap-1">
@@ -374,6 +389,7 @@ export function ArmoryScreen() {
 						<PanelHeader>
 							<PanelTitle className="text-xl">{t.ledger}</PanelTitle>
 						</PanelHeader>
+						{ledger.data?.length === 0 && <p className="text-muted text-sm">{t.ledgerEmpty}</p>}
 						<ul className="flex flex-col gap-1 text-sm">
 							{(ledger.data ?? []).slice(0, 12).map(row => (
 								<li key={row.id} className="flex justify-between gap-3">

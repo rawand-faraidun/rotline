@@ -69,8 +69,8 @@ export function SkillsScreen() {
 
 	return (
 		<GameShell>
-			<div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-				<h1 className="font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
+			<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+				<h1 className="font-display text-3xl uppercase md:text-4xl">{t.title}</h1>
 				<div className="flex flex-wrap gap-2" role="tablist">
 					{CLASSES.map(option => (
 						<Button
@@ -93,7 +93,7 @@ export function SkillsScreen() {
 
 			<div className="mb-6 flex flex-wrap items-center gap-4">
 				<span className="font-display text-3xl text-rot-lime" data-testid="points-left">
-					{format(t.pointsLeft, { points: String(left) })}
+					{left === 1 ? t.pointLeft : format(t.pointsLeft, { points: String(left) })}
 				</span>
 				<span className="text-muted text-sm">
 					{format(p.level, { level: String(entry.level) })} · {pointsAtLevel(entry.level)} /{' '}

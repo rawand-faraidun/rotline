@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { AvatarStyle } from '@rotline/constants'
+import { difficulties, missionById, SURVIVAL } from '@rotline/game-data'
 import { AvatarFrame, Badge, Button, cn, Input, Label, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -13,6 +14,7 @@ import { FriendsPanel } from './friends-panel.tsx'
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
 import { MissionPanel } from './mission-panel.tsx'
+import { PageHeader } from './page-header.tsx'
 import { StableLabel } from './stable-label.tsx'
 
 const t = en.app.lobby
@@ -32,19 +34,22 @@ function MemberCard({
 	return (
 		<li
 			className={cn(
-				'frame cut flex flex-col items-center gap-3 p-4',
+				'frame cut flex min-h-36 flex-col items-center gap-2 p-3 text-center',
 				you ? '[--frame-color:var(--color-rot-lime)]' : member.ready ? '[--frame-color:var(--color-bone)]' : ''
 			)}
 		>
-			<AvatarFrame src={avatar} alt="" size={88} />
-			<span className="max-w-full truncate font-bold">{member.name}</span>
-			<div className="flex flex-wrap justify-center gap-1.5">
-				<Badge tone="lime">
-					{t.classes[member.activeClass]} · {format(en.app.progression.level, { level: String(member.level) })}
-				</Badge>
+			<AvatarFrame src={avatar} alt="" size={56} />
+			<span className="max-w-full truncate font-bold">
+				{member.name}
+				{you && <span className="text-muted"> {t.you}</span>}
+			</span>
+			<span className="text-muted text-xs uppercase tracking-wider">
+				{t.classes[member.activeClass]} · {format(en.app.progression.level, { level: String(member.level) })}
+			</span>
+			<span className="mt-auto flex flex-wrap justify-center gap-1.5">
 				{member.leader && <Badge tone="bone">{t.leader}</Badge>}
-			</div>
-			<Badge tone={member.ready ? 'lime' : 'warning'}>{member.ready ? t.ready : t.notReady}</Badge>
+				<Badge tone={member.ready ? 'lime' : 'warning'}>{member.ready ? t.ready : t.notReady}</Badge>
+			</span>
 			{canKick && (
 				<Button variant="ghost" size="sm" onClick={onKick}>
 					{t.kick}
@@ -121,18 +126,21 @@ export function LobbyScreen() {
 	const isLeader = view?.leader === view?.you
 	const solo = (view?.members.length ?? 1) === 1
 	const inviteLink = view ? `${location.origin}/play/lobby?join=${view.code}` : ''
+	const missionName =
+		view?.mission.id === SURVIVAL ? en.app.missions.survival : (missionById(view?.mission.id ?? '')?.name ?? '')
+	const difficultyName = difficulties.tiers.find(tier => tier.id === view?.mission.difficulty)?.name ?? ''
 
 	return (
 		<GameShell>
-			<h1 className="mb-6 shrink-0 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
+			<PageHeader title={t.title} />
 			<div className={cn(panes, 'lg:grid-cols-[2fr_1fr]')}>
-				<div className={pane}>
+				<div className={cn(pane, 'lg:pb-0')}>
 					<Panel>
 						<PanelHeader>
 							<PanelTitle>{t.squad}</PanelTitle>
 							<span className="font-bold text-muted text-sm">{view?.members.length ?? 1} / 4</span>
 						</PanelHeader>
-						<ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
+						<ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
 							{view?.members.map(member => (
 								<MemberCard
 									key={member.id}
@@ -146,12 +154,33 @@ export function LobbyScreen() {
 								<li
 									// biome-ignore lint/suspicious/noArrayIndexKey: empty slots have no identity
 									key={i}
-									className="frame cut flex min-h-52 items-center justify-center p-4 text-muted text-xs uppercase tracking-[0.2em] [--frame-fill:var(--color-rot-black)]"
+									className="frame cut flex min-h-36 flex-col items-center justify-center gap-2 p-3 text-center [--frame-fill:var(--color-rot-black)]"
 								>
-									{t.slotOpen}
+									<span className="text-muted text-xs uppercase tracking-[0.2em]">{t.slotOpen}</span>
+									{i === 0 && view?.state === 'lobby' && (
+										<Button variant="ghost" size="sm" onClick={() => void copy(inviteLink, 'link')}>
+											<StableLabel
+												labels={[t.inviteSomeone, t.copied]}
+												current={copied === 'link' ? t.copied : t.inviteSomeone}
+											/>
+										</Button>
+									)}
 								</li>
 							))}
 						</ul>
+					</Panel>
+					{view && <MissionPanel view={view} />}
+					{/* what the squad is about to do and the one button that does it, always in reach */}
+					<div className="frame cut sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4 [--frame-color:var(--color-rot-lime)] lg:mb-6">
+						{view && view.state === 'lobby' && (
+							<p className="flex flex-col">
+								<span className="text-muted text-xs uppercase tracking-[0.2em]">{t.next}</span>
+								<span className="font-display text-2xl uppercase">
+									{missionName}
+									{view.mission.id !== SURVIVAL && <span className="text-lg text-muted"> · {difficultyName}</span>}
+								</span>
+							</p>
+						)}
 						<div className="flex flex-wrap items-center gap-3">
 							{view?.state === 'mission' ? (
 								<>
@@ -186,15 +215,15 @@ export function LobbyScreen() {
 							)}
 						</div>
 						{problem && (
-							<p role="alert" className="text-alert text-sm">
+							<p role="alert" className="w-full text-alert text-sm">
 								{t.problems[problem]}
 							</p>
 						)}
-					</Panel>
-					{view && <MissionPanel view={view} />}
+					</div>
 				</div>
 
 				<div className={pane}>
+					<ClassPanel />
 					<Panel>
 						<PanelHeader>
 							<PanelTitle>{t.invite}</PanelTitle>
@@ -244,7 +273,6 @@ export function LobbyScreen() {
 							</div>
 						</form>
 					</Panel>
-					<ClassPanel />
 					<LoadoutSummary />
 					<FriendsPanel squad={view?.members.map(member => member.id) ?? []} />
 					{player.isAdmin && <AdminPanel />}
