@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { AudioSettings, GameHandle, HudState } from '@rotline/client'
 import { missionById, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
-import { fetchRangeTicket, fetchTicket, partyActions, usePlayerEvents } from '../../lib/party.ts'
+import { fetchRangeTicket, fetchTicket, partyActions, partyQuery, usePlayerEvents } from '../../lib/party.ts'
 import { clock, masteryTone } from './mission-panel.tsx'
 import { SeatKeeper } from './seat-keeper.tsx'
 
@@ -448,6 +449,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 	const [loaded, setLoaded] = useState(false)
 	const [failed, setFailed] = useState(false)
 	const navigate = useNavigate()
+	const queryClient = useQueryClient()
 	const hud = useHud(handle)
 	usePlayerEvents()
 
@@ -683,7 +685,11 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					onResume={() => setMenuOpen(false)}
 					onLobby={() => void navigate({ to: '/play/lobby' })}
 					onAbandon={() => {
-						void partyActions.abandon().then(() => navigate({ to: '/play/lobby' }))
+						void partyActions.abandon().then(result => {
+							// the lobby shows the squad as it is now, not the mission it just left
+							if (!('error' in result)) queryClient.setQueryData(partyQuery.queryKey, result)
+							return navigate({ to: '/play/lobby' })
+						})
 					}}
 				/>
 			)}

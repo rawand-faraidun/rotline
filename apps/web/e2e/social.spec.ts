@@ -2,7 +2,8 @@ import { createValkey, Seats } from '@rotline/state'
 import { type Browser, expect, type Page, test } from '@playwright/test'
 import { releaseSeats } from './helpers.ts'
 
-const run = Math.random().toString(36).slice(2, 8)
+// digits only: random letters can spell a word the name filter refuses
+const run = String(Math.floor(Math.random() * 1e6)).padStart(6, '0')
 
 async function enlist(browser: Browser, tag: string): Promise<Page> {
 	const context = await browser.newContext()
