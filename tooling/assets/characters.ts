@@ -36,6 +36,8 @@ import { itchDownload, plainMaterials, publicAssets, sketchfabModel } from './so
 
 const here = dirname(fileURLToPath(import.meta.url))
 const out = join(publicAssets, 'models', 'characters')
+/** `node characters.ts zombie` builds the zombie from the same body instead of the soldiers */
+const mode = process.argv[2] === 'zombie' ? 'zombie' : 'soldier'
 mkdirSync(out, { recursive: true })
 
 type Pack = { creator: string; game: string; file: string; name: string; author: string; page: string; licence: string }
@@ -62,6 +64,12 @@ const config = JSON.parse(readFileSync(join(here, 'character-sources.json'), 'ut
 	animations: Pack & { glb: string; clips: string[] }
 	classes: Record<string, Look>
 	gear: Record<string, Gear>
+	zombie: {
+		/** clips by pack: the zombie walk, idle and claw come from the second library */
+		clips: { pack: 'animations' | 'animations2'; clip: string; as: string }[]
+		triangles: number
+	}
+	animations2: Pack & { glb: string }
 }
 
 await MeshoptSimplifier.ready
@@ -265,6 +273,29 @@ function grain(x: number, y: number): number {
 	return ((h ^ (h >>> 16)) >>> 0) / 4294967295
 }
 
+/** Smooth noise, 0..1: `grain` on a lattice of `size` texels, blended between lattice points. */
+function smooth(x: number, y: number, size: number, seed = 0): number {
+	const gx = x / size
+	const gy = y / size
+	const x0 = Math.floor(gx)
+	const y0 = Math.floor(gy)
+	const fx = gx - x0
+	const fy = gy - y0
+	const sx = fx * fx * (3 - 2 * fx)
+	const sy = fy * fy * (3 - 2 * fy)
+	const at = (i: number, j: number) => grain(i + seed * 7919, j + seed * 104729)
+	const top = at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx
+	const bottom = at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx
+	return top * (1 - sy) + bottom * sy
+}
+
+/** A few octaves of smooth noise, for stains and wear that look like they happened. */
+function fbm(x: number, y: number, size: number, seed = 0): number {
+	return (
+		smooth(x, y, size, seed) * 0.55 + smooth(x, y, size / 2, seed + 1) * 0.3 + smooth(x, y, size / 4, seed + 2) * 0.15
+	)
+}
+
 async function raw(texture: Texture) {
 	const { data, info } = await sharp(texture.getImage() as Uint8Array)
 		.ensureAlpha()
@@ -283,6 +314,10 @@ async function png(data: Uint8Array, width: number, height: number): Promise<Uin
 
 const bodyMaterial = bodyMesh.listPrimitives()[0]?.getMaterial()
 if (!bodyMaterial) throw new Error('the body has no material')
+// the base body carries vertex colours nobody paints with; three.js would multiply by them
+for (const mesh of root.listMeshes()) for (const part of mesh.listPrimitives()) part.setAttribute('COLOR_0', null)
+// skin and cloth are not metal (without a reflection to show, metal renders black)
+bodyMaterial.setMetallicFactor(0)
 const base = await raw(bodyMaterial.getBaseColorTexture() as Texture)
 const map = regions(base.width, base.height)
 
@@ -334,40 +369,88 @@ for (let i = 0; i < base.width * base.height; i++) {
 }
 
 const primitive = bodyMesh.listPrimitives()[0] as NonNullable<ReturnType<Mesh['listPrimitives']>[number]>
-for (const [id, look] of Object.entries(config.classes)) {
-	const colours: Record<number, [number, number, number]> = {
-		[Region.glove]: [30, 31, 29],
-		[Region.boot]: [38, 33, 28],
-		[Region.trousers]: hex(look.trousers),
-		[Region.shirt]: hex(look.shirt),
-		[Region.armband]: hex(look.armband ?? look.shirt)
+if (mode === 'zombie') {
+	// rotting grey-green skin with dark blotches, torn and bloodied clothes showing it through
+	const rot: [number, number, number] = [108, 116, 94]
+	const blood: [number, number, number] = [60, 12, 9]
+	const cloth: Record<number, [number, number, number]> = {
+		[Region.shirt]: [70, 74, 62],
+		[Region.armband]: [70, 74, 62],
+		[Region.trousers]: [50, 55, 64],
+		[Region.boot]: [34, 30, 26]
 	}
+	const scale = base.width / 1024
 	const data = Buffer.from(base.data)
 	for (let i = 0; i < base.width * base.height; i++) {
 		const region = map[i] as number
-		const colour = colours[region]
-		if (!colour) continue
-		const mean = (sums[region] as number) / Math.max(1, counts[region] as number)
-		const shade = Math.min(1.12, Math.max(0.85, (luminance(i) / Math.max(1, mean)) ** 0.25))
+		if (!region) continue
 		const x = i % base.width
 		const y = Math.floor(i / base.width)
-		// fine weave plus a coarser mottling
-		const noise = 0.92 + 0.1 * grain(x, y) + 0.08 * grain(x >> 3, y >> 3)
+		const mean = (sums[region] as number) / Math.max(1, counts[region] as number)
+		const shade = Math.min(1.25, Math.max(0.7, (luminance(i) / Math.max(1, mean)) ** 0.5))
+		// rips in the clothes, old blood, bruising: large soft shapes, not speckle
+		const torn = fbm(x, y, 96 * scale, 3) > 0.68
+		const stain = fbm(x, y, 72 * scale, 11)
+		const bruise = fbm(x, y, 40 * scale, 23)
+		const skinHere = region === Region.skin || region === Region.glove || torn || !cloth[region]
+		let colour: [number, number, number] = skinHere ? [...rot] : [...(cloth[region] as [number, number, number])]
+		if (skinHere) {
+			const dark = 0.7 + 0.45 * bruise
+			colour = [colour[0] * dark, colour[1] * dark, colour[2] * dark]
+		}
+		const wet = Math.max(0, Math.min(0.85, (stain - 0.6) * 5))
+		colour = [
+			colour[0] * (1 - wet) + blood[0] * wet,
+			colour[1] * (1 - wet) + blood[1] * wet,
+			colour[2] * (1 - wet) + blood[2] * wet
+		]
+		const noise = 0.93 + 0.1 * grain(x, y)
 		for (let k = 0; k < 3; k++) data[i * 4 + k] = Math.min(255, Math.round((colour[k] as number) * shade * noise))
 	}
 	const texture = document
-		.createTexture(`body-${id}`)
+		.createTexture('body-zombie')
 		.setImage(await png(data, base.width, base.height))
 		.setMimeType('image/png')
-	const material = bodyMaterial.clone().setName(`${id}-body`).setBaseColorTexture(texture)
-	const mesh = document.createMesh(`${id}-body`).addPrimitive(primitive.clone().setMaterial(material))
-	const node = document.createNode(`${id}-body`).setMesh(mesh).setSkin(skin)
-	node.setTranslation(bodyNode.getTranslation()).setRotation(bodyNode.getRotation()).setScale(bodyNode.getScale())
-	;(bodyNode.getParentNode() ?? scene).addChild(node)
+	bodyMaterial.setBaseColorTexture(texture).setName('zombie')
+	bodyNode.setName('zombie-body')
+} else {
+	for (const [id, look] of Object.entries(config.classes)) {
+		const colours: Record<number, [number, number, number]> = {
+			[Region.glove]: [30, 31, 29],
+			[Region.boot]: [38, 33, 28],
+			[Region.trousers]: hex(look.trousers),
+			[Region.shirt]: hex(look.shirt),
+			[Region.armband]: hex(look.armband ?? look.shirt)
+		}
+		const data = Buffer.from(base.data)
+		for (let i = 0; i < base.width * base.height; i++) {
+			const region = map[i] as number
+			const colour = colours[region]
+			if (!colour) continue
+			const mean = (sums[region] as number) / Math.max(1, counts[region] as number)
+			const shade = Math.min(1.12, Math.max(0.85, (luminance(i) / Math.max(1, mean)) ** 0.25))
+			const x = i % base.width
+			const y = Math.floor(i / base.width)
+			// fine weave plus a coarser mottling
+			const noise = 0.92 + 0.1 * grain(x, y) + 0.08 * grain(x >> 3, y >> 3)
+			for (let k = 0; k < 3; k++) data[i * 4 + k] = Math.min(255, Math.round((colour[k] as number) * shade * noise))
+		}
+		const texture = document
+			.createTexture(`body-${id}`)
+			.setImage(await png(data, base.width, base.height))
+			.setMimeType('image/png')
+		const material = bodyMaterial.clone().setName(`${id}-body`).setBaseColorTexture(texture)
+		const mesh = document.createMesh(`${id}-body`).addPrimitive(primitive.clone().setMaterial(material))
+		const node = document.createNode(`${id}-body`).setMesh(mesh).setSkin(skin)
+		node.setTranslation(bodyNode.getTranslation()).setRotation(bodyNode.getRotation()).setScale(bodyNode.getScale())
+		;(bodyNode.getParentNode() ?? scene).addChild(node)
+	}
 }
-;(bodyMaterial.getBaseColorTexture() as Texture).setName('body-skin')
-bodyNode.dispose()
-bodyMesh.dispose()
+if (mode === 'soldier') {
+	;(bodyMaterial.getBaseColorTexture() as Texture).setName('body-skin')
+	bodyNode.dispose()
+	bodyMesh.dispose()
+}
 
 // ---- gear ----
 
@@ -380,7 +463,8 @@ const credits: { name: string; author: string; page: string; licence: string }[]
 		licence: config.animations.licence
 	}
 ]
-const used = new Set(Object.values(config.classes).flatMap(look => look.gear))
+// the zombie wears no gear
+const used = new Set(mode === 'soldier' ? Object.values(config.classes).flatMap(look => look.gear) : [])
 for (const [id, gear] of Object.entries(config.gear)) {
 	if (!used.has(id)) continue
 	const source = await io.read(await sketchfabModel(gear.uid))
@@ -457,48 +541,68 @@ for (const [id, gear] of Object.entries(config.gear)) {
 
 // ---- animations ----
 
-const animationFolder = await itchDownload(config.animations.creator, config.animations.game, config.animations.file)
-const library = await io.read(join(animationFolder, config.animations.glb))
-const libraryRoot = library.getRoot()
-for (const animation of libraryRoot.listAnimations()) {
-	if (!config.animations.clips.includes(animation.getName())) {
-		// samplers outlive their animation and would keep its keyframes in the file
-		for (const sampler of animation.listSamplers()) sampler.dispose()
-		animation.dispose()
-		continue
-	}
-	for (const channel of animation.listChannels()) {
-		const path = channel.getTargetPath()
-		const name = channel.getTargetNode()?.getName() ?? ''
-		// bones keep this body's lengths: only rotations move, plus the hips' height and sway. Fingers
-		// move only in the gun clips (the grip); a top-down camera cannot see them otherwise.
-		const finger = /^(index|middle|pinky|ring|thumb)_/.test(name)
-		if (
-			path === 'scale' ||
-			(path === 'translation' && name !== 'pelvis') ||
-			(finger && !animation.getName().startsWith('Pistol_'))
-		) {
-			channel.getSampler()?.dispose()
-			channel.dispose()
+// which clips to take from which library, and what to call them in the model
+const wanted =
+	mode === 'soldier'
+		? config.animations.clips.map(clip => ({ pack: 'animations' as const, clip, as: clip }))
+		: config.zombie.clips
+for (const pack of ['animations', 'animations2'] as const) {
+	const picks = wanted.filter(entry => entry.pack === pack)
+	if (picks.length === 0) continue
+	const source = config[pack]
+	const animationFolder = await itchDownload(source.creator, source.game, source.file)
+	const library = await io.read(join(animationFolder, source.glb))
+	const libraryRoot = library.getRoot()
+	for (const animation of libraryRoot.listAnimations()) {
+		const pick = picks.find(entry => entry.clip === animation.getName())
+		if (pick) animation.setName(pick.as)
+		if (!pick) {
+			// samplers outlive their animation and would keep its keyframes in the file
+			for (const sampler of animation.listSamplers()) sampler.dispose()
+			animation.dispose()
+			continue
+		}
+		for (const channel of animation.listChannels()) {
+			const path = channel.getTargetPath()
+			const name = channel.getTargetNode()?.getName() ?? ''
+			// bones keep this body's lengths: only rotations move, plus the hips' height and sway. Fingers
+			// move only in the gun clips (the grip); a top-down camera cannot see them otherwise.
+			const finger = /^(index|middle|pinky|ring|thumb)_/.test(name)
+			if (
+				path === 'scale' ||
+				(path === 'translation' && name !== 'pelvis') ||
+				(finger && !animation.getName().startsWith('Pistol_'))
+			) {
+				channel.getSampler()?.dispose()
+				channel.dispose()
+			}
 		}
 	}
-}
-const libraryScenes = libraryRoot.listScenes()
-const mergedLibrary = mergeDocuments(document, library)
-for (const animation of root.listAnimations())
-	for (const channel of animation.listChannels()) {
-		const target = channel.getTargetNode()
-		const own = target && joints.get(target.getName())
-		if (own && own !== target) channel.setTargetNode(own)
+	const libraryScenes = libraryRoot.listScenes()
+	const mergedLibrary = mergeDocuments(document, library)
+	for (const animation of root.listAnimations())
+		for (const channel of animation.listChannels()) {
+			const target = channel.getTargetNode()
+			const own = target && joints.get(target.getName())
+			if (own && own !== target) channel.setTargetNode(own)
+		}
+	for (const libraryScene of libraryScenes) {
+		const merged = mergedLibrary.get(libraryScene) as typeof scene
+		for (const node of merged.listChildren()) node.traverse(child => child.dispose())
+		merged.dispose()
 	}
-for (const libraryScene of libraryScenes) {
-	const merged = mergedLibrary.get(libraryScene) as typeof scene
-	for (const node of merged.listChildren()) node.traverse(child => child.dispose())
-	merged.dispose()
 }
 root.setDefaultScene(scene)
 
 plainMaterials(document)
+if (mode === 'zombie') {
+	// hundreds of zombies share this mesh: keep it light
+	const triangles = (primitive.getIndices()?.getCount() ?? 0) / 3
+	await document.transform(
+		weld(),
+		simplify({ simplifier: MeshoptSimplifier, ratio: config.zombie.triangles / triangles, error: 0.02 })
+	)
+}
 await document.transform(
 	// every merged source brought its own buffer; a .glb holds one
 	unpartition(),
@@ -509,12 +613,23 @@ await document.transform(
 	textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], quality: 82, pattern: /^body-/ }),
 	// what is left (the eyes) is small
 	textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [256, 256], quality: 80, formats: /png|jpe?g/ }),
-	// quantised and packed vertices and keyframes (the client loads it with the meshopt decoder)
-	meshopt({ encoder: MeshoptEncoder, level: 'medium' })
+	// quantised and packed vertices and keyframes (the client loads it with the meshopt decoder); the
+	// zombie stays plain floats, because the client bakes its skinning into a texture from them
+	...(mode === 'soldier' ? [meshopt({ encoder: MeshoptEncoder, level: 'medium' })] : [])
 )
-const target = join(out, 'soldier.glb')
+const target = join(out, `${mode}.glb`)
 writeFileSync(target, await io.writeBinary(document as Document))
-writeFileSync(join(out, 'credits.json'), `${JSON.stringify({ models: credits }, null, '\t')}\n`)
+if (mode === 'zombie')
+	credits.push({
+		name: config.animations2.name,
+		author: config.animations2.author,
+		page: config.animations2.page,
+		licence: config.animations2.licence
+	})
+writeFileSync(
+	join(out, `${mode === 'soldier' ? 'credits' : 'zombie-credits'}.json`),
+	`${JSON.stringify({ models: credits }, null, '\t')}\n`
+)
 process.stdout.write(
-	`soldier: ${(readFileSync(target).byteLength / 1024).toFixed(0)} KB, ${root.listAnimations().length} clips\n`
+	`${mode}: ${(readFileSync(target).byteLength / 1024).toFixed(0)} KB, ${root.listAnimations().length} clips\n`
 )

@@ -1,0 +1,22 @@
+{
+	"models": [
+		{
+			"name": "Universal Base Characters",
+			"author": "Quaternius",
+			"page": "https://quaternius.com/packs/universalbasecharacters.html",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Universal Animation Library",
+			"author": "Quaternius",
+			"page": "https://quaternius.com/packs/universalanimationlibrary.html",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Universal Animation Library 2",
+			"author": "Quaternius",
+			"page": "https://quaternius.com/packs/universalanimationlibrary2.html",
+			"licence": "CC0 1.0"
+		}
+	]
+}

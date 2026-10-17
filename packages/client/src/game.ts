@@ -214,7 +214,7 @@ export function startGame(options: GameOptions): GameHandle {
 	let snapshotReady = false
 	const checkReady = () => modelReady && snapshotReady && markReady()
 
-	void ZombieRenderer.load(`${options.assets}/models/zombie.glb`).then(renderer => {
+	void ZombieRenderer.load(`${options.assets}/models/characters/zombie.glb`).then(renderer => {
 		if (stopped) return
 		zombies = renderer
 		stage.scene.add(renderer.mesh)

@@ -33,7 +33,7 @@ function groundTexture(): THREE.CanvasTexture {
 
 /** Light for each kind of place: sky and ground fill, the sun (colour, strength, height), fog. */
 const LIGHTS = {
-	dusk: { sky: 0xaeb0c0, ground: 0x2a2620, fill: 1.15, sun: 0xffc8a0, strength: 2.2, height: 22, fog: 0x15130f },
+	dusk: { sky: 0xaeb0c0, ground: 0x2a2620, fill: 1.4, sun: 0xffc8a0, strength: 2.6, height: 22, fog: 0x15130f },
 	overcast: { sky: 0xc4ccd2, ground: 0x2a3129, fill: 1.5, sun: 0xeef2f0, strength: 1.6, height: 34, fog: 0x0d100e },
 	night: { sky: 0x6f80a8, ground: 0x111418, fill: 0.85, sun: 0xa8bce0, strength: 1.1, height: 30, fog: 0x07090c }
 } as const
@@ -224,7 +224,7 @@ export class Stage {
 		const groundGeometry = new THREE.PlaneGeometry(map.width, map.height)
 		const uv = groundGeometry.getAttribute('uv') as THREE.BufferAttribute
 		for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * map.width) / 4, (uv.getY(i) * map.height) / 4)
-		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xc8c8c0)
+		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4)
 		this.ground = new THREE.Mesh(groundGeometry, groundMaterial)
 		this.ground.rotation.x = -Math.PI / 2
 		this.ground.position.set(map.width / 2, 0, map.height / 2)

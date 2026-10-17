@@ -13,3 +13,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - A credits page lists every model, sound and font with its author and licence.
 - Maps look like places: real asphalt, concrete, dirt and grass underfoot, brick, stone, metal and concrete walls, and their own light (dusk, overcast or night).
 - Barrels, crates, sandbags, generators, terminals, supply caches and carried boxes are real models.
+- Zombies are new: rotting, torn and bloodied, hunched in a shambling walk, clawing when they reach you.

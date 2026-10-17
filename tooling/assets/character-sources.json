@@ -138,5 +138,40 @@
 			"triangles": 1474,
 			"tint": [0.45, 0.47, 0.4]
 		}
+	},
+	"animations2": {
+		"creator": "quaternius",
+		"game": "universal-animation-library-2",
+		"file": "Universal Animation Library 2[Standard].zip",
+		"glb": "Universal Animation Library 2[Standard]/Unreal-Godot/UAL2_Standard.glb",
+		"name": "Universal Animation Library 2",
+		"author": "Quaternius",
+		"page": "https://quaternius.com/packs/universalanimationlibrary2.html",
+		"licence": "CC0 1.0"
+	},
+	"zombie": {
+		"triangles": 2800,
+		"clips": [
+			{
+				"pack": "animations2",
+				"clip": "Zombie_Walk_Fwd_Loop",
+				"as": "Zombie_Walk"
+			},
+			{
+				"pack": "animations",
+				"clip": "Sprint_Loop",
+				"as": "Zombie_Run"
+			},
+			{
+				"pack": "animations2",
+				"clip": "Zombie_Scratch",
+				"as": "Zombie_Bite"
+			},
+			{
+				"pack": "animations2",
+				"clip": "Zombie_Idle_Loop",
+				"as": "Zombie_Idle"
+			}
+		]
 	}
 }

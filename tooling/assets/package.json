@@ -10,7 +10,8 @@
 		"characters": "node characters.ts",
 		"thumbnails": "node thumbnails.ts",
 		"textures": "node textures.ts",
-		"props": "node props.ts"
+		"props": "node props.ts",
+		"zombie": "node characters.ts zombie"
 	},
 	"devDependencies": {
 		"@gltf-transform/core": "^4.5.1",

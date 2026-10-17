@@ -92,9 +92,19 @@ function bake(root: THREE.Object3D, animations: THREE.AnimationClip[]): Baked {
 	for (const [m, mesh] of meshes.entries()) {
 		const g = mesh.geometry
 		const count = g.attributes.position?.count ?? 0
-		position.set((g.attributes.position as THREE.BufferAttribute).array as Float32Array, offset * 3)
-		normal.set((g.attributes.normal as THREE.BufferAttribute).array as Float32Array, offset * 3)
-		if (g.attributes.uv) uv.set((g.attributes.uv as THREE.BufferAttribute).array as Float32Array, offset * 2)
+		// read through the attribute (not its array): models may store vertices interleaved or quantised
+		const copy = (
+			attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute | undefined,
+			into: Float32Array,
+			size: number
+		) => {
+			if (!attribute) return
+			for (let v = 0; v < count; v++)
+				for (let k = 0; k < size; k++) into[(offset + v) * size + k] = attribute.getComponent(v, k)
+		}
+		copy(g.attributes.position as THREE.BufferAttribute, position, 3)
+		copy(g.attributes.normal as THREE.BufferAttribute, normal, 3)
+		copy(g.attributes.uv as THREE.BufferAttribute | undefined, uv, 2)
 		const si = g.attributes.skinIndex as THREE.BufferAttribute
 		const sw = g.attributes.skinWeight as THREE.BufferAttribute
 		for (let v = 0; v < count; v++) {
@@ -155,7 +165,8 @@ export class ZombieRenderer {
 	private readonly scale = new THREE.Vector3()
 	private readonly color = new THREE.Color()
 	private readonly up = new THREE.Vector3(0, 1, 0)
-	private readonly tints = zombieDefs.map(def => new THREE.Color(def.tint))
+	// the model is already painted (skin, rags, blood): the type's tint only shifts it a little
+	private readonly tints = zombieDefs.map(def => new THREE.Color(0xffffff).lerp(new THREE.Color(def.tint), 0.4))
 
 	private constructor(baked: Baked) {
 		this.clips = baked.clips
@@ -176,7 +187,12 @@ export class ZombieRenderer {
 		this.anim = new THREE.InstancedBufferAttribute(new Float32Array(MAX_ZOMBIES * 4), 4)
 		this.anim.setUsage(THREE.DynamicDrawUsage)
 		baked.geometry.setAttribute('aAnim', this.anim)
-		const materials = baked.materials.map(material => patch(material.clone(), false))
+		const materials = baked.materials.map(material => {
+			const copy = material.clone()
+			// the baked geometry carries no vertex colours (a model with COLOR_0 would otherwise draw black)
+			copy.vertexColors = false
+			return patch(copy, false)
+		})
 		this.mesh = new THREE.InstancedMesh(baked.geometry, materials, MAX_ZOMBIES)
 		this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
 		this.mesh.frustumCulled = false

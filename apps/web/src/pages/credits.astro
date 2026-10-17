@@ -2,6 +2,7 @@
 import { Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import soundCredits from '../../public/assets/audio/credits.json'
 import characterCredits from '../../public/assets/models/characters/credits.json'
+import zombieCredits from '../../public/assets/models/characters/zombie-credits.json'
 import propCredits from '../../public/assets/models/props/credits.json'
 import weaponCredits from '../../public/assets/models/weapons/credits.json'
 import textureCredits from '../../public/assets/textures/credits.json'
@@ -11,7 +12,13 @@ import Base from '../layouts/base.astro'
 const t = en.credits
 type Credit = { name: string; author: string; page: string; licence: string }
 const sections: { title: string; credits: readonly Credit[] }[] = [
-	{ title: t.characters, credits: characterCredits.models },
+	{
+		title: t.characters,
+		// the zombie shares the soldiers' body and first animation library: list each source once
+		credits: [...characterCredits.models, ...zombieCredits.models].filter(
+			(credit, index, all) => all.findIndex(other => other.page === credit.page) === index
+		)
+	},
 	{ title: t.weapons, credits: weaponCredits.models },
 	{ title: t.props, credits: propCredits.props },
 	{ title: t.sounds, credits: soundCredits.sounds },

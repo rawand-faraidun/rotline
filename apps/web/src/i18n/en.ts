@@ -92,7 +92,6 @@ export const en = {
 		licence: 'Licence: {licence}',
 		collection: 'Every model we use is listed in our Sketchfab collection.',
 		others: [
-			{ name: 'Animated Zombie', author: 'Quaternius', page: 'https://quaternius.com/', licence: 'CC0 1.0' },
 			{
 				name: 'Saira Stencil One',
 				author: 'Omnibus-Type',
