@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import type { AvatarStyle } from '@rotline/constants'
 import { AvatarFrame, Button, cn, Panel } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import { salvage } from '../../lib/describe.ts'
 import { type Invite, partyActions, partyQuery, usePlayerEvents } from '../../lib/party.ts'
 import { progressQuery } from '../../lib/progress.ts'
 import { leaveSeat } from '../../lib/seat.ts'
+import { listenForClicks, uiSound } from '../../lib/ui-sound.ts'
 import { meQuery } from '../app.tsx'
 import { SeatKeeper } from './seat-keeper.tsx'
 import { Shell } from './shell.tsx'
@@ -34,7 +35,11 @@ export function GameShell({ children }: { children: ReactNode }) {
 	const queryClient = useQueryClient()
 	const navigate = useNavigate()
 	const [invite, setInvite] = useState<Invite | null>(null)
-	usePlayerEvents(setInvite)
+	usePlayerEvents(invite => {
+		uiSound('ui-notify')
+		setInvite(invite)
+	})
+	useEffect(() => listenForClicks(), [])
 	const player = me.status === 'signed-in' ? me.player : null
 	const avatar = useAvatar((player?.avatarStyle ?? 'pixel-art') as AvatarStyle, player?.avatarSeed ?? '')
 	if (!player) return null

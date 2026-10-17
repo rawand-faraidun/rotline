@@ -1,6 +1,7 @@
 import { type QueryClient, queryOptions } from '@tanstack/react-query'
 import type { InferResponseType } from 'hono/client'
 import type { api } from './api.ts'
+import { uiSound } from './ui-sound.ts'
 
 export type ProgressView = InferResponseType<(typeof api.api.progress)['$get'], 200>
 export type ClassName = ProgressView['activeClass']
@@ -74,6 +75,7 @@ export const isRefusal = (result: ProgressView | Refusal): result is Refusal => 
 export async function runAction(client: QueryClient, action: Promise<ProgressView | Refusal>): Promise<Refusal | null> {
 	const result = await action
 	if (isRefusal(result)) return result
+	uiSound('ui-confirm')
 	client.setQueryData(progressQuery.queryKey, result)
 	void client.invalidateQueries({ queryKey: ['progress', 'ledger'] })
 	return null

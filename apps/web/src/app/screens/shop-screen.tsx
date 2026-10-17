@@ -6,6 +6,7 @@ import { en, format } from '../../i18n/en.ts'
 import { salvage } from '../../lib/describe.ts'
 import { itemStatRows } from '../../lib/item-stats.ts'
 import { type ProgressProblem, progressActions, progressQuery, runAction } from '../../lib/progress.ts'
+import { uiSound } from '../../lib/ui-sound.ts'
 import { GameShell } from './game-shell.tsx'
 import { scroller } from './layout.ts'
 import { WeaponViewer } from './model-viewer.tsx'
@@ -123,6 +124,7 @@ function Inspector({ id, onClose }: { id: string; onClose: () => void }) {
 	const item = items.find(entry => entry.id === id)
 	useEffect(() => {
 		dialog.current?.showModal()
+		uiSound('ui-inspect')
 	}, [])
 	if (!item) return null
 	return (

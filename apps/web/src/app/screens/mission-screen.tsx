@@ -280,7 +280,7 @@ function SoundSettings({ handle }: { handle: GameHandle }) {
 		handle.audio.set(next)
 	}
 	const s = t.sound
-	const slider = (key: 'master' | 'effects' | 'interface', label: string) => (
+	const slider = (key: 'master' | 'effects' | 'music' | 'ambience' | 'interface', label: string) => (
 		<label className="flex items-center justify-between gap-3 text-sm">
 			<span className="text-muted text-xs uppercase tracking-[0.2em]">{label}</span>
 			<input
@@ -299,6 +299,8 @@ function SoundSettings({ handle }: { handle: GameHandle }) {
 			<legend className="mb-1 font-bold text-muted text-xs uppercase tracking-[0.2em]">{s.title}</legend>
 			{slider('master', s.master)}
 			{slider('effects', s.effects)}
+			{slider('music', s.music)}
+			{slider('ambience', s.ambience)}
 			{slider('interface', s.interface)}
 			<label className="flex items-center gap-2 text-sm">
 				<input type="checkbox" checked={settings.muted} onChange={event => change({ muted: event.target.checked })} />

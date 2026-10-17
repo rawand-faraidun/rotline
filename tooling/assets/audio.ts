@@ -2,7 +2,7 @@
 // Downloads each source once (cached), cuts the listed pieces, cleans them (noise reduction, short
 // fades, peak normalisation) and writes small mono MP3s plus a manifest the client loads.
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,8 +12,20 @@ const ffmpeg = createRequire(import.meta.url)('ffmpeg-static') as string
 const cache = join(here, 'node_modules', '.cache', 'audio')
 const out = join(here, '..', '..', 'apps', 'web', 'public', 'assets', 'audio')
 
-type Source = { id: string; url: string; page: string; author: string; licence: string }
-type Cut = { out: string; source: string; file?: string; start: number; duration: number; denoise?: boolean }
+type Source = { id: string; url: string; page: string; author: string; licence: string; title?: string }
+type Cut = {
+	out: string
+	source: string
+	file?: string
+	start: number
+	duration: number
+	denoise?: boolean
+	/** ambience and music keep both channels */
+	stereo?: boolean
+	bitrate?: string
+	/** played as a loop (the client crossfades the ends): only a tiny fade at each end */
+	loop?: boolean
+}
 const { sources, cuts } = JSON.parse(readFileSync(join(here, 'audio-sources.json'), 'utf8')) as {
 	sources: Source[]
 	cuts: Cut[]
@@ -51,11 +63,11 @@ for (const cut of cuts) {
 	const base = where.get(cut.source)
 	if (!base) throw new Error(`unknown source ${cut.source}`)
 	const input = cut.file ? join(base, cut.file) : base
-	const fade = Math.min(0.25, cut.duration / 3)
+	const fade = cut.loop ? 0.05 : Math.min(0.25, cut.duration / 3)
 	const filters = [
 		`atrim=start=${cut.start}:duration=${cut.duration}`,
 		'asetpts=PTS-STARTPTS',
-		'aformat=channel_layouts=mono',
+		`aformat=channel_layouts=${cut.stereo ? 'stereo' : 'mono'}`,
 		'highpass=f=50',
 		// the field recordings carry steady background noise
 		...(cut.denoise === false ? [] : ['afftdn=nf=-28']),
@@ -78,12 +90,26 @@ for (const cut of cuts) {
 		'-codec:a',
 		'libmp3lame',
 		'-b:a',
-		'96k',
+		cut.bitrate ?? '96k',
 		join(out, `${cut.out}.mp3`)
 	])
 	const group = cut.out.replace(/-\d+$/, '')
 	manifest[group] = [...(manifest[group] ?? []), `${cut.out}.mp3`]
 }
 
+// files from cuts that no longer exist are removed
+const written = new Set(cuts.map(cut => `${cut.out}.mp3`))
+for (const file of readdirSync(out)) if (file.endsWith('.mp3') && !written.has(file)) rmSync(join(out, file))
+// who made what is used, for the credits page
+const usedSources = new Set(cuts.map(cut => cut.source))
+const credits = sources
+	.filter(source => usedSources.has(source.id))
+	.map(source => ({
+		name: source.title ?? source.id,
+		author: source.author,
+		page: source.page,
+		licence: source.licence
+	}))
+writeFileSync(join(out, 'credits.json'), `${JSON.stringify({ sounds: credits }, null, '\t')}\n`)
 writeFileSync(join(out, 'manifest.json'), `${JSON.stringify(manifest, null, '\t')}\n`)
 process.stdout.write(`wrote ${cuts.length} sounds in ${Object.keys(manifest).length} groups to ${out}\n`)

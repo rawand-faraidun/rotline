@@ -6,7 +6,8 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./headless": "./src/headless.ts",
-		"./viewer": "./src/viewer.ts"
+		"./viewer": "./src/viewer.ts",
+		"./audio": "./src/audio.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc",

@@ -84,30 +84,13 @@ export const en = {
 			'Rotline is built from free and open assets. Thank you to everyone who shared their work. Assets marked CC BY 4.0 were changed for the game: turned, rescaled, simplified and given smaller textures.',
 		characters: 'Characters, gear and animations',
 		weapons: 'Weapon models',
-		other: 'Sounds, fonts and other models',
+		sounds: 'Sounds and music',
+		other: 'Fonts, avatars and other models',
 		by: '{name} by {author}',
 		licence: 'Licence: {licence}',
 		collection: 'Every model we use is listed in our Sketchfab collection.',
 		others: [
 			{ name: 'Animated Zombie', author: 'Quaternius', page: 'https://quaternius.com/', licence: 'CC0 1.0' },
-			{
-				name: 'Gunshot sounds',
-				author: 'Tabasco',
-				page: 'https://opengameart.org/content/gunshot-sounds',
-				licence: 'CC0 1.0'
-			},
-			{
-				name: 'Gun reload sounds',
-				author: 'SpringySpringo',
-				page: 'https://opengameart.org/content/gun-reload-sounds',
-				licence: 'CC0 1.0'
-			},
-			{
-				name: 'Zombie noises and moans',
-				author: 'ianzazz',
-				page: 'https://opengameart.org/content/zombie-noises-and-moans',
-				licence: 'CC0 1.0'
-			},
 			{
 				name: 'Saira Stencil One',
 				author: 'Omnibus-Type',
@@ -588,6 +571,8 @@ export const en = {
 				title: 'Sound',
 				master: 'Master',
 				effects: 'Effects',
+				music: 'Music',
+				ambience: 'Ambience',
 				interface: 'Interface',
 				mute: 'Mute all sound'
 			},

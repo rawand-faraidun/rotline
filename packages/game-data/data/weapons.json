@@ -468,9 +468,9 @@
 			}
 		],
 		"sound": {
-			"shot": "rifle",
+			"shot": "mg",
 			"reload": "reload-rifle",
-			"rate": 0.85,
+			"rate": 0.9,
 			"recoil": 0.12
 		}
 	},
@@ -893,9 +893,9 @@
 		},
 		"perks": [],
 		"sound": {
-			"shot": "rifle",
+			"shot": "mg",
 			"reload": "reload-rifle",
-			"rate": 1.2,
+			"rate": 1.15,
 			"recoil": 0.07
 		}
 	}

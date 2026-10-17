@@ -10,10 +10,21 @@ export type AudioSettings = {
 	master: number
 	effects: number
 	interface: number
+	music: number
+	ambience: number
 	muted: boolean
 }
 
-export const defaultAudioSettings: AudioSettings = { master: 0.8, effects: 1, interface: 0.8, muted: false }
+export const defaultAudioSettings: AudioSettings = {
+	master: 0.8,
+	effects: 1,
+	interface: 0.8,
+	music: 0.45,
+	ambience: 0.7,
+	muted: false
+}
+
+type Bus = 'effects' | 'interface' | 'music' | 'ambience'
 
 const SETTINGS_KEY = 'rotline.audio'
 
@@ -51,6 +62,7 @@ export type SynthName =
 	| 'door'
 	| 'power'
 	| 'alarm'
+	| 'body'
 
 export type PlayOptions = {
 	/** world position; omitted for sounds that belong to the player (their own gun, the interface) */
@@ -60,7 +72,14 @@ export type PlayOptions = {
 	/** playback rate (pitch); a little random variation is added unless `exact` */
 	rate?: number
 	exact?: boolean
-	bus?: 'effects' | 'interface'
+	bus?: Bus
+}
+
+/** A looping sound (music, ambience) that can be faded and stopped. */
+export type LoopHandle = {
+	/** fades to `volume` over `seconds` */
+	fade(volume: number, seconds?: number): void
+	stop(seconds?: number): void
 }
 
 const SYNTHS = new Set<string>([
@@ -76,11 +95,27 @@ const SYNTHS = new Set<string>([
 	'thud',
 	'door',
 	'power',
-	'alarm'
+	'alarm',
+	'body'
 ])
 
+/** Long files (music, ambience) load the first time they are played, not with the rest. */
+const LAZY = /^(music|ambience)-/
+/** How long the two copies of a loop overlap where it wraps around. */
+const LOOP_CROSSFADE = 2.5
+
 /** How many of one sound may play at once; the oldest stops for a new one. */
-const VOICES: Record<string, number> = { default: 6, zombie: 4, 'zombie-fast': 3, explosion: 4, flame: 2 }
+const VOICES: Record<string, number> = {
+	default: 6,
+	zombie: 4,
+	'zombie-fast': 3,
+	'zombie-pain': 3,
+	'zombie-death': 3,
+	flesh: 4,
+	explosion: 4,
+	flame: 2,
+	body: 3
+}
 /** Full volume within this distance (metres), then falling off; silent past MAX_DISTANCE. */
 const NEAR = 6
 const MAX_DISTANCE = 45
@@ -92,8 +127,10 @@ type Voice = { source: AudioScheduledSourceNode; started: number }
 export class AudioEngine {
 	private context: AudioContext | null = null
 	private master: GainNode | null = null
-	private buses: { effects: GainNode; interface: GainNode } | null = null
+	private buses: Record<Bus, GainNode> | null = null
 	private readonly buffers = new Map<string, AudioBuffer[]>()
+	private manifest: Record<string, string[]> = {}
+	private readonly lazy = new Map<string, Promise<AudioBuffer[]>>()
 	private readonly voices = new Map<string, Voice[]>()
 	private noise: AudioBuffer | null = null
 	private settings: AudioSettings
@@ -101,6 +138,11 @@ export class AudioEngine {
 	private listenerY = 0
 	private readonly base: string
 	private loading: Promise<void> | null = null
+	private markUnlocked: () => void = () => {}
+	/** resolves at the first click or key press, when sound may start */
+	private readonly unlocked = new Promise<void>(resolve => {
+		this.markUnlocked = resolve
+	})
 
 	constructor(base: string, settings: AudioSettings = loadAudioSettings()) {
 		this.base = base
@@ -112,15 +154,34 @@ export class AudioEngine {
 		if (typeof AudioContext === 'undefined') return
 		if (!this.context) {
 			this.context = new AudioContext()
-			this.master = this.context.createGain()
-			this.master.connect(this.context.destination)
-			const effects = this.context.createGain()
-			const ui = this.context.createGain()
-			effects.connect(this.master)
-			ui.connect(this.master)
-			this.buses = { effects, interface: ui }
+			const context = this.context
+			this.master = context.createGain()
+			// a gentle compressor glues gunfire and horde together and keeps peaks from clipping
+			const compressor = context.createDynamicsCompressor()
+			compressor.threshold.value = -16
+			compressor.knee.value = 12
+			compressor.ratio.value = 4
+			compressor.attack.value = 0.004
+			compressor.release.value = 0.2
+			this.master.connect(compressor)
+			compressor.connect(context.destination)
+			const bus = () => {
+				const gain = context.createGain()
+				gain.connect(this.master as GainNode)
+				return gain
+			}
+			this.buses = { effects: bus(), interface: bus(), music: bus(), ambience: bus() }
+			// effects get a little of a dark, open space around them
+			const reverb = context.createConvolver()
+			reverb.buffer = this.impulse(context, 1.8)
+			const send = context.createGain()
+			send.gain.value = 0.16
+			this.buses.effects.connect(send)
+			send.connect(reverb)
+			reverb.connect(this.master)
 			this.applySettings()
 			this.loading = this.load()
+			this.markUnlocked()
 		}
 		if (this.context.state === 'suspended') void this.context.resume()
 	}
@@ -134,17 +195,111 @@ export class AudioEngine {
 		if (!context) return
 		try {
 			const manifest = (await (await fetch(`${this.base}/manifest.json`)).json()) as Record<string, string[]>
+			this.manifest = manifest
 			await Promise.all(
-				Object.entries(manifest).map(async ([group, files]) => {
-					const decoded = await Promise.all(
-						files.map(async file => context.decodeAudioData(await (await fetch(`${this.base}/${file}`)).arrayBuffer()))
-					)
-					this.buffers.set(group, decoded)
-				})
+				Object.entries(manifest)
+					.filter(([group]) => !LAZY.test(group))
+					.map(async ([group, files]) => this.buffers.set(group, await this.decode(context, files)))
 			)
 		} catch {
 			// no sound files (offline, blocked): the made-up sounds still play
 		}
+	}
+
+	private decode(context: AudioContext, files: readonly string[]): Promise<AudioBuffer[]> {
+		return Promise.all(
+			files.map(async file => context.decodeAudioData(await (await fetch(`${this.base}/${file}`)).arrayBuffer()))
+		)
+	}
+
+	/** A long sound's buffers, fetched the first time they are asked for. */
+	private async lazyBuffers(group: string): Promise<AudioBuffer[]> {
+		await this.unlocked
+		await this.loading
+		const context = this.context
+		const files = this.manifest[group]
+		if (!context || !files) return []
+		let pending = this.lazy.get(group)
+		if (!pending) {
+			pending = this.decode(context, files).catch(() => [])
+			this.lazy.set(group, pending)
+		}
+		return pending
+	}
+
+	/**
+	 * Loops a long sound (music, ambience) on its bus, fading in. Where it wraps around, two copies
+	 * overlap and crossfade, so the seam is not heard. Returns a handle to fade or stop it.
+	 */
+	loop(group: string, options: { bus?: Bus; volume?: number; fadeIn?: number } = {}): LoopHandle {
+		const state = { volume: options.volume ?? 1, stopped: false, gain: null as GainNode | null, timer: 0 }
+		const handle: LoopHandle = {
+			fade: (volume, seconds = 1) => {
+				state.volume = volume
+				const context = this.context
+				if (!state.gain || !context) return
+				state.gain.gain.cancelScheduledValues(context.currentTime)
+				state.gain.gain.setValueAtTime(state.gain.gain.value, context.currentTime)
+				state.gain.gain.linearRampToValueAtTime(volume, context.currentTime + seconds)
+			},
+			stop: (seconds = 1) => {
+				state.stopped = true
+				window.clearTimeout(state.timer)
+				const context = this.context
+				if (!state.gain || !context) return
+				const gain = state.gain
+				gain.gain.cancelScheduledValues(context.currentTime)
+				gain.gain.setValueAtTime(gain.gain.value, context.currentTime)
+				gain.gain.linearRampToValueAtTime(0, context.currentTime + seconds)
+				window.setTimeout(() => gain.disconnect(), seconds * 1000 + 100)
+			}
+		}
+		void this.lazyBuffers(group).then(buffers => {
+			const context = this.context
+			const buses = this.buses
+			const buffer = buffers[Math.floor(Math.random() * buffers.length)]
+			if (!buffer || !context || !buses || state.stopped) return
+			const gain = context.createGain()
+			gain.gain.setValueAtTime(0, context.currentTime)
+			gain.gain.linearRampToValueAtTime(state.volume, context.currentTime + (options.fadeIn ?? 2))
+			gain.connect(buses[options.bus ?? 'ambience'])
+			state.gain = gain
+			const overlap = Math.min(LOOP_CROSSFADE, buffer.duration / 4)
+			const play = (at: number) => {
+				if (state.stopped) return
+				const source = context.createBufferSource()
+				source.buffer = buffer
+				const envelope = context.createGain()
+				envelope.gain.setValueAtTime(0, at)
+				envelope.gain.linearRampToValueAtTime(1, at + overlap)
+				envelope.gain.setValueAtTime(1, at + buffer.duration - overlap)
+				envelope.gain.linearRampToValueAtTime(0, at + buffer.duration)
+				source.connect(envelope)
+				envelope.connect(gain)
+				source.start(at)
+				source.addEventListener('ended', () => envelope.disconnect())
+				const next = at + buffer.duration - overlap
+				// schedule the next copy a little before it is due
+				state.timer = window.setTimeout(() => play(next), Math.max(0, (next - context.currentTime - 1) * 1000))
+			}
+			play(context.currentTime + 0.05)
+		})
+		return handle
+	}
+
+	/** A short burst of decaying noise, used as the room the effects ring in. */
+	private impulse(context: AudioContext, seconds: number): AudioBuffer {
+		const length = Math.floor(context.sampleRate * seconds)
+		const buffer = context.createBuffer(2, length, context.sampleRate)
+		let seed = 777
+		for (let channel = 0; channel < 2; channel++) {
+			const data = buffer.getChannelData(channel)
+			for (let i = 0; i < length; i++) {
+				seed = (seed * 1664525 + 1013904223) >>> 0
+				data[i] = (seed / 2147483648 - 1) * (1 - i / length) ** 3
+			}
+		}
+		return buffer
 	}
 
 	getSettings(): AudioSettings {
@@ -162,6 +317,8 @@ export class AudioEngine {
 		this.master.gain.value = this.settings.muted ? 0 : this.settings.master
 		this.buses.effects.gain.value = this.settings.effects
 		this.buses.interface.gain.value = this.settings.interface
+		this.buses.music.gain.value = this.settings.music
+		this.buses.ambience.gain.value = this.settings.ambience
 	}
 
 	/** Where the player is: positional sounds are heard from here. */
@@ -224,7 +381,7 @@ export class AudioEngine {
 		const panner = context.createStereoPanner()
 		panner.pan.value = pan
 		gain.connect(panner)
-		panner.connect(options.bus === 'interface' ? buses.interface : buses.effects)
+		panner.connect(buses[options.bus ?? 'effects'])
 		const source = build(context, gain)
 		const voices = this.voices.get(key) ?? []
 		const limit = VOICES[key] ?? VOICES.default ?? 6
@@ -360,6 +517,15 @@ export class AudioEngine {
 				const oscillator = tone('sawtooth', 55)
 				oscillator.frequency.linearRampToValueAtTime(110 * rate, now + 0.8)
 				length = shape(0.1, 0.5, 0.6, 0.35)
+				source = oscillator
+				break
+			}
+			case 'body': {
+				// the chest-thump under a gunshot that small speakers lose from the recording
+				const oscillator = tone('sine', 78)
+				oscillator.frequency.setValueAtTime(78 * rate, now)
+				oscillator.frequency.exponentialRampToValueAtTime(38 * rate, now + 0.14)
+				length = shape(0.001, 0.015, 0.16, 0.9)
 				source = oscillator
 				break
 			}

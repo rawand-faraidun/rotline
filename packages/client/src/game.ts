@@ -39,7 +39,7 @@ import {
 	TICK_RATE
 } from '@rotline/sim'
 import * as THREE from 'three'
-import { AudioEngine, type AudioSettings } from './audio.ts'
+import { AudioEngine, type AudioSettings, type LoopHandle } from './audio.ts'
 import { Controls } from './controls.ts'
 import { HudStore, type InteractAction, type MissionHud, type Toast } from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
@@ -128,6 +128,39 @@ export function startGame(options: GameOptions): GameHandle {
 			rate: sound.rate * (minigun ? 1.15 : 1),
 			volume: at ? 0.7 : 0.85
 		})
+		// the weight under it: heavier guns thump harder (only for recorded gunshots)
+		if (sound.shot !== 'flame' && sound.shot !== 'zap' && sound.shot !== 'thump')
+			audio.synth('body', { ...(at ?? {}), volume: Math.min(1, 0.35 + sound.recoil * 1.4) * (at ? 0.5 : 0.8) })
+	}
+	let lastPainAt = 0
+	/** the soundscape: a bed for the place, the horde's murmur, and music that rises with the fight */
+	type Loops = { bed: LoopHandle; horde: LoopHandle; calm: LoopHandle; fight: LoopHandle }
+	let loops: Loops | null = null
+	let nextMixAt = 0
+	const startLoops = (mapId: string) => {
+		if (loops) return
+		const beds = ['ambience-dark', 'ambience-terror', 'ambience-wind']
+		let hash = 0
+		for (const char of mapId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+		loops = {
+			bed: audio.loop(beds[hash % beds.length] as string, { bus: 'ambience', volume: 0.8, fadeIn: 4 }),
+			horde: audio.loop('ambience-horde', { bus: 'ambience', volume: 0.1, fadeIn: 4 }),
+			calm: audio.loop('music-calm', { bus: 'music', volume: 0.7, fadeIn: 6 }),
+			fight: audio.loop('music-fight', { bus: 'music', volume: 0, fadeIn: 1 })
+		}
+	}
+	/** How close the fight is: zombies near the player push the horde and the fight music up. */
+	const mixLoops = (x: number, y: number, now: number) => {
+		if (!loops || now < nextMixAt) return
+		nextMixAt = now + 250
+		const view = interpolator.view
+		let near = 0
+		for (let i = 0; i < view.count; i++)
+			if (Math.hypot((view.x[i] as number) - x, (view.y[i] as number) - y) < 18) near++
+		const fight = Math.min(1, near / 8)
+		loops.horde.fade(0.1 + 0.6 * Math.min(1, near / 16), 1.5)
+		loops.fight.fade(0.85 * fight, fight > 0 ? 1.2 : 4)
+		loops.calm.fade(0.7 * (1 - 0.75 * fight), 3)
 	}
 	const raycaster = new THREE.Raycaster()
 	const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
@@ -190,7 +223,8 @@ export function startGame(options: GameOptions): GameHandle {
 	})
 
 	const connection = new GameConnection(options.url, options.ticket, {
-		welcome: (slot, _tick, _map, build, missionId, difficulty) => {
+		welcome: (slot, _tick, map, build, missionId, difficulty) => {
+			startLoops(map)
 			you = slot
 			predictor = new Predictor(grid, slot, build)
 			// zombies are solid, as on the server (against where they are drawn)
@@ -388,7 +422,8 @@ export function startGame(options: GameOptions): GameHandle {
 					case 'explode':
 						effects.explode(event.id, event.x, event.y, event.radius, now)
 						if (event.radius > 0) {
-							audio.synth('explosion', { x: event.x, y: event.y, rate: 1.4 - Math.min(0.6, event.radius / 10) })
+							audio.sound('explosion', { x: event.x, y: event.y, rate: 1.25 - Math.min(0.4, event.radius / 12) })
+							audio.synth('body', { x: event.x, y: event.y, rate: 0.6 })
 							const d = Math.hypot(event.x - drawn.x, event.y - drawn.y)
 							if (d < 18) stage.shake(0.6 * (1 - d / 18))
 						}
@@ -406,12 +441,20 @@ export function startGame(options: GameOptions): GameHandle {
 							}
 						}
 						if (Math.random() < 0.3) effects.splat(event.x, event.y, 0.35 + Math.random() * 0.3)
+						// the wet smack of rounds landing, and now and then the zombie's pain
+						if (now - lastPainAt > 0.12) {
+							lastPainAt = now
+							audio.sound('flesh', { x: event.x, y: event.y, volume: 0.45 })
+							if (Math.random() < 0.25) audio.sound('zombie-pain', { x: event.x, y: event.y, volume: 0.55 })
+						}
 						break
 					case 'kill':
 						effects.splat(event.x, event.y, 0.8 + Math.random() * 0.6)
-						if (Math.random() < 0.35) {
+						{
 							const scale = zombieDefs[event.zombieType]?.scale ?? 1
-							audio.sound('zombie', { x: event.x, y: event.y, rate: 0.85 / scale, volume: 0.6 })
+							if (Math.random() < 0.6)
+								audio.sound('zombie-death', { x: event.x, y: event.y, rate: 0.95 / scale, volume: 0.65 })
+							if (Math.random() < 0.5) audio.sound('bodyfall', { x: event.x, y: event.y, rate: 1 / scale, volume: 0.5 })
 						}
 						break
 					case 'burst':
@@ -426,6 +469,7 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					case 'player-hurt':
 						if (event.player === you && event.amount >= 5) {
+							audio.sound('zombie-bite', { volume: 0.7 })
 							audio.synth('thud', { volume: 0.4, rate: 1.4 })
 							stage.shake(Math.min(0.35, event.amount / 60))
 						}
@@ -791,6 +835,7 @@ export function startGame(options: GameOptions): GameHandle {
 		if (predictor && me) {
 			predictor.renderPosition(accumulator / TICK_MS, dt, drawn)
 			audio.setListener(drawn.x, drawn.y)
+			mixLoops(drawn.x, drawn.y, now)
 			const own = predictor.state
 			const held = weapons[activeWeapon(own, own.minigunSteps > 0).index]
 			if (held) me.setWeapon(held.id, held.kind === 'pistol')
