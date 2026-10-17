@@ -1,7 +1,7 @@
 export { createValkey, type Valkey } from './client.ts'
 export { allow } from './limits.ts'
 export { notify, type PlayerEvent, userChannel } from './notify.ts'
-export { PARTY_SIZE, type Party, PartyError, type PartyState, PartyStore } from './parties.ts'
+export { PARTY_AWAY_MS, PARTY_SIZE, type Party, PartyError, type PartyState, PartyStore } from './parties.ts'
 export { clearPresence, getPresence, type Presence, type PresenceStatus, setPresence } from './presence.ts'
 export {
 	announceInstance,

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
-import { createValkey, PARTY_SIZE, PartyError, PartyStore } from '../src/index.ts'
+import { createValkey, PARTY_AWAY_MS, PARTY_SIZE, PartyError, PartyStore } from '../src/index.ts'
 
 // Needs Valkey (VALKEY_URL).
 const valkey = createValkey(process.env.VALKEY_URL ?? 'redis://localhost:6379', 'rotline-test')
@@ -99,5 +99,51 @@ describe('parties', () => {
 		const results = await Promise.allSettled(Array.from({ length: 10 }, () => parties.join(user(), code)))
 		expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(PARTY_SIZE - 1)
 		expect((await parties.get(id))?.members).toHaveLength(PARTY_SIZE)
+	})
+
+	it('takes players away for a while out of their squad, and closes a squad left empty', async () => {
+		// timestamps far in the past, so only this test's players are old enough to sweep
+		const t = 1_000 + Math.floor(Math.random() * 1_000)
+		const host = user()
+		const guest = user()
+		const loner = user()
+		const squad = await parties.current(host)
+		await parties.join(guest, squad.code)
+		const solo = await parties.current(loner)
+		await parties.touch(host, t)
+		await parties.touch(loner, t)
+		await parties.touch(guest, t + PARTY_AWAY_MS)
+		// another instance holding the lock skips the sweep
+		const removed = await parties.sweep(PARTY_AWAY_MS, t + PARTY_AWAY_MS + 1)
+		expect(removed).toEqual(
+			expect.arrayContaining([
+				{ userId: host, partyId: squad.id },
+				{ userId: loner, partyId: solo.id }
+			])
+		)
+		expect(removed.some(entry => entry.userId === guest)).toBe(false)
+		const left = await parties.get(squad.id)
+		expect(left?.members).toEqual([guest])
+		expect(left?.leader).toBe(guest)
+		expect(await parties.get(solo.id)).toBeNull()
+		expect(await parties.byCode(solo.code)).toBeNull()
+	})
+
+	it('leaves squads in a mission alone, and the away time restarts when the mission ends', async () => {
+		const t = 3_000 + Math.floor(Math.random() * 1_000)
+		const host = user()
+		const party = await parties.current(host)
+		await parties.start(host, 'room', 'instance')
+		await parties.touch(host, t)
+		expect(await parties.sweep(PARTY_AWAY_MS, t + PARTY_AWAY_MS + 1)).not.toContainEqual({
+			userId: host,
+			partyId: party.id
+		})
+		await parties.endMission(party.id, t + PARTY_AWAY_MS)
+		expect(await parties.sweep(PARTY_AWAY_MS, t + PARTY_AWAY_MS + 1)).not.toContainEqual({
+			userId: host,
+			partyId: party.id
+		})
+		expect((await parties.get(party.id))?.members).toEqual([host])
 	})
 })

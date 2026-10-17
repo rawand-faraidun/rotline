@@ -8,7 +8,7 @@ import { itemStatRows } from '../../lib/item-stats.ts'
 import { type ProgressProblem, progressActions, progressQuery, runAction } from '../../lib/progress.ts'
 import { GameShell } from './game-shell.tsx'
 import { scroller } from './layout.ts'
-import { WeaponViewer } from './weapon-viewer.tsx'
+import { WeaponViewer } from './model-viewer.tsx'
 
 const t = en.app.shop
 const p = en.app.progression

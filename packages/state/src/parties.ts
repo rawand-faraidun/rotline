@@ -39,6 +39,12 @@ const membersKey = (id: string) => `party:${id}:members`
 const readyKey = (id: string) => `party:${id}:ready`
 const codeKey = (code: string) => `party-code:${code}`
 const memberKey = (userId: string) => `party-member:${userId}`
+/** when each player last had the game open (any page that keeps the event stream) */
+const SEEN_KEY = 'party-seen'
+const SWEEP_LOCK = 'party-sweep-lock'
+
+/** Players gone this long are taken out of their squad (a squad with nobody left is closed). */
+export const PARTY_AWAY_MS = 3 * 60_000
 
 /**
  * Parties (lobby groups of up to four) live in Valkey: they are short-lived, change often and are
@@ -205,13 +211,49 @@ export class PartyStore {
 		return (await this.get(party.id)) as Party
 	}
 
+	/** The player has the game open: their squad keeps them. */
+	async touch(userId: string, now = Date.now()): Promise<void> {
+		await this.valkey.zadd(SEEN_KEY, now, userId)
+	}
+
+	/**
+	 * Takes players who have been away longer than `awayMs` out of their squads in the lobby (a squad
+	 * left empty is closed with its code). Squads in a mission are left alone: the game server owns
+	 * them until it ends. One API instance sweeps at a time. Returns who was taken out of which squad.
+	 */
+	async sweep(awayMs = PARTY_AWAY_MS, now = Date.now()): Promise<{ userId: string; partyId: string }[]> {
+		if ((await this.valkey.set(SWEEP_LOCK, '1', 'PX', 10_000, 'NX')) !== 'OK') return []
+		const removed: { userId: string; partyId: string }[] = []
+		try {
+			const stale = await this.valkey.zrangebyscore(SEEN_KEY, 0, now - awayMs, 'LIMIT', 0, 500)
+			for (const userId of stale) {
+				const id = await this.valkey.get(memberKey(userId))
+				const party = id ? await this.get(id) : null
+				if (party?.state === 'mission') continue
+				// they may have come back while this ran
+				const seen = Number(await this.valkey.zscore(SEEN_KEY, userId))
+				if (seen > now - awayMs) continue
+				await this.valkey.zrem(SEEN_KEY, userId)
+				if (!party?.members.includes(userId)) continue
+				const left = await this.detach(userId)
+				if (left) removed.push({ userId, partyId: left })
+			}
+		} finally {
+			await this.valkey.del(SWEEP_LOCK)
+		}
+		return removed
+	}
+
 	/** Back to the lobby after a mission; ready marks are cleared. */
-	async endMission(partyId: string): Promise<void> {
-		await this.valkey
+	async endMission(partyId: string, now = Date.now()): Promise<void> {
+		const members = await this.valkey.zrange(membersKey(partyId), '0', '-1')
+		const multi = this.valkey
 			.multi()
 			.hset(partyKey(partyId), { state: 'lobby', room: '', instance: '', startedAt: 0 })
 			.del(readyKey(partyId))
-			.exec()
+		// the mission counts as being here: the away time starts when it ends
+		for (const member of members) multi.zadd(SEEN_KEY, 'GT', now, member)
+		await multi.exec()
 	}
 }
 

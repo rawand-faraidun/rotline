@@ -8,6 +8,7 @@ import { pino } from 'pino'
 import { createApp } from './app.ts'
 import { readEnv } from './env.ts'
 import { EventHub } from './events.ts'
+import { startPartySweeper } from './party-sweeper.ts'
 import { RewardWorker } from './rewards.ts'
 import { mirrorSettings } from './routes/admin.ts'
 
@@ -21,7 +22,9 @@ const auth = createAuth(env, db)
 const valkey = createValkey(env.VALKEY_URL, 'rotline-api')
 const events = new EventHub(env.VALKEY_URL)
 const seats = new Seats(valkey)
-const app = createApp({ env, db, auth, log, valkey, parties: new PartyStore(valkey), seats, events })
+const parties = new PartyStore(valkey)
+const app = createApp({ env, db, auth, log, valkey, parties, seats, events })
+const stopSweeper = startPartySweeper(parties, valkey, log)
 
 // Valkey is rebuildable: the admin capacity setting lives in the database and is mirrored there
 await mirrorSettings(db, seats).catch(error => log.error({ err: error }, 'could not mirror admin settings'))
@@ -43,6 +46,7 @@ const server = serve({ fetch: app.fetch, port: env.API_PORT }, info => {
 const shutdown = async (signal: string) => {
 	log.info({ signal }, 'shutting down')
 	server.close()
+	stopSweeper()
 	await rewards.stop()
 	await db.$disconnect()
 	await Promise.allSettled([valkey.quit(), events.close()])

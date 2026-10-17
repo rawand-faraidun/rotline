@@ -1,10 +1,19 @@
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+
+export type ShowOptions = {
+	/** for a model holding several looks (the soldier's classes): show only nodes named `<only>-…` */
+	only?: string | undefined
+	/** an animation clip to loop */
+	clip?: string | undefined
+}
 
 export type ViewerHandle = {
-	/** shows another model (a weapon id's .glb under the base path) */
-	show(url: string): void
+	/** shows another model (a .glb) */
+	show(url: string, options?: ShowOptions): void
 	dispose(): void
 }
 
@@ -33,7 +42,8 @@ export function mountViewer(canvas: HTMLCanvasElement): ViewerHandle {
 	scene.add(key, rim)
 	const turntable = new THREE.Group()
 	scene.add(turntable)
-	const loader = new GLTFLoader()
+	const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+	let mixer: THREE.AnimationMixer | null = null
 	let current: THREE.Object3D | null = null
 	let wanted = ''
 	// side on, swaying a little; dragging turns it freely
@@ -79,22 +89,39 @@ export function mountViewer(canvas: HTMLCanvasElement): ViewerHandle {
 		const dt = Math.min(0.1, (now - last) / 1000)
 		last = now
 		sway += dt
+		mixer?.update(dt)
 		turntable.rotation.y = angle + (dragging || held ? 0 : Math.sin(sway * 0.6) * 0.45)
 		renderer.render(scene, camera)
 	}
 	frame = requestAnimationFrame(loop)
 
 	return {
-		show(url) {
-			if (url === wanted) return
-			wanted = url
+		show(url, options = {}) {
+			const key = `${url}#${options.only ?? ''}#${options.clip ?? ''}`
+			if (key === wanted) return
+			wanted = key
 			loader.load(
 				url,
 				gltf => {
-					if (url !== wanted) return
+					if (key !== wanted) return
 					if (current) turntable.remove(current)
-					// the models are one metre or so along +X, centred: frame them to fit
-					const model = gltf.scene
+					mixer?.stopAllAction()
+					mixer = null
+					// the weapons are one metre or so along +X, centred: frame them to fit
+					const model = options.only || options.clip ? cloneSkinned(gltf.scene) : gltf.scene
+					if (options.only) {
+						const only = options.only
+						model.traverse(object => {
+							const owner = /^(\w+)-/.exec(object.name)?.[1]
+							if (owner && /^(assault|medic|heavy)$/.test(owner)) object.visible = owner === only
+						})
+					}
+					const clip = options.clip && gltf.animations.find(entry => entry.name === options.clip)
+					if (clip) {
+						mixer = new THREE.AnimationMixer(model)
+						mixer.clipAction(clip).play()
+						mixer.update(0)
+					}
 					const box = new THREE.Box3().setFromObject(model)
 					const size = box.getSize(new THREE.Vector3())
 					const fit = 1.4 / Math.max(size.x, size.y, size.z, 0.01)
@@ -111,6 +138,7 @@ export function mountViewer(canvas: HTMLCanvasElement): ViewerHandle {
 		},
 		dispose() {
 			cancelAnimationFrame(frame)
+			mixer?.stopAllAction()
 			observer.disconnect()
 			environment.dispose()
 			canvas.removeEventListener('pointerdown', down)

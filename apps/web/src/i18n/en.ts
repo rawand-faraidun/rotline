@@ -193,6 +193,7 @@ export const en = {
 				heavy: { name: 'Heavy', role: 'Toughness and crowd control' }
 			},
 			classTitle: 'Class',
+			characterOf: 'The {name}, drag to turn',
 			activeClass: 'Playing',
 			switchClass: 'Play {class}',
 			loadoutTitle: 'Loadout',

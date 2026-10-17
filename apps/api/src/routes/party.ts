@@ -381,6 +381,7 @@ export function partyRoutes(services: Services) {
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
 				// an open stream means the player is online: keep their presence fresh and tell friends when it changes
 				const announce = async () => {
+					await parties.touch(user.id)
 					const party = await parties.current(user.id)
 					const status = party.state === 'mission' ? 'mission' : 'lobby'
 					const chosen = chosenMission(party).id

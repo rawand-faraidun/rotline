@@ -26,7 +26,7 @@ import {
 } from '../../lib/progress.ts'
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
-import { WeaponViewer } from './weapon-viewer.tsx'
+import { WeaponViewer } from './model-viewer.tsx'
 
 const t = en.app.armory
 const p = en.app.progression

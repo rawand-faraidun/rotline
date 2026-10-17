@@ -6,6 +6,7 @@ import { Link } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
 import { partyQuery } from '../../lib/party.ts'
 import { type ClassName, type ProgressProblem, progressActions, progressQuery, runAction } from '../../lib/progress.ts'
+import { CharacterViewer } from './model-viewer.tsx'
 
 const t = en.app.progression
 
@@ -21,6 +22,10 @@ export function ClassPanel() {
 			<PanelHeader>
 				<PanelTitle>{t.classTitle}</PanelTitle>
 			</PanelHeader>
+			<CharacterViewer
+				classId={view.activeClass}
+				label={format(t.characterOf, { name: t.classes[view.activeClass].name })}
+			/>
 			<ul className="flex flex-col gap-2">
 				{(['assault', 'medic', 'heavy'] as const satisfies readonly ClassName[]).map(cls => {
 					const entry = view.classes[cls]
