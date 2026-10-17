@@ -11,6 +11,7 @@ export type MapSource = {
 	layout: string[]
 	props?: MapProp[]
 	range?: MapDef['range']
+	look?: MapDef['look']
 }
 
 const PROP_CHARS: Record<string, MapProp['kind']> = { b: 'barrel', c: 'crate', s: 'sandbags' }
@@ -53,6 +54,7 @@ export function fromLayout(source: MapSource): MapDef {
 		playerSpawns,
 		zombieSpawns,
 		props: [...props, ...(source.props ?? [])],
-		...(source.range ? { range: source.range } : {})
+		...(source.range ? { range: source.range } : {}),
+		...(source.look ? { look: source.look } : {})
 	}
 }

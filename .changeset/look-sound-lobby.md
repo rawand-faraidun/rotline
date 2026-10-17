@@ -11,3 +11,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - The game sounds like a zombie game: real gun recordings with weight under every shot, zombie growls, pain, deaths, bites and body falls, an ambience bed per map with the horde murmuring, and music that rises as zombies close in. Music and ambience have their own volume settings. The screens around the game click and confirm.
 - The lobby keeps the next mission and the deploy or ready button in reach, with smaller squad cards and an invite link in an open slot. A player away from the game for three minutes leaves their squad, and an empty squad closes.
 - A credits page lists every model, sound and font with its author and licence.
+- Maps look like places: real asphalt, concrete, dirt and grass underfoot, brick, stone, metal and concrete walls, and their own light (dusk, overcast or night).

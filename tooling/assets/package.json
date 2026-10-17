@@ -8,7 +8,8 @@
 		"audio": "node audio.ts",
 		"models": "node models.ts",
 		"characters": "node characters.ts",
-		"thumbnails": "node thumbnails.ts"
+		"thumbnails": "node thumbnails.ts",
+		"textures": "node textures.ts"
 	},
 	"devDependencies": {
 		"@gltf-transform/core": "^4.5.1",

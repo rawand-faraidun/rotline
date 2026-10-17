@@ -1,6 +1,7 @@
 {
 	"id": "range",
 	"name": "Firing Range",
+	"look": { "ground": "concrete", "walls": "wall-concrete", "light": "overcast" },
 	"width": 40,
 	"height": 30,
 	"walls": [

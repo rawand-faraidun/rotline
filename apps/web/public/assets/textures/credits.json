@@ -1,0 +1,52 @@
+{
+	"textures": [
+		{
+			"name": "Asphalt 026 C",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Asphalt026C",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Concrete 042 A",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Concrete042A",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Ground 054",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Ground054",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Ground 037",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Ground037",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Bricks 085",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Bricks085",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Bricks 076 A",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Bricks076A",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Metal Plates 013",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=MetalPlates013",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Concrete 034",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Concrete034",
+			"licence": "CC0 1.0"
+		}
+	]
+}

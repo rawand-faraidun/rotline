@@ -1,6 +1,7 @@
 {
 	"id": "yard",
 	"name": "The Yard",
+	"look": { "ground": "concrete", "walls": "metal", "light": "overcast" },
 	"width": 64,
 	"height": 48,
 	"walls": [

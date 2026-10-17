@@ -1,0 +1,58 @@
+{
+	"textures": [
+		{
+			"id": "asphalt",
+			"source": "Asphalt026C",
+			"name": "Asphalt 026 C",
+			"size": 1024
+		},
+		{
+			"id": "concrete",
+			"source": "Concrete042A",
+			"name": "Concrete 042 A",
+			"size": 1024
+		},
+		{
+			"id": "dirt",
+			"source": "Ground054",
+			"name": "Ground 054",
+			"size": 1024,
+			"saturation": 0.5,
+			"brightness": 0.72
+		},
+		{
+			"id": "grass",
+			"source": "Ground037",
+			"name": "Ground 037",
+			"size": 1024,
+			"saturation": 0.55,
+			"brightness": 0.78
+		},
+		{
+			"id": "brick",
+			"source": "Bricks085",
+			"name": "Bricks 085",
+			"size": 512,
+			"saturation": 0.7,
+			"brightness": 0.85
+		},
+		{
+			"id": "stone",
+			"source": "Bricks076A",
+			"name": "Bricks 076 A",
+			"size": 512
+		},
+		{
+			"id": "metal",
+			"source": "MetalPlates013",
+			"name": "Metal Plates 013",
+			"size": 512
+		},
+		{
+			"id": "wall-concrete",
+			"source": "Concrete034",
+			"name": "Concrete 034",
+			"size": 512
+		}
+	]
+}

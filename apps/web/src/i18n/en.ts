@@ -85,6 +85,7 @@ export const en = {
 		characters: 'Characters, gear and animations',
 		weapons: 'Weapon models',
 		sounds: 'Sounds and music',
+		textures: 'Ground and wall textures',
 		other: 'Fonts, avatars and other models',
 		by: '{name} by {author}',
 		licence: 'Licence: {licence}',

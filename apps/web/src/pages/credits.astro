@@ -3,6 +3,7 @@ import { Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import soundCredits from '../../public/assets/audio/credits.json'
 import characterCredits from '../../public/assets/models/characters/credits.json'
 import weaponCredits from '../../public/assets/models/weapons/credits.json'
+import textureCredits from '../../public/assets/textures/credits.json'
 import { en, format } from '../i18n/en.ts'
 import Base from '../layouts/base.astro'
 
@@ -12,6 +13,7 @@ const sections: { title: string; credits: readonly Credit[] }[] = [
 	{ title: t.characters, credits: characterCredits.models },
 	{ title: t.weapons, credits: weaponCredits.models },
 	{ title: t.sounds, credits: soundCredits.sounds },
+	{ title: t.textures, credits: textureCredits.textures },
 	{ title: t.other, credits: t.others }
 ]
 ---

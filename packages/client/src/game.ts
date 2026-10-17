@@ -99,7 +99,7 @@ export function startGame(options: GameOptions): GameHandle {
 	const grid = new Grid(map)
 	// the map's props, kept in step with the server's (their blocking cells match its grid)
 	const props = createProps(map, grid)
-	const stage = new Stage(options.canvas, map)
+	const stage = new Stage(options.canvas, map, options.assets)
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene)
 	const propRenderer = new PropRenderer(stage.scene, props)

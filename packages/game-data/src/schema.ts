@@ -412,6 +412,14 @@ export const mapSchema = z.object({
 	playerSpawns: z.array(point).min(4),
 	zombieSpawns: z.array(zombieSpawn).min(1),
 	props: z.array(mapPropSchema).max(4096).optional(),
+	/** how the place looks: the ground, the walls and the light (drawing only, no effect on play) */
+	look: z
+		.object({
+			ground: z.enum(['asphalt', 'concrete', 'dirt', 'grass']),
+			walls: z.enum(['brick', 'stone', 'metal', 'wall-concrete']),
+			light: z.enum(['dusk', 'overcast', 'night'])
+		})
+		.optional(),
 	/** firing-range maps: where dummies stand, how fast they heal, how many zombies may be spawned */
 	range: z
 		.object({

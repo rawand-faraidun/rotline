@@ -1,6 +1,7 @@
 {
 	"id": "landfall",
 	"name": "Landfall",
+	"look": { "ground": "dirt", "walls": "stone", "light": "dusk" },
 	"layout": [
 		"########################################",
 		"#...................1..................#",
