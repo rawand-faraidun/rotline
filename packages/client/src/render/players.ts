@@ -5,6 +5,8 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 
 const SLOT_COLOURS = [0xb8f23c, 0x4fb3ff, 0xffc02e, 0xff7ad9]
 const CLASSES = ['assault', 'medic', 'heavy']
+/** every look in soldier.glb: the three classes and the civilians players rescue */
+export const LOOKS = /^(assault|medic|heavy|survivor)-/
 /** bones the legs' clips drive; the rest (spine, arms, head) follows the gun */
 const LOWER = /^(root|pelvis|thigh_|calf_|foot_|ball_)/
 /** how fast the walk and jog clips move the feet, in metres per second */
@@ -16,14 +18,14 @@ type Clips = {
 	upper: Map<string, THREE.AnimationClip>
 	full: Map<string, THREE.AnimationClip>
 }
-type Soldier = { scene: THREE.Object3D; clips: Clips; aimOffset: number }
+export type Soldier = { scene: THREE.Object3D; clips: Clips; aimOffset: number }
 
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 let soldier: Promise<Soldier | null> | null = null
 const weaponModels = new Map<string, Promise<THREE.Object3D | null>>()
 
 /** The soldier model with all three classes and its animations, loaded once. */
-function loadSoldier(url: string): Promise<Soldier | null> {
+export function loadSoldier(url: string): Promise<Soldier | null> {
 	soldier ??= loader
 		.loadAsync(url)
 		.then(gltf => {
@@ -169,7 +171,7 @@ export class PlayerFigure {
 			this.model?.removeFromParent()
 			const model = cloneSkinned(loaded.scene)
 			model.traverse(object => {
-				const owner = /^(assault|medic|heavy)-/.exec(object.name)?.[1]
+				const owner = LOOKS.exec(object.name)?.[1]
 				if (owner) object.visible = owner === classId
 			})
 			this.model = model

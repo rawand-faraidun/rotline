@@ -51,6 +51,11 @@
 			"shirt": "#2a2d2c",
 			"trousers": "#242726",
 			"gear": ["helmet-k6", "vest-heavy", "pack-military"]
+		},
+		"survivor": {
+			"shirt": "#7a3a2c",
+			"trousers": "#3b4250",
+			"gear": []
 		}
 	},
 	"gear": {

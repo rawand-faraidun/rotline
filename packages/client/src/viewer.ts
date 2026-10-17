@@ -128,7 +128,7 @@ export function mountViewer(canvas: HTMLCanvasElement): ViewerHandle {
 						const only = options.only
 						model.traverse(object => {
 							const owner = /^(\w+)-/.exec(object.name)?.[1]
-							if (owner && /^(assault|medic|heavy)$/.test(owner)) object.visible = owner === only
+							if (owner && /^(assault|medic|heavy|survivor)$/.test(owner)) object.visible = owner === only
 						})
 					}
 					const clip = options.clip && gltf.animations.find(entry => entry.name === options.clip)

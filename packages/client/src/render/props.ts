@@ -3,6 +3,8 @@ import { PropState } from '@rotline/sim'
 import * as THREE from 'three'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+import { LOOKS, loadSoldier } from './players.ts'
 
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
 const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door'])
@@ -185,8 +187,29 @@ export class PropRenderer {
 				break
 			}
 			case 'survivor': {
-				add(new THREE.Mesh(this.cylinder, this.material(0xd9c9a3)), 0.8).scale.set(0.55, 1.6, 0.55)
-				add(new THREE.Mesh(this.box, this.material(0xffc02e)), 1.75).scale.set(0.35, 0.35, 0.35)
+				const body = add(new THREE.Mesh(this.cylinder, this.material(0xd9c9a3)), 0.8)
+				body.scale.set(0.55, 1.6, 0.55)
+				const head = add(new THREE.Mesh(this.box, this.material(0xffc02e)), 1.75)
+				head.scale.set(0.35, 0.35, 0.35)
+				// a civilian from the soldiers' file, standing at ease (walking when led out)
+				if (this.models)
+					void loadSoldier(`${this.assets}/models/characters/soldier.glb`).then(loaded => {
+						if (!loaded || !root.parent) return
+						const person = cloneSkinned(loaded.scene)
+						person.traverse(node => {
+							const owner = LOOKS.exec(node.name)?.[1]
+							if (owner) node.visible = owner === 'survivor'
+						})
+						const mixer = new THREE.AnimationMixer(person)
+						const idle = loaded.clips.full.get('Idle_Loop')
+						const walk = loaded.clips.full.get('Walk_Loop')
+						if (idle) mixer.clipAction(idle).play()
+						person.userData.walk = walk ? mixer.clipAction(walk) : null
+						person.userData.mixer = mixer
+						root.add(person)
+						root.userData.person = person
+						body.visible = head.visible = false
+					})
 				const ring = new THREE.Mesh(
 					this.ring,
 					new THREE.MeshBasicMaterial({ color: 0xffc02e, transparent: true, opacity: 0.7, depthWrite: false })
@@ -289,9 +312,24 @@ export class PropRenderer {
 						drawn.glow.emissiveIntensity = prop.state === PropState.active ? 0.6 + 0.4 * Math.sin(timeSeconds * 30) : 0
 					}
 					break
-				case 'survivor':
+				case 'survivor': {
 					this.setBar(drawn.bar, prop.state === PropState.idle ? prop.progress : prop.health / prop.maxHealth)
+					const person = root.userData.person as THREE.Object3D | undefined
+					if (person) {
+						// following the squad: walk, facing the way they go
+						const dx = prop.x - root.position.x
+						const dz = prop.y - root.position.z
+						const moving = Math.hypot(dx, dz) > 0.05
+						const walk = person.userData.walk as THREE.AnimationAction | null
+						if (walk && moving !== walk.isRunning()) {
+							if (moving) walk.reset().fadeIn(0.2).play()
+							else walk.fadeOut(0.3)
+						}
+						if (moving) person.rotation.y = Math.atan2(dx, dz)
+						;(person.userData.mixer as THREE.AnimationMixer).update(dt)
+					}
 					break
+				}
 				case 'carry':
 					root.position.y = prop.state === PropState.carried ? 1.1 : 0
 					break
