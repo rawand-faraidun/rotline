@@ -1,9 +1,11 @@
 import {
 	abilityById,
 	type Build,
+	buffs as buffDefs,
 	combat,
 	type DamageType,
 	damageTaken,
+	economy,
 	type MapDef,
 	player as playerDef,
 	specialParams,
@@ -33,6 +35,22 @@ import {
 } from './constants.ts'
 import { Grid } from './grid.ts'
 import { Button, type PlayerInput } from './input.ts'
+import {
+	chainMultiplier,
+	countKill,
+	createMission,
+	enemyScale,
+	isActive,
+	type MissionSetup,
+	type MissionState,
+	maybeDropBuff,
+	openCaches,
+	pickUpBuffs,
+	rollItem,
+	scoreThreshold,
+	stepMission,
+	wipeMission
+} from './mission.ts'
 import { activeWeapon, createPlayer, type PlayerState, refillUtilities, Step, stepPlayer } from './player.ts'
 import { Rng } from './rng.ts'
 
@@ -53,6 +71,20 @@ export type SimEvent =
 	| { type: 'cleared'; wave: number }
 	/** someone used an ability (index into game-data abilities), for its sound and flash */
 	| { type: 'ability'; player: number; ability: number; x: number; y: number; angle: number }
+	// missions
+	/** `first`: done for the first time (an objective redone after a wipe pays nothing again) */
+	| { type: 'objective'; index: number; first: boolean }
+	/** Survival: the squad was wiped and the run is over, after `wave` rounds */
+	| { type: 'run-over'; wave: number }
+	| { type: 'checkpoint'; index: number }
+	| { type: 'mission-complete' }
+	/** an item (index into game-data items) found by one player; drops are per player */
+	| { type: 'item-found'; player: number; item: number }
+	| { type: 'cache'; player: number; index: number }
+	/** a buff (index into game-data buffs) picked up */
+	| { type: 'buff'; player: number; buff: number }
+	/** a player's score passed a threshold (Salvage and a heal) */
+	| { type: 'threshold'; player: number; index: number }
 
 export type Pool = { x: number; y: number; radius: number; damagePerTick: number; untilTick: number }
 
@@ -84,6 +116,8 @@ export const ObjectKind = {
 	mine: 5,
 	decoy: 6,
 	sentry: 7,
+	/** a buff on the ground; `amount` is its index in game-data buffs */
+	buff: 9,
 	/** where a mortar shell is about to land */
 	marker: 8
 } as const
@@ -136,7 +170,8 @@ const LOB_SPEED = 16
 export const THROWN = 255
 /** extra zombies an Overwatch shot passes through */
 const OVERWATCH_PIERCE = abilityById.get('overwatch')?.params.pierce ?? 0
-const CHAIN_TICKS = combat.chainSeconds * TICK_RATE
+/** A kill within this many ticks of the last one extends the chain. */
+export const CHAIN_TICKS = combat.chainSeconds * TICK_RATE
 // capstone numbers, from the skill data
 const MOMENTUM = specialParams('momentum')
 const EXECUTIONER = specialParams('executioner')
@@ -160,8 +195,19 @@ const UNREACHED = 0xffff
 
 type Spawning = { wave: number; queue: number[]; accumulator: number; nextWaveTick: number }
 
-/** `range`: the firing range (no waves, no cooldowns, dummies). */
-export type WorldOptions = { seed: number; map: MapDef; waves?: WavesDef; flowPhase?: number; range?: boolean }
+/** `range`: the firing range (no waves, no cooldowns, dummies); `mission`: objectives instead of waves. */
+export type WorldOptions = {
+	seed: number
+	map: MapDef
+	waves?: WavesDef
+	flowPhase?: number
+	range?: boolean
+	mission?: MissionSetup
+	/** Survival: endless rounds with score and buffs; a wipe ends the run */
+	survival?: boolean
+	/** seeds the loot rolls (items, buffs), kept apart from everything else the fight uses */
+	lootSeed?: number
+}
 
 /**
  * One room's authoritative simulation. Zombies live in typed arrays (structure of arrays) so a
@@ -171,6 +217,8 @@ export class World {
 	readonly grid: Grid
 	readonly map: MapDef
 	readonly rng: Rng
+	/** item and buff rolls only, so the timing of a player's actions cannot steer loot */
+	readonly lootRng: Rng
 	tick = 0
 	readonly players = new Map<number, PlayerState>()
 
@@ -182,6 +230,8 @@ export class World {
 	readonly vx = new Float64Array(MAX_ZOMBIES)
 	readonly vy = new Float64Array(MAX_ZOMBIES)
 	readonly health = new Float64Array(MAX_ZOMBIES)
+	/** health at spawn, after difficulty and enemy level */
+	readonly maxHealth = new Float64Array(MAX_ZOMBIES)
 	readonly cooldown = new Uint16Array(MAX_ZOMBIES)
 	readonly state = new Uint8Array(MAX_ZOMBIES)
 	// statuses: until which tick each lasts
@@ -202,6 +252,20 @@ export class World {
 	aliveCount = 0
 	kills = 0
 	score = 0
+
+	// missions and Survival
+	readonly mission: MissionState | null
+	readonly survival: boolean
+	/** the mission is complete or the Survival run is over: the world stands still for the results */
+	finished = false
+	/** zombie health and damage multipliers (difficulty and enemy level) */
+	private readonly healthScale: number
+	private readonly damageScale: number
+	/** no buff drops before this tick (one at most every so often per squad) */
+	nextBuffTick = 0
+	/** team buffs running until these ticks */
+	doubleXpUntil = 0
+	instakillUntil = 0
 
 	// lag compensation: positions for the last HISTORY_TICKS ticks
 	private readonly historyX = new Float64Array(HISTORY_TICKS * MAX_ZOMBIES)
@@ -237,6 +301,8 @@ export class World {
 		this.map = options.map
 		this.grid = new Grid(options.map)
 		this.rng = new Rng(options.seed)
+		this.lootRng = new Rng(options.lootSeed ?? options.seed ^ 0x5bd1e995)
+		this.survival = options.survival ?? false
 		this.wavesDef = options.waves ?? wavesDef
 		this.range = options.range ?? false
 		this.dummyResetTicks = Math.round((options.map.range?.resetSeconds ?? 3) * TICK_RATE)
@@ -253,14 +319,43 @@ export class World {
 			accumulator: 0,
 			nextWaveTick: Math.round(this.wavesDef.firstWaveDelaySeconds * TICK_RATE)
 		}
+		const spawn = options.map.playerSpawns[0]
+		this.mission = options.mission ? createMission(options.mission, 0, spawn?.x ?? 1, spawn?.y ?? 1) : null
+		const scale = this.mission ? enemyScale(this.mission) : { health: 1, damage: 1 }
+		this.healthScale = scale.health
+		this.damageScale = scale.damage
+		this.nextBuffTick = Math.round(buffDefs.drop.minIntervalSeconds * TICK_RATE)
 	}
 
 	addPlayer(id: number, build?: Build): PlayerState {
 		const spawn = this.map.playerSpawns[this.players.size % this.map.playerSpawns.length] ?? this.map.playerSpawns[0]
 		const state = createPlayer(id, spawn?.x ?? 1, spawn?.y ?? 1, build)
 		state.free = this.range
+		state.lastActiveTick = this.tick
+		// joining a mission under way: at the last checkpoint, with the squad
+		if (this.mission && this.mission.checkpointIndex > 0)
+			this.placeNear(state, this.mission.checkpointX, this.mission.checkpointY)
 		this.players.set(id, state)
 		return state
+	}
+
+	/** Missions and Survival keep score and drop buffs; the firing range does neither. */
+	get scoring(): boolean {
+		return this.mission !== null || this.survival
+	}
+
+	/**
+	 * The mission is complete or the run is over: the board is cleared and nobody can be hurt, so
+	 * nothing changes while the results are shown.
+	 */
+	finish(): void {
+		this.finished = true
+		for (let i = 0; i < MAX_ZOMBIES; i++) this.alive[i] = 0
+		this.aliveCount = 0
+		this.pools.length = 0
+		this.projectiles.length = 0
+		this.pendingBlasts.length = 0
+		for (const state of this.players.values()) state.safeUntilTick = NEVER
 	}
 
 	removePlayer(id: number): void {
@@ -282,13 +377,16 @@ export class World {
 			if (!state.alive && this.tick >= state.respawnTick) this.respawn(state)
 			const input = inputs.get(state.id)
 			if (input) this.applyInput(state, input)
+			if (this.mission && !this.finished) openCaches(this, state, (state.heldButtons & Button.interact) !== 0)
 		}
 		this.revives()
 		this.moveProjectiles()
 		this.blasts()
 		stepObjects(this)
 		this.statuses()
-		if (!this.range) this.direct()
+		if (this.scoring && !this.finished) pickUpBuffs(this)
+		if (this.mission) stepMission(this)
+		else if (!this.range && !this.finished) this.direct()
 		if (this.tick % FLOW_EVERY === this.flowPhase) this.buildFlow()
 		this.buildHash()
 		this.moveZombies()
@@ -304,6 +402,8 @@ export class World {
 	 * server may call it for an extra queued input to catch a player up after a network stall.
 	 */
 	applyInput(state: PlayerState, input: PlayerInput): void {
+		if (input.moveX !== 0 || input.moveY !== 0 || input.buttons !== 0 || input.aim !== state.aim)
+			state.lastActiveTick = this.tick
 		const result = stepPlayer(this.grid, state, input, this.tick)
 		if (result === 0) return
 		if (result & Step.fired) {
@@ -319,7 +419,8 @@ export class World {
 		if (result & Step.utility2) useUtility(this, state, 1, input)
 	}
 
-	private respawn(state: PlayerState): void {
+	/** Back in the fight at full health: at the map's spawn, or at the mission's last checkpoint. */
+	respawn(state: PlayerState): void {
 		const spawn = this.map.playerSpawns[(state.id - 1) % this.map.playerSpawns.length] ?? this.map.playerSpawns[0]
 		state.alive = true
 		state.downed = false
@@ -328,9 +429,37 @@ export class World {
 		state.health = state.stats.maxHealth
 		state.x = spawn?.x ?? 1
 		state.y = spawn?.y ?? 1
+		if (this.mission && this.mission.checkpointIndex > 0)
+			this.placeNear(state, this.mission.checkpointX, this.mission.checkpointY)
 		state.reloadEndTick = 0
 		state.safeUntilTick = this.tick + Math.round(RESPAWN_SAFE_SECONDS * TICK_RATE)
 		this.events.push({ type: 'player-up', player: state.id })
+	}
+
+	/** Puts a player a step from (x, y), each on their own side, wherever their whole body fits. */
+	private placeNear(state: PlayerState, x: number, y: number): void {
+		const fits = (px: number, py: number) => {
+			if (this.grid.isWall(px, py)) return false
+			const r = playerDef.radius
+			return !(
+				this.grid.isWall(px + r, py) ||
+				this.grid.isWall(px - r, py) ||
+				this.grid.isWall(px, py + r) ||
+				this.grid.isWall(px, py - r)
+			)
+		}
+		for (let turn = 0; turn < 4; turn++) {
+			const angle = ((state.id + turn) * Math.PI) / 2
+			const px = x + Math.cos(angle) * 1.2
+			const py = y + Math.sin(angle) * 1.2
+			if (fits(px, py)) {
+				state.x = px
+				state.y = py
+				return
+			}
+		}
+		state.x = x
+		state.y = y
 	}
 
 	/** Players who can still fight: in the world and not downed. */
@@ -367,6 +496,7 @@ export class World {
 			state.stats.bleedoutBonusSeconds
 		state.bleedoutTick = this.tick + Math.round(seconds * TICK_RATE)
 		state.downs++
+		if (this.mission) this.mission.downs++
 		if (state.slot !== 2) {
 			state.previousSlot = state.slot
 			state.slot = 2
@@ -385,7 +515,7 @@ export class World {
 				downed.downed = false
 				downed.alive = false
 				downed.reviveProgress = 0
-				// back with the next wave (or the next checkpoint, once missions have them)
+				// back with the next round (Survival, if someone finishes it) or at the next checkpoint
 				downed.respawnTick = NEVER
 				this.events.push({ type: 'player-out', player: downed.id })
 				if (this.standing() === 0) this.wipe()
@@ -429,8 +559,21 @@ export class World {
 		target.health = Math.min(target.stats.maxHealth, target.health + scaled)
 	}
 
-	/** Everyone is down or out: clear the board and restart the current wave. */
+	/** Everyone is down or out: clear the board and restart the current wave (or objective). */
 	private wipe(): void {
+		if (this.finished) return
+		// Survival: a wipe ends the run
+		if (this.survival) {
+			for (const state of this.players.values()) {
+				state.downed = false
+				state.alive = false
+				state.reviveProgress = 0
+				state.respawnTick = NEVER
+			}
+			this.events.push({ type: 'run-over', wave: this.spawning.wave })
+			this.finish()
+			return
+		}
 		const delay = Math.round(playerDef.respawnSeconds * TICK_RATE)
 		for (const state of this.players.values()) {
 			state.alive = false
@@ -444,6 +587,11 @@ export class World {
 		this.projectiles.length = 0
 		this.pendingBlasts.length = 0
 		for (const object of [...this.objects]) this.removeObject(object)
+		if (this.mission) {
+			for (const state of this.players.values()) refillUtilities(state)
+			wipeMission(this, this.mission)
+			return
+		}
 		this.spawning.queue.length = 0
 		this.spawning.accumulator = 0
 		this.spawning.nextWaveTick = this.tick + delay + Math.round(this.wavesDef.breakSeconds * TICK_RATE)
@@ -737,7 +885,7 @@ export class World {
 			if (this.alive[i] === 0) continue
 			const def = zombieDefs[this.type[i] as number] as ZombieDef
 			if (def.dummy && this.tick - (this.lastHitTick[i] as number) > this.dummyResetTicks) {
-				this.health[i] = def.health
+				this.health[i] = this.maxHealth[i] as number
 			}
 		}
 		for (const state of this.players.values()) {
@@ -826,13 +974,17 @@ export class World {
 			}
 			if (
 				specials.includes('executioner') &&
-				(this.health[index] as number) < def.health * p(EXECUTIONER, 'healthBelow')
+				(this.health[index] as number) < (this.maxHealth[index] as number) * p(EXECUTIONER, 'healthBelow')
 			) {
 				scaled *= p(EXECUTIONER, 'multiplier')
 			}
 			if ((this.slowUntil[index] as number) > this.tick) scaled *= 1 + attacker.stats.damageVsSlowed
 		}
 		if ((this.markUntil[index] as number) > this.tick) scaled *= 1 + (this.markAmount[index] as number)
+		// Instakill: any player's hit kills anything but elites
+		if (attacker && this.tick < this.instakillUntil && !def.elite && !def.dummy) {
+			scaled = Math.max(scaled, this.health[index] as number)
+		}
 		this.health[index] = (this.health[index] as number) - scaled
 		this.lastHitTick[index] = this.tick
 		if (direct) {
@@ -851,7 +1003,7 @@ export class World {
 		}
 		// dummies never die
 		if (def.dummy) {
-			this.health[index] = def.health
+			this.health[index] = this.maxHealth[index] as number
 			return
 		}
 		const x = this.x[index] as number
@@ -864,12 +1016,42 @@ export class World {
 		if (attacker) {
 			attacker.chain = this.tick - attacker.lastKillTick <= CHAIN_TICKS ? attacker.chain + 1 : 1
 			attacker.lastKillTick = this.tick
+			if (this.scoring) this.addScore(attacker, def.score * chainMultiplier(attacker.chain))
 			if (attacker.alive && !attacker.downed && attacker.stats.killHeal > 0) {
 				this.heal(attacker, attacker.stats.killHeal, null)
 			}
 			if (direct) this.afterKill(x, y, attacker, type)
 		}
+		if (this.scoring) maybeDropBuff(this, x, y, def.elite ? buffDefs.drop.eliteChance : buffDefs.drop.chancePerKill)
+		if (this.mission) {
+			countKill(this)
+			// elites may drop an item, rolled for each player taking part, on their own
+			if (def.elite) {
+				for (const state of this.players.values()) {
+					if (isActive(this, state) && this.lootRng.next() < economy.drops.eliteChance) rollItem(this, state)
+				}
+			}
+		}
 		if (def.deathBurst) this.burst(x, y, def.deathBurst, by)
+	}
+
+	/** Score for a player; each threshold passed pays Salvage (in the room) and heals 30 %. */
+	addScore(state: PlayerState, amount: number): void {
+		if (this.finished || amount <= 0) return
+		state.score += amount
+		// score earned during Double XP gives its XP again
+		if (this.tick < this.doubleXpUntil) state.doubledScore += amount
+		while (state.score >= scoreThreshold(state.thresholds)) {
+			this.events.push({ type: 'threshold', player: state.id, index: state.thresholds })
+			state.thresholds++
+			// exactly the share of maximum health, whatever healing bonuses say
+			if (state.alive && !state.downed) {
+				state.health = Math.min(
+					state.stats.maxHealth,
+					state.health + state.stats.maxHealth * economy.score.thresholdHeal
+				)
+			}
+		}
 	}
 
 	/** Suppression and Aftershock slow the zombies that survive a hit. */
@@ -931,7 +1113,7 @@ export class World {
 		this.events.push({ type: 'burst', x, y, radius: burst.radius })
 		for (const state of this.players.values()) {
 			const d = Math.hypot(state.x - x, state.y - y)
-			if (d < burst.radius) this.hurt(state, burst.damage * (1 - d / burst.radius), 'chemical')
+			if (d < burst.radius) this.hurt(state, burst.damage * this.damageScale * (1 - d / burst.radius), 'chemical')
 		}
 		for (let i = 0; i < MAX_ZOMBIES; i++) {
 			if (this.alive[i] === 0) continue
@@ -942,7 +1124,7 @@ export class World {
 			x,
 			y,
 			radius: burst.poolRadius,
-			damagePerTick: burst.poolDamagePerSecond * DT,
+			damagePerTick: burst.poolDamagePerSecond * this.damageScale * DT,
 			untilTick: this.tick + Math.round(burst.poolSeconds * TICK_RATE)
 		})
 	}
@@ -1028,7 +1210,8 @@ export class World {
 		this.y[index] = point.y
 		this.vx[index] = 0
 		this.vy[index] = 0
-		this.health[index] = def.health
+		this.health[index] = def.dummy ? def.health : def.health * this.healthScale
+		this.maxHealth[index] = this.health[index] as number
 		this.cooldown[index] = 0
 		this.state[index] = ZombieState.moving
 		this.stunUntil[index] = 0
@@ -1239,7 +1422,7 @@ export class World {
 			if (target && Math.hypot(target.x - this.moved.x, target.y - this.moved.y) < reach) {
 				this.state[i] = ZombieState.attacking
 				if (this.cooldown[i] === 0) {
-					this.hurt(target, def.meleeDamage, null)
+					this.hurt(target, def.meleeDamage * this.damageScale, null)
 					this.cooldown[i] = Math.round(def.meleeCooldownSeconds * TICK_RATE)
 				}
 			} else if (this.cooldown[i] === 0 && this.objects.length > 0) {
@@ -1262,7 +1445,7 @@ export class World {
 			})
 			if (!near) continue
 			this.state[i] = ZombieState.attacking
-			object.health -= def.meleeDamage
+			object.health -= def.meleeDamage * this.damageScale
 			this.cooldown[i] = Math.round(def.meleeCooldownSeconds * TICK_RATE)
 			if (object.health <= 0) {
 				this.events.push({ type: 'explode', id: 0, x: object.x, y: object.y, radius: 0 })

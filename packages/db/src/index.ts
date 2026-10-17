@@ -3,9 +3,11 @@ import { PrismaClient } from './generated/prisma/client.ts'
 
 export type { Player, User } from './generated/prisma/client.ts'
 export {
+	Difficulty,
 	FriendshipStatus,
 	ItemSource,
 	LedgerReason,
+	Mastery,
 	PlayerClass,
 	Prisma,
 	PrismaClient

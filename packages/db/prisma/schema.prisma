@@ -112,6 +112,7 @@ model Player {
   inventory  InventoryItem[]
   duplicates ItemDuplicate[]
   loadout    Loadout?
+  missions   MissionProgress[]
 
   @@map("player")
 }
@@ -267,6 +268,42 @@ model Purchase {
   @@map("purchase")
 }
 
+// Missions: a player's record per mission and difficulty, updated from signed mission results.
+
+enum Difficulty {
+  recruit
+  veteran
+  nightmare
+  apocalypse
+
+  @@map("difficulty")
+}
+
+enum Mastery {
+  none
+  bronze
+  silver
+  gold
+
+  @@map("mastery")
+}
+
+model MissionProgress {
+  playerId    String     @map("player_id") @db.Uuid
+  missionId   String     @map("mission_id")
+  difficulty  Difficulty
+  completions Int        @default(0)
+  bestTimeMs  Int?       @map("best_time_ms")
+  bestScore   BigInt     @default(0) @map("best_score")
+  // the best mastery reached (Recruit never earns any)
+  mastery     Mastery    @default(none)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  player      Player     @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@id([playerId, missionId, difficulty])
+  @@map("mission_progress")
+}
+
 /// One row per reward report from a game server; the key makes XP and Salvage grants idempotent.
 model RewardGrant {
   grantKey  String      @id @map("grant_key")
@@ -274,9 +311,16 @@ model RewardGrant {
   class     PlayerClass
   xp        BigInt
   salvage   BigInt
+  // the room the report came from: drops are capped, and a result counted, once per room
+  room      String?
+  // item ids found, granted with this report
+  items     String[]    @default([])
+  // this report carried the room's mission result
+  result    Boolean     @default(false)
   createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz
 
   @@index([playerId])
+  @@index([playerId, room])
   @@map("reward_grant")
 }
 

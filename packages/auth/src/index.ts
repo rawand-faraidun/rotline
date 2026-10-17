@@ -48,7 +48,18 @@ export function createAuth(env: AuthEnv, db: Database) {
 							clientId: env.AUTH_TEST_PROVIDER_CLIENT_ID ?? 'rotline-local',
 							clientSecret: env.AUTH_TEST_PROVIDER_CLIENT_SECRET ?? 'rotline-local',
 							scopes: ['openid', 'email', 'profile'],
-							pkce: true
+							pkce: true,
+							// the mock's login form sends no email unless claims are typed in: make one up from
+							// the username, so signing in locally takes just a name
+							mapProfileToUser: profile => {
+								if (profile.email) return {}
+								const raw = profile as { sub?: unknown; id?: unknown }
+								const name = String(raw.sub ?? raw.id ?? 'player')
+									.toLowerCase()
+									.replace(/[^a-z0-9-]+/g, '-')
+									.slice(0, 48)
+								return { email: `${name || 'player'}@test.rotline.local`, emailVerified: true }
+							}
 						}
 					]
 				})

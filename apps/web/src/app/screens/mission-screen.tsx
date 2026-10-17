@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { GameHandle, HudState } from '@rotline/client'
-import { zombies } from '@rotline/game-data'
+import { missionById, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
-import { fetchRangeTicket, fetchTicket, usePlayerEvents } from '../../lib/party.ts'
+import { fetchRangeTicket, fetchTicket, partyActions, usePlayerEvents } from '../../lib/party.ts'
+import { clock, masteryTone } from './mission-panel.tsx'
 import { SeatKeeper } from './seat-keeper.tsx'
 
 const t = en.app.mission
@@ -133,6 +134,227 @@ function Abilities({ hud }: { hud: HudState }) {
 	)
 }
 
+/** The current objective, top right: what to do and how far along. */
+function ObjectiveTracker({ hud }: { hud: HudState }) {
+	const mission = hud.mission
+	if (!mission) return null
+	const fraction = mission.goal > 0 ? Math.min(1, mission.progress / mission.goal) : 0
+	return (
+		<section
+			aria-label={mission.name}
+			className="frame cut pointer-events-none absolute top-4 right-4 flex w-72 flex-col gap-1.5 px-4 py-3 [--frame-fill:rgb(13_16_14/0.85)]"
+		>
+			<span className="flex items-baseline justify-between gap-3">
+				<span className="truncate font-display text-xl uppercase">{mission.name}</span>
+				<span className="text-muted text-xs uppercase tracking-wider">{mission.difficulty}</span>
+			</span>
+			<span className="font-bold text-[10px] text-muted uppercase tracking-[0.25em]">
+				{format(t.objective, { index: String(mission.objective + 1), count: String(mission.count) })}
+			</span>
+			<span className="font-bold text-rot-lime uppercase tracking-wide" aria-live="polite">
+				{mission.label}
+			</span>
+			<span className="flex items-center gap-3">
+				<span className="h-1.5 flex-1 bg-surface-raised">
+					<span className="block h-full bg-rot-lime" style={{ width: `${fraction * 100}%` }} />
+				</span>
+				<span className="font-display text-lg tabular-nums">
+					{mission.type === 'reach'
+						? t.progressReach
+						: format(mission.type === 'kill' ? t.progressKills : t.progressSeconds, {
+								progress: String(mission.progress),
+								goal: String(mission.goal)
+							})}
+				</span>
+			</span>
+		</section>
+	)
+}
+
+/** The score multiplier, large in the top centre, with the chain timer draining under it (and the round in Survival). */
+function Multiplier({ hud, round }: { hud: HudState; round: number | null }) {
+	return (
+		<div className="pointer-events-none absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1">
+			<div className="flex items-end gap-4">
+				{round !== null && (
+					<span className="flex flex-col items-center">
+						<span className="font-bold text-[10px] text-muted uppercase tracking-[0.25em]">{t.round}</span>
+						<span className="font-display text-3xl tabular-nums">{round}</span>
+					</span>
+				)}
+				<span className="flex flex-col items-center">
+					<span className="font-bold text-[10px] text-muted uppercase tracking-[0.25em]">{t.multiplier}</span>
+					<span
+						className={cn(
+							'font-display text-5xl tabular-nums leading-none',
+							hud.multiplier > 1 ? 'text-warning' : 'text-bone/70'
+						)}
+					>
+						×{hud.multiplier}
+					</span>
+				</span>
+				<span className="flex flex-col items-center">
+					<span className="font-bold text-[10px] text-muted uppercase tracking-[0.25em]">{t.score}</span>
+					<span className="font-display text-3xl tabular-nums">{hud.missionScore.toLocaleString('en')}</span>
+				</span>
+			</div>
+			<span className="h-1 w-48 bg-surface-raised" aria-hidden="true">
+				<span className="block h-full bg-warning" style={{ width: `${hud.chainLeft * 100}%` }} />
+			</span>
+			{hud.chain > 0 && (
+				<span className="text-muted text-xs tabular-nums">{format(t.chain, { chain: String(hud.chain) })}</span>
+			)}
+			{hud.buffs.length > 0 && (
+				<ul className="mt-1 flex gap-2">
+					{hud.buffs.map(buff => (
+						<li key={buff.id}>
+							<Badge tone="lime">
+								{buff.name} {buff.seconds}s
+							</Badge>
+						</li>
+					))}
+				</ul>
+			)}
+		</div>
+	)
+}
+
+/** Items found, buffs picked up and score bonuses, for a few seconds each. */
+function Toasts({ hud }: { hud: HudState }) {
+	const now = performance.now()
+	const live = hud.toasts.filter(toast => now - toast.at < 4000)
+	if (live.length === 0) return null
+	return (
+		<ul className="pointer-events-none absolute top-1/3 right-4 flex w-72 flex-col gap-2" aria-live="polite">
+			{live.map(toast => (
+				<li
+					key={toast.id}
+					className={cn(
+						'frame cut-sm flex flex-col px-3 py-2 [--frame-fill:rgb(13_16_14/0.9)]',
+						toast.kind === 'item' && '[--frame-color:var(--color-warning)]'
+					)}
+				>
+					{toast.kind === 'item' && (
+						<>
+							<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.itemFound}</span>
+							<span className="font-bold uppercase tracking-wide">{toast.text}</span>
+						</>
+					)}
+					{toast.kind === 'buff' && (
+						<span className="font-bold text-rot-lime uppercase tracking-wide">
+							{toast.by
+								? format(t.buffBy, { name: toast.text, by: toast.by })
+								: format(t.buffPicked, { name: toast.text })}
+						</span>
+					)}
+					{toast.kind === 'threshold' && (
+						<span className="font-bold text-warning">{format(t.threshold, { salvage: toast.text })}</span>
+					)}
+				</li>
+			))}
+		</ul>
+	)
+}
+
+/**
+ * The pause menu. Alone the game is paused; in a squad it goes on and you stand still. Leaving keeps
+ * your place (rejoin from the lobby); abandoning gives it up.
+ */
+function PauseMenu({
+	range,
+	squad,
+	onResume,
+	onLobby,
+	onAbandon
+}: {
+	range: boolean
+	squad: boolean
+	onResume: () => void
+	onLobby: () => void
+	onAbandon: () => void
+}) {
+	const p = t.pause
+	return (
+		<div className="absolute inset-0 grid place-items-center bg-rot-black/75 p-4">
+			<Panel role="dialog" aria-modal="true" aria-label={p.title} className="w-full max-w-sm">
+				<PanelTitle>{squad ? p.squadTitle : p.title}</PanelTitle>
+				{squad && <p className="text-muted text-sm">{p.squadNote}</p>}
+				<div className="flex flex-col gap-2">
+					<Button autoFocus onClick={onResume}>
+						{p.resume}
+					</Button>
+					{range ? (
+						<Button variant="secondary" onClick={onLobby}>
+							{p.leaveRange}
+						</Button>
+					) : (
+						<>
+							<Button variant="secondary" onClick={onLobby}>
+								{p.lobby}
+							</Button>
+							<Button variant="ghost" onClick={onAbandon}>
+								{squad ? p.abandonSquad : p.abandon}
+							</Button>
+						</>
+					)}
+				</div>
+				<p className="text-muted text-xs">{t.controls}</p>
+			</Panel>
+		</div>
+	)
+}
+
+/** The results screen: what the mission paid and found, and the mastery reached; or how long a Survival run lasted. */
+function ResultsPanel({ results, onDone }: { results: NonNullable<HudState['results']>; onDone: () => void }) {
+	const r = t.results
+	const survival = !results.success
+	const rows: [string, string][] = [
+		...(survival ? [[r.rounds, String(results.rounds)] as [string, string]] : []),
+		[r.time, clock(results.timeMs / 1000)],
+		[r.score, results.score.toLocaleString('en')],
+		[r.kills, String(results.kills)],
+		[r.xp, `+${Math.floor(results.xp).toLocaleString('en')}`],
+		[r.salvage, `+${Math.floor(results.salvage).toLocaleString('en')}`],
+		[r.downs, String(results.downs)]
+	]
+	return (
+		<div className="absolute inset-0 grid place-items-center bg-rot-black/85 p-4">
+			<Panel className="w-full max-w-lg [--frame-color:var(--color-rot-lime)]">
+				<PanelTitle>{survival ? r.runOver : r.title}</PanelTitle>
+				<dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+					{rows.map(([label, value]) => (
+						<div key={label} className="flex items-baseline justify-between gap-3 border-surface-raised border-b pb-1">
+							<dt className="text-muted text-xs uppercase tracking-[0.2em]">{label}</dt>
+							<dd className="font-display text-2xl tabular-nums">{value}</dd>
+						</div>
+					))}
+				</dl>
+				<div className={cn('flex items-center justify-between gap-3', survival && 'hidden')}>
+					<span className="text-muted text-xs uppercase tracking-[0.2em]">{r.mastery}</span>
+					<Badge tone={masteryTone[results.mastery] ?? 'muted'}>{en.app.missions.mastery[results.mastery]}</Badge>
+				</div>
+				<div className={cn('flex flex-col gap-1.5', survival && 'hidden')}>
+					<span className="text-muted text-xs uppercase tracking-[0.2em]">{r.items}</span>
+					{results.items.length > 0 ? (
+						<ul className="flex flex-wrap gap-2">
+							{results.items.map((name, index) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: the same item can drop twice
+								<li key={index}>
+									<Badge tone="warning">{name}</Badge>
+								</li>
+							))}
+						</ul>
+					) : (
+						<span className="text-bone/70 text-sm">{r.noItems}</span>
+					)}
+					{results.items.length > 0 && <p className="text-muted text-xs">{r.saved}</p>}
+				</div>
+				<Button onClick={onDone}>{t.backToLobby}</Button>
+			</Panel>
+		</div>
+	)
+}
+
 /** Firing-range controls: spawn zombies to practise on, clear them, and the damage meter. */
 function RangePanel({ handle, hud }: { handle: GameHandle; hud: HudState }) {
 	const r = en.app.range
@@ -188,6 +410,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					return
 				}
 				const { ticket, path } = issued
+				const map = range ? 'range' : (missionById(issued.mission?.id ?? '')?.map ?? 'yard')
 				// the engine and its assets load only now, never on the landing page or lobby
 				const { startGame } = await import('@rotline/client')
 				if (cancelled || !canvasRef.current) return
@@ -197,7 +420,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					url: `${protocol}//${location.host}${path}`,
 					ticket,
 					assets: '/assets',
-					map: range ? 'range' : 'yard'
+					map
 				})
 				setHandle(game)
 				await game.ready
@@ -212,15 +435,27 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 		}
 	}, [navigate, range])
 
+	const [menuOpen, setMenuOpen] = useState(false)
+	// the pause menu: Esc opens and closes it (alone in the room the game really pauses)
+	useEffect(() => {
+		handle?.menu(menuOpen)
+	}, [handle, menuOpen])
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
-			if (event.code === 'Escape') void navigate({ to: '/play/lobby' })
+			if (event.code === 'Escape') setMenuOpen(open => !open)
 		}
 		window.addEventListener('keydown', onKey)
 		return () => window.removeEventListener('keydown', onKey)
-	}, [navigate])
+	}, [])
 
-	const ended = failed || hud?.status === 'disconnected' || hud?.status === 'kicked'
+	const ended =
+		!hud?.results &&
+		(failed ||
+			hud?.status === 'disconnected' ||
+			hud?.status === 'kicked' ||
+			hud?.status === 'over' ||
+			hud?.status === 'elsewhere')
+	const inMission = hud?.mission !== null && hud?.mission !== undefined
 
 	return (
 		<div className="fixed inset-0 select-none overflow-hidden bg-rot-black">
@@ -239,27 +474,9 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 			{hud && loaded && (
 				<>
 					{range && handle && <RangePanel handle={handle} hud={hud} />}
-					<div
-						className={cn(
-							'pointer-events-none absolute top-4 left-1/2 flex -translate-x-1/2 items-stretch gap-3',
-							range && 'hidden'
-						)}
-					>
-						{[
-							[t.wave, hud.wave],
-							[t.kills, hud.kills],
-							[t.score, hud.score]
-						].map(([label, value]) => (
-							<div
-								key={label}
-								className="frame cut-sm flex min-w-24 flex-col items-center px-4 py-1.5 [--frame-fill:rgb(13_16_14/0.8)]"
-							>
-								<span className="font-bold text-[10px] text-muted uppercase tracking-[0.25em]">{label}</span>
-								<span className="font-display text-2xl tabular-nums">{value}</span>
-							</div>
-						))}
-					</div>
-
+					{!range && <Multiplier hud={hud} round={inMission ? null : hud.wave} />}
+					<ObjectiveTracker hud={hud} />
+					<Toasts hud={hud} />
 					{hud.teammates.length > 0 && (
 						<ul className="pointer-events-none absolute top-16 left-4 flex flex-col gap-2">
 							{hud.teammates.map(mate => (
@@ -302,12 +519,28 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					{hud.banner && performance.now() - hud.banner.at < 2500 && (
 						<p
 							className={cn(
-								'pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
-								hud.banner.text === 'wipe' ? 'text-alert' : 'text-warning'
+								'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
+								hud.banner.text === 'wipe'
+									? 'text-alert'
+									: hud.banner.text === 'wave'
+										? 'text-warning'
+										: 'text-rot-lime'
 							)}
 							aria-live="polite"
 						>
-							{format(hud.banner.text === 'wipe' ? t.wipeBanner : t.waveBanner, { wave: String(hud.banner.wave) })}
+							{hud.banner.text === 'wave'
+								? format(t.waveBanner, { wave: String(hud.banner.wave) })
+								: hud.banner.text === 'wipe'
+									? inMission
+										? t.missionWipeBanner
+										: format(t.wipeBanner, { wave: String(hud.banner.wave) })
+									: hud.banner.text === 'objective'
+										? t.objectiveBanner
+										: hud.banner.text === 'checkpoint'
+											? t.checkpointBanner
+											: hud.banner.text === 'run-over'
+												? format(t.runOverBanner, { wave: String(hud.banner.wave) })
+												: t.completeBanner}
 						</p>
 					)}
 
@@ -330,8 +563,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					)}
 
 					<div className="absolute top-4 left-4 flex items-center gap-3">
-						<Button variant="secondary" size="sm" onClick={() => void navigate({ to: '/play/lobby' })}>
-							{t.leave}
+						<Button variant="secondary" size="sm" onClick={() => setMenuOpen(true)}>
+							{t.menu}
 						</Button>
 						<span className="text-muted text-xs tabular-nums">
 							{format(t.ping, { ms: String(hud.pingMs) })} · {format(t.fps, { fps: String(hud.fps) })}
@@ -365,16 +598,42 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					<div className="cut flex flex-col items-center bg-rot-black/85 px-10 py-5">
 						<p className="font-display text-4xl text-muted uppercase">{t.out}</p>
 						<p className="text-bone/80 tabular-nums" aria-live="polite">
-							{hud.respawnSeconds > 0 ? format(t.backIn, { seconds: String(hud.respawnSeconds) }) : t.outBack}
+							{hud.respawnSeconds > 0
+								? format(t.backIn, { seconds: String(hud.respawnSeconds) })
+								: inMission
+									? t.outCheckpoint
+									: t.outBack}
 						</p>
 					</div>
 				</div>
 			)}
 
+			{menuOpen && hud && loaded && !hud.results && !ended && (
+				<PauseMenu
+					range={range}
+					squad={hud.teammates.length > 0}
+					onResume={() => setMenuOpen(false)}
+					onLobby={() => void navigate({ to: '/play/lobby' })}
+					onAbandon={() => {
+						void partyActions.abandon().then(() => navigate({ to: '/play/lobby' }))
+					}}
+				/>
+			)}
+
+			{hud?.results && <ResultsPanel results={hud.results} onDone={() => void navigate({ to: '/play/lobby' })} />}
+
 			{ended && (
 				<div className="absolute inset-0 grid place-items-center bg-rot-black/80">
 					<Panel className="w-full max-w-sm [--frame-color:var(--color-alert)]">
-						<PanelTitle>{hud?.status === 'kicked' ? t.kicked : t.lost}</PanelTitle>
+						<PanelTitle>
+							{hud?.status === 'over'
+								? t.over
+								: hud?.status === 'elsewhere'
+									? t.elsewhere
+									: hud?.status === 'kicked'
+										? t.kicked
+										: t.lost}
+						</PanelTitle>
 						<Button onClick={() => void navigate({ to: '/play/lobby' })}>{t.backToLobby}</Button>
 					</Panel>
 				</div>

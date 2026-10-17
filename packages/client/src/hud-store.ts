@@ -1,6 +1,8 @@
 /** What the HUD shows. The game writes it; React reads it through `subscribe` + `getSnapshot`. */
 export type HudState = {
-	status: 'connecting' | 'playing' | 'down' | 'out' | 'disconnected' | 'kicked'
+	/** 'over': the mission is complete and the room has closed; the game is paused while 'paused' */
+	/** 'elsewhere': the player joined another squad room, so this one let them go */
+	status: 'connecting' | 'playing' | 'down' | 'out' | 'disconnected' | 'kicked' | 'over' | 'elsewhere'
 	health: number
 	maxHealth: number
 	weapons: { name: string; mag: number; magazine: number; reserve: number | null; active: boolean }[]
@@ -25,8 +27,25 @@ export type HudState = {
 		revive: number
 		connected: boolean
 	}[]
-	/** short announcements: new wave, squad wiped */
-	banner: { text: 'wave' | 'wipe'; wave: number; at: number } | null
+	/** short announcements: new wave, squad wiped, objective done, checkpoint, mission complete */
+	banner: {
+		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over'
+		wave: number
+		at: number
+	} | null
+	/** the mission being played, null outside missions */
+	mission: MissionHud | null
+	/** this player's kill chain, its multiplier, the chain timer left (0..1) and mission score */
+	chain: number
+	multiplier: number
+	chainLeft: number
+	missionScore: number
+	/** buffs running for this player: name and seconds left */
+	buffs: { id: string; name: string; seconds: number }[]
+	/** things found or picked up, newest last; the HUD shows each for a few seconds */
+	toasts: Toast[]
+	/** the results screen, once the mission is complete */
+	results: Results | null
 	/** equipped abilities: name, key and seconds until ready (0 = ready) */
 	abilities: { name: string; key: string; seconds: number; cooldown: number }[]
 	/** utilities: name, key and charges left (null = unlimited, in the firing range) */
@@ -37,6 +56,45 @@ export type HudState = {
 	fps: number
 	hitMarker: number
 	kickReason: number | null
+}
+
+export type MissionHud = {
+	id: string
+	name: string
+	difficulty: string
+	/** current objective, 0-based, out of `count` */
+	objective: number
+	count: number
+	label: string
+	type: 'kill' | 'reach' | 'hold' | 'survive'
+	/** kills, or seconds for hold and survive */
+	progress: number
+	goal: number
+	complete: boolean
+}
+
+export type Toast = {
+	id: number
+	kind: 'item' | 'buff' | 'threshold'
+	/** the item or buff name, or the Salvage paid for a threshold */
+	text: string
+	/** who picked a buff up (teammates' pickups help everyone) */
+	by: string | null
+	at: number
+}
+
+export type Results = {
+	success: boolean
+	/** Survival: rounds survived */
+	rounds: number
+	timeMs: number
+	score: number
+	kills: number
+	xp: number
+	salvage: number
+	downs: number
+	items: string[]
+	mastery: number
 }
 
 export const initialHud: HudState = {
@@ -54,6 +112,14 @@ export const initialHud: HudState = {
 	reviveHint: null,
 	teammates: [],
 	banner: null,
+	mission: null,
+	chain: 0,
+	multiplier: 1,
+	chainLeft: 0,
+	missionScore: 0,
+	buffs: [],
+	toasts: [],
+	results: null,
 	abilities: [],
 	utilities: [],
 	dps: 0,

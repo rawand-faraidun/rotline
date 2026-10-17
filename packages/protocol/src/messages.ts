@@ -1,6 +1,11 @@
-import { type Build, buildSchema, zombies as zombieDefs } from '@rotline/game-data'
+import { type Build, buildSchema } from '@rotline/game-data'
 import {
+	CHAIN_TICKS,
+	currentObjective,
 	MAX_ZOMBIES,
+	MissionStatus,
+	ObjectKind,
+	objectiveGoal,
 	type PlayerInput,
 	type PlayerState,
 	type Pool,
@@ -12,15 +17,34 @@ import {
 } from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
-export const PROTOCOL_VERSION = 4
+export const PROTOCOL_VERSION = 5
 
-export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4 } as const
+export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
 /** Firing-range controls: spawn zombies of a type, or clear them away. */
 export const RangeAction = { spawn: 1, clear: 2 } as const
-export const ServerMessage = { welcome: 10, snapshot: 11, events: 12, ping: 13, kick: 14, roster: 15 } as const
+export const ServerMessage = {
+	welcome: 10,
+	snapshot: 11,
+	events: 12,
+	ping: 13,
+	kick: 14,
+	roster: 15,
+	results: 16
+} as const
 
-export const KickReason = { badTicket: 1, roomFull: 2, protocol: 3, replaced: 4, shutdown: 5, idle: 6 } as const
+export const KickReason = {
+	badTicket: 1,
+	roomFull: 2,
+	protocol: 3,
+	replaced: 4,
+	shutdown: 5,
+	idle: 6,
+	/** the mission is over and the results have been shown */
+	complete: 7,
+	/** the player is in another squad room already */
+	elsewhere: 8
+} as const
 
 /** Positions travel in 1/64 m steps. */
 const POSITION_SCALE = 64
@@ -38,7 +62,9 @@ export type HelloMessage = { type: 'hello'; version: number; ticket: string }
 export type InputMessage = { type: 'input'; ackSnapshot: number; inputs: PlayerInput[] }
 export type PongMessage = { type: 'pong'; time: number }
 export type RangeMessage = { type: 'range'; action: number; zombieType: number; count: number }
-export type ClientToServer = HelloMessage | InputMessage | PongMessage | RangeMessage
+/** The pause menu opened or closed; only a room of one actually stops. */
+export type PauseMessage = { type: 'pause'; paused: boolean }
+export type ClientToServer = HelloMessage | InputMessage | PongMessage | RangeMessage | PauseMessage
 
 export function writeHello(w: Writer, ticket: string): Uint8Array<ArrayBuffer> {
 	return w.reset().u8(ClientMessage.hello).u16(PROTOCOL_VERSION).string(ticket).finish()
@@ -56,6 +82,14 @@ export function writeInput(w: Writer, ackSnapshot: number, inputs: readonly Play
 
 export function writeRange(w: Writer, action: number, zombieType = 0, count = 1): Uint8Array<ArrayBuffer> {
 	return w.reset().u8(ClientMessage.range).u8(action).u8(zombieType).u8(count).finish()
+}
+
+export function writePause(w: Writer, paused: boolean): Uint8Array<ArrayBuffer> {
+	return w
+		.reset()
+		.u8(ClientMessage.pause)
+		.u8(paused ? 1 : 0)
+		.finish()
 }
 
 export function writePong(w: Writer, time: number): Uint8Array<ArrayBuffer> {
@@ -94,6 +128,8 @@ export function readClientMessage(r: Reader): ClientToServer {
 			if (count > 20) throw new ProtocolError('too many zombies')
 			return { type: 'range', action, zombieType, count }
 		}
+		case ClientMessage.pause:
+			return { type: 'pause', paused: r.u8() === 1 }
 		default:
 			throw new ProtocolError(`unknown client message ${type}`)
 	}
@@ -101,7 +137,10 @@ export function readClientMessage(r: Reader): ClientToServer {
 
 // --- server → client ---------------------------------------------------------------------------
 
-/** `build` is the player's own build, so client prediction uses exactly the server's numbers. */
+/**
+ * `build` is the player's own build, so client prediction uses exactly the server's numbers;
+ * `missionId` and `difficulty` are empty outside missions (the firing range, wave rooms).
+ */
 export type WelcomeMessage = {
 	type: 'welcome'
 	version: number
@@ -109,6 +148,8 @@ export type WelcomeMessage = {
 	mapId: string
 	tick: number
 	build: Build
+	missionId: string
+	difficulty: string
 }
 
 export function writeWelcome(
@@ -116,7 +157,9 @@ export function writeWelcome(
 	you: number,
 	mapId: string,
 	tick: number,
-	build: Build
+	build: Build,
+	missionId = '',
+	difficulty = ''
 ): Uint8Array<ArrayBuffer> {
 	return w
 		.reset()
@@ -126,7 +169,42 @@ export function writeWelcome(
 		.string(mapId)
 		.u32(tick)
 		.string(JSON.stringify(build))
+		.string(missionId)
+		.string(difficulty)
 		.finish()
+}
+
+/** A player's own results, sent once when the mission is complete or the Survival run is over. */
+export type ResultsMessage = {
+	type: 'results'
+	success: boolean
+	/** Survival: rounds survived (0 for missions) */
+	rounds: number
+	timeMs: number
+	score: number
+	kills: number
+	xp: number
+	salvage: number
+	downs: number
+	/** indices into game-data items */
+	items: number[]
+	/** 0 none, 1 bronze, 2 silver, 3 gold */
+	mastery: number
+}
+
+export function writeResults(w: Writer, results: Omit<ResultsMessage, 'type'>): Uint8Array<ArrayBuffer> {
+	w.reset()
+		.u8(ServerMessage.results)
+		.u8(results.success ? 1 : 0)
+		.u16(Math.min(0xffff, results.rounds))
+		.u32(Math.min(0xffffffff, Math.round(results.timeMs)))
+	w.u32(Math.min(0xffffffff, Math.round(results.score)))
+		.u32(results.kills)
+		.u32(Math.floor(results.xp))
+		.u32(Math.floor(results.salvage))
+	w.u16(Math.min(0xffff, results.downs)).u8(Math.min(255, results.items.length))
+	for (const item of results.items.slice(0, 255)) w.u8(item)
+	return w.u8(results.mastery).finish()
 }
 
 function readBuild(text: string): Build {
@@ -165,8 +243,41 @@ export function writeKick(w: Writer, reason: number): Uint8Array<ArrayBuffer> {
 /** Everything client prediction needs about its own player (server-only fields stay out). */
 export type SelfState = Omit<
 	PlayerState,
-	'id' | 'lastSeq' | 'stats' | 'guardUntil' | 'immuneUntil' | 'lastRitesUsed' | 'defibUsed' | 'chain' | 'lastKillTick'
+	| 'id'
+	| 'lastSeq'
+	| 'stats'
+	| 'guardUntil'
+	| 'immuneUntil'
+	| 'lastRitesUsed'
+	| 'defibUsed'
+	| 'chain'
+	| 'lastKillTick'
+	| 'score'
+	| 'thresholds'
+	| 'foundItems'
+	| 'itemsReported'
+	| 'openedCaches'
+	| 'finalItem'
+	| 'doubledScore'
+	| 'lastActiveTick'
 >
+
+/** Where the mission stands, and this player's own score and kill chain. */
+export type MissionFrame = {
+	/** MissionStatus: 0 when the room runs no mission */
+	status: number
+	objective: number
+	progress: number
+	goal: number
+	doubleXpSeconds: number
+	instakillSeconds: number
+	score: number
+	chain: number
+	/** 0..1 of the chain timer left */
+	chainLeft: number
+	/** bit n: this player has opened cache n */
+	caches: number
+}
 
 export type OtherPlayer = {
 	id: number
@@ -196,6 +307,8 @@ export type ObjectState = {
 	/** 0..1 for barricades */
 	health: number
 	secondsLeft: number
+	/** buffs on the ground: the buff's index in game-data buffs */
+	variant: number
 	/** barricades: the grid cells they wall off */
 	cells: number[]
 }
@@ -214,6 +327,7 @@ export type SnapshotFrame = {
 	/** round trip measured by the server, in milliseconds */
 	rttMs: number
 	self: SelfState
+	mission: MissionFrame
 	others: OtherPlayer[]
 	pools: PoolState[]
 	objects: ObjectState[]
@@ -298,12 +412,30 @@ export class SnapshotEncoder {
 			w.u16(s.overwatchShots).u16(s.minigunSteps)
 		}
 
+		// the mission, and this player's score and chain
+		{
+			const mission = world.mission
+			w.u8(mission?.status ?? MissionStatus.none)
+			w.u8(mission?.index ?? 0)
+				.u32(mission?.progress ?? 0)
+				.u32(mission ? objectiveGoal(currentObjective(mission)) : 0)
+			w.u8(secondsUntil(world, world.doubleXpUntil)).u8(secondsUntil(world, world.instakillUntil))
+			// a chain whose timer ran out is gone, even before the server notices on the next kill
+			const chainLeft = self && self.chain > 0 ? Math.max(0, CHAIN_TICKS - (world.tick - self.lastKillTick)) : 0
+			w.u32(Math.min(0xffffffff, Math.floor(self?.score ?? 0)))
+				.u16(chainLeft > 0 ? Math.min(0xffff, self?.chain ?? 0) : 0)
+				.u8(Math.round((chainLeft / CHAIN_TICKS) * 255))
+			let caches = 0
+			if (self) for (const index of self.openedCaches) if (index < 16) caches |= 1 << index
+			w.u16(caches)
+		}
+
 		// everyone else, quantised
 		w.u8(Math.max(0, world.players.size - (self ? 1 : 0)))
 		for (const other of world.players.values()) {
 			if (other.id === this.playerId) continue
 			w.u8(other.id).u16(q(other.x)).u16(q(other.y)).u16(other.aim)
-			w.u8(Math.round((other.health / 100) * 255))
+			w.u8(Math.max(0, Math.min(255, Math.round((other.health / other.stats.maxHealth) * 255))))
 			w.u8((other.alive ? 1 : 0) | (other.downed ? 2 : 0) | (other.slot << 2))
 			w.u8(other.downed ? Math.max(0, Math.min(255, Math.ceil((other.bleedoutTick - world.tick) / TICK_RATE))) : 0)
 			w.u8(Math.min(255, Math.round((other.reviveProgress / REVIVE_COMPLETE) * 255)))
@@ -331,6 +463,7 @@ export class SnapshotEncoder {
 				object.maxHealth > 0 ? Math.max(0, Math.min(255, Math.round((object.health / object.maxHealth) * 255))) : 255
 			)
 			w.u8(Math.max(0, Math.min(255, Math.ceil((object.untilTick - world.tick) / TICK_RATE))))
+			w.u8(object.kind === ObjectKind.buff ? object.amount : 0)
 			// barricades carry their exact cells: the client's grid must match the server's
 			const cells = Math.min(255, object.cells.length)
 			w.u8(cells)
@@ -364,7 +497,7 @@ export class SnapshotEncoder {
 			const px = q(zx)
 			const py = q(zy)
 			const facing = Math.round(((((world.facing(i) % TAU) + TAU) % TAU) / TAU) * 256) & 0xff
-			const max = (zombieDefs[world.type[i] as number] as { health: number }).health
+			const max = world.maxHealth[i] as number
 			const health = Math.max(1, Math.min(255, Math.round(((world.health[i] as number) / max) * 255)))
 			const state = world.state[i] as number
 			const status = zombieStatus(world, i)
@@ -484,6 +617,18 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			free: (flags & 8) !== 0
 		}
 	}
+	const mission: MissionFrame = {
+		status: r.u8(),
+		objective: r.u8(),
+		progress: r.u32(),
+		goal: r.u32(),
+		doubleXpSeconds: r.u8(),
+		instakillSeconds: r.u8(),
+		score: r.u32(),
+		chain: r.u16(),
+		chainLeft: r.u8() / 255,
+		caches: r.u16()
+	}
 	const others: OtherPlayer[] = []
 	const otherCount = r.u8()
 	for (let i = 0; i < otherCount; i++) {
@@ -523,6 +668,7 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			angle: (r.u16() / 65536) * TAU,
 			health: r.u8() / 255,
 			secondsLeft: r.u8(),
+			variant: r.u8(),
 			cells: []
 		}
 		const cellCount = r.u8()
@@ -559,7 +705,7 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		if (flags & Flag.status) table.status[index] = r.u8()
 		else if (flags & Flag.fresh) table.status[index] = 0
 	}
-	return { id, tick, lastSeq, wave, kills, score, rttMs, self, others, pools, objects }
+	return { id, tick, lastSeq, wave, kills, score, rttMs, self, mission, others, pools, objects }
 }
 
 const EMPTY_SELF: SelfState = {
@@ -598,6 +744,9 @@ const EMPTY_SELF: SelfState = {
 	free: false
 }
 
+const secondsUntil = (world: World, until: number) =>
+	Math.max(0, Math.min(255, Math.ceil((until - world.tick) / TICK_RATE)))
+
 function zombieStatus(world: World, i: number): number {
 	const tick = world.tick
 	return (
@@ -626,7 +775,15 @@ const EventType = {
 	launch: 12,
 	explode: 13,
 	ability: 14,
-	cleared: 15
+	cleared: 15,
+	objective: 16,
+	checkpoint: 17,
+	'mission-complete': 18,
+	'item-found': 19,
+	cache: 20,
+	buff: 21,
+	threshold: 22,
+	'run-over': 23
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -684,6 +841,27 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 			case 'wipe':
 			case 'cleared':
 				w.u16(event.wave)
+				break
+			case 'objective':
+				w.u8(event.index).u8(event.first ? 1 : 0)
+				break
+			case 'checkpoint':
+				w.u8(event.index)
+				break
+			case 'run-over':
+				w.u16(event.wave)
+				break
+			case 'mission-complete':
+				break
+			case 'item-found':
+				w.u8(event.player).u8(event.item)
+				break
+			case 'cache':
+			case 'threshold':
+				w.u8(event.player).u8(event.index)
+				break
+			case 'buff':
+				w.u8(event.player).u8(event.buff)
 				break
 		}
 	}
@@ -765,6 +943,30 @@ export function readEvents(r: Reader): SimEvent[] {
 			case EventType.cleared:
 				events.push({ type: 'cleared', wave: r.u16() })
 				break
+			case EventType.objective:
+				events.push({ type: 'objective', index: r.u8(), first: r.u8() === 1 })
+				break
+			case EventType['run-over']:
+				events.push({ type: 'run-over', wave: r.u16() })
+				break
+			case EventType.checkpoint:
+				events.push({ type: 'checkpoint', index: r.u8() })
+				break
+			case EventType['mission-complete']:
+				events.push({ type: 'mission-complete' })
+				break
+			case EventType['item-found']:
+				events.push({ type: 'item-found', player: r.u8(), item: r.u8() })
+				break
+			case EventType.cache:
+				events.push({ type: 'cache', player: r.u8(), index: r.u8() })
+				break
+			case EventType.buff:
+				events.push({ type: 'buff', player: r.u8(), buff: r.u8() })
+				break
+			case EventType.threshold:
+				events.push({ type: 'threshold', player: r.u8(), index: r.u8() })
+				break
 			default:
 				throw new ProtocolError(`unknown event ${type}`)
 		}
@@ -779,6 +981,7 @@ export type ServerToClient =
 	| { type: 'ping'; time: number }
 	| { type: 'kick'; reason: number }
 	| { type: 'roster'; entries: RosterEntry[] }
+	| ResultsMessage
 
 /** Reads the type byte and simple messages; snapshots are read with readSnapshot by the caller. */
 export function readServerHeader(r: Reader): ServerToClient {
@@ -791,7 +994,9 @@ export function readServerHeader(r: Reader): ServerToClient {
 				you: r.u8(),
 				mapId: r.string(64),
 				tick: r.u32(),
-				build: readBuild(r.string(4096))
+				build: readBuild(r.string(4096)),
+				missionId: r.string(64),
+				difficulty: r.string(32)
 			}
 		case ServerMessage.snapshot:
 			return { type: 'snapshot' }
@@ -807,6 +1012,20 @@ export function readServerHeader(r: Reader): ServerToClient {
 			const entries: RosterEntry[] = []
 			for (let i = 0; i < count; i++) entries.push({ slot: r.u8(), connected: r.u8() === 1, name: r.string(64) })
 			return { type: 'roster', entries }
+		}
+		case ServerMessage.results: {
+			const success = r.u8() === 1
+			const rounds = r.u16()
+			const timeMs = r.u32()
+			const score = r.u32()
+			const kills = r.u32()
+			const xp = r.u32()
+			const salvage = r.u32()
+			const downs = r.u16()
+			const count = r.u8()
+			const items: number[] = []
+			for (let i = 0; i < count; i++) items.push(r.u8())
+			return { type: 'results', success, rounds, timeMs, score, kills, xp, salvage, downs, items, mastery: r.u8() }
 		}
 		default:
 			throw new ProtocolError(`unknown server message ${type}`)

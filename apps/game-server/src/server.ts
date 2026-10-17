@@ -1,4 +1,6 @@
+import { randomInt } from 'node:crypto'
 import { createRequire } from 'node:module'
+import { missionById } from '@rotline/game-data'
 import {
 	KickReason,
 	PROTOCOL_VERSION,
@@ -9,11 +11,20 @@ import {
 	writeKick
 } from '@rotline/protocol'
 import { DT } from '@rotline/sim'
-import { announceInstance, createValkey, publishReward, touchRoom, type Valkey } from '@rotline/state'
+import {
+	announceInstance,
+	claimPlayerRoom,
+	createValkey,
+	dropRoom,
+	publishReward,
+	releasePlayerRoom,
+	touchRoom,
+	type Valkey
+} from '@rotline/state'
 import { loadPrivateKey, loadPublicKey, NonceStore, signMessage, verifyTicket } from '@rotline/ticket'
 import type { Logger } from 'pino'
 import type { GameEnv } from './env.ts'
-import { type Connection, Room } from './room.ts'
+import { type Connection, RESULTS_SECONDS, Room } from './room.ts'
 import type { TemplatedApp, us_listen_socket, WebSocket } from 'uWebSockets.js'
 
 // uWebSockets.js 20.71's ESM wrapper points at a file the package does not ship, so load the CommonJS build
@@ -30,6 +41,8 @@ const MESSAGE_RATE = 120
 const MESSAGE_BURST = 60
 /** Dropped messages in a row before the socket is closed. */
 const MAX_DROPPED = 300
+/** A closed room's id is refused this long, so no late ticket can start it again. */
+const CLOSED_ROOM_MS = 5 * 60_000
 /** At most this many ticks are run back to back to catch up after a stall. */
 const MAX_CATCH_UP = 3
 
@@ -42,6 +55,9 @@ type SocketData = {
 	roomId: string | null
 	helloTimer: ReturnType<typeof setTimeout> | null
 	connection: Connection | null
+	/** the ticket is being checked (an await on Valkey); messages meanwhile are ignored */
+	admitting: boolean
+	closed: boolean
 }
 
 export type TickStats = { count: number; total: number; max: number; late: number }
@@ -57,7 +73,10 @@ export class GameServer {
 	private readonly writer = new Writer(64)
 	private timer: ReturnType<typeof setTimeout> | null = null
 	private nextTickAt = 0
-	private roomSeed = 1
+	/** ids of rooms that have closed, until when they stay refused */
+	private readonly closedRooms = new Map<string, number>()
+	/** finished rooms already taken out of the registry */
+	private readonly dropped = new Set<string>()
 	private readonly env: GameEnv
 	private readonly valkey: Valkey | null
 	private registryTimer: ReturnType<typeof setInterval> | null = null
@@ -101,7 +120,9 @@ export class GameServer {
 						userId: null,
 						roomId: null,
 						helloTimer: null,
-						connection: null
+						connection: null,
+						admitting: false,
+						closed: false
 					},
 					request.getHeader('sec-websocket-key'),
 					request.getHeader('sec-websocket-protocol'),
@@ -141,6 +162,7 @@ export class GameServer {
 			},
 			close: socket => {
 				const data = socket.getUserData()
+				data.closed = true
 				if (data.helloTimer) clearTimeout(data.helloTimer)
 				const room = data.roomId ? this.rooms.get(data.roomId) : undefined
 				if (data.connection) {
@@ -183,9 +205,28 @@ export class GameServer {
 	private windowMax = 0
 	private async announce(): Promise<void> {
 		if (!this.valkey) return
+		const now = Date.now()
+		for (const [id, until] of this.closedRooms) if (until <= now) this.closedRooms.delete(id)
 		try {
-			const now = Date.now()
-			for (const room of this.rooms.values()) await touchRoom(this.valkey, room.id, room.playerCount)
+			for (const room of this.rooms.values()) {
+				// a finished room leaves the registry at once, so its squad is back in the lobby
+				if (room.completedAt > 0) {
+					if (!this.dropped.has(room.id)) {
+						this.dropped.add(room.id)
+						await dropRoom(this.valkey, room.id)
+						// its players are free to start something else right away
+						for (const userId of room.userIds()) await releasePlayerRoom(this.valkey, userId, room.id)
+					}
+					continue
+				}
+				await touchRoom(this.valkey, room.id, room.playerCount)
+				// one squad room per player: whoever has meanwhile joined another room is let go here
+				if (room.mode !== 'squad') continue
+				for (const userId of room.connectedUsers()) {
+					if (!(await claimPlayerRoom(this.valkey, userId, room.id)))
+						room.disconnect(userId, KickReason.elsewhere, Date.now())
+				}
+			}
 			if (now - this.announced >= 5000 || this.draining) {
 				this.announced = now
 				await announceInstance(this.valkey, {
@@ -224,6 +265,7 @@ export class GameServer {
 	private onMessage(socket: WebSocket<SocketData>, bytes: Uint8Array): void {
 		const data = socket.getUserData()
 		const message = readClientMessage(new Reader(bytes))
+		if (data.admitting) return
 		if (!data.userId) {
 			if (message.type !== 'hello') {
 				this.kick(socket, KickReason.protocol)
@@ -233,7 +275,7 @@ export class GameServer {
 				this.kick(socket, KickReason.protocol)
 				return
 			}
-			this.hello(socket, message.ticket)
+			void this.hello(socket, message.ticket)
 			return
 		}
 		const room = data.roomId ? this.rooms.get(data.roomId) : undefined
@@ -244,9 +286,10 @@ export class GameServer {
 		if (message.type === 'input') room.receiveInputs(data.userId, message.inputs)
 		else if (message.type === 'pong') room.receivePong(data.userId, message.time, Date.now())
 		else if (message.type === 'range') room.rangeCommand(message.action, message.zombieType, message.count)
+		else if (message.type === 'pause') room.pause(data.userId, message.paused, Date.now())
 	}
 
-	private hello(socket: WebSocket<SocketData>, ticket: string): void {
+	private async hello(socket: WebSocket<SocketData>, ticket: string): Promise<void> {
 		const data = socket.getUserData()
 		const check = verifyTicket(this.publicKey, ticket)
 		if (!check.ok) {
@@ -259,6 +302,23 @@ export class GameServer {
 			this.kick(socket, KickReason.badTicket)
 			return
 		}
+		// a room that has closed never starts again from a late ticket
+		if ((this.closedRooms.get(payload.room) ?? 0) > Date.now()) {
+			this.kick(socket, KickReason.badTicket)
+			return
+		}
+		const mission = payload.mode === 'squad' ? (payload.mission ?? null) : null
+		// a squad holds a place in one room at a time
+		if (payload.mode === 'squad' && this.valkey) {
+			data.admitting = true
+			const claimed = await claimPlayerRoom(this.valkey, payload.sub, payload.room).catch(() => true)
+			data.admitting = false
+			if (data.closed) return
+			if (!claimed) {
+				this.kick(socket, KickReason.elsewhere)
+				return
+			}
+		}
 		let room = this.rooms.get(payload.room)
 		if (!room) {
 			const ranges = [...this.rooms.values()].filter(existing => existing.mode === 'range').length
@@ -269,15 +329,40 @@ export class GameServer {
 				this.kick(socket, KickReason.roomFull)
 				return
 			}
-			room = new Room(payload.room, payload.mode, this.roomSeed++, this.rooms.size, report => {
-				if (!this.valkey || !this.rewardKey) return
-				const key = this.rewardKey
-				publishReward(this.valkey, report, text => signMessage(key, text)).catch(error =>
-					this.log.error({ err: error, grantKey: report.grantKey }, 'reward report failed')
-				)
-			})
+			// a mission this server does not know (game data out of step) is refused before any room exists
+			if (mission && !missionById(mission.id)) {
+				this.log.error({ room: payload.room, mission: mission.id }, 'ticket names an unknown mission')
+				this.kick(socket, KickReason.badTicket)
+				return
+			}
+			room = new Room(
+				payload.room,
+				payload.mode,
+				randomInt(2 ** 31),
+				this.rooms.size,
+				report => {
+					if (!this.valkey || !this.rewardKey) return
+					const key = this.rewardKey
+					publishReward(this.valkey, report, text => signMessage(key, text)).catch(error =>
+						this.log.error({ err: error, grantKey: report.grantKey }, 'reward report failed')
+					)
+				},
+				mission,
+				randomInt(2 ** 31)
+			)
 			this.rooms.set(payload.room, room)
-			this.log.info({ room: room.id, mode: room.mode }, 'room created')
+			this.log.info({ room: room.id, mode: room.mode, mission: room.missionRoom }, 'room created')
+		}
+		// every ticket to a room names the same mode and mission it was created with; once it is
+		// finished only its own players may come back (to see the results)
+		if (
+			room.mode !== payload.mode ||
+			room.missionRoom?.id !== mission?.id ||
+			room.missionRoom?.difficulty !== mission?.difficulty ||
+			(room.completedAt > 0 && !room.has(payload.sub))
+		) {
+			this.kick(socket, KickReason.badTicket)
+			return
 		}
 		let open = true
 		const connection: Connection = {
@@ -343,8 +428,15 @@ export class GameServer {
 		const wall = Date.now()
 		for (const [id, room] of this.rooms) {
 			room.tick(wall)
-			if (room.emptySince > 0 && wall - room.emptySince > EMPTY_ROOM_MS) {
+			const finished = room.completedAt > 0 && wall - room.completedAt > RESULTS_SECONDS * 1000
+			if (finished || (room.emptySince > 0 && wall - room.emptySince > EMPTY_ROOM_MS)) {
 				room.reportAll()
+				if (finished) room.closeAll(KickReason.complete)
+				this.closedRooms.set(id, wall + CLOSED_ROOM_MS)
+				this.dropped.delete(id)
+				if (this.valkey && room.mode === 'squad') {
+					for (const userId of room.userIds()) void releasePlayerRoom(this.valkey, userId, id).catch(() => {})
+				}
 				for (const flagged of room.suspicious()) this.log.warn({ room: id, ...flagged }, 'unusually accurate player')
 				this.rooms.delete(id)
 				this.log.info({ room: id }, 'room closed')

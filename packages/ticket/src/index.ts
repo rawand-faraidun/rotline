@@ -1,5 +1,5 @@
 import { createPrivateKey, createPublicKey, type KeyObject, randomBytes, sign, verify } from 'node:crypto'
-import { buildSchema } from '@rotline/game-data'
+import { buildSchema, difficultyId } from '@rotline/game-data'
 import { z } from 'zod'
 
 /**
@@ -14,9 +14,10 @@ export const ticketPayload = z.object({
 	room: z.string().min(1).max(64),
 	/** game-server instance the ticket is for */
 	inst: z.string().min(1).max(64),
-	/** squads hold up to four players; a player alone is a squad of one */
-	/** a squad mission, or the firing range (alone, no rewards) */
+	/** a squad mission (a player alone is a squad of one), or the firing range (alone, no rewards) */
 	mode: z.enum(['squad', 'range']),
+	/** squads: the mission and difficulty the leader chose; every ticket to a room carries the same */
+	mission: z.object({ id: z.string().min(1).max(64), difficulty: difficultyId }).optional(),
 	/** class, level, skills and loadout: the game server needs no database */
 	build: buildSchema,
 	/** expiry, unix seconds */

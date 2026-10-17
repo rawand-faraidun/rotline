@@ -131,6 +131,8 @@ export const zombieSchema = z.object({
 	scale: z.number().positive().max(4),
 	/** firing-range targets: never move or attack, never appear in waves, heal back to full */
 	dummy: z.boolean().optional(),
+	/** elites may drop an item when killed, and take only part of a screen nuke */
+	elite: z.boolean().optional(),
 	deathBurst: z
 		.object({
 			damage: z.number().min(0),
@@ -300,7 +302,36 @@ export const economySchema = z.object({
 		waveClear: z.object({ xp: z.number().min(0), salvage: z.number().min(0) }),
 		scorePerXp: z.number().positive(),
 		/** the most one report from a game server may grant; anything above is refused and logged */
-		maxPerReport: z.object({ xp: z.number().int().positive(), salvage: z.number().int().positive() })
+		maxPerReport: z.object({ xp: z.number().int().positive(), salvage: z.number().int().positive() }),
+		/** per objective completed, and for finishing a mission (both times the difficulty's reward scale) */
+		objective: z.object({ xp: z.number().min(0), salvage: z.number().min(0), score: z.number().int().min(0) }),
+		completion: z.object({ xp: z.number().min(0), salvage: z.number().min(0) }),
+		/** score also pays Salvage: one per this many points (times the difficulty's reward scale) */
+		scorePerSalvage: z.number().positive(),
+		/** no mission can score faster than this (the API refuses results above it) */
+		maxScorePerSecond: z.number().positive(),
+		/** a player counts as playing if they moved, aimed or fired within this many seconds */
+		activeSeconds: z.number().positive(),
+		/** share of the mission a player must have been playing for its result, completion reward and final item */
+		minParticipation: z.number().min(0).max(1)
+	}),
+	/** mission mastery: gold needs a time under this share of par and at most this many squad downs */
+	mastery: z.object({ goldParShare: z.number().positive().max(1), goldMaxDowns: z.number().int().min(0) }),
+	/** the kill chain sets a score multiplier; score thresholds pay Salvage and heal */
+	score: z.object({
+		multiplierSteps: z.array(z.object({ chain: z.number().int().min(0), multiplier: z.number().positive() })).min(1),
+		thresholds: z.array(z.number().int().positive()).min(1),
+		thresholdStep: z.number().int().positive(),
+		thresholdSalvage: z.number().int().min(0),
+		thresholdHeal: z.number().min(0).max(1)
+	}),
+	/** item drops in missions: chance per elite kill, tier weights by difficulty, a cap per mission */
+	drops: z.object({
+		eliteChance: z.number().min(0).max(1),
+		/** metres from a cache within which holding interact opens it */
+		cacheRange: z.number().positive(),
+		tierWeights: z.record(z.string(), z.tuple([z.number().min(0), z.number().min(0), z.number().min(0)])),
+		maxPerMission: z.number().int().min(0)
 	}),
 	starter: z.object({
 		items: z.array(id).min(1),
@@ -355,6 +386,95 @@ export const wavesSchema = z.object({
 	growthPerWave: z.number().min(1)
 })
 
+export const difficultyId = z.enum(['recruit', 'veteran', 'nightmare', 'apocalypse'])
+
+export const difficultiesSchema = z.object({
+	tiers: z
+		.array(
+			z.object({
+				id: difficultyId,
+				name: z.string().min(1),
+				enemyHealth: z.number().positive(),
+				enemyDamage: z.number().positive(),
+				enemyCount: z.number().positive(),
+				rewards: z.number().positive()
+			})
+		)
+		.length(4),
+	/** enemy count by squad size (1 to 4 players) */
+	squadEnemyCount: z.tuple([
+		z.number().positive(),
+		z.number().positive(),
+		z.number().positive(),
+		z.number().positive()
+	]),
+	/** per enemy level above 1 */
+	enemyLevel: z.object({ health: z.number().min(0), damage: z.number().min(0) }),
+	/** zombies alive at once, whatever the difficulty and squad size */
+	maxAlive: z.number().int().positive().max(300)
+})
+
+export const buffsSchema = z.object({
+	drop: z.object({
+		chancePerKill: z.number().min(0).max(1),
+		/** higher from elites and from opening a cache */
+		eliteChance: z.number().min(0).max(1),
+		cacheChance: z.number().min(0).max(1),
+		minIntervalSeconds: z.number().min(0),
+		pickupRadius: z.number().positive(),
+		lifetimeSeconds: z.number().positive()
+	}),
+	buffs: z.array(
+		z.object({
+			id,
+			name: z.string().min(1),
+			/** applies to the whole squad, whoever picks it up */
+			team: z.boolean(),
+			seconds: z.number().min(0),
+			weight: z.number().positive(),
+			params: z.record(z.string(), z.number())
+		})
+	)
+})
+
+const area = z.object({ x: z.number(), y: z.number(), radius: z.number().positive() })
+const objectiveBase = {
+	label: z.string().min(1),
+	/** a checkpoint is saved when this objective is done */
+	checkpoint: z.boolean().optional(),
+	/** spawn rate while this objective runs, times the mission's */
+	spawnScale: z.number().positive().optional(),
+	/** optional objectives pay extra and count toward mastery (run from milestone 5b) */
+	optional: z.boolean().optional()
+}
+
+export const objectiveSchema = z.discriminatedUnion('type', [
+	z.object({ type: z.literal('kill'), count: z.number().int().positive(), ...objectiveBase }),
+	z.object({ type: z.literal('reach'), area, ...objectiveBase }),
+	z.object({ type: z.literal('hold'), area, seconds: z.number().positive(), ...objectiveBase }),
+	z.object({ type: z.literal('survive'), seconds: z.number().positive(), ...objectiveBase })
+])
+
+export const missionSchema = z.object({
+	id,
+	name: z.string().min(1),
+	zone: id,
+	map: id,
+	description: z.string().min(1),
+	parTimeSeconds: z.number().positive(),
+	scoreTarget: z.number().int().positive(),
+	enemyLevel: z.number().int().min(1).max(60),
+	recommendedLevel: z.number().int().min(1).max(50),
+	spawn: z.object({
+		perSecond: z.number().positive(),
+		maxAlive: z.number().int().positive().max(300),
+		composition: z.record(id, z.number().positive())
+	}),
+	/** hidden caches: open with interact for an item drop */
+	caches: z.array(z.object({ x: z.number(), y: z.number() })).max(16),
+	objectives: z.array(objectiveSchema).min(1)
+})
+
 /** One equipped item as the game sees it: which item, its upgrade level and the perks chosen. */
 export const itemRefSchema = z.object({
 	id,
@@ -400,4 +520,11 @@ export type EconomyDef = z.infer<typeof economySchema>
 export type MapDef = z.infer<typeof mapSchema>
 export type WavesDef = z.infer<typeof wavesSchema>
 export type ItemRef = z.infer<typeof itemRefSchema>
+export type DifficultyId = z.infer<typeof difficultyId>
+export type DifficultiesDef = z.infer<typeof difficultiesSchema>
+export type DifficultyDef = DifficultiesDef['tiers'][number]
+export type BuffsDef = z.infer<typeof buffsSchema>
+export type BuffDef = BuffsDef['buffs'][number]
+export type ObjectiveDef = z.infer<typeof objectiveSchema>
+export type MissionDef = z.infer<typeof missionSchema>
 export type Build = z.infer<typeof buildSchema>

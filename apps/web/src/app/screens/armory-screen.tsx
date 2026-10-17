@@ -25,6 +25,7 @@ import {
 	runAction
 } from '../../lib/progress.ts'
 import { GameShell } from './game-shell.tsx'
+import { pane, panes } from './layout.ts'
 
 const t = en.app.armory
 const p = en.app.progression
@@ -253,14 +254,14 @@ export function ArmoryScreen() {
 
 	return (
 		<GameShell>
-			<h1 className="mb-8 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
+			<h1 className="mb-6 shrink-0 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
 			{problem && problem.error !== 'needs-confirmation' && (
 				<p role="alert" className="mb-4 text-alert text-sm">
 					{p.problems[problem.error]}
 				</p>
 			)}
-			<div className="grid gap-6 lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_22rem]">
-				<Panel className="lg:self-start">
+			<div className={cn(panes, 'lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_22rem]')}>
+				<Panel className="lg:max-h-full lg:self-start lg:overflow-y-auto">
 					<PanelHeader>
 						<PanelTitle className="text-xl">{p.loadoutTitle}</PanelTitle>
 					</PanelHeader>
@@ -288,7 +289,7 @@ export function ArmoryScreen() {
 					</ul>
 				</Panel>
 
-				<div className="flex flex-col gap-6">
+				<div className={pane}>
 					<Panel>
 						<PanelHeader>
 							<PanelTitle className="text-xl">{t.inventory}</PanelTitle>
@@ -357,7 +358,7 @@ export function ArmoryScreen() {
 					)}
 				</div>
 
-				<div className="flex flex-col gap-6 lg:col-span-2 xl:sticky xl:top-6 xl:col-span-1 xl:self-start">
+				<div className={cn(pane, 'lg:col-span-2 xl:col-span-1')}>
 					{chosen ? (
 						<ItemDetail key={chosen} view={view} id={chosen} onRefusal={setProblem} />
 					) : (

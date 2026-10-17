@@ -7,7 +7,10 @@ const STREAM_MAX = 100_000
 
 export type ClassName = 'assault' | 'medic' | 'heavy'
 
-/** XP and Salvage a player earned since the previous report. `grantKey` makes the grant idempotent. */
+/**
+ * XP and Salvage a player earned since the previous report, items found (at checkpoints) and, at
+ * a mission's end, its result. `grantKey` makes the grant idempotent.
+ */
 export type RewardReport = {
 	grantKey: string
 	userId: string
@@ -15,6 +18,19 @@ export type RewardReport = {
 	xp: number
 	salvage: number
 	kills: number
+	items?: string[] | undefined
+	result?:
+		| {
+				missionId: string
+				difficulty: 'recruit' | 'veteran' | 'nightmare' | 'apocalypse'
+				success: boolean
+				timeMs: number
+				score: number
+				downs: number
+				squad: number
+				optionalDone: number
+		  }
+		| undefined
 }
 
 /**

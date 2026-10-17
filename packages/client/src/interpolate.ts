@@ -100,6 +100,12 @@ export class Interpolator {
 		this.delayMs = target > this.delayMs ? target : this.delayMs + (target - this.delayMs) * 0.05
 	}
 
+	/** Forgets the clock after a pause: snapshots resume much later than the ticks say. */
+	resync(): void {
+		this.offset = Number.NaN
+		this.lateness.length = 0
+	}
+
 	/** The fractional server tick to draw now. */
 	renderTick(now: number): number {
 		if (Number.isNaN(this.offset)) return 0

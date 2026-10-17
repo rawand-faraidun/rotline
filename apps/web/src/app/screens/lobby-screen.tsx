@@ -11,6 +11,9 @@ import { AdminPanel } from './admin-panel.tsx'
 import { ClassPanel, LoadoutSummary } from './class-panel.tsx'
 import { FriendsPanel } from './friends-panel.tsx'
 import { GameShell } from './game-shell.tsx'
+import { pane, panes } from './layout.ts'
+import { MissionPanel } from './mission-panel.tsx'
+import { StableLabel } from './stable-label.tsx'
 
 const t = en.app.lobby
 
@@ -63,7 +66,7 @@ export function LobbyScreen() {
 	const codeId = useId()
 	const [code, setCode] = useState('')
 	const [problem, setProblem] = useState<PartyProblem | null>(null)
-	const [copied, setCopied] = useState(false)
+	const [copied, setCopied] = useState<'code' | 'link' | null>(null)
 	const player = me.status === 'signed-in' ? me.player : null
 
 	const view = party.data
@@ -94,6 +97,26 @@ export function LobbyScreen() {
 		else queryClient.setQueryData(partyQuery.queryKey, result)
 	}
 
+	/** Copies the squad code or the invite link, and says so on that button for a moment. */
+	async function copy(text: string, which: 'code' | 'link') {
+		if (!text) return
+		try {
+			await navigator.clipboard.writeText(text)
+		} catch {
+			// no clipboard permission (or not a secure page): fall back to a hidden text field
+			const field = document.createElement('textarea')
+			field.value = text
+			field.style.position = 'fixed'
+			field.style.opacity = '0'
+			document.body.append(field)
+			field.select()
+			document.execCommand('copy')
+			field.remove()
+		}
+		setCopied(which)
+		setTimeout(() => setCopied(current => (current === which ? null : current)), 1500)
+	}
+
 	const youMember = view?.members.find(member => member.id === view.you)
 	const isLeader = view?.leader === view?.you
 	const solo = (view?.members.length ?? 1) === 1
@@ -101,90 +124,101 @@ export function LobbyScreen() {
 
 	return (
 		<GameShell>
-			<h1 className="mb-8 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
-			<div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-				<Panel className="lg:self-start">
-					<PanelHeader>
-						<PanelTitle>{t.squad}</PanelTitle>
-						<span className="font-bold text-muted text-sm">{view?.members.length ?? 1} / 4</span>
-					</PanelHeader>
-					<ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
-						{view?.members.map(member => (
-							<MemberCard
-								key={member.id}
-								member={member}
-								you={member.id === view.you}
-								canKick={isLeader && member.id !== view.you}
-								onKick={() => void act(() => partyActions.kick(member.id))}
-							/>
-						))}
-						{Array.from({ length: 4 - (view?.members.length ?? 1) }, (_, i) => (
-							<li
-								// biome-ignore lint/suspicious/noArrayIndexKey: empty slots have no identity
-								key={i}
-								className="frame cut flex min-h-52 items-center justify-center p-4 text-muted text-xs uppercase tracking-[0.2em] [--frame-fill:var(--color-rot-black)]"
-							>
-								{t.slotOpen}
-							</li>
-						))}
-					</ul>
-					<div className="flex flex-wrap items-center gap-3">
-						{view?.state === 'mission' ? (
-							<>
-								<p className="text-warning">{t.inMission}</p>
-								<Button onClick={() => void navigate({ to: '/play/mission' })}>{t.rejoin}</Button>
-							</>
-						) : isLeader ? (
-							<Button size="lg" disabled={!view?.canStart} onClick={() => void act(() => partyActions.start())}>
-								{solo ? t.deploy : t.deploySquad}
-							</Button>
-						) : (
-							<Button
-								size="lg"
-								variant={youMember?.ready ? 'secondary' : 'primary'}
-								onClick={() => void act(() => partyActions.ready(!youMember?.ready))}
-							>
-								{youMember?.ready ? t.unready : t.markReady}
-							</Button>
+			<h1 className="mb-6 shrink-0 font-display text-5xl uppercase md:text-6xl">{t.title}</h1>
+			<div className={cn(panes, 'lg:grid-cols-[2fr_1fr]')}>
+				<div className={pane}>
+					<Panel>
+						<PanelHeader>
+							<PanelTitle>{t.squad}</PanelTitle>
+							<span className="font-bold text-muted text-sm">{view?.members.length ?? 1} / 4</span>
+						</PanelHeader>
+						<ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
+							{view?.members.map(member => (
+								<MemberCard
+									key={member.id}
+									member={member}
+									you={member.id === view.you}
+									canKick={isLeader && member.id !== view.you}
+									onKick={() => void act(() => partyActions.kick(member.id))}
+								/>
+							))}
+							{Array.from({ length: 4 - (view?.members.length ?? 1) }, (_, i) => (
+								<li
+									// biome-ignore lint/suspicious/noArrayIndexKey: empty slots have no identity
+									key={i}
+									className="frame cut flex min-h-52 items-center justify-center p-4 text-muted text-xs uppercase tracking-[0.2em] [--frame-fill:var(--color-rot-black)]"
+								>
+									{t.slotOpen}
+								</li>
+							))}
+						</ul>
+						<div className="flex flex-wrap items-center gap-3">
+							{view?.state === 'mission' ? (
+								<>
+									<p className="text-warning">{t.inMission}</p>
+									<Button onClick={() => void navigate({ to: '/play/mission' })}>{t.rejoin}</Button>
+									<Button variant="ghost" onClick={() => void act(() => partyActions.abandon())}>
+										{solo ? t.abandon : t.abandonSquad}
+									</Button>
+								</>
+							) : isLeader ? (
+								<Button
+									size="lg"
+									disabled={!view?.canStart}
+									onClick={() => void act(() => partyActions.start(view?.mission))}
+								>
+									{solo ? t.deploy : t.deploySquad}
+								</Button>
+							) : (
+								<Button
+									size="lg"
+									variant={youMember?.ready ? 'secondary' : 'primary'}
+									onClick={() => void act(() => partyActions.ready(!youMember?.ready, view?.mission))}
+								>
+									<StableLabel labels={[t.markReady, t.unready]} current={youMember?.ready ? t.unready : t.markReady} />
+								</Button>
+							)}
+							{isLeader && !solo && !view?.canStart && <p className="text-muted text-sm">{t.waiting}</p>}
+							{!solo && (
+								<Button variant="ghost" size="sm" onClick={() => void act(() => partyActions.leave())}>
+									{t.leaveParty}
+								</Button>
+							)}
+						</div>
+						{problem && (
+							<p role="alert" className="text-alert text-sm">
+								{t.problems[problem]}
+							</p>
 						)}
-						{isLeader && !solo && !view?.canStart && <p className="text-muted text-sm">{t.waiting}</p>}
-						{!solo && (
-							<Button variant="ghost" size="sm" onClick={() => void act(() => partyActions.leave())}>
-								{t.leaveParty}
-							</Button>
-						)}
-					</div>
-					{problem && (
-						<p role="alert" className="text-alert text-sm">
-							{t.problems[problem]}
-						</p>
-					)}
-				</Panel>
+					</Panel>
+					{view && <MissionPanel view={view} />}
+				</div>
 
-				<div className="flex flex-col gap-6">
+				<div className={pane}>
 					<Panel>
 						<PanelHeader>
 							<PanelTitle>{t.invite}</PanelTitle>
 						</PanelHeader>
-						<div className="flex items-end justify-between gap-4">
+						<div className="flex flex-col gap-3">
 							<div className="flex flex-col gap-1">
 								<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.inviteCode}</span>
 								<span data-testid="party-code" className="font-display text-4xl text-rot-lime tracking-[0.15em]">
 									{view?.code ?? '······'}
 								</span>
 							</div>
-							<Button
-								variant="secondary"
-								size="sm"
-								onClick={() => {
-									void navigator.clipboard.writeText(inviteLink).then(() => {
-										setCopied(true)
-										setTimeout(() => setCopied(false), 1500)
-									})
-								}}
-							>
-								{copied ? t.copied : t.copyLink}
-							</Button>
+							<div className="grid grid-cols-2 gap-2">
+								<Button
+									variant="secondary"
+									size="sm"
+									disabled={!view}
+									onClick={() => void copy(view?.code ?? '', 'code')}
+								>
+									<StableLabel labels={[t.copyCode, t.copied]} current={copied === 'code' ? t.copied : t.copyCode} />
+								</Button>
+								<Button variant="ghost" size="sm" disabled={!view} onClick={() => void copy(inviteLink, 'link')}>
+									<StableLabel labels={[t.copyLink, t.copied]} current={copied === 'link' ? t.copied : t.copyLink} />
+								</Button>
+							</div>
 						</div>
 						<form
 							className="flex flex-col gap-2"

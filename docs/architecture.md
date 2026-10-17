@@ -73,7 +73,7 @@ flowchart LR
 | Queue | Seats, queue positions, admission passes | Valkey |
 | Game servers | Rooms, simulation, snapshots, mission results | in memory; results written through the API |
 | PostgreSQL | All persistent data | disk |
-| Valkey | Presence, queue, seats, room registry, rate limits, messages between instances, game tickets | memory with append-only persistence; rebuildable |
+| Valkey | Presence, queue, seats, room registry (with each room's mission and each player's current room), rate limits, messages between instances, game tickets, the reward stream | memory with append-only persistence; rebuildable |
 | Backup service | Continuous point-in-time backups and a daily logical dump to object storage | — |
 
 All services take their configuration from environment variables. Only PostgreSQL and Valkey keep data on disk. Players cannot upload anything.
@@ -148,12 +148,12 @@ sequenceDiagram
   participant A as API
   participant V as Valkey
   participant G as Game server
-  B->>A: start mission (party ready)
-  A->>V: choose a live game-server instance, create the room
+  B->>A: start (party ready, the mission the leader saw)
+  A->>V: atomic start check, choose a live game-server instance, name the room, record its mission
   B->>A: request a game ticket
-  A-->>B: signed ticket (player, room, instance, nonce, expires in 30 s) and the instance address
+  A-->>B: signed ticket (player, room, instance, mission, nonce, expires in 30 s) and the instance address
   B->>G: connect and send the ticket
-  G->>V: burn the nonce (single use)
+  G->>V: burn the nonce (single use), claim the player's room
   G-->>B: welcome + full snapshot
   loop every tick
     B->>G: inputs
@@ -165,6 +165,7 @@ sequenceDiagram
 
 - Tickets are signed with Ed25519 by the API and verified by the game server with the public key, with no database call.
 - The ticket also carries the player's **build**: class, class level, skill ranks, equipped abilities, and the loadout with each item's upgrade level and perks. The game server turns it into stats with the same game-data code the API and the browser use, and repeats it in the welcome message so client prediction uses exactly the server's numbers. The build is fixed for the mission: class, skills, loadout and upgrades cannot change while the squad is in one.
+- A squad ticket also names the mission and difficulty (none for Survival). Every ticket to a room must name the same mode and mission the room was created with, and a game server refuses a mission its game data does not know. Once a room is finished, only its own players may come back to it (to see their results).
 - Mission progress is held in memory and saved at checkpoints and at mission end. Each save is one transaction with a unique grant key, so a retried save cannot pay twice. A mission in progress can be lost in a crash; anything saved cannot.
 
 ## Rewards
@@ -175,28 +176,36 @@ sequenceDiagram
   participant V as Valkey (stream "rewards")
   participant A as API
   participant D as PostgreSQL
-  G->>V: XADD report (grant key, player, class, XP, Salvage)
+  G->>V: XADD report (grant key, player, class, XP, Salvage, items found, mission result)
   A->>V: XREADGROUP (consumer group shared by all API instances)
-  A->>D: one transaction: reward_grant row, class XP, ledger row, balance
+  A->>V: read the room's recorded mission
+  A->>D: one transaction: reward_grant row, items, mission record, class XP, ledger row, balance
   A->>V: XACK; notify the player (progress changed)
 ```
 
-- A room adds up what each player earns (XP and Salvage per kill from game data, score converted to XP, a bonus per wave cleared) and reports it at every wave cleared, when the player's reconnect grace runs out, when the room closes and on shutdown. Fractions carry over to the next report.
+- A room adds up what each player earns (XP and Salvage per kill, objective and completion rewards and score converted to XP and Salvage, all from game data and scaled by the difficulty; a bonus per Survival round cleared) and reports it at every round cleared, at every checkpoint, at mission end, when the player's reconnect grace runs out, when the room closes and on shutdown. Fractions carry over to the next report. Items found travel only with checkpoint and mission-end reports; the mission result only with the mission-end report.
+- A report larger than one report may carry (`maxPerReport` in game data) is split into several, and the items and the result go with the last part.
 - Each report's grant key (`room:player:membership:sequence`) is recorded in the same transaction as the XP and Salvage, so a report delivered twice pays once. Reports are acknowledged only after their transaction commits; one an API instance was holding when it died is claimed by another after a minute.
 - Game servers sign every report with their own Ed25519 key; the API pays only reports with a valid signature, so write access to Valkey alone cannot mint XP or Salvage. In production each service also has its own Valkey user, and only the game servers may append to the stream.
-- The API only accepts reports whose key names a squad room and the same player, and no larger than one wave can plausibly pay (a limit in game data); anything else is dropped and logged.
-- A wave pays when it is cleared, never when it restarts after a wipe, and only to players who are connected and played it (moved, aimed or fired since the last clear).
+- The API only accepts reports whose key names a squad room and the same player, no larger than `maxPerReport`, and whose mission result is plausible: no faster than the mission's timed objectives back to back, no more score than that time allows (`maxScorePerSecond` × the squad size), no more optional objectives than the mission has. Anything else is dropped and logged.
+- When a squad starts, the API records the room's mission and difficulty in Valkey. Items and a result in a report that do not fit that record (another mission or difficulty, a Survival room, or an item of a tier that cannot drop at that difficulty) are stripped and logged; the XP and Salvage are still paid.
+- Per player and room, the API grants at most a mission's worth of items across all reports and counts the mission result once.
+- Rounds and objectives pay when done, never when redone after a wipe, and only to players who are connected and played (moved, aimed or fired since the last payment). The mission result, completion reward and final item go only to players who played at least half the mission (game design, section 6).
 - Rooms log players whose accuracy stays above 97 % over 300 shots or more (possible aim assistance), for review; nothing is taken away automatically.
-- A mission in progress can be lost in a crash (up to one wave of rewards); anything granted cannot.
+- A mission in progress can be lost in a crash (whatever was earned since the last report); anything granted cannot.
 - Every progress change locks the player's row first, so one player's changes run one at a time; writes are rate-limited per player (progress 20 a second, game tickets 6 per 10 seconds, squad and friends 20 per 10 seconds).
 
 ## Squads
 
-Every signed-in player is in a squad (party) of one to four, kept in Valkey: members in join order, the leader, a six-character code, who is ready, and whether the squad is in a mission.
+Every signed-in player is in a squad (party) of one to four, kept in Valkey: members in join order, the leader, a six-character code, who is ready, the chosen mission (or Survival) and difficulty, and whether the squad is in a mission.
 
 - Players join by code or by an invite link (`/play/lobby?join=CODE`). Squad changes are atomic Lua scripts, so several API instances can change the same squad safely.
-- The leader deploys once everyone else is ready. The API picks the least busy live game-server instance from the registry, names a room and marks the squad as in a mission; every member then asks for their own ticket to that room.
-- Game servers refresh their instance record every five seconds and each room's record every second. A squad whose room record has expired goes back to the lobby.
+- The leader picks the mission or Survival and the difficulty (`POST /api/party/mission`); a change clears the ready marks. Ready marks and the start carry the mission and difficulty the client saw and are refused with `changed` if they no longer match.
+- The leader deploys once everyone else is ready. One atomic script checks the leader, the lobby state, the ready marks and the mission; the API then picks the least busy live game-server instance from the registry, names a room, marks the squad as in a mission and records the room's mission; every member then asks for their own ticket to that room.
+- A player is in one squad room at a time: game servers keep a per-player claim on the room (refreshed every second), and the API refuses a start or a ticket while the player is playing in another room.
+- `POST /api/party/abandon` leaves a mission for good: a squad of one ends it; a member of a bigger squad leaves the squad.
+- `GET /api/missions` returns the player's records for every mission and difficulty (completions, best time, best score, mastery).
+- Game servers refresh their instance record every five seconds and each room's record every second. A squad whose room record has expired goes back to the lobby; a finished room drops its record at once.
 - Changes are pushed to members through the event stream (below), so lobbies update at once.
 
 ## Event stream
@@ -224,6 +233,7 @@ Each open app tab keeps one Server-Sent Events connection to the API (`/api/even
 - Old processes are marked as draining: they take no new rooms and exit when their last room ends.
 - API instances are replaced one at a time after their health check passes.
 - Database migrations run before new code starts and are backward compatible (add first, remove later), so rolling back never breaks the database.
+- When the reward report format changes, migrate the database and deploy the API before the game servers: an older API would strip the new fields and still acknowledge the report, losing them.
 
 ## Scaling out
 

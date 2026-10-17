@@ -16,8 +16,17 @@ Target session shapes: one campaign mission takes 10–15 minutes; a zone (5 mis
 |---|---|---|
 | Campaign | 1–4 | 5 zones × (5 missions + 1 boss mission). Each mission has 2–3 checkpoints |
 | Special events | 1–4 | A campaign mission with unusual rules (e.g. "all Cinders", "lights out", "double-speed horde"), switched on in the admin panel, with event cosmetics as rewards |
-| Survival | 1–4 | Endless rounds on one map, rising difficulty, leaderboard per map and season |
+| Survival | 1–4 | Endless rounds on one map, each harder than the last; a squad wipe ends the run. Leaderboard per map and season |
 | Firing range | 1 (or the party) | Practice area, no progression |
+
+### Choosing what to play
+
+- The squad leader picks, in the lobby, either a mission and its difficulty or Survival. Changing the choice clears everyone's ready mark; a ready mark or a start counts only for the choice the player saw, so nobody deploys into something they did not agree to.
+- The first missions are **Yard Sweep** and **Last Stand**, both on the yard map. Survival is a mode of its own, played on the yard, not a mission.
+- Survival: rounds come one after another, each with more zombies. Each round cleared pays every player who played it. A squad wipe ends the run, and the results screen shows the rounds survived. Players who bled out come back at the start of the next round, but only if someone finishes the round.
+- **Esc opens the pause menu.** In a room of one the game really pauses (for up to 10 minutes); with a squad the game goes on while that player stands still.
+- **Abandon** from the pause menu or the lobby: a squad of one ends the mission; a member of a bigger squad leaves the mission and the squad. A player who simply goes back to the lobby can rejoin within the reconnect grace.
+- A player can be in one squad room at a time; joining another one disconnects them from the first.
 
 ### Zones
 
@@ -48,7 +57,7 @@ One profile per player; class is switched in the lobby only. Per class: level, X
 
 **Tier rule:** a tier opens after 5 points in the branch's earlier tiers (tier 5 needs 20). Each branch has 22 nodes and 24 ranks; most nodes have one rank, a few two. Node ids, effects and ranks are in `packages/game-data/data/skills/`.
 
-**Earning XP (until missions arrive):** each kill gives class XP by zombie type (Drudge 4, Bolter 6, Swell 15) plus score converted at 1 XP per 20 score, and every wave cleared gives 40 XP and 25 Salvage. XP goes to the class the player deployed with.
+**Earning XP:** each kill gives class XP by zombie type (Drudge 4, Bolter 6, Swell 15); score converts at 1 XP per 20 score; each objective completed gives 100 XP and 100 Salvage, and completing a mission 400 XP and 250 Salvage. In Survival every round cleared gives 40 XP and 25 Salvage. In missions all of it is multiplied by the difficulty's reward multiplier (section 13). XP goes to the class the player deployed with.
 
 ## 4. Skill trees
 
@@ -66,9 +75,9 @@ Each class has three branches of 22 nodes in five tiers. A tier unlocks after 5 
 | | **Artillery** (area damage) | Aerial Bombardment: 8 shells over 3 s in a 10 m line (60 s); Mortar Shot: one 6 m blast at range (20 s) | +6 % explosive damage per rank; +10 % blast radius at rank 3 | *Aftershock*: explosions slow survivors by 40 % for 3 s |
 | | **Suppressor** (crowd control) | Shock Pulse: stuns zombies in 6 m for 2 s (25 s); Minigun Spin-up: carry a minigun for 8 s (75 s) | +5 % LMG and minigun damage per rank; +10 % magazine size for LMGs | *Suppression*: zombies hit by your bullets move 15 % slower |
 
-**Using abilities.** Equipped abilities sit on F, C and V; the two utility slots on G and T (rebinding comes with the settings screen). Cooldowns shrink with ability-cooldown skills. Thrown abilities and grenades land where the cursor is, up to their range (14 m for grenades, 25 m for the mortar). Utility charges refill when each wave starts (at checkpoints once missions have them).
+**Using abilities.** Equipped abilities sit on F, C and V; the two utility slots on G and T (rebinding comes with the settings screen). Cooldowns shrink with ability-cooldown skills. Thrown abilities and grenades land where the cursor is, up to their range (14 m for grenades, 25 m for the mortar). Utility charges refill when each Survival round starts, and in missions at every checkpoint and after a squad wipe.
 
-The Defibrillator works once per wave (once per checkpoint when missions have them); with nobody downed in reach it does nothing and its cooldown is given back. A player can have at most 12 zones, mines, decoys, sentries and barricades at once; the oldest goes.
+The Defibrillator works once per Survival round, and once per checkpoint in missions (it is ready again at each checkpoint and after a wipe); with nobody downed in reach it does nothing and its cooldown is given back. A player can have at most 12 zones, mines, decoys, sentries and barricades at once; the oldest goes.
 
 **Statuses on zombies**: stunned (no movement or attacks), slowed, marked (takes more damage), poisoned (damage over time) and taunted (chases the Heavy or a decoy). They show on the zombie as a colour tint.
 
@@ -82,7 +91,7 @@ Rotline uses health, not lives. What decides a fight is health, damage, armour, 
 - **Player armour** (from the armour slot and skills) reduces incoming damage: `damage × (1 − armour / (armour + 60))`.
 - **Damage dealt** = weapon damage at its upgrade level × skill bonuses × weak-point multiplier (×2, ×3 on elites' cores) × (1 − the target's resistance to that damage type) × the target's armour reduction.
 - **Damage types**: ballistic, explosive, fire, shock, chemical. Every zombie type has its own resistances (for example Bulwark: 90 % from the front; Cinder: immune to fire; Hive: weak to fire), shown in the bestiary.
-- **Enemy level**: every mission has an enemy level from its zone and difficulty. Enemy health grows by 6 % and enemy damage by 4 % per level. Each mission shows a recommended class level and gear level (the average upgrade level of the equipped items), so levelling up and upgrading gear is what makes harder missions possible.
+- **Enemy level**: every mission has an enemy level. Enemy health grows by 6 % and enemy damage by 4 % per level above 1, on top of the difficulty's multipliers (section 13). Each mission shows a recommended class level and gear level (the average upgrade level of the equipped items), so levelling up and upgrading gear is what makes harder missions possible.
 
 ## 5. Weapons, ammunition and gear
 
@@ -129,8 +138,21 @@ Armour absorbs a share of incoming damage: `damage × (1 − armour / (armour + 
 
 ### Item drops in missions
 
-- About **2–3 item drops per mission per player**, from elites (8 % chance each), objective completions (guaranteed one per mission from the final objective), and 1–2 hidden caches per map.
-- Drops are **per player** (each player sees their own), are rolled by the server from data-driven drop tables, and are saved to the account at the next checkpoint for use in later missions.
+- At most **4 item drops per mission per player**, with one place always kept for the final objective's guaranteed drop. Sources:
+  - elites: 8 % chance each, rolled for every player who has played within the last 60 seconds;
+  - the final objective: one guaranteed drop for every player who has played within the last 60 seconds;
+  - hidden caches (1–2 per mission): hold interact within 1.6 m; each cache opens once per player.
+- The item's tier is rolled with weights by difficulty:
+
+  | Difficulty | Tier 1 | Tier 2 | Tier 3 |
+  |---|---|---|---|
+  | Recruit | 70 | 25 | 5 |
+  | Veteran | 60 | 30 | 10 |
+  | Nightmare | 45 | 35 | 20 |
+  | Apocalypse | 30 | 40 | 30 |
+
+- Drops are **per player**: only the finder is told about their item or cache. They are rolled by the server from a random stream of their own, seeded unpredictably and kept apart from the one the fight uses. They are saved to the account at the next checkpoint and at mission end; an item found after the last checkpoint by a player who leaves before the end is lost.
+- A player who did not play for at least half the mission keeps their XP, Salvage and the items they found, but gets no mission result, completion reward or final drop.
 - **Found items always arrive at level 0.** If the player does not own the item, it is a new unlock. If they own it (any level), it becomes a duplicate (`item_duplicate`) whose only action is **Discard for Salvage**: starter items 300, tier 1: 600, tier 2: 1,200, tier 3: 2,400.
 - **Discarding owned items**: allowed for anything except the last pistol and the last two main weapons. Discarding an owned item pays the same amounts. Equipped or upgraded items require a second confirmation that shows the upgrade level and the Salvage that was spent on it; there is no refund for upgrades. An equipped item is replaced in the loadout by a spare one of the same kind.
 
@@ -151,7 +173,13 @@ Earning (Veteran difficulty, 4-player squad, per player):
 | Contracts | daily 1,500, weekly 8,000 | (outside the mission) |
 | Discarded duplicates | 600–2,400 | (variable) |
 
-That is about **830 Salvage per mission, roughly 4,200 per hour** before contracts. Difficulty multipliers on rewards: Recruit ×0.7, Veteran ×1.0, Nightmare ×1.35, Apocalypse ×1.8.
+That is about **830 Salvage per mission, roughly 4,200 per hour** before contracts. Difficulty multipliers on rewards: Recruit ×0.7, Veteran ×1.0, Nightmare ×1.35, Apocalypse ×1.8; they apply to everything a mission pays (kills, objectives, completion, score and score thresholds).
+
+Who is paid:
+
+- An objective pays (and scores) only the first time it is done; one redone after a squad wipe pays nothing. It pays every connected player who has moved, aimed or fired since the previous payment.
+- Objective score, elite drops and the final drop go only to players who have played within the last 60 seconds.
+- The mission result, the completion reward and the final drop go only to players who were connected and playing for at least half the mission, whether or not they are connected at the end.
 
 Hours of play per purchase (at 4,200/hour, no contracts):
 
@@ -173,6 +201,23 @@ The shop sells specific weapons, gear, consumables (grenade refills between miss
 ## 7. Missions and objectives
 
 An objective is a data record (type, parameters, triggers, rewards) plus one small logic module per type. The mission script is a list of objectives with checkpoints between them.
+
+The objective types in the game now:
+
+| Type | Done when |
+|---|---|
+| Kill | The squad has killed a set number of zombies |
+| Reach | A standing player who is playing (not idle) enters an area |
+| Hold | A standing, playing player has been in an area for a set time; the timer runs only while someone is there |
+| Survive | A set time has passed; the clock stops while the whole squad is down |
+
+How a mission runs:
+
+- Objectives come one at a time. Each one completed gives 1,000 score to every player who has played in the last 60 seconds and pays its reward (section 6), the first time only.
+- An objective marked as a checkpoint saves progress when done and brings everyone back: players who bled out return, downed players get up, everyone is at full health, and utility charges and the Defibrillator refill. Players coming back, and players joining a mission under way, appear at the last checkpoint.
+- A squad wipe returns to the last checkpoint, with that objective started again.
+- Zombies arrive in a steady stream: the mission's spawn rate × the objective's spawn scale × the difficulty's enemy count × the squad-size scale, up to the mission's own cap (scaled the same way) and never more than 300 alive. Nothing spawns while the whole squad is down.
+- When the last objective is done the mission is complete: the board is cleared and nobody can be hurt. Each player sees their results screen (time, score, kills, XP, Salvage, downs, items found, mastery) for 20 seconds while the squad is already back in the lobby; then the room closes.
 
 | Objective type | Rules (starting values) |
 |---|---|
@@ -220,7 +265,7 @@ Plus **Wriggler** (parasite, 10 HP, from Hive and Matron) as a sub-enemy. Health
 - **Stages**: each type has three mutation stages unlocked by zone progress and difficulty (stage 1 from zone 2 or Nightmare, stage 2 from zone 4 or Apocalypse, stage 3 Apocalypse zone 4+). A stage adds one ability, a resistance, or an attack pattern, and a visible change (growths, colour, glow). Example, Retcher: stage 1 spits twice; stage 2 acid slows; stage 3 spits a burst of three.
 - **Adaptive mutations**: the server tracks the squad's damage by type and behaviour (turret share, time spent stationary, average distance to zombies) over the last two checkpoints. If one damage type exceeds 55 % of damage, later spawns shift toward a strain with resistance to it; if the squad camps, more Vaulters and Delvers; if it kites, more Bolters and Clutches.
 - **Fairness**: resistances are capped at 35 % (never immunity, except the Cinder's inherent fire immunity); at most two adaptive strains active at once; every strain is announced in the HUD ("Strain adapted: fire-hardened") and shown on the zombie (a coloured crust); there is always a counter (another damage type, an ability, a utility).
-- **Spawn director**: tracks an intensity score (damage taken, zombies within 10 m, time since last peak) and cycles build-up (60–90 s) → peak (20–40 s) → relief (20–30 s). Enemy budget per second scales with squad size and difficulty; specials have per-type cooldowns.
+- **Spawn director**: missions currently spawn a steady stream (section 7). The full director tracks an intensity score (damage taken, zombies within 10 m, time since last peak) and cycles build-up (60–90 s) → peak (20–40 s) → relief (20–30 s). Enemy budget per second scales with squad size and difficulty; specials have per-type cooldowns.
 
 ### Bosses
 
@@ -230,28 +275,29 @@ Example, **The Warden** (zone 1): base 25,000 health. Phase 1: shield charge (te
 
 ## 9. Temporary buffs
 
-The server rolls drops: 2 % chance per kill, at most one buff every 30 s per squad, higher from elites and caches. Team-wide buffs apply to the whole squad.
+Buffs drop in missions and Survival (never in the firing range). The server rolls them: 2 % chance per kill, 15 % from an elite, 50 % when a cache is opened, and at most one buff every 30 s per squad. A buff lies on the ground for 20 s; a standing player picks it up by walking over it (1.2 m). Team-wide buffs apply to the whole squad.
 
 | Buff | Effect | Duration | Team |
 |---|---|---|---|
-| **Screen nuke** | Kills all non-elite zombies on screen; elites and bosses take 25 % of max health | instant | yes |
+| **Screen nuke** | Kills all non-elite zombies within 22 m; elites and bosses take 25 % of max health | instant | yes |
 | **Max ammo** | Fills all main weapons to their upgraded maximum | instant | yes |
-| **Double XP** | Doubles class XP earned | 60 s | yes |
+| **Double XP** | Doubles the class XP earned from kills, objectives, rounds, score and the completion reward (×2) | 60 s | yes |
 | **Minigun** | Replaces your weapon with a minigun (45 damage, 1,200 rpm, unlimited ammo) | 20 s | no |
-| Instakill | Every hit kills non-elites | 15 s | yes |
+| Instakill | Every hit by a player kills non-elites | 15 s | yes |
 | Speed boost | +30 % move speed | 15 s | yes |
-| Shield bubble | Stationary 5 m bubble that blocks zombies and projectiles | 10 s | yes |
 | Freeze pulse | Freezes zombies within 15 m | 6 s | yes |
-| Sentry | Deploys a turret (25 damage, 600 rpm) | 30 s | no |
+| Sentry | Deploys a turret (25 damage, 600 rpm, 14 m reach) | 30 s | no |
+| Shield bubble (not in the game yet) | Stationary 5 m bubble that blocks zombies and projectiles | 10 s | yes |
 
 ## 10. Score multiplier
 
 - A kill within **2.5 s** of the previous kill extends the chain. The chain sets the multiplier: ×1 (0–9 kills), ×2 (10), ×3 (25), ×4 (50), ×5 (100), ×6 (200).
 - The chain lapses after 2.5 s without a kill and **resets when the player goes down**.
-- Score per kill = zombie score value × multiplier (Drudge 10 … Colossus 1,000); objectives give flat score.
-- Score converts to bonus class XP at mission end: 1 XP per 20 score.
-- Score thresholds (25,000, 75,000, 150,000, then every 150,000) pay a Salvage bonus (100 each) and heal the player by 30 % of their maximum health.
-- HUD: multiplier and chain timer in the top centre, large, with a draining bar.
+- Score is kept per player in missions and Survival (not in the firing range).
+- Score per kill = zombie score value × multiplier (Drudge 10 … Colossus 1,000); each objective gives a flat 1,000 (section 7).
+- Score converts as it is saved (at checkpoints, rounds cleared and the end): 1 class XP per 20 score and 1 Salvage per 1,000 score, both × the difficulty's reward multiplier.
+- Score thresholds (25,000, 75,000, 150,000, then every 150,000) pay a Salvage bonus (100 each, × the reward multiplier) and heal the player by exactly 30 % of their maximum health (healing bonuses do not change it).
+- HUD: multiplier and chain timer in the top centre, large, with a draining bar; a chain whose timer has run out shows as 0.
 
 ## 11. Downed and revive
 
@@ -263,9 +309,9 @@ There are no lives or hearts. A player's health reaching zero is what matters.
 | Bleed-out timer | 30 s, minus 5 s for each earlier down this checkpoint (minimum 15 s) |
 | Revive (hold interact within 1.5 m) | 4 s, Medic 2.5 s, skills down to 1.5 s; taking damage does not cancel it |
 | Revived health | 30 % |
-| Bled out | The player is out and spectates teammates; they return at the next checkpoint with full health (Survival: end of round) |
+| Bled out | The player is out and spectates teammates; they return at the next checkpoint with full health (Survival: at the start of the next round, if someone finishes the round) |
 | Zero health solo | The run returns to the last checkpoint with full health; checkpoints come every 3–5 minutes |
-| Squad wipe | Everyone downed or out at once: restart from the last checkpoint (Survival: the run ends) |
+| Squad wipe | Everyone downed or out at once: restart from the last checkpoint, with that objective begun again (Survival: the run ends and the results show the rounds survived) |
 
 ## 12. Contracts and bounties
 
@@ -282,12 +328,14 @@ There are no lives or hearts. A player's health reaching zero is what matters.
 - Idle in lobby: warning at 10 minutes, seat released at 12 minutes (queue rules in `architecture.md`).
 - Communication: ping wheel (8 pings: here, enemy, defend, loot, help, revive me, go, wait) and 12 quick-chat phrases. No free text chat in version 1.
 
-| Difficulty | Enemy health | Enemy count | Mutation stage offset | Rewards |
-|---|---|---|---|---|
-| Recruit | ×0.8 | ×0.8 | +0 | ×0.7 |
-| Veteran | ×1.0 | ×1.0 | +0 | ×1.0 |
-| Nightmare | ×1.5 | ×1.25 | +1 | ×1.35 |
-| Apocalypse | ×2.2 | ×1.5 | +2 | ×1.8 |
+- The leader picks the mission (or Survival) and the difficulty; see section 2.
+
+| Difficulty | Enemy health | Enemy damage | Enemy count | Mutation stage offset | Rewards |
+|---|---|---|---|---|---|
+| Recruit | ×0.8 | ×0.8 | ×0.8 | +0 | ×0.7 |
+| Veteran | ×1.0 | ×1.0 | ×1.0 | +0 | ×1.0 |
+| Nightmare | ×1.5 | ×1.2 | ×1.25 | +1 | ×1.35 |
+| Apocalypse | ×2.2 | ×1.5 | ×1.5 | +2 | ×1.8 |
 
 Squad-size scaling of enemy count: 1 player ×0.5, 2 ×0.7, 3 ×0.85, 4 ×1.0. A 4-player Apocalypse peak is capped at **300 zombies alive**.
 
@@ -319,7 +367,12 @@ About 60 achievements at launch (milestones, feats, mastery, bestiary completion
 |---|---|
 | Bronze | Complete |
 | Silver | Complete under par time and at least 1 optional objective |
-| Gold | Complete under 80 % of par, all optional objectives, score above target, and no more than 1 down across the squad |
+| Gold | Complete under 80 % of par, all optional objectives, the squad's total score at or above the target, and no more than 1 down across the squad |
+
+- Recruit earns no mastery.
+- The score target scales with squad size like the enemy count (target × 0.5, 0.7, 0.85 or 1.0 for 1–4 players).
+- A mission without optional objectives asks for none.
+- Each player keeps, per mission and difficulty, the number of completions, the best time, the best score and the best mastery reached; only players who took part (section 6) are credited.
 
 Shown on the mission select map.
 

@@ -1,10 +1,13 @@
 import { z } from 'zod'
 import abilitiesData from '../data/abilities.json' with { type: 'json' }
+import buffsData from '../data/buffs.json' with { type: 'json' }
 import classesData from '../data/classes.json' with { type: 'json' }
+import difficultiesData from '../data/difficulties.json' with { type: 'json' }
 import economyData from '../data/economy.json' with { type: 'json' }
 import gearData from '../data/gear.json' with { type: 'json' }
 import rangeData from '../data/maps/range.json' with { type: 'json' }
 import yardData from '../data/maps/yard.json' with { type: 'json' }
+import missionsData from '../data/missions.json' with { type: 'json' }
 import playerData from '../data/player.json' with { type: 'json' }
 import assaultTree from '../data/skills/assault.json' with { type: 'json' }
 import heavyTree from '../data/skills/heavy.json' with { type: 'json' }
@@ -15,12 +18,17 @@ import weaponsData from '../data/weapons.json' with { type: 'json' }
 import zombiesData from '../data/zombies.json' with { type: 'json' }
 import {
 	abilitySchema,
+	buffsSchema,
 	type ClassId,
 	classesSchema,
+	type DifficultyDef,
+	type DifficultyId,
+	difficultiesSchema,
 	economySchema,
 	gearSchema,
 	type MapDef,
 	mapSchema,
+	missionSchema,
 	playerSchema,
 	type SkillNode,
 	type SkillTree,
@@ -64,6 +72,10 @@ export const abilityById = new Map(abilities.map(ability => [ability.id, ability
 export const gear = parse('gear', gearSchema, gearData)
 export const economy = parse('economy', economySchema, economyData)
 export const upgrades = parse('upgrades', upgradesSchema, upgradesData)
+export const difficulties = parse('difficulties', difficultiesSchema, difficultiesData)
+export const buffs = parse('buffs', buffsSchema, buffsData)
+export const missions = uniqueById('missions', parse('missions', z.array(missionSchema), missionsData))
+uniqueById('buffs', buffs.buffs)
 export const skillTrees: Record<ClassId, SkillTree> = {
 	assault: parse('skills/assault', skillTreeSchema, assaultTree),
 	medic: parse('skills/medic', skillTreeSchema, medicTree),
@@ -122,6 +134,26 @@ for (const tierKey of ['0', '1', '2', '3'] as const) {
 	)
 }
 check(maps.range?.range !== undefined, 'maps/range: needs its range section')
+for (const mission of missions) {
+	const map = maps[mission.map]
+	check(map !== undefined, `missions/${mission.id}: unknown map ${mission.map}`)
+	for (const key of Object.keys(mission.spawn.composition)) {
+		check(
+			zombies.some(zombie => zombie.id === key && !zombie.dummy),
+			`missions/${mission.id}: unknown zombie ${key}`
+		)
+	}
+	const inside = (x: number, y: number) => x > 0 && y > 0 && x < (map?.width ?? 0) && y < (map?.height ?? 0)
+	for (const cache of mission.caches) check(inside(cache.x, cache.y), `missions/${mission.id}: cache outside the map`)
+	for (const objective of mission.objectives) {
+		if ('area' in objective)
+			check(inside(objective.area.x, objective.area.y), `missions/${mission.id}: area outside the map`)
+		check(!objective.optional, `missions/${mission.id}: optional objectives are not run yet`)
+	}
+}
+for (const tier of difficulties.tiers) {
+	check(economy.drops.tierWeights[tier.id] !== undefined, `economy: drop weights for ${tier.id}`)
+}
 
 for (const ability of abilities) {
 	check(
@@ -153,6 +185,10 @@ export function specialParams(special: string): Record<string, number> {
 }
 
 export const combat = classes.combat
+
+export const difficultyDef = (id: DifficultyId) => difficulties.tiers.find(entry => entry.id === id) as DifficultyDef
+
+export const missionById = (id: string) => missions.find(mission => mission.id === id)
 
 export const classDef = (id: ClassId) =>
 	classes.classes.find(entry => entry.id === id) as (typeof classes.classes)[number]

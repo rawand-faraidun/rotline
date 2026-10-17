@@ -48,18 +48,33 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	await page.reload()
 	await expect(page).toHaveURL(/\/play\/lobby$/)
 
+	// the leader picks the mission and difficulty
+	const recruit = page.getByRole('button', { name: /^recruit/i })
+	await recruit.click()
+	await expect(recruit).toHaveAttribute('aria-pressed', 'true')
+	await expect(page.getByRole('button', { name: /yard sweep/i })).toHaveAttribute('aria-pressed', 'true')
+
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition
 	await page.getByRole('button', { name: /^deploy$/i }).click()
 	await expect(page).toHaveURL(/\/play\/mission$/)
-	await expect(page.getByText(/^wave$/i)).toBeVisible({ timeout: 45_000 })
+	await expect(page.getByText(/objective 1 of 4/i)).toBeVisible({ timeout: 45_000 })
+	await expect(page.getByText(/thin the horde/i)).toBeVisible()
+	await expect(page.getByText(/^multiplier$/i)).toBeVisible()
 	const magazine = page.locator('li', { hasText: 'Vex-9' }).locator('[data-slot="magazine"]')
 	await expect(magazine).toHaveText('32')
 	await page.mouse.move(900, 300)
 	await page.mouse.down()
 	await expect(magazine).not.toHaveText('32', { timeout: 10_000 })
 	await page.mouse.up()
+	// Esc opens the pause menu (alone, the game pauses); abandoning ends a mission of one
 	await page.keyboard.press('Escape')
+	await expect(page.getByRole('dialog', { name: /paused/i })).toBeVisible()
+	await page.getByRole('button', { name: /^resume$/i }).click()
+	await expect(page.getByRole('dialog')).toHaveCount(0)
+	await page.keyboard.press('Escape')
+	await page.getByRole('button', { name: /^abandon mission$/i }).click()
 	await expect(page).toHaveURL(/\/play\/lobby$/)
+	await expect(page.getByRole('button', { name: /^deploy$/i })).toBeVisible()
 
 	await page.getByRole('button', { name: /sign out/i }).click()
 	await expect(page).toHaveURL(/\/play$/)

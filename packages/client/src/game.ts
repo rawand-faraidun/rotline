@@ -1,9 +1,23 @@
-import { abilityById, abilities as abilityDefs, gear, maps, weapons } from '@rotline/game-data'
-import { INPUT_REDUNDANCY, RangeAction, Writer, writeRange } from '@rotline/protocol'
+import {
+	abilityById,
+	abilities as abilityDefs,
+	buffs as buffDefs,
+	type DifficultyId,
+	difficultyDef,
+	economy,
+	gear,
+	items,
+	type MissionDef,
+	maps,
+	missionById,
+	weapons
+} from '@rotline/game-data'
+import { INPUT_REDUNDANCY, KickReason, RangeAction, Writer, writePause, writeRange } from '@rotline/protocol'
 import {
 	activeWeapon,
 	aimToAngle,
 	angleToAim,
+	chainMultiplier,
 	Grid,
 	ObjectKind,
 	type PlayerInput,
@@ -16,11 +30,12 @@ import {
 } from '@rotline/sim'
 import * as THREE from 'three'
 import { Controls } from './controls.ts'
-import { HudStore } from './hud-store.ts'
+import { HudStore, type MissionHud, type Toast } from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
 import { Effects } from './render/effects.ts'
+import { MissionMarkers } from './render/mission.ts'
 import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
 import { PlayerFigure } from './render/players.ts'
 import { Stage } from './render/scene.ts'
@@ -36,8 +51,8 @@ export type GameOptions = {
 	/** where the game's models live, e.g. "/assets" */
 	assets: string
 	gore?: boolean
-	/** 'yard' for missions, 'range' for the firing range */
-	map?: 'yard' | 'range'
+	/** the map to draw: the mission's map, or 'range' for the firing range */
+	map?: string
 	/** floating damage numbers for your own hits (always on in the firing range) */
 	damageNumbers?: boolean
 }
@@ -48,6 +63,11 @@ export type GameHandle = {
 	ready: Promise<void>
 	/** firing range: spawn zombies of a type, or clear them */
 	range(action: 'spawn' | 'clear', zombieType?: number, count?: number): void
+	/**
+	 * The pause menu opened or closed. Alone in the room the game really pauses; with a squad it
+	 * goes on, and the player simply stands still while the menu is open.
+	 */
+	menu(open: boolean): void
 	stop(): void
 }
 
@@ -55,11 +75,13 @@ const ABILITY_KEYS = ['F', 'C', 'V']
 const UTILITY_KEYS = ['G', 'T']
 /** The damage-per-second meter looks this far back. */
 const DPS_WINDOW_MS = 3000
+/** Toasts stay on screen this long. */
+const TOAST_MS = 4000
 
 /** Starts a mission client: connects, predicts, interpolates and draws until stopped. */
 export function startGame(options: GameOptions): GameHandle {
 	const hud = new HudStore()
-	const map = (options.map === 'range' ? maps.range : maps.yard) as NonNullable<typeof maps.yard>
+	const map = (maps[options.map ?? 'yard'] ?? maps.yard) as NonNullable<typeof maps.yard>
 	const grid = new Grid(map)
 	const stage = new Stage(options.canvas, map)
 	const effects = new Effects(stage.scene, options.gore ?? true)
@@ -77,6 +99,20 @@ export function startGame(options: GameOptions): GameHandle {
 	const pointer = new THREE.Vector2()
 	const others = new Map<number, PlayerFigure>()
 	const names = new Map<number, { name: string; connected: boolean }>()
+	let mission: MissionDef | null = null
+	let rewardScale = 1
+	let menuOpen = false
+	let paused = false
+	let markers: MissionMarkers | null = null
+	let missionHud: MissionHud | null = null
+	let toastId = 0
+	let toasts: Toast[] = []
+	const toast = (kind: Toast['kind'], text: string, by: string | null = null) => {
+		const at = performance.now()
+		toasts = [...toasts.filter(entry => at - entry.at < TOAST_MS), { id: ++toastId, kind, text, by, at }]
+		hud.set({ toasts }, at, true)
+	}
+	const nameOf = (slot: number) => (slot === you ? null : (names.get(slot)?.name ?? `Player ${slot}`))
 
 	let zombies: ZombieRenderer | null = null
 	let predictor: Predictor | null = null
@@ -114,15 +150,46 @@ export function startGame(options: GameOptions): GameHandle {
 	})
 
 	const connection = new GameConnection(options.url, options.ticket, {
-		welcome: (slot, _tick, _map, build) => {
+		welcome: (slot, _tick, _map, build, missionId, difficulty) => {
 			you = slot
 			predictor = new Predictor(grid, slot, build)
 			me = new PlayerFigure(slot, true)
 			stage.scene.add(me.group)
+			mission = missionById(missionId) ?? null
+			rewardScale = difficultyDef(difficulty as DifficultyId)?.rewards ?? 1
+			markers?.dispose()
+			markers = mission ? new MissionMarkers(stage.scene, mission) : null
+			if (mission) {
+				missionHud = {
+					id: mission.id,
+					name: mission.name,
+					difficulty: difficultyDef(difficulty as DifficultyId)?.name ?? difficulty,
+					objective: 0,
+					count: mission.objectives.length,
+					label: mission.objectives[0]?.label ?? '',
+					type: mission.objectives[0]?.type ?? 'kill',
+					progress: 0,
+					goal: 0,
+					complete: false
+				}
+				hud.set({ mission: missionHud }, performance.now(), true)
+			}
 		},
+		results: results =>
+			hud.set(
+				{ results: { ...results, items: results.items.map(index => items[index]?.name ?? '') } },
+				performance.now(),
+				true
+			),
 		roster: entries => {
 			names.clear()
 			for (const entry of entries) names.set(entry.slot, { name: entry.name, connected: entry.connected })
+			// someone joined: the game no longer pauses for one player's menu
+			if (paused && entries.length > 1) {
+				paused = false
+				accumulator = 0
+				interpolator.resync()
+			}
 		},
 		snapshot: (snapshot, table, receivedAt) => {
 			interpolator.push(snapshot.tick, table, snapshot.others, snapshot.pools, receivedAt, snapshot.objects)
@@ -131,6 +198,36 @@ export function startGame(options: GameOptions): GameHandle {
 			hudDirty = true
 			if (snapshot.rttMs > 0) pingMs = snapshot.rttMs
 			const self = snapshot.self
+			const progress = snapshot.mission
+			if (mission && missionHud) {
+				const objective = mission.objectives[progress.objective]
+				const timed = objective?.type === 'hold' || objective?.type === 'survive'
+				const next: MissionHud = {
+					...missionHud,
+					objective: Math.min(progress.objective, mission.objectives.length - 1),
+					label: objective?.label ?? missionHud.label,
+					type: objective?.type ?? missionHud.type,
+					progress: timed ? Math.floor(progress.progress / TICK_RATE) : progress.progress,
+					goal: timed ? Math.round(progress.goal / TICK_RATE) : progress.goal,
+					complete: progress.status === 2
+				}
+				if (
+					next.objective !== missionHud.objective ||
+					next.progress !== missionHud.progress ||
+					next.goal !== missionHud.goal ||
+					next.complete !== missionHud.complete
+				)
+					missionHud = next
+				markers?.update(progress.objective, progress.status === 1, progress.caches, receivedAt / 1000)
+			}
+			const running: { id: string; name: string; seconds: number }[] = []
+			const buffName = (id: string) => buffDefs.buffs.find(buff => buff.id === id)?.name ?? id
+			if (progress.doubleXpSeconds > 0)
+				running.push({ id: 'double-xp', name: buffName('double-xp'), seconds: progress.doubleXpSeconds })
+			if (progress.instakillSeconds > 0)
+				running.push({ id: 'instakill', name: buffName('instakill'), seconds: progress.instakillSeconds })
+			if (self.minigunSteps > 0)
+				running.push({ id: 'minigun', name: buffName('minigun'), seconds: Math.ceil(self.minigunSteps / TICK_RATE) })
 			const teammates = snapshot.others.map(other => ({
 				slot: other.id,
 				name: names.get(other.id)?.name ?? `Player ${other.id}`,
@@ -159,6 +256,12 @@ export function startGame(options: GameOptions): GameHandle {
 					wave: snapshot.wave + 1,
 					kills: snapshot.kills,
 					score: snapshot.score,
+					mission: missionHud,
+					chain: progress.chain,
+					multiplier: chainMultiplier(progress.chain),
+					chainLeft: progress.chainLeft,
+					missionScore: progress.score,
+					buffs: sameBuffs(hud.getSnapshot().buffs, running) ? hud.getSnapshot().buffs : running,
 					respawnSeconds:
 						self.alive || self.respawnTick > snapshot.tick + 3600 * TICK_RATE
 							? 0
@@ -239,12 +342,62 @@ export function startGame(options: GameOptions): GameHandle {
 					case 'wipe':
 						hud.set({ banner: { text: 'wipe', wave: event.wave, at: performance.now() } }, performance.now(), true)
 						break
+					case 'objective':
+						hud.set(
+							{ banner: { text: 'objective', wave: event.index + 1, at: performance.now() } },
+							performance.now(),
+							true
+						)
+						break
+					case 'checkpoint':
+						hud.set(
+							{ banner: { text: 'checkpoint', wave: event.index + 1, at: performance.now() } },
+							performance.now(),
+							true
+						)
+						break
+					case 'run-over':
+						hud.set({ banner: { text: 'run-over', wave: event.wave, at: performance.now() } }, performance.now(), true)
+						break
+					case 'mission-complete':
+						hud.set({ banner: { text: 'complete', wave: 0, at: performance.now() } }, performance.now(), true)
+						break
+					case 'item-found':
+						// drops are per player: only your own are shown
+						if (event.player === you) toast('item', items[event.item]?.name ?? '')
+						break
+					case 'buff': {
+						const buff = buffDefs.buffs[event.buff]
+						effects.burst(drawnX(event.player), drawnY(event.player), 3, now, 0xb8f23c)
+						if (buff && (buff.team || event.player === you)) toast('buff', buff.name, nameOf(event.player))
+						break
+					}
+					case 'threshold':
+						if (event.player === you)
+							toast('threshold', String(Math.floor(economy.score.thresholdSalvage * rewardScale)))
+						break
 				}
 			}
 		},
-		kicked: reason => hud.set({ status: 'kicked', kickReason: reason }, performance.now(), true),
+		kicked: reason =>
+			hud.set(
+				{
+					status: reason === KickReason.complete ? 'over' : reason === KickReason.elsewhere ? 'elsewhere' : 'kicked',
+					kickReason: reason
+				},
+				performance.now(),
+				true
+			),
 		closed: () => hud.set({ status: 'disconnected' }, performance.now(), true)
 	})
+
+	/** Where a player is drawn (for effects at their feet). */
+	function drawnX(slot: number): number {
+		return slot === you ? drawn.x : (interpolator.others.find(other => other.id === slot)?.x ?? drawn.x)
+	}
+	function drawnY(slot: number): number {
+		return slot === you ? drawn.y : (interpolator.others.find(other => other.id === slot)?.y ?? drawn.y)
+	}
 
 	/** Barricades are walls: the client's grid must match the server's or prediction slides through them. */
 	function syncBarricades(objects: readonly { id: number; kind: number; cells: number[] }[]) {
@@ -356,12 +509,20 @@ export function startGame(options: GameOptions): GameHandle {
 		last = now
 		const renderTick = interpolator.renderTick(now)
 
-		// fixed-rate input and prediction, independent of the display rate
-		if (predictor) {
+		// fixed-rate input and prediction, independent of the display rate (stopped while paused)
+		if (predictor && !paused) {
 			accumulator += dt * 1000
 			while (accumulator >= TICK_MS) {
 				accumulator -= TICK_MS
 				const input = sampleInput(renderTick)
+				// behind the menu in a squad the player stands still (aim kept)
+				if (menuOpen) {
+					input.moveX = 0
+					input.moveY = 0
+					input.buttons = 0
+					input.aim = predictor.state.aim
+					input.reach = 0
+				}
 				const result = predictor.apply(input)
 				hudDirty = true
 				predictorTick = predictor.tick
@@ -438,13 +599,40 @@ export function startGame(options: GameOptions): GameHandle {
 				writeRange(rangeWriter, action === 'spawn' ? RangeAction.spawn : RangeAction.clear, zombieType, count)
 			)
 		},
+		menu(open) {
+			if (open === menuOpen) return
+			menuOpen = open
+			// alone in the room: really pause (the server stops it too)
+			const alone = [...names.values()].length <= 1
+			if (open && alone) {
+				paused = true
+				connection.send(writePause(rangeWriter, true))
+			}
+			if (!open && paused) {
+				paused = false
+				connection.send(writePause(rangeWriter, false))
+				accumulator = 0
+				last = performance.now()
+				interpolator.resync()
+			}
+		},
 		stop() {
 			stopped = true
 			cancelAnimationFrame(frame)
 			connection.close()
 			controls.dispose()
 			window.removeEventListener('resize', onResize)
+			markers?.dispose()
 			stage.dispose()
 		}
 	}
+}
+
+function sameBuffs(
+	a: readonly { id: string; seconds: number }[],
+	b: readonly { id: string; seconds: number }[]
+): boolean {
+	return (
+		a.length === b.length && a.every((buff, index) => buff.id === b[index]?.id && buff.seconds === b[index]?.seconds)
+	)
 }

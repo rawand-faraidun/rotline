@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { DifficultyId } from '@rotline/game-data'
 import { queryOptions, useQueryClient } from '@tanstack/react-query'
 import { api } from './api.ts'
 import { friendsQuery } from './friends.ts'
@@ -19,13 +20,23 @@ export type PartyView = {
 	id: string
 	code: string
 	state: 'lobby' | 'mission'
+	/** what the leader chose for the next mission */
+	mission: { id: string; difficulty: DifficultyId }
 	you: string
 	leader: string
 	members: PartyMember[]
 	canStart: boolean
 }
 
-export type PartyProblem = 'not-found' | 'full' | 'in-mission' | 'not-leader' | 'not-ready' | 'not-member'
+export type PartyProblem =
+	| 'not-found'
+	| 'full'
+	| 'in-mission'
+	| 'not-leader'
+	| 'not-ready'
+	| 'not-member'
+	| 'changed'
+	| 'elsewhere'
 
 export const partyQuery = queryOptions({
 	queryKey: ['party'],
@@ -45,33 +56,75 @@ async function send(path: string, body?: unknown): Promise<PartyView | { error: 
 	return (await response.json()) as PartyView | { error: PartyProblem }
 }
 
-export async function fetchTicket(): Promise<{ ticket: string; path: string } | null> {
+/** A player's records on one mission, one per difficulty played. */
+export type MissionRecord = {
+	id: string
+	difficulties: {
+		difficulty: DifficultyId
+		completions: number
+		bestTimeMs: number | null
+		bestScore: number
+		/** 0 none, 1 bronze, 2 silver, 3 gold */
+		mastery: number
+	}[]
+}
+
+/** The best mastery and the best time across difficulties. */
+export function bestOf(record: MissionRecord | undefined): { mastery: number; bestTimeMs: number | null } {
+	let mastery = 0
+	let bestTimeMs: number | null = null
+	for (const entry of record?.difficulties ?? []) {
+		mastery = Math.max(mastery, entry.mastery)
+		if (entry.bestTimeMs !== null && (bestTimeMs === null || entry.bestTimeMs < bestTimeMs))
+			bestTimeMs = entry.bestTimeMs
+	}
+	return { mastery, bestTimeMs }
+}
+
+export const missionsQuery = queryOptions({
+	queryKey: ['missions'],
+	queryFn: async (): Promise<MissionRecord[]> => {
+		const response = await fetch('/api/missions')
+		if (response.status !== 200) throw new Error(`missions ${response.status}`)
+		return (await response.json()) as MissionRecord[]
+	}
+})
+
+export type Ticket = { ticket: string; path: string; mission: { id: string; difficulty: DifficultyId } | null }
+
+export async function fetchTicket(): Promise<Ticket | null> {
 	const response = await fetch('/api/game/ticket', {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
 		body: '{}'
 	})
 	if (response.status !== 200) return null
-	return (await response.json()) as { ticket: string; path: string }
+	return (await response.json()) as Ticket
 }
 
 /** A ticket into the firing range (a solo room that earns nothing). */
-export async function fetchRangeTicket(): Promise<{ ticket: string; path: string } | null> {
+export async function fetchRangeTicket(): Promise<Ticket | null> {
 	const response = await fetch('/api/game/range', {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
 		body: '{}'
 	})
 	if (response.status !== 200) return null
-	return (await response.json()) as { ticket: string; path: string }
+	return { ...((await response.json()) as { ticket: string; path: string }), mission: null }
 }
 
 export const partyActions = {
 	join: (code: string) => send('join', { code }),
 	leave: () => send('leave'),
 	kick: (userId: string) => send('kick', { userId }),
-	ready: (ready: boolean) => send('ready', { ready }),
-	start: () => send('start')
+	/** `seen`: the mission the player is looking at; the server refuses if it has changed meanwhile */
+	ready: (ready: boolean, seen?: PartyView['mission']) =>
+		send('ready', { ready, ...(seen ? { seen: { mission: seen.id, difficulty: seen.difficulty } } : {}) }),
+	start: (seen?: PartyView['mission']) =>
+		send('start', seen ? { seen: { mission: seen.id, difficulty: seen.difficulty } } : {}),
+	/** leave the mission for good: a squad of one ends it, otherwise the player leaves the squad */
+	abandon: () => send('abandon'),
+	mission: (mission: string, difficulty: DifficultyId) => send('mission', { mission, difficulty })
 }
 
 export type Invite = { from: string; code: string }
@@ -91,6 +144,7 @@ export function usePlayerEvents(onInvite?: (invite: Invite) => void): void {
 		// rewards from a mission (XP, levels, Salvage)
 		source.addEventListener('progress', () => {
 			void queryClient.invalidateQueries({ queryKey: progressQuery.queryKey })
+			void queryClient.invalidateQueries({ queryKey: missionsQuery.queryKey })
 			// squad cards show class levels
 			refreshParty()
 		})

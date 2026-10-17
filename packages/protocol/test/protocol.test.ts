@@ -1,8 +1,9 @@
-import { maps, starterBuild, zombieIndex } from '@rotline/game-data'
+import { type MissionDef, maps, missionById, starterBuild, zombieIndex } from '@rotline/game-data'
 import {
 	aimToAngle,
 	angleToAim,
 	Button,
+	MissionStatus,
 	ObjectKind,
 	type PlayerInput,
 	quantiseAxis,
@@ -25,8 +26,10 @@ import {
 	writeHello,
 	writeInput,
 	writeKick,
+	writePause,
 	writePing,
 	writePong,
+	writeResults,
 	writeRoster,
 	writeWelcome,
 	ZombieStatus,
@@ -109,6 +112,7 @@ describe('client messages', () => {
 		]
 		expect(readClientMessage(new Reader(writeInput(w, 41, inputs)))).toEqual({ type: 'input', ackSnapshot: 41, inputs })
 		expect(readClientMessage(new Reader(writePong(w, 123.5)))).toEqual({ type: 'pong', time: 123.5 })
+		expect(readClientMessage(new Reader(writePause(w, true)))).toEqual({ type: 'pause', paused: true })
 	})
 
 	it('rejects unknown types and absurd input counts', () => {
@@ -149,8 +153,29 @@ describe('server messages', () => {
 			you: 2,
 			mapId: 'yard',
 			tick: 500,
-			build
+			build,
+			missionId: '',
+			difficulty: ''
 		})
+		expect(readServerHeader(new Reader(writeWelcome(w, 1, 'yard', 0, build, 'yard-sweep', 'nightmare')))).toMatchObject(
+			{
+				missionId: 'yard-sweep',
+				difficulty: 'nightmare'
+			}
+		)
+		const results = {
+			success: true,
+			rounds: 0,
+			timeMs: 400_000,
+			score: 31_250,
+			kills: 412,
+			xp: 2900,
+			salvage: 640,
+			downs: 1,
+			items: [4, 9],
+			mastery: 2
+		}
+		expect(readServerHeader(new Reader(writeResults(w, results)))).toEqual({ type: 'results', ...results })
 		const broken = writeWelcome(w, 2, 'yard', 500, { ...build, class: 'pirate' } as unknown as typeof build)
 		expect(() => readServerHeader(new Reader(broken))).toThrow(ProtocolError)
 		expect(readServerHeader(new Reader(writePing(w, 9.25)))).toEqual({ type: 'ping', time: 9.25 })
@@ -186,7 +211,15 @@ describe('server messages', () => {
 			{ type: 'wipe', wave: 4 },
 			{ type: 'cleared', wave: 3 },
 			{ type: 'launch', id: 7, player: 1, x: 3, y: 4, angle: 0, speed: 25, weapon: 8 },
-			{ type: 'explode', id: 7, x: 13, y: 4, radius: 3.5 }
+			{ type: 'explode', id: 7, x: 13, y: 4, radius: 3.5 },
+			{ type: 'objective', index: 1, first: true },
+			{ type: 'run-over', wave: 12 },
+			{ type: 'checkpoint', index: 1 },
+			{ type: 'mission-complete' },
+			{ type: 'item-found', player: 2, item: 11 },
+			{ type: 'cache', player: 2, index: 1 },
+			{ type: 'buff', player: 1, buff: 3 },
+			{ type: 'threshold', player: 1, index: 0 }
 		]
 		const decoded = readServerHeader(new Reader(writeEvents(new Writer(), events)))
 		expect(decoded.type).toBe('events')
@@ -198,15 +231,15 @@ describe('server messages', () => {
 	})
 })
 
-describe('snapshots', () => {
-	function decode(bytes: Uint8Array, table: ZombieTable) {
-		const r = new Reader(bytes)
-		expect(readServerHeader(r).type).toBe('snapshot')
-		const frame = readSnapshot(r, table)
-		expect(r.remaining).toBe(0)
-		return frame
-	}
+function decode(bytes: Uint8Array, table: ZombieTable) {
+	const r = new Reader(bytes)
+	expect(readServerHeader(r).type).toBe('snapshot')
+	const frame = readSnapshot(r, table)
+	expect(r.remaining).toBe(0)
+	return frame
+}
 
+describe('snapshots', () => {
 	it('carries the own player exactly, other players and zombies within 1/64 m', () => {
 		const world = quietWorld()
 		const me = world.addPlayer(1)
@@ -363,5 +396,59 @@ describe('snapshots', () => {
 		decode(new SnapshotEncoder(1).write(new Writer(), world), table)
 		expect(table.known[near]).toBe(1)
 		expect(table.known[far]).toBe(0)
+	})
+})
+
+describe('missions in snapshots', () => {
+	it('carries the objective, team buffs, the own score and chain, and buffs on the ground', () => {
+		const mission = missionById('yard-sweep') as MissionDef
+		const world = new World({
+			seed: 2,
+			map: yard,
+			mission: { mission: { ...mission, spawn: { ...mission.spawn, perSecond: 0 } }, difficulty: 'nightmare' }
+		})
+		const me = world.addPlayer(1)
+		world.addPlayer(2)
+		for (let n = 0; n < 3; n++) world.damageZombie(world.spawnZombie(zombieIndex('drudge'), { x: 5, y: 5 }), 1e9, 1)
+		me.openedCaches.push(1)
+		world.doubleXpUntil = 60 * 30
+		const zombie = world.spawnZombie(zombieIndex('drudge'), { x: me.x + 2, y: me.y })
+		world.damageZombie(zombie, (world.maxHealth[zombie] as number) / 2, 0)
+		world.addObject({
+			kind: ObjectKind.buff,
+			owner: 0,
+			x: 20,
+			y: 20,
+			radius: 1.2,
+			angle: 0,
+			untilTick: 600,
+			health: 0,
+			maxHealth: 0,
+			amount: 5,
+			damageType: 'ballistic',
+			cells: [],
+			nextTick: 0,
+			interval: 0,
+			trigger: 0
+		})
+		world.step(new Map())
+		const table = new ZombieTable()
+		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), table)
+		expect(frame.mission).toMatchObject({
+			status: MissionStatus.active,
+			objective: 0,
+			progress: 3,
+			goal: 40,
+			doubleXpSeconds: 60,
+			instakillSeconds: 0,
+			score: 30,
+			chain: 3,
+			caches: 2
+		})
+		expect(frame.mission.chainLeft).toBeGreaterThan(0.9)
+		expect(frame.objects.find(object => object.kind === ObjectKind.buff)?.variant).toBe(5)
+		// health is relative to the scaled maximum, not the base one
+		expect((table.health[zombie] as number) / 255).toBeCloseTo(0.5, 1)
+		expect(frame.others[0]?.healthPercent).toBe(1)
 	})
 })

@@ -32,9 +32,22 @@
 		},
 		"scorePerXp": 20,
 		"maxPerReport": {
-			"xp": 20000,
-			"salvage": 5000
-		}
+			"xp": 30000,
+			"salvage": 8000
+		},
+		"objective": {
+			"xp": 100,
+			"salvage": 100,
+			"score": 1000
+		},
+		"completion": {
+			"xp": 400,
+			"salvage": 250
+		},
+		"scorePerSalvage": 1000,
+		"maxScorePerSecond": 20000,
+		"activeSeconds": 60,
+		"minParticipation": 0.5
 	},
 	"starter": {
 		"items": ["vex-9", "k-71", "p9-service", "kevlar-vest", "frag-grenades"],
@@ -48,5 +61,52 @@
 	"estimate": {
 		"salvagePerHour": 4200,
 		"note": "Veteran, 4-player squad, before contracts (game-design.md section 6)"
+	},
+	"score": {
+		"multiplierSteps": [
+			{
+				"chain": 0,
+				"multiplier": 1
+			},
+			{
+				"chain": 10,
+				"multiplier": 2
+			},
+			{
+				"chain": 25,
+				"multiplier": 3
+			},
+			{
+				"chain": 50,
+				"multiplier": 4
+			},
+			{
+				"chain": 100,
+				"multiplier": 5
+			},
+			{
+				"chain": 200,
+				"multiplier": 6
+			}
+		],
+		"thresholds": [25000, 75000, 150000],
+		"thresholdStep": 150000,
+		"thresholdSalvage": 100,
+		"thresholdHeal": 0.3
+	},
+	"drops": {
+		"eliteChance": 0.08,
+		"tierWeights": {
+			"recruit": [70, 25, 5],
+			"veteran": [60, 30, 10],
+			"nightmare": [45, 35, 20],
+			"apocalypse": [30, 40, 30]
+		},
+		"maxPerMission": 4,
+		"cacheRange": 1.6
+	},
+	"mastery": {
+		"goldParShare": 0.8,
+		"goldMaxDowns": 1
 	}
 }

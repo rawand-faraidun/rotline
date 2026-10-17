@@ -7,6 +7,7 @@ import { salvage } from '../../lib/describe.ts'
 import { itemStatRows } from '../../lib/item-stats.ts'
 import { type ProgressProblem, progressActions, progressQuery, runAction } from '../../lib/progress.ts'
 import { GameShell } from './game-shell.tsx'
+import { scroller } from './layout.ts'
 
 const t = en.app.shop
 const p = en.app.progression
@@ -31,7 +32,7 @@ export function ShopScreen() {
 					{p.problems[problem]}
 				</p>
 			)}
-			<div className="flex flex-col gap-8">
+			<div className={cn(scroller, 'flex flex-col gap-8')}>
 				{GROUPS.map(group => (
 					<section key={group} className="flex flex-col gap-3">
 						<h2 className="font-display text-2xl uppercase">{t.categories[group]}</h2>

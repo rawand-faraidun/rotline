@@ -1,7 +1,26 @@
 import { randomUUID } from 'node:crypto'
 import { friendIds } from '@rotline/db'
-import { buildProblem, levelFromXp } from '@rotline/game-data'
-import { liveInstances, notify, type Party, PartyError, pickInstance, roomExists, setPresence } from '@rotline/state'
+import {
+	buildProblem,
+	type DifficultyId,
+	difficultyId,
+	levelFromXp,
+	missionById,
+	missions,
+	SURVIVAL
+} from '@rotline/game-data'
+import {
+	liveInstances,
+	notify,
+	type Party,
+	PartyError,
+	pickInstance,
+	playerRoom,
+	recordRoomMission,
+	releasePlayerRoom,
+	roomExists,
+	setPresence
+} from '@rotline/state'
 import { loadPrivateKey, signTicket } from '@rotline/ticket'
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
@@ -19,6 +38,29 @@ const ROOM_START_GRACE_MS = 30_000
 const HEARTBEAT_MS = 20_000
 /** How long a player's firing range stays on the same game server. */
 const RANGE_STICKY_SECONDS = 15 * 60
+const DEFAULT_MISSION = missions[0]?.id ?? ''
+const DEFAULT_DIFFICULTY: DifficultyId = 'veteran'
+const MASTERY = ['none', 'bronze', 'silver', 'gold'] as const
+
+/**
+ * The stored values to compare a client's view against: a party that never chose has empty fields,
+ * which the client saw as the defaults.
+ */
+function storedView(party: Party, seen: { mission: string; difficulty: string } | undefined) {
+	if (!seen) return undefined
+	if (party.mission === '' && party.difficulty === '') {
+		const chosen = chosenMission(party)
+		if (seen.mission === chosen.id && seen.difficulty === chosen.difficulty) return { mission: '', difficulty: '' }
+	}
+	return seen
+}
+
+/** The party's mission and difficulty, or the defaults until the leader chooses. */
+function chosenMission(party: Party): { id: string; difficulty: DifficultyId } {
+	const id = party.mission === SURVIVAL || missionById(party.mission) ? party.mission : DEFAULT_MISSION
+	const parsed = difficultyId.safeParse(party.difficulty)
+	return { id, difficulty: parsed.success ? parsed.data : DEFAULT_DIFFICULTY }
+}
 
 const errorStatus = {
 	'not-found': 404,
@@ -26,8 +68,12 @@ const errorStatus = {
 	'in-mission': 409,
 	'not-leader': 403,
 	'not-ready': 409,
-	'not-member': 404
+	'not-member': 404,
+	changed: 409
 } as const
+
+/** What the client says it saw: a start or ready mark only counts for that mission and difficulty. */
+const seenMission = z.object({ mission: z.string().max(64), difficulty: difficultyId }).optional()
 
 export function partyRoutes(services: Services) {
 	const { db, env, log, parties, seats, valkey, events } = services
@@ -90,6 +136,7 @@ export function partyRoutes(services: Services) {
 			id: party.id,
 			code: party.code,
 			state: party.state,
+			mission: chosenMission(party),
 			you,
 			leader: party.leader,
 			members,
@@ -133,6 +180,22 @@ export function partyRoutes(services: Services) {
 				await changed(party.id, left)
 				return c.json(await view(party, user.id), 200)
 			})
+			// leave a mission for good: a squad of one ends it, a member of a bigger squad leaves the squad
+			.post('/party/abandon', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const current = await parties.current(user.id)
+				if (current.state !== 'mission') return c.json(await view(current, user.id), 200)
+				await releasePlayerRoom(valkey, user.id, current.room)
+				if (current.members.length === 1) {
+					await parties.endMission(current.id)
+					await changed(current.id)
+					return c.json(await view((await parties.get(current.id)) ?? current, user.id), 200)
+				}
+				const { party, left } = await parties.leave(user.id)
+				await changed(left)
+				return c.json(await view(party, user.id), 200)
+			})
 			.post('/party/leave', async c => {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
@@ -149,18 +212,65 @@ export function partyRoutes(services: Services) {
 				await notify(valkey, [userId], { type: 'party' })
 				return c.json(await view(party, user.id), 200)
 			})
-			.post('/party/ready', zValidator('json', z.object({ ready: z.boolean() })), async c => {
+			.post('/party/ready', zValidator('json', z.object({ ready: z.boolean(), seen: seenMission })), async c => {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-				const party = await parties.setReady(user.id, c.req.valid('json').ready)
+				const { ready, seen } = c.req.valid('json')
+				const party = await parties.setReady(user.id, ready, storedView(await parties.current(user.id), seen))
 				await changed(party.id)
 				return c.json(await view(party, user.id), 200)
 			})
-			.post('/party/start', async c => {
+			// the leader picks what the squad plays next
+			.post(
+				'/party/mission',
+				zValidator(
+					'json',
+					z.object({
+						mission: z.string().refine(id => id === SURVIVAL || missionById(id) !== undefined, 'unknown mission'),
+						difficulty: difficultyId
+					})
+				),
+				async c => {
+					const user = c.get('user')
+					if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+					const { mission, difficulty } = c.req.valid('json')
+					const party = await parties.setMission(user.id, mission, difficulty)
+					await changed(party.id)
+					return c.json(await view(party, user.id), 200)
+				}
+			)
+			.get('/missions', async c => {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const records = await db.missionProgress.findMany({ where: { playerId: user.id } })
+				return c.json(
+					missions.map(mission => ({
+						id: mission.id,
+						difficulties: records
+							.filter(record => record.missionId === mission.id)
+							.map(record => ({
+								difficulty: record.difficulty,
+								completions: record.completions,
+								bestTimeMs: record.bestTimeMs,
+								bestScore: Number(record.bestScore),
+								mastery: MASTERY.indexOf(record.mastery)
+							}))
+					})),
+					200
+				)
+			})
+			.post('/party/start', zValidator('json', z.object({ seen: seenMission })), async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				// one squad room at a time: not while still playing in another
+				if (await playerRoom(valkey, user.id)) return c.json({ error: 'elsewhere' as const }, 409)
 				const instance = (await pickInstance(valkey)) ?? env.GAME_INSTANCE_ID
-				const party = await parties.start(user.id, `squad-${randomUUID()}`, instance)
+				const room = `squad-${randomUUID()}`
+				const current = await parties.current(user.id)
+				const party = await parties.start(user.id, room, instance, storedView(current, c.req.valid('json').seen))
+				// the API's own record of what this room plays, checked against the room's reports
+				const chosen = chosenMission(party)
+				await recordRoomMission(valkey, room, chosen.id === SURVIVAL ? null : chosen)
 				await changed(party.id)
 				if (party.members.length > 1) await recordRecentPlayers(db, party.members)
 				return c.json(await view(party, user.id), 200)
@@ -172,6 +282,8 @@ export function partyRoutes(services: Services) {
 				if (!player) return c.json({ error: 'no-player' as const }, 404)
 				const party = await settle(await parties.current(user.id))
 				if (party.state !== 'mission') return c.json({ error: 'no-mission' as const }, 409)
+				const elsewhere = await playerRoom(valkey, user.id)
+				if (elsewhere && elsewhere !== party.room) return c.json({ error: 'elsewhere' as const }, 409)
 				// only players holding a seat may play; everyone else waits in the queue
 				if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
 				await ensureStarterKit(db, user.id)
@@ -180,15 +292,22 @@ export function partyRoutes(services: Services) {
 					log.error({ userId: user.id, problem: build && buildProblem(build) }, 'invalid build')
 					return c.json({ error: 'invalid-build' as const }, 409)
 				}
+				// the mission is fixed once the party has started (the leader can change it only in the lobby);
+				// Survival is the endless-rounds mode: a ticket without a mission
+				const chosen = chosenMission(party)
 				const { ticket, payload } = signTicket(key, {
 					sub: user.id,
 					name: player.name,
 					room: party.room,
 					inst: party.instance,
 					mode: 'squad',
+					...(chosen.id === SURVIVAL ? {} : { mission: chosen }),
 					build
 				})
-				return c.json({ ticket, room: payload.room, path: GAME_PATH, expiresAt: payload.exp }, 200)
+				return c.json(
+					{ ticket, room: payload.room, path: GAME_PATH, expiresAt: payload.exp, mission: payload.mission ?? null },
+					200
+				)
 			})
 			// the firing range: a room of one, on the least busy game server, earning nothing
 			.post('/game/range', async c => {
@@ -220,7 +339,9 @@ export function partyRoutes(services: Services) {
 				const announce = async () => {
 					const party = await parties.current(user.id)
 					const status = party.state === 'mission' ? 'mission' : 'lobby'
-					const detail = party.state === 'mission' ? 'The Yard' : ''
+					const chosen = chosenMission(party).id
+					const detail =
+						party.state === 'mission' ? (chosen === SURVIVAL ? 'Survival' : (missionById(chosen)?.name ?? '')) : ''
 					if (await setPresence(valkey, user.id, { status, detail })) {
 						await notify(valkey, await friendIds(db, user.id), { type: 'presence', userId: user.id, status, detail })
 					}

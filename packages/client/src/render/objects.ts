@@ -1,3 +1,4 @@
+import { buffs } from '@rotline/game-data'
 import type { ObjectState } from '@rotline/protocol'
 import { ObjectKind } from '@rotline/sim'
 import * as THREE from 'three'
@@ -12,6 +13,18 @@ const ZONE_COLOURS: Record<number, number> = {
 	[ObjectKind.decoy]: 0xffc02e
 }
 
+/** Buff pickups, by buff id: team buffs warm, personal ones green. */
+const BUFF_COLOURS: Record<string, number> = {
+	'screen-nuke': 0xff5a2a,
+	'max-ammo': 0xffc02e,
+	'double-xp': 0xb8f23c,
+	minigun: 0xff8a2a,
+	instakill: 0xff3a2a,
+	'speed-boost': 0x6fb8ff,
+	'freeze-pulse': 0x9fd8ff,
+	sentry: 0xb8f23c
+}
+
 /**
  * Draws what abilities and utilities leave behind: zones as glowing discs, barricades as walls,
  * mines, decoys and sentries as small props, and mortar markers as a pulsing red ring. Objects are
@@ -23,6 +36,7 @@ export class ObjectRenderer {
 	private readonly disc = new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2)
 	private readonly ring = new THREE.RingGeometry(0.9, 1, 48).rotateX(-Math.PI / 2)
 	private readonly box = new THREE.BoxGeometry(1, 1, 1)
+	private readonly gem = new THREE.OctahedronGeometry(0.4)
 
 	constructor(scene: THREE.Scene) {
 		this.scene = scene
@@ -46,6 +60,13 @@ export class ObjectRenderer {
 				;(wall.material as THREE.MeshStandardMaterial).color.setHSL(0.08, 0.35, 0.08 + 0.12 * object.health)
 			}
 			if (object.kind === ObjectKind.sentry) drawn.root.rotation.y = Math.PI / 2 - object.angle
+			if (object.kind === ObjectKind.buff) {
+				// a pickup bobs and turns, and blinks in its last seconds
+				const spin = drawn.root.children[0] as THREE.Mesh
+				spin.rotation.y = timeSeconds * 2
+				spin.position.y = 0.8 + Math.sin(timeSeconds * 3) * 0.15
+				spin.visible = object.secondsLeft > 4 || Math.floor(timeSeconds * 6) % 2 === 0
+			}
 			if (drawn.pulse) {
 				const beat = 0.5 + 0.5 * Math.sin(timeSeconds * (object.kind === ObjectKind.marker ? 14 : 4))
 				;(drawn.pulse.material as THREE.MeshBasicMaterial).opacity = 0.35 + 0.5 * beat
@@ -125,6 +146,22 @@ export class ObjectRenderer {
 				barrel.scale.set(0.12, 0.12, 0.7)
 				barrel.position.set(0, 0.6, 0.3)
 				root.add(base, barrel)
+				break
+			}
+			case ObjectKind.buff: {
+				const colour = BUFF_COLOURS[buffs.buffs[object.variant]?.id ?? ''] ?? 0xffffff
+				const gem = new THREE.Mesh(
+					this.gem,
+					new THREE.MeshStandardMaterial({ color: colour, emissive: colour, emissiveIntensity: 0.6 })
+				)
+				gem.position.y = 0.8
+				pulse = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.5, depthWrite: false })
+				)
+				pulse.scale.setScalar(object.radius)
+				pulse.position.y = 0.05
+				root.add(gem, pulse)
 				break
 			}
 		}

@@ -2,6 +2,7 @@ import type { Build } from '@rotline/game-data'
 import {
 	ProtocolError,
 	Reader,
+	type ResultsMessage,
 	type RosterEntry,
 	readServerHeader,
 	readSnapshot,
@@ -15,10 +16,11 @@ import {
 import type { PlayerInput, SimEvent } from '@rotline/sim'
 
 export type ConnectionHandlers = {
-	welcome(you: number, tick: number, mapId: string, build: Build): void
+	welcome(you: number, tick: number, mapId: string, build: Build, missionId: string, difficulty: string): void
 	snapshot(frame: SnapshotFrame, table: ZombieTable, receivedAt: number): void
 	events(events: SimEvent[]): void
 	roster(entries: RosterEntry[]): void
+	results(results: ResultsMessage): void
 	kicked(reason: number): void
 	closed(): void
 }
@@ -42,7 +44,14 @@ export class GameConnection {
 				const message = readServerHeader(reader)
 				switch (message.type) {
 					case 'welcome':
-						handlers.welcome(message.you, message.tick, message.mapId, message.build)
+						handlers.welcome(
+							message.you,
+							message.tick,
+							message.mapId,
+							message.build,
+							message.missionId,
+							message.difficulty
+						)
 						break
 					case 'snapshot': {
 						const frame = readSnapshot(reader, this.table)
@@ -58,6 +67,9 @@ export class GameConnection {
 						break
 					case 'roster':
 						handlers.roster(message.entries)
+						break
+					case 'results':
+						handlers.results(message)
 						break
 					case 'kick':
 						this.finished = true

@@ -76,6 +76,23 @@ describe('parties', () => {
 		expect((await parties.current(guest)).members).toEqual([guest])
 	})
 
+	it('lets only the leader choose the mission, in the lobby, clearing ready marks when it changes', async () => {
+		const host = user()
+		const guest = user()
+		const { code } = await parties.current(host)
+		await parties.join(guest, code)
+		await parties.setReady(guest, true)
+		await expect(parties.setMission(guest, 'yard-stand', 'nightmare')).rejects.toEqual(new PartyError('not-leader'))
+		const chosen = await parties.setMission(host, 'yard-stand', 'nightmare')
+		expect(chosen).toMatchObject({ mission: 'yard-stand', difficulty: 'nightmare', ready: [] })
+		await parties.setReady(guest, true)
+		// choosing the same again keeps the marks
+		expect((await parties.setMission(host, 'yard-stand', 'nightmare')).ready).toEqual([guest])
+		const started = await parties.start(host, 'room-m', 'local-1')
+		await expect(parties.setMission(host, 'yard-sweep', 'veteran')).rejects.toEqual(new PartyError('in-mission'))
+		expect((await parties.get(started.id))?.mission).toBe('yard-stand')
+	})
+
 	it('keeps the party consistent when many players join at once', async () => {
 		const host = user()
 		const { code, id } = await parties.current(host)

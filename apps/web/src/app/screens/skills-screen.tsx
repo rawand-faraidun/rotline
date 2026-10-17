@@ -16,6 +16,7 @@ import { en, format } from '../../i18n/en.ts'
 import { describeEffect, salvage } from '../../lib/describe.ts'
 import { type ProgressProblem, progressActions, progressQuery, runAction } from '../../lib/progress.ts'
 import { GameShell } from './game-shell.tsx'
+import { panes } from './layout.ts'
 
 const t = en.app.skills
 const p = en.app.progression
@@ -130,8 +131,8 @@ export function SkillsScreen() {
 				</p>
 			)}
 
-			<div className="grid gap-6 xl:grid-cols-[1fr_20rem]">
-				<div className="grid gap-4 md:grid-cols-3">
+			<div className={cn(panes, 'lg:grid-rows-none xl:grid-cols-[1fr_20rem] xl:grid-rows-[minmax(0,1fr)]')}>
+				<div className="grid content-start gap-4 md:grid-cols-3 xl:min-h-0 xl:overflow-y-auto xl:pr-1 xl:pb-6">
 					{tree.branches.map(branch => {
 						const spentIn = (tier: number) =>
 							branch.nodes.filter(node => node.tier < tier).reduce((sum, node) => sum + (entry.skills[node.id] ?? 0), 0)
@@ -211,7 +212,7 @@ export function SkillsScreen() {
 					})}
 				</div>
 
-				<div className="flex flex-col gap-6 xl:sticky xl:top-6 xl:self-start">
+				<div className="flex flex-col gap-6 xl:min-h-0 xl:overflow-y-auto xl:pr-1 xl:pb-6">
 					<Panel>
 						{selectedNode ? (
 							<>

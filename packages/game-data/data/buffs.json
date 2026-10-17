@@ -1,0 +1,89 @@
+{
+	"drop": {
+		"chancePerKill": 0.02,
+		"minIntervalSeconds": 30,
+		"pickupRadius": 1.2,
+		"lifetimeSeconds": 20,
+		"eliteChance": 0.15,
+		"cacheChance": 0.5
+	},
+	"buffs": [
+		{
+			"id": "screen-nuke",
+			"name": "Screen Nuke",
+			"team": true,
+			"seconds": 0,
+			"weight": 1,
+			"params": {
+				"radius": 22,
+				"eliteDamage": 0.25
+			}
+		},
+		{
+			"id": "max-ammo",
+			"name": "Max Ammo",
+			"team": true,
+			"seconds": 0,
+			"weight": 3,
+			"params": {}
+		},
+		{
+			"id": "double-xp",
+			"name": "Double XP",
+			"team": true,
+			"seconds": 60,
+			"weight": 2,
+			"params": {
+				"xp": 2
+			}
+		},
+		{
+			"id": "minigun",
+			"name": "Minigun",
+			"team": false,
+			"seconds": 20,
+			"weight": 2,
+			"params": {}
+		},
+		{
+			"id": "instakill",
+			"name": "Instakill",
+			"team": true,
+			"seconds": 15,
+			"weight": 1,
+			"params": {}
+		},
+		{
+			"id": "speed-boost",
+			"name": "Speed Boost",
+			"team": true,
+			"seconds": 15,
+			"weight": 2,
+			"params": {
+				"speed": 0.3
+			}
+		},
+		{
+			"id": "freeze-pulse",
+			"name": "Freeze Pulse",
+			"team": true,
+			"seconds": 6,
+			"weight": 2,
+			"params": {
+				"radius": 15
+			}
+		},
+		{
+			"id": "sentry",
+			"name": "Sentry",
+			"team": false,
+			"seconds": 30,
+			"weight": 2,
+			"params": {
+				"damage": 25,
+				"shotsPerSecond": 10,
+				"radius": 14
+			}
+		}
+	]
+}

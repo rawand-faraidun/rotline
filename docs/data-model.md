@@ -58,9 +58,9 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 | `skill_allocation` | `player_id`, `class`, `node_id`, `rank` | PK (`player_id`, `class`, `node_id`); prerequisites checked against game data |
 | `ability_slot` | `player_id`, `class`, `slot` (1–3), `ability_id` | PK (`player_id`, `class`, `slot`) |
 | `inventory_item` | `player_id`, `item_id`, `upgrade_level` int (0–20), `perks` text[] (one chosen perk per perk level reached), `source` (`starter`/`shop`/`drop`), `acquired_at` | **PK (`player_id`, `item_id`)**: one copy of each item, no rarity. The item's slot comes from game data |
-| `item_duplicate` | `id`, `player_id`, `item_id`, `match_id`, `found_at` | A found copy of something already owned; its only action is "discard for currency" |
+| `item_duplicate` | `id`, `player_id`, `item_id`, `match_id`, `found_at` | A found copy of something already owned; its only action is "discard for currency". Until match records exist, `match_id` holds the id of the room the item was found in |
 | `loadout` | `player_id` PK, `main_1`, `main_2`, `pistol`, `armour`, `utility_1`, `utility_2` (item ids) | Each is a foreign key to (`player_id`, `item_id`) in `inventory_item`, so only owned items can be equipped; shared across classes; `main_1 <> main_2`; slots are checked against game data by the API |
-| `mission_progress` | `player_id`, `mission_id`, `difficulty`, `completions`, `best_time_ms`, `best_score`, `mastery` (`none`/`bronze`/`silver`/`gold`) | PK (`player_id`, `mission_id`, `difficulty`) |
+| `mission_progress` | `player_id`, `mission_id`, `difficulty` enum (`recruit`/`veteran`/`nightmare`/`apocalypse`), `completions` int, `best_time_ms` int, `best_score` bigint, `mastery` enum (`none`/`bronze`/`silver`/`gold`), `updated_at` | PK (`player_id`, `mission_id`, `difficulty`). Checks: `completions >= 0`, `best_time_ms > 0`, `best_score >= 0`, and `best_time_ms` is null exactly when there are no completions. Written from signed mission results (successful ones only): completions count up, best time, best score and mastery keep the best |
 | `bestiary_entry` | `player_id`, `zombie_type`, `first_kill_at`, `kills` bigint, `mutations_seen` text[] | PK (`player_id`, `zombie_type`) |
 | `achievement_unlock` | `player_id`, `achievement_id`, `unlocked_at` | PK both ids |
 | `cosmetic_unlock` | `player_id`, `cosmetic_id`, `source`, `unlocked_at` | PK both ids |
@@ -71,9 +71,9 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 |---|---|---|
 | `ledger_entry` | `id` bigserial, `player_id` uuid, `amount` bigint (signed, never 0), `balance_after` bigint (never negative), `reason` enum (`kill`, `wave`, `objective`, `mission`, `score`, `contract`, `discard`, `purchase`, `upgrade`, `perk`, `respec`, `admin`), `ref_type`, `ref_id`, `grant_key` text, `created_at` | **Append-only**: triggers reject `UPDATE`, `DELETE` and `TRUNCATE`. In production the game connects as `rotline_app`, a role that owns nothing (so it cannot disable the triggers) and has no `UPDATE`, `DELETE` or `TRUNCATE` on `ledger_entry`, `purchase` and `reward_grant`; migrations run as the owner role. **unique (`grant_key`)** makes rewards idempotent. Index (`player_id`, `id`) |
 | `purchase` | `id`, `player_id`, `sku`, `price`, `ledger_entry_id` → ledger_entry, `created_at` | One row per shop purchase; written in the same transaction as its ledger row and the item |
-| `reward_grant` | `grant_key` PK, `player_id`, `class`, `xp`, `salvage`, `created_at` | One row per reward report from a game server. Inserted first in the grant's transaction, so a report delivered twice grants nothing the second time |
+| `reward_grant` | `grant_key` PK, `player_id`, `class`, `xp`, `salvage`, `room` (nullable), `items` text[] NOT NULL (at most 32), `result` bool, `created_at` | One row per reward report from a game server. Inserted in the grant's transaction before anything is paid, so a report delivered twice grants nothing the second time. `room`, `items` and `result` record what each report granted from which room, so items are capped and a mission result counted once per player and room across all of that room's reports. Index (`player_id`, `room`) |
 
-Every change to a player's progress, inventory or Salvage runs in one transaction that first locks the player row (`SELECT … FOR NO KEY UPDATE`), so one player's changes run one at a time. A currency change then checks the balance, insert the ledger row with `balance_after`, update `currency_balance`, apply the item, upgrade or reward. Prices come from the active game-data version, never from the client.
+Every change to a player's progress, inventory or Salvage runs in one transaction that first locks the player row (`SELECT … FOR NO KEY UPDATE`), so one player's changes run one at a time. A currency change then checks the balance, inserts the ledger row with `balance_after`, updates the player's `salvage`, and applies the item, upgrade or reward. Prices come from the active game-data version, never from the client.
 
 ### Matches
 
@@ -118,6 +118,7 @@ In one transaction: delete the `user` row, which cascades to `account`, `session
 - `ledger_entry (player_id, id desc)` for the player's history and the admin ledger lookup.
 - `friendship (player_b, status)` for the reverse lookup.
 - `inventory_item (player_id)`, `item_duplicate (player_id)`.
+- `reward_grant (player_id, room)` for the per-room item cap and result check.
 - `contract (kind, starts_at, ends_at)`.
 - `leaderboard_entry (board, score desc)`.
 
@@ -126,4 +127,5 @@ In one transaction: delete the `user` row, which cascades to `account`, `session
 - Generated by `prisma migrate dev` from `schema.prisma`, then read and edited by hand; committed as SQL. Migrations run over a direct database connection; the app connects through the pooler.
 - Expand, then contract: add nullable columns or new tables, deploy code that writes both, backfill, then remove the old shape in a later release.
 - Never rename a column in one step; never add a `NOT NULL` column without a default in one step.
+- A migration that adds a table the game writes grants the app role (`rotline_app`) access to it when that role exists, so it does nothing in local development and CI.
 - Every migration is tested in CI from an empty database and from the previous release's schema with seed data.

@@ -87,6 +87,21 @@ export type PlayerState = {
 	/** kills in the current chain (Momentum) and the tick of the last one */
 	chain: number
 	lastKillTick: number
+	// missions (server only)
+	/** score this mission (kills times the chain multiplier, objectives) and score thresholds passed */
+	score: number
+	thresholds: number
+	/** items found and not yet reported, and how many were reported (drops are capped per mission) */
+	foundItems: string[]
+	itemsReported: number
+	/** the final objective's guaranteed item, if this player got one (withheld from non-participants) */
+	finalItem: string | null
+	/** caches this player has opened (each opens once per player) */
+	openedCaches: number[]
+	/** score earned while Double XP ran: its XP counts again */
+	doubledScore: number
+	/** the last tick this player moved, aimed or pressed anything */
+	lastActiveTick: number
 }
 
 /** What a step did, as bits: the world resolves shots, abilities and throws. */
@@ -153,11 +168,19 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 		lastRitesUsed: false,
 		defibUsed: false,
 		chain: 0,
-		lastKillTick: -1000
+		lastKillTick: -1000,
+		score: 0,
+		thresholds: 0,
+		foundItems: [],
+		itemsReported: 0,
+		openedCaches: [],
+		finalItem: null,
+		doubledScore: 0,
+		lastActiveTick: 0
 	}
 }
 
-/** Utility charges back to full and once-a-wave abilities ready again (a new wave). */
+/** Utility charges back to full and once-a-wave abilities ready again (a new wave or a checkpoint). */
 export function refillUtilities(state: PlayerState): void {
 	state.defibUsed = false
 	state.utilityCharges[0] = state.stats.utilities[0]?.charges ?? 0

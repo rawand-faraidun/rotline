@@ -1,5 +1,5 @@
-import { economy, starterBuild, zombieIndex, zombies } from '@rotline/game-data'
-import { RangeAction } from '@rotline/protocol'
+import { difficultyDef, economy, items, starterBuild, zombieIndex, zombies } from '@rotline/game-data'
+import { KickReason, RangeAction, Reader, readServerHeader } from '@rotline/protocol'
 import { angleToAim, Button } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
 import { type Connection, Room } from '../src/room.ts'
@@ -130,5 +130,171 @@ describe('room input handling', () => {
 		expect(room.world.aliveCount - start).toBe(30)
 		for (let t = 0; t < 100; t++) room.rangeCommand(RangeAction.spawn, drudge, 5, 2000 + t * 1000)
 		expect(room.world.aliveCount - start).toBe(60)
+	})
+})
+
+describe('mission rooms', () => {
+	type Report = Parameters<ConstructorParameters<typeof Room>[4] & {}>[0]
+	const tierOne = items.find(item => item.tier === 1)?.id ?? ''
+
+	function missionRoom(reports: Report[], sent: Uint8Array[] = []) {
+		const room = new Room('squad-m', 'squad', 1, 0, report => reports.push(report), {
+			id: 'yard-sweep',
+			difficulty: 'nightmare'
+		})
+		room.join('user-a', 'A', starterBuild(), { send: bytes => sent.push(bytes) > 0, close: () => {} })
+		room.join('user-b', 'B', starterBuild(), connection())
+		// b never touches the controls (and joined long enough ago to count as idle)
+		const b = room.world.players.get(2)
+		if (b) b.lastActiveTick = -1e6
+		return room
+	}
+
+	/** user-a nudges the stick so they count as playing; zombies are cleared every tick. */
+	function play(room: Room, ticks: number) {
+		for (let i = 0; i < ticks; i++) {
+			room.receiveInputs('user-a', [
+				{ seq: ++seq, moveX: 0, moveY: 0, aim: 0, buttons: Button.reload, viewTick: 0, reach: 0 }
+			])
+			for (let z = 0; z < 300; z++) if (room.world.alive[z]) room.world.alive[z] = 0
+			room.world.aliveCount = 0
+			room.tick(Date.now())
+		}
+	}
+
+	it('pays objectives scaled by difficulty to those who played, and saves items at checkpoints', () => {
+		const reports: Report[] = []
+		const room = missionRoom(reports)
+		const mission = room.world.mission
+		const a = room.world.players.get(1)
+		if (!mission || !a) throw new Error('no mission')
+		expect(room.world.map.id).toBe('yard')
+		a.foundItems.push(tierOne)
+		mission.progress = 40
+		play(room, 2)
+		expect(mission.index).toBe(1)
+		expect(reports).toHaveLength(0)
+		// the gate: a checkpoint, which reports everything including the item
+		a.x = 32
+		a.y = 4
+		play(room, 2)
+		expect(mission.checkpointIndex).toBe(2)
+		const forA = reports.filter(report => report.userId === 'user-a')
+		expect(forA).toHaveLength(1)
+		expect(forA[0]?.items).toEqual([tierOne])
+		const scale = difficultyDef('nightmare').rewards
+		// two objectives, plus the Salvage their score is worth
+		const a2 = room.world.players.get(1)
+		expect(forA[0]?.salvage).toBe(
+			Math.floor((economy.rewards.objective.salvage * 2 + (a2?.score ?? 0) / economy.rewards.scorePerSalvage) * scale)
+		)
+		expect(forA[0]?.xp).toBeGreaterThanOrEqual(Math.floor(economy.rewards.objective.xp * scale * 2))
+		expect(a.itemsReported).toBe(1)
+		// b never played: no objective pay (only the objective score turned into XP)
+		const forB = reports.filter(report => report.userId === 'user-b')
+		expect(forB.every(report => report.salvage === 0 && !report.items)).toBe(true)
+	})
+
+	it('finishes with completion rewards, a result for mastery and a results screen', () => {
+		const reports: Report[] = []
+		const sent: Uint8Array[] = []
+		const room = missionRoom(reports, sent)
+		const mission = room.world.mission
+		if (!mission) throw new Error('no mission')
+		mission.index = mission.def.objectives.length - 1
+		mission.progress = 40 * 30 - 1
+		play(room, 3)
+		expect(room.completedAt).toBeGreaterThan(0)
+		expect(room.missionComplete).toBe(true)
+		const final = reports.find(report => report.userId === 'user-a' && report.result)
+		expect(final?.result).toMatchObject({ missionId: 'yard-sweep', difficulty: 'nightmare', success: true })
+		expect(final?.items).toHaveLength(1)
+		expect(reports.some(report => report.userId === 'user-b' && report.result)).toBe(false)
+		const results = sent.map(bytes => readServerHeader(new Reader(bytes))).find(message => message.type === 'results')
+		expect(results).toMatchObject({ type: 'results', success: true, items: [expect.any(Number)] })
+		if (results?.type === 'results') {
+			expect(results.salvage).toBeGreaterThanOrEqual(Math.floor(economy.rewards.completion.salvage * 1.35))
+		}
+		// the room says why it closes
+		room.closeAll(KickReason.complete)
+		expect(readServerHeader(new Reader(sent.at(-1) as Uint8Array))).toEqual({
+			type: 'kick',
+			reason: KickReason.complete
+		})
+	})
+
+	it('ignores an unknown mission and runs waves', () => {
+		const room = new Room('squad-x', 'squad', 1, 0, () => {}, { id: 'nowhere', difficulty: 'veteran' })
+		expect(room.missionRoom).toBeNull()
+		expect(room.world.mission).toBeNull()
+	})
+})
+
+describe('room lifecycle', () => {
+	type Report = Parameters<ConstructorParameters<typeof Room>[4] & {}>[0]
+	const decode = (sent: Uint8Array[]) => sent.map(bytes => readServerHeader(new Reader(bytes)))
+
+	it('ends a Survival run on a wipe with the rounds survived', () => {
+		const sent: Uint8Array[] = []
+		const room = new Room('squad-s', 'squad', 1, 0)
+		room.join('user-a', 'A', starterBuild(), { send: bytes => sent.push(bytes) > 0, close: () => {} })
+		expect(room.world.survival).toBe(true)
+		const a = room.world.players.get(1)
+		if (!a) throw new Error()
+		a.health = 1
+		room.world.spawnZombie(zombieIndex('drudge'), { x: a.x + 0.5, y: a.y })
+		for (let i = 0; i < 120 && room.completedAt === 0; i++) room.tick(Date.now())
+		for (let i = 0; i < 4; i++) room.tick(Date.now())
+		expect(room.completedAt).toBeGreaterThan(0)
+		expect(decode(sent).find(message => message.type === 'results')).toMatchObject({ success: false, rounds: 0 })
+	})
+
+	it('pauses a room of one, not a squad', () => {
+		const room = new Room('squad-p', 'squad', 1, 0)
+		room.join('user-a', 'A', starterBuild(), connection())
+		room.pause('user-a', true, 1000)
+		const tick = room.world.tick
+		room.tick(1100)
+		expect(room.world.tick).toBe(tick)
+		room.pause('user-a', false, 1200)
+		room.tick(1300)
+		expect(room.world.tick).toBe(tick + 1)
+		room.join('user-b', 'B', starterBuild(), connection())
+		room.pause('user-a', true, 1400)
+		expect(room.paused).toBe(false)
+	})
+
+	it('tells only the finder about a drop, and splits a report too large for one', () => {
+		const reports: Report[] = []
+		const sentA: Uint8Array[] = []
+		const sentB: Uint8Array[] = []
+		const room = new Room('squad-d', 'squad', 1, 0, report => reports.push(report), {
+			id: 'yard-sweep',
+			difficulty: 'veteran'
+		})
+		room.join('user-a', 'A', starterBuild(), { send: bytes => sentA.push(bytes) > 0, close: () => {} })
+		room.join('user-b', 'B', starterBuild(), { send: bytes => sentB.push(bytes) > 0, close: () => {} })
+		room.world.events = []
+		const a = room.world.players.get(1)
+		if (!a) throw new Error()
+		const cache = room.world.mission?.def.caches[0] as { x: number; y: number }
+		a.x = cache.x
+		a.y = cache.y
+		room.receiveInputs('user-a', [
+			{ seq: 1, moveX: 0, moveY: 0, aim: 0, buttons: Button.interact, viewTick: 0, reach: 0 }
+		])
+		room.tick(Date.now())
+		room.tick(Date.now())
+		const events = (sent: Uint8Array[]) =>
+			decode(sent).flatMap(message => (message.type === 'events' ? message.events : []))
+		expect(events(sentA).some(event => event.type === 'item-found')).toBe(true)
+		expect(events(sentB).some(event => event.type === 'item-found')).toBe(false)
+		// a huge score: the report is split into parts each within the cap
+		a.score += economy.rewards.maxPerReport.xp * economy.rewards.scorePerXp * 2.5
+		room.reportAll()
+		const forA = reports.filter(report => report.userId === 'user-a')
+		expect(forA.length).toBeGreaterThanOrEqual(3)
+		expect(forA.every(report => report.xp <= economy.rewards.maxPerReport.xp)).toBe(true)
+		expect(new Set(forA.map(report => report.grantKey)).size).toBe(forA.length)
 	})
 })

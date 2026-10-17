@@ -3,6 +3,18 @@ export * from './constants.ts'
 export { Grid } from './grid.ts'
 export * from './input.ts'
 export {
+	applyBuff,
+	buffIndex,
+	chainMultiplier,
+	currentObjective,
+	enemyScale,
+	type MissionSetup,
+	type MissionState,
+	MissionStatus,
+	objectiveGoal,
+	scoreThreshold
+} from './mission.ts'
+export {
 	activeWeapon,
 	aimAngle,
 	clonePlayer,
@@ -15,6 +27,7 @@ export {
 } from './player.ts'
 export { Rng } from './rng.ts'
 export {
+	CHAIN_TICKS,
 	ObjectKind,
 	type Pool,
 	type SimEvent,

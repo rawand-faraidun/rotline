@@ -48,6 +48,7 @@ export function GameShell({ children }: { children: ReactNode }) {
 
 	return (
 		<Shell
+			fill
 			aside={
 				<div className="flex items-center gap-3">
 					<span className="flex items-baseline gap-2" data-testid="salvage">
@@ -65,7 +66,7 @@ export function GameShell({ children }: { children: ReactNode }) {
 			}
 		>
 			<SeatKeeper />
-			<nav className="mb-8 flex flex-wrap gap-1 border-line border-b border-dashed" aria-label="Game">
+			<nav className="mb-6 flex shrink-0 flex-wrap gap-1 border-line border-b border-dashed" aria-label="Game">
 				{tabs.map(tab => (
 					<Link
 						key={tab.to}
@@ -79,7 +80,7 @@ export function GameShell({ children }: { children: ReactNode }) {
 					</Link>
 				))}
 			</nav>
-			{children}
+			<div className="flex min-h-0 flex-1 flex-col">{children}</div>
 			{invite && (
 				<div role="status" className="fixed right-4 bottom-4 z-40 w-80">
 					<Panel className="gap-3 [--frame-color:var(--color-rot-lime)]">

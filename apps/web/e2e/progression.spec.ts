@@ -67,6 +67,7 @@ test('classes, skills, armory and shop', async ({ page }) => {
 	await page.mouse.up()
 	await page.getByRole('button', { name: /drudge ×5/i }).click()
 	await page.keyboard.press('Escape')
+	await page.getByRole('button', { name: /leave the firing range/i }).click()
 	await expect(page).toHaveURL(/\/play\/lobby$/)
 	await releaseSeats(page)
 })

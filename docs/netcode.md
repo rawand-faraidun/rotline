@@ -25,7 +25,7 @@ If a tick runs late, the server runs the missed ticks back to back (up to 3) ins
 
 ## Messages
 
-All messages are binary; the first byte is the message type. Encoding lives in `packages/protocol`, shared by server and client, with round-trip tests for every type.
+All messages are binary; the first byte is the message type. Encoding lives in `packages/protocol`, shared by server and client, with round-trip tests for every type. The protocol is versioned (currently version 5); the `hello` carries the client's version.
 
 ### Client to server
 
@@ -34,8 +34,9 @@ All messages are binary; the first byte is the message type. Encoding lives in `
 | `hello` | protocol version, game ticket | reliable |
 | `input` | sequence number, last 3 inputs (movement, aim angle, 16 button bits, the snapshot tick being displayed, the cursor's distance for throws), acknowledged snapshot id | unreliable |
 | `range` | firing range only: spawn zombies of a type, or clear them | reliable |
-| `ping-wheel`, `quick-chat` | phrase id, world position | reliable |
-| `ready`, `vote` | checkpoint and restart votes | reliable |
+| `pause` | the pause menu opened or closed | reliable |
+| `ping-wheel`, `quick-chat` (planned) | phrase id, world position | reliable |
+| `ready`, `vote` (planned) | checkpoint and restart votes | reliable |
 | `pong` | echo of server time | unreliable |
 
 Reload, weapon swap, interact, the three abilities and the two utilities are bits in the `input` button field, so they are repeated like any input.
@@ -44,12 +45,17 @@ Reload, weapon swap, interact, the three abilities and the two utilities are bit
 
 | Type | Contents | Delivery |
 |---|---|---|
-| `welcome` | your entity id, map, server tick, your build (class, level, skills, loadout with upgrades), so prediction uses the server's numbers | reliable |
-| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state (including cooldowns, charges, haste, dash and minigun timers), other players, acid pools, objects (zones, barricades, mines, decoys, sentries, mortar markers), changed zombies with their status bits, removals | unreliable |
-| `event` | batched one-off events: shots, hits, kills, grenades launched and exploding, bursts, pickups, buffs, objective updates, mutation alerts, downed, revived | reliable |
-| `mission` | checkpoint reached, mission result | reliable |
+| `welcome` | your entity id, map, server tick, your build (class, level, skills, loadout with upgrades), so prediction uses the server's numbers; the mission id and difficulty (empty outside missions) | reliable |
+| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state (including cooldowns, charges, haste, dash and minigun timers), the mission frame (below), other players, acid pools, objects (zones, barricades, mines, decoys, sentries, mortar markers, buff pickups with a variant byte naming the buff), changed zombies with their status bits, removals | unreliable |
+| `event` | batched one-off events: shots, hits, kills, grenades launched and exploding, bursts, abilities, player hurt, downed, back up, out and revived, waves started and cleared, squad wipes, objective done (with a flag for the first time), checkpoint, mission complete, buff picked up, score threshold, Survival run over; item found and cache opened are sent only to the player concerned | reliable |
+| `roster` | names and connection state of everyone in the room | reliable |
+| `results` | your results: success, rounds survived (Survival), time, score, kills, XP, Salvage, downs, items found, mastery | reliable |
 | `ping` | server time | unreliable |
-| `kick` | reason | reliable |
+| `kick` | reason (bad ticket, room full, protocol error, replaced, shutdown, idle, mission complete, playing elsewhere) | reliable |
+
+The mission frame in each snapshot holds the mission status, the current objective, its progress and goal, the seconds left on team buffs (Double XP, Instakill), your own score, your kill chain (0 once its timer has run out) and how much of the chain timer is left, and a bitmask of the caches you have opened.
+
+The `results` message is sent after the events of the tick that ended the mission or run, so the client shows the final moments first, and is sent again to a player who reconnects during the 20-second results window.
 
 ## Snapshot encoding
 
@@ -69,7 +75,7 @@ With 300 zombies, 4 players and a 40 m interest radius, snapshots average about 
 6. Timed effects (haste, Slide Dash, the minigun) count the player's own input steps, not server ticks, so prediction stays exact when the server applies two inputs in one tick or none after a stall. Abilities trigger while their key is held and they are ready.
 7. Abilities are predicted only for what they do to the player: cooldowns, utility charges, Adrenaline and Stim haste, Slide Dash, Overwatch and the minigun. Their effect on zombies and teammates (blasts, heals, stuns, barricades) comes from the server. Barricades are walls in the client's grid too: snapshots carry their exact cells, so prediction stops where the server does.
 
-The simulation is deterministic: fixed steps, server-owned seeded randomness, and no `Date.now()` or `Math.random()` in `packages/sim`.
+The simulation is deterministic: fixed steps, server-owned seeded randomness, and no `Date.now()` or `Math.random()` in `packages/sim`. Each room's seed, and a separate seed for loot (items and buffs), come from cryptographic randomness on the game server, so neither can be predicted, and loot rolls do not share a random stream with the fight.
 
 ## Input handling on the server
 
@@ -105,8 +111,11 @@ The server keeps 8 ticks of zombie positions. A shot carries the tick the client
 - **Connect**: the game ticket is checked, then `welcome` is sent.
 - **Heartbeat**: `ping`/`pong` every second for clock sync and latency display; 5 seconds of silence counts as a disconnect.
 - **Disconnect mid-mission**: the character stays in the world and the seat is held for **120 seconds**.
-- **Reconnect**: the client gets a new ticket for the same room, receives a full snapshot and resumes. If the room has ended, the player goes to the results screen.
+- **Reconnect**: the client gets a new ticket for the same room, receives a full snapshot and resumes. A player reconnecting during the results window gets the results again.
 - **Grace expired**: the character leaves the mission and the seat is released.
+- **Mission complete or run over**: the room leaves the registry at once, so the squad is back in the lobby; the room stays open 20 seconds for the results, then closes its connections (kick reason "complete"). A closed room's id is refused for 5 minutes, so no late ticket can start it again.
+- **One squad room per player**: while connected, a player holds a claim on their room in Valkey, refreshed every second by the game server. A ticket for another room is refused while the claim stands; if the player gets into another room anyway, the first room disconnects them (kick reason "elsewhere").
+- **Pause**: in a room of one, the pause menu stops the simulation (up to 10 minutes); inputs sent meanwhile are dropped and pings keep the connection alive. With more than one player the game goes on.
 - **Game server failure**: players return to the lobby; progress since the last checkpoint is lost; saved progress is safe.
 
 ## Bandwidth budget per player
