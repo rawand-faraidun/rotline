@@ -1,5 +1,6 @@
 import type { MapDef } from '@rotline/game-data'
 import * as THREE from 'three'
+import { detectQuality, type Quality } from './quality.ts'
 
 /** Camera height and tilt: high and almost straight down, pulled back enough to see the horde coming. */
 const CAMERA_HEIGHT = 32
@@ -143,7 +144,13 @@ function wallGeometry(walls: readonly { x: number; y: number; w: number; h: numb
 }
 
 /** Loads a material's colour, normal and roughness maps into `material` as they arrive. */
-function dress(material: THREE.MeshStandardMaterial, base: string, repeat: number | null, tint = 0xffffff): void {
+function dress(
+	material: THREE.MeshStandardMaterial,
+	base: string,
+	repeat: number | null,
+	tint = 0xffffff,
+	detail = true
+): void {
 	const loader = new THREE.TextureLoader()
 	const load = (name: string, apply: (texture: THREE.Texture) => void, colour = false) =>
 		loader.load(
@@ -169,6 +176,7 @@ function dress(material: THREE.MeshStandardMaterial, base: string, repeat: numbe
 		},
 		true
 	)
+	if (!detail) return
 	load('normal', texture => {
 		material.normalMap = texture
 	})
@@ -183,6 +191,8 @@ export class Stage {
 	readonly scene = new THREE.Scene()
 	readonly camera: THREE.PerspectiveCamera
 	readonly ground: THREE.Mesh
+	/** what this device can draw: `low` skips shadows, texture detail and prop models */
+	readonly quality: Quality
 	private readonly sun: THREE.DirectionalLight
 	private readonly sunHeight: number
 	private readonly cameraTarget = new THREE.Vector3()
@@ -199,8 +209,10 @@ export class Stage {
 		const light = LIGHTS[look.light]
 		this.canvas = canvas
 		this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
-		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
-		this.renderer.shadowMap.enabled = true
+		this.quality = detectQuality(this.renderer.getContext())
+		const high = this.quality === 'high'
+		this.renderer.setPixelRatio(high ? Math.min(window.devicePixelRatio, 1.5) : 1)
+		this.renderer.shadowMap.enabled = high
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
 		this.renderer.toneMapping = THREE.ACESFilmicToneMapping
 		this.scene.background = new THREE.Color(light.fog)
@@ -224,7 +236,7 @@ export class Stage {
 		const groundGeometry = new THREE.PlaneGeometry(map.width, map.height)
 		const uv = groundGeometry.getAttribute('uv') as THREE.BufferAttribute
 		for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * map.width) / 4, (uv.getY(i) * map.height) / 4)
-		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4)
+		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4, high)
 		this.ground = new THREE.Mesh(groundGeometry, groundMaterial)
 		this.ground.rotation.x = -Math.PI / 2
 		this.ground.position.set(map.width / 2, 0, map.height / 2)
@@ -233,7 +245,7 @@ export class Stage {
 
 		const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
 		// walls a little darker than their photos: the eye should go to the fight on the ground
-		dress(wallMaterial, `${assets}/textures/${look.walls}`, null, 0x8c8c86)
+		dress(wallMaterial, `${assets}/textures/${look.walls}`, null, 0x8c8c86, high)
 		const walls = new THREE.Mesh(wallGeometry(map.walls, 2.4, 2), wallMaterial)
 		walls.castShadow = walls.receiveShadow = true
 		this.scene.add(walls)

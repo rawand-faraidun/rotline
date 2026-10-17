@@ -3,6 +3,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+import { detectQuality } from './render/quality.ts'
 
 export type ShowOptions = {
 	/** for a model holding several looks (the soldier's classes): show only nodes named `<only>-…` */
@@ -84,8 +85,22 @@ export function mountViewer(canvas: HTMLCanvasElement): ViewerHandle {
 	canvas.addEventListener('pointermove', move)
 	canvas.addEventListener('pointerup', up)
 
+	// a weak device draws the turntable at a third of the rate; nobody draws it while it is off screen
+	const low = detectQuality(renderer.getContext()) === 'low'
+	if (low) {
+		renderer.setPixelRatio(1)
+		resize()
+	}
+	let onScreen = true
+	const watcher = new IntersectionObserver(entries => {
+		onScreen = entries.some(entry => entry.isIntersecting)
+	})
+	watcher.observe(canvas)
+	let tick = 0
 	const loop = (now: number) => {
 		frame = requestAnimationFrame(loop)
+		tick++
+		if (!onScreen || document.hidden || (low && !dragging && tick % 3 !== 0)) return
 		const dt = Math.min(0.1, (now - last) / 1000)
 		last = now
 		sway += dt
@@ -140,6 +155,7 @@ export function mountViewer(canvas: HTMLCanvasElement): ViewerHandle {
 			cancelAnimationFrame(frame)
 			mixer?.stopAllAction()
 			observer.disconnect()
+			watcher.disconnect()
 			environment.dispose()
 			canvas.removeEventListener('pointerdown', down)
 			canvas.removeEventListener('pointermove', move)

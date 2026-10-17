@@ -102,7 +102,7 @@ export function startGame(options: GameOptions): GameHandle {
 	const stage = new Stage(options.canvas, map, options.assets)
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene)
-	const propRenderer = new PropRenderer(stage.scene, props, options.assets)
+	const propRenderer = new PropRenderer(stage.scene, props, options.assets, stage.quality === 'high')
 	const showNumbers = options.damageNumbers ?? options.map === 'range'
 	const numbers = showNumbers ? new DamageNumbers(stage.scene) : null
 	const ownHits: { at: number; amount: number }[] = []

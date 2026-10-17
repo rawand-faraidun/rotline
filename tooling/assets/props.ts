@@ -32,6 +32,8 @@ type PropSource = {
 	triangles: number
 	/** multiplies the colours (compost bags become sandbags) */
 	tint?: [number, number, number]
+	/** keep only these mesh nodes (for files holding several variants) */
+	nodes?: string[]
 }
 const { props } = JSON.parse(readFileSync(join(here, 'prop-sources.json'), 'utf8')) as { props: PropSource[] }
 mkdirSync(out, { recursive: true })
@@ -65,6 +67,17 @@ for (const prop of props) {
 	const document = await io.read(await fetchModel(prop.source))
 	const root = document.getRoot()
 	plainMaterials(document)
+	if (prop.nodes) {
+		const keep = prop.nodes
+		for (const node of root.listNodes()) if (node.getMesh() && !keep.includes(node.getName())) node.setMesh(null)
+	}
+	process.stdout.write(
+		`${prop.kind} parts: ${root
+			.listNodes()
+			.filter(node => node.getMesh())
+			.map(node => node.getName())
+			.join(', ')}\n`
+	)
 	await document.transform(flatten(), weld())
 	if (prop.tint) {
 		const [r, g, b] = prop.tint

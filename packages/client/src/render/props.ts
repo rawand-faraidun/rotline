@@ -5,7 +5,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
-const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend'])
+const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door'])
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 const models = new Map<string, Promise<THREE.Object3D | null>>()
 
@@ -54,9 +54,13 @@ export class PropRenderer {
 
 	private readonly assets: string
 
-	constructor(scene: THREE.Scene, props: readonly Prop[], assets = '/assets') {
+	/** on a weak device props stay simple shapes */
+	private readonly models: boolean
+
+	constructor(scene: THREE.Scene, props: readonly Prop[], assets = '/assets', models = true) {
 		this.scene = scene
 		this.assets = assets
+		this.models = models
 		for (const prop of props) {
 			const drawn = this.make(prop)
 			scene.add(drawn.root)
@@ -75,7 +79,7 @@ export class PropRenderer {
 		size: [number, number, number],
 		top: THREE.Mesh | null
 	) {
-		if (!MODELLED.has(prop.def.kind)) return
+		if (!this.models || !MODELLED.has(prop.def.kind)) return
 		void propModel(`${this.assets}/models/props/${prop.def.kind}.glb`).then(model => {
 			if (!model || !root.parent) return
 			const copy = model.clone()
@@ -129,6 +133,22 @@ export class PropRenderer {
 			case 'door': {
 				const slab = add(new THREE.Mesh(this.box, this.material(0x4c5a52)), 1.1)
 				slab.scale.set(w, 2.2, h)
+				// the shutter rides on the slab (which sinks when the door opens); its colour shows the state
+				if (this.models)
+					void propModel(`${this.assets}/models/props/door.glb`).then(model => {
+						if (!model || !root.parent) return
+						const shutter = model.clone()
+						shutter.traverse(node => {
+							const mesh = node as THREE.Mesh
+							if (mesh.isMesh) mesh.material = (mesh.material as THREE.Material).clone()
+						})
+						shutter.position.y = -0.5
+						// the shutter's face runs along the door's longer side
+						if (h > w) shutter.rotation.y = Math.PI / 2
+						slab.add(shutter)
+						slab.userData.shutter = shutter
+						;(slab.material as THREE.Material).visible = false
+					})
 				break
 			}
 			case 'generator':
@@ -240,6 +260,18 @@ export class PropRenderer {
 					material.color.setHex(
 						prop.state === PropState.welded ? 0x8a5a2a : prop.state === PropState.locked ? 0x2a302d : 0x4c5a52
 					)
+					// welded shutters glow a hot orange at the seams, locked ones are dark
+					const shutter = slab.userData.shutter as THREE.Object3D | undefined
+					if (shutter && drawn.lastState !== prop.state)
+						shutter.traverse(node => {
+							const mesh = node as THREE.Mesh
+							if (!mesh.isMesh) return
+							const paint = mesh.material as THREE.MeshStandardMaterial
+							paint.color.setHex(
+								prop.state === PropState.welded ? 0xb07850 : prop.state === PropState.locked ? 0x50504c : 0x9a9a94
+							)
+							paint.emissive.setHex(prop.state === PropState.welded ? 0x5a2008 : 0x000000)
+						})
 					break
 				}
 				case 'generator':

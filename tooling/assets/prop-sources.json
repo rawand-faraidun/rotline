@@ -20,7 +20,8 @@
 			"name": "Compost Bags",
 			"author": "James Ray Cock",
 			"triangles": 800,
-			"tint": [0.72, 0.66, 0.5]
+			"tint": [0.72, 0.66, 0.5],
+			"nodes": ["compost_bags_floorstacked", "compost_bags_floor"]
 		},
 		{
 			"kind": "generator",
@@ -49,6 +50,14 @@
 			"name": "Ammo Box",
 			"author": "DanKit",
 			"triangles": 500
+		},
+		{
+			"kind": "door",
+			"source": "rollershutter_door",
+			"name": "Rollershutter Door",
+			"author": "MP",
+			"triangles": 1104,
+			"nodes": ["rollershutter_door"]
 		}
 	]
 }
