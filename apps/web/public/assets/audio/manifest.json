@@ -1,0 +1,11 @@
+{
+	"pistol": ["pistol-1.mp3", "pistol-2.mp3", "pistol-3.mp3"],
+	"rifle": ["rifle-1.mp3", "rifle-2.mp3", "rifle-3.mp3", "rifle-4.mp3"],
+	"sniper": ["sniper-1.mp3", "sniper-2.mp3", "sniper-3.mp3"],
+	"shotgun": ["shotgun-1.mp3"],
+	"reload-pistol": ["reload-pistol.mp3"],
+	"reload-rifle": ["reload-rifle.mp3"],
+	"reload-shotgun": ["reload-shotgun.mp3"],
+	"zombie": ["zombie-1.mp3", "zombie-2.mp3", "zombie-3.mp3"],
+	"zombie-fast": ["zombie-fast.mp3"]
+}

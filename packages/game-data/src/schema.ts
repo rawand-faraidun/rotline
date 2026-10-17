@@ -85,6 +85,8 @@ export const weaponSchema = z
 	.object({
 		id,
 		name: z.string().min(1),
+		/** how it feels: its sounds (a recorded group or a made-up sound, at `rate`) and the camera kick per shot in metres */
+		sound: z.object({ shot: id, reload: id, rate: z.number().positive().max(3), recoil: z.number().min(0).max(2) }),
 		kind: weaponKind,
 		/** null: not an inventory item (the minigun from a buff or ability) */
 		tier: tier.nullable(),

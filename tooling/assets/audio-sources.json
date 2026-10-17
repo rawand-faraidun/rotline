@@ -1,0 +1,59 @@
+{
+	"sources": [
+		{
+			"id": "tabasco-gunshots",
+			"url": "https://opengameart.org/sites/default/files/sounds.zip",
+			"page": "https://opengameart.org/content/gunshot-sounds",
+			"author": "Tabasco",
+			"licence": "CC0 1.0"
+		},
+		{
+			"id": "springy-reload-pistol",
+			"url": "https://opengameart.org/sites/default/files/gunreload1.wav",
+			"page": "https://opengameart.org/content/gun-reload-sounds",
+			"author": "SpringySpringo",
+			"licence": "CC0 1.0"
+		},
+		{
+			"id": "springy-reload-rifle",
+			"url": "https://opengameart.org/sites/default/files/assaultriflereload1_0.wav",
+			"page": "https://opengameart.org/content/gun-reload-sounds",
+			"author": "SpringySpringo",
+			"licence": "CC0 1.0"
+		},
+		{
+			"id": "springy-shotgun-cock",
+			"url": "https://opengameart.org/sites/default/files/shotguncock_0.wav",
+			"page": "https://opengameart.org/content/gun-reload-sounds",
+			"author": "SpringySpringo",
+			"licence": "CC0 1.0"
+		},
+		{
+			"id": "ianzazz-zombies",
+			"url": "https://opengameart.org/sites/default/files/zombienoises.zip",
+			"page": "https://opengameart.org/content/zombie-noises-and-moans",
+			"author": "ianzazz",
+			"licence": "CC0 1.0"
+		}
+	],
+	"cuts": [
+		{ "out": "pistol-1", "source": "tabasco-gunshots", "file": "sounds/cz.wav", "start": 2.8, "duration": 0.6 },
+		{ "out": "pistol-2", "source": "tabasco-gunshots", "file": "sounds/cz.wav", "start": 4.03, "duration": 0.6 },
+		{ "out": "pistol-3", "source": "tabasco-gunshots", "file": "sounds/cz.wav", "start": 5.52, "duration": 0.6 },
+		{ "out": "rifle-1", "source": "tabasco-gunshots", "file": "sounds/sks.wav", "start": 0.32, "duration": 0.7 },
+		{ "out": "rifle-2", "source": "tabasco-gunshots", "file": "sounds/sks.wav", "start": 2.27, "duration": 0.7 },
+		{ "out": "rifle-3", "source": "tabasco-gunshots", "file": "sounds/sks.wav", "start": 5.98, "duration": 0.7 },
+		{ "out": "rifle-4", "source": "tabasco-gunshots", "file": "sounds/sks.wav", "start": 7.68, "duration": 0.7 },
+		{ "out": "sniper-1", "source": "tabasco-gunshots", "file": "sounds/mosin.wav", "start": 0.41, "duration": 1.1 },
+		{ "out": "sniper-2", "source": "tabasco-gunshots", "file": "sounds/mosin.wav", "start": 5.96, "duration": 1.1 },
+		{ "out": "sniper-3", "source": "tabasco-gunshots", "file": "sounds/mosin.wav", "start": 8.82, "duration": 1.1 },
+		{ "out": "shotgun-1", "source": "tabasco-gunshots", "file": "sounds/shotty.wav", "start": 0, "duration": 0.7 },
+		{ "out": "reload-pistol", "source": "springy-reload-pistol", "start": 0, "duration": 1.58 },
+		{ "out": "reload-rifle", "source": "springy-reload-rifle", "start": 0.1, "duration": 1.46 },
+		{ "out": "reload-shotgun", "source": "springy-shotgun-cock", "start": 0, "duration": 0.47 },
+		{ "out": "zombie-1", "source": "ianzazz-zombies", "file": "zombienoise1.ogg", "start": 0.25, "duration": 1.2 },
+		{ "out": "zombie-2", "source": "ianzazz-zombies", "file": "zombienoise2.ogg", "start": 0.4, "duration": 0.5 },
+		{ "out": "zombie-3", "source": "ianzazz-zombies", "file": "zombienoise3.ogg", "start": 0, "duration": 0.67 },
+		{ "out": "zombie-fast", "source": "ianzazz-zombies", "file": "fastzombie1.ogg", "start": 0, "duration": 0.34 }
+	]
+}

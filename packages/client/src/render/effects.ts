@@ -24,7 +24,22 @@ function blob(r: number, g: number, b: number, soft: number): THREE.CanvasTextur
 }
 
 /** Pooled visual effects: nothing here allocates per shot. */
+/** Spent cases in the world at once, and how long they lie there. */
+const CASINGS = 96
+const CASING_SECONDS = 8
+/** Sparks where shots hit walls. */
+const SPARKS = 24
+const SPARK_SECONDS = 0.14
+
 export class Effects {
+	private readonly casings: THREE.InstancedMesh
+	private readonly casingState = new Float32Array(CASINGS * 6)
+	private readonly casingBorn = new Float32Array(CASINGS).fill(-1)
+	private casingHead = 0
+	private lastCasingUpdate = 0
+	private readonly sparks: THREE.Sprite[] = []
+	private readonly sparkBorn = new Float32Array(SPARKS).fill(-1)
+	private sparkHead = 0
 	private readonly tracers: THREE.InstancedMesh
 	private readonly tracerBorn = new Float32Array(TRACERS).fill(-1)
 	private tracerHead = 0
@@ -129,6 +144,28 @@ export class Effects {
 		this.flashSprite.visible = false
 		scene.add(this.tracers, this.decals, this.pools, this.flash, this.flashSprite)
 
+		// spent cases: small brass boxes thrown out to the right, bouncing once, lying a while
+		this.casings = new THREE.InstancedMesh(
+			new THREE.BoxGeometry(0.05, 0.05, 0.14),
+			new THREE.MeshStandardMaterial({ color: 0xc9a14a, metalness: 0.7, roughness: 0.35 }),
+			CASINGS
+		)
+		for (let i = 0; i < CASINGS; i++) this.casings.setMatrixAt(i, this.hidden)
+		this.casings.frustumCulled = false
+		scene.add(this.casings)
+		const sparkMaterial = new THREE.SpriteMaterial({
+			map: blob(255, 230, 160, 0.2),
+			blending: THREE.AdditiveBlending,
+			depthWrite: false,
+			transparent: true
+		})
+		for (let i = 0; i < SPARKS; i++) {
+			const sprite = new THREE.Sprite(sparkMaterial)
+			sprite.visible = false
+			scene.add(sprite)
+			this.sparks.push(sprite)
+		}
+
 		this.fireMaterial = new THREE.SpriteMaterial({
 			map: blob(255, 150, 40, 0.3),
 			blending: THREE.AdditiveBlending,
@@ -224,6 +261,33 @@ export class Effects {
 		this.flashUntil = now + 0.05
 	}
 
+	/** A spent case thrown out of the gun's right side. */
+	casing(x: number, y: number, angle: number, now: number): void {
+		const i = this.casingHead
+		this.casingHead = (i + 1) % CASINGS
+		const side = angle + Math.PI / 2 + (Math.random() - 0.5) * 0.6
+		const speed = 2.2 + Math.random() * 1.2
+		const state = this.casingState
+		state[i * 6] = x + Math.cos(angle) * 0.35
+		state[i * 6 + 1] = 1.05
+		state[i * 6 + 2] = y + Math.sin(angle) * 0.35
+		state[i * 6 + 3] = Math.cos(side) * speed
+		state[i * 6 + 4] = 1.8 + Math.random()
+		state[i * 6 + 5] = Math.sin(side) * speed
+		this.casingBorn[i] = now
+	}
+
+	/** Sparks where a shot struck a wall. */
+	impact(x: number, y: number, now: number): void {
+		const i = this.sparkHead
+		this.sparkHead = (i + 1) % SPARKS
+		const sprite = this.sparks[i] as THREE.Sprite
+		sprite.position.set(x, 0.9 + Math.random() * 0.4, y)
+		sprite.scale.setScalar(0.35 + Math.random() * 0.25)
+		sprite.visible = true
+		this.sparkBorn[i] = now
+	}
+
 	splat(x: number, y: number, size: number): void {
 		const i = this.decalHead
 		this.decalHead = (i + 1) % DECALS
@@ -261,7 +325,55 @@ export class Effects {
 		this.pools.instanceMatrix.needsUpdate = true
 	}
 
+	private updateCasings(now: number): void {
+		const dt = Math.min(0.05, now - this.lastCasingUpdate)
+		this.lastCasingUpdate = now
+		const state = this.casingState
+		let changed = false
+		for (let i = 0; i < CASINGS; i++) {
+			const born = this.casingBorn[i] as number
+			if (born < 0) continue
+			changed = true
+			if (now - born > CASING_SECONDS) {
+				this.casings.setMatrixAt(i, this.hidden)
+				this.casingBorn[i] = -1
+				continue
+			}
+			const o = i * 6
+			if ((state[o + 1] as number) > 0.025 || (state[o + 4] as number) > 0) {
+				// fall, bounce once off the floor, then lie still
+				state[o + 4] = (state[o + 4] as number) - 9.8 * dt
+				state[o] = (state[o] as number) + (state[o + 3] as number) * dt
+				state[o + 1] = (state[o + 1] as number) + (state[o + 4] as number) * dt
+				state[o + 2] = (state[o + 2] as number) + (state[o + 5] as number) * dt
+				if ((state[o + 1] as number) <= 0.025) {
+					state[o + 1] = 0.025
+					const bounce = -(state[o + 4] as number) * 0.3
+					state[o + 4] = bounce > 0.4 ? bounce : 0
+					state[o + 3] = (state[o + 3] as number) * 0.4
+					state[o + 5] = (state[o + 5] as number) * 0.4
+				}
+			}
+			this.quaternion.setFromAxisAngle(this.up, born * 37)
+			this.matrix.compose(
+				this.position.set(state[o] as number, state[o + 1] as number, state[o + 2] as number),
+				this.quaternion,
+				this.scale.set(1, 1, 1)
+			)
+			this.casings.setMatrixAt(i, this.matrix)
+		}
+		if (changed) this.casings.instanceMatrix.needsUpdate = true
+	}
+
 	update(now: number): void {
+		this.updateCasings(now)
+		for (let i = 0; i < SPARKS; i++) {
+			const born = this.sparkBorn[i] as number
+			if (born >= 0 && now - born > SPARK_SECONDS) {
+				;(this.sparks[i] as THREE.Sprite).visible = false
+				this.sparkBorn[i] = -1
+			}
+		}
 		let changed = false
 		for (let i = 0; i < TRACERS; i++) {
 			const born = this.tracerBorn[i] as number

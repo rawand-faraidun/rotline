@@ -70,7 +70,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "pistol",
+			"reload": "reload-pistol",
+			"rate": 1.0,
+			"recoil": 0.12
+		}
 	},
 	{
 		"id": "halcyon-45",
@@ -144,7 +150,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "pistol",
+			"reload": "reload-pistol",
+			"rate": 0.82,
+			"recoil": 0.22
+		}
 	},
 	{
 		"id": "vex-9",
@@ -217,7 +229,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "rifle",
+			"reload": "reload-pistol",
+			"rate": 1.25,
+			"recoil": 0.08
+		}
 	},
 	{
 		"id": "k-71",
@@ -290,7 +308,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "rifle",
+			"reload": "reload-rifle",
+			"rate": 1.0,
+			"recoil": 0.14
+		}
 	},
 	{
 		"id": "breacher-12",
@@ -363,7 +387,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "shotgun",
+			"reload": "reload-shotgun",
+			"rate": 1.0,
+			"recoil": 0.45
+		}
 	},
 	{
 		"id": "mower",
@@ -436,7 +466,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "rifle",
+			"reload": "reload-rifle",
+			"rate": 0.85,
+			"recoil": 0.12
+		}
 	},
 	{
 		"id": "longstride",
@@ -509,7 +545,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "sniper",
+			"reload": "reload-rifle",
+			"rate": 1.0,
+			"recoil": 0.6
+		}
 	},
 	{
 		"id": "kiln",
@@ -582,7 +624,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "flame",
+			"reload": "reload-rifle",
+			"rate": 1.0,
+			"recoil": 0.02
+		}
 	},
 	{
 		"id": "thumper",
@@ -656,7 +704,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "thump",
+			"reload": "reload-shotgun",
+			"rate": 1.0,
+			"recoil": 0.5
+		}
 	},
 	{
 		"id": "arclight",
@@ -730,7 +784,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "zap",
+			"reload": "reload-rifle",
+			"rate": 1.0,
+			"recoil": 0.1
+		}
 	},
 	{
 		"id": "viper",
@@ -803,7 +863,13 @@
 					}
 				]
 			}
-		]
+		],
+		"sound": {
+			"shot": "flame",
+			"reload": "reload-rifle",
+			"rate": 1.25,
+			"recoil": 0.02
+		}
 	},
 	{
 		"id": "minigun",
@@ -825,6 +891,12 @@
 			"type": "hitscan",
 			"pierce": 0
 		},
-		"perks": []
+		"perks": [],
+		"sound": {
+			"shot": "rifle",
+			"reload": "reload-rifle",
+			"rate": 1.2,
+			"recoil": 0.07
+		}
 	}
 ]

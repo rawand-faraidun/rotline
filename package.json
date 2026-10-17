@@ -20,7 +20,8 @@
 		"test:e2e": "turbo run test:e2e",
 		"changeset": "changeset",
 		"version-packages": "changeset version",
-		"release:tag": "node scripts/tag-release.ts"
+		"release:tag": "node scripts/tag-release.ts",
+		"assets:audio": "pnpm --filter @rotline/assets audio"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.15",

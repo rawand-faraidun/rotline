@@ -529,6 +529,13 @@ export const en = {
 			elsewhere: 'You joined another mission, so you left this one',
 			menu: 'Menu',
 			runOverBanner: 'Run over — {wave} rounds survived',
+			sound: {
+				title: 'Sound',
+				master: 'Master',
+				effects: 'Effects',
+				interface: 'Interface',
+				mute: 'Mute all sound'
+			},
 			pause: {
 				title: 'Paused',
 				squadTitle: 'Menu',

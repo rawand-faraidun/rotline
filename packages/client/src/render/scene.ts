@@ -38,6 +38,12 @@ export class Stage {
 	readonly ground: THREE.Mesh
 	private readonly sun: THREE.DirectionalLight
 	private readonly cameraTarget = new THREE.Vector3()
+	/** recoil: the camera knocked back along the shot, easing home */
+	private readonly kickOffset = new THREE.Vector2()
+	/** shake from explosions and hits, 0..1, decaying */
+	private trauma = 0
+	private readonly reducedMotion =
+		typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 	private readonly canvas: HTMLCanvasElement
 
 	constructor(canvas: HTMLCanvasElement, map: MapDef) {
@@ -99,6 +105,22 @@ export class Stage {
 		this.camera.updateProjectionMatrix()
 	}
 
+	/** A shot knocks the camera back a little against the aim (`amount` metres). */
+	kick(dirX: number, dirY: number, amount: number): void {
+		if (this.reducedMotion) return
+		this.kickOffset.x -= dirX * amount
+		this.kickOffset.y -= dirY * amount
+		// it never piles up into a slide
+		const length = this.kickOffset.length()
+		if (length > 0.8) this.kickOffset.multiplyScalar(0.8 / length)
+	}
+
+	/** Shake, 0..1 (explosions nearby, a heavy hit). */
+	shake(amount: number): void {
+		if (this.reducedMotion) return
+		this.trauma = Math.min(1, this.trauma + amount)
+	}
+
 	/** Follows the player, leaning toward the aim point. */
 	follow(x: number, y: number, aimX: number, aimY: number, dtSeconds: number): void {
 		const lean = Math.min(1, Math.hypot(aimX - x, aimY - y) / 12)
@@ -109,8 +131,14 @@ export class Stage {
 		this.cameraTarget.x += (tx - this.cameraTarget.x) * k
 		this.cameraTarget.z += (ty - this.cameraTarget.z) * k
 		if (this.cameraTarget.lengthSq() === 0) this.cameraTarget.set(tx, 0, ty)
-		this.camera.position.set(this.cameraTarget.x, CAMERA_HEIGHT, this.cameraTarget.z + CAMERA_BACK)
-		this.camera.lookAt(this.cameraTarget.x, 0, this.cameraTarget.z)
+		// recoil and shake sit on top of the follow, so they never move the aim point
+		this.kickOffset.multiplyScalar(Math.exp(-14 * dtSeconds))
+		this.trauma = Math.max(0, this.trauma - dtSeconds * 1.6)
+		const shake = this.trauma * this.trauma * 0.9
+		const ox = this.kickOffset.x + (Math.random() - 0.5) * shake
+		const oz = this.kickOffset.y + (Math.random() - 0.5) * shake
+		this.camera.position.set(this.cameraTarget.x + ox, CAMERA_HEIGHT, this.cameraTarget.z + CAMERA_BACK + oz)
+		this.camera.lookAt(this.cameraTarget.x + ox, 0, this.cameraTarget.z + oz)
 		this.sun.position.set(this.cameraTarget.x + 14, 34, this.cameraTarget.z + 8)
 		this.sun.target.position.set(this.cameraTarget.x, 0, this.cameraTarget.z)
 	}

@@ -11,13 +11,15 @@ import {
 	maps,
 	missionById,
 	propsDef,
-	weapons
+	weapons,
+	zombies as zombieDefs
 } from '@rotline/game-data'
 import { INPUT_REDUNDANCY, KickReason, RangeAction, Writer, writePause, writeRange } from '@rotline/protocol'
 import {
 	activeWeapon,
 	aimToAngle,
 	angleToAim,
+	Button,
 	chainMultiplier,
 	createProps,
 	Grid,
@@ -35,6 +37,7 @@ import {
 	TICK_RATE
 } from '@rotline/sim'
 import * as THREE from 'three'
+import { AudioEngine, type AudioSettings } from './audio.ts'
 import { Controls } from './controls.ts'
 import { HudStore, type InteractAction, type MissionHud, type Toast } from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
@@ -70,6 +73,8 @@ export type GameHandle = {
 	ready: Promise<void>
 	/** firing range: spawn zombies of a type, or clear them */
 	range(action: 'spawn' | 'clear', zombieType?: number, count?: number): void
+	/** Sound volumes (kept in this browser). */
+	audio: { get(): AudioSettings; set(settings: AudioSettings): void }
 	/**
 	 * The pause menu opened or closed. Alone in the room the game really pauses; with a squad it
 	 * goes on, and the player simply stands still while the menu is open.
@@ -103,6 +108,25 @@ export function startGame(options: GameOptions): GameHandle {
 	const rangeWriter = new Writer(16)
 	const interpolator = new Interpolator()
 	const controls = new Controls(options.canvas)
+	const audio = new AudioEngine(`${options.assets}/audio`)
+	// sound may only start after the player clicks or presses a key
+	const unlock = () => audio.unlock()
+	window.addEventListener('pointerdown', unlock)
+	window.addEventListener('keydown', unlock)
+	let lastReloadEnd = 0
+	let lastEmptyAt = 0
+	let lastHitSoundAt = 0
+	let nextGrowlAt = 0
+	/** A weapon's shot: its recorded sound, or a made-up one (flames, the launcher, lightning). */
+	const shotSound = (weaponIndex: number, at?: { x: number; y: number }, minigun = false) => {
+		const sound = weapons[weaponIndex]?.sound
+		if (!sound) return
+		audio.sound(sound.shot, {
+			...(at ?? {}),
+			rate: sound.rate * (minigun ? 1.15 : 1),
+			volume: at ? 0.7 : 0.85
+		})
+	}
 	const raycaster = new THREE.Raycaster()
 	const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 	const aimPoint = new THREE.Vector3()
@@ -317,8 +341,11 @@ export function startGame(options: GameOptions): GameHandle {
 					case 'shot': {
 						const weapon = weapons[event.weapon]
 						const behaviour = weapon?.behaviour.type ?? 'hitscan'
-						// our own bullets and flames are already drawn when predicted; lightning is drawn from here
+						// our own bullets and flames are already drawn (and heard) when predicted; lightning is drawn from here
 						if (event.player === you && behaviour !== 'chain') break
+						// sentries and turrets (player 0) sound like a light rifle
+						if (event.player === 0) audio.sound('rifle', { x: event.x, y: event.y, rate: 1.3, volume: 0.45 })
+						else if (event.player !== you) shotSound(event.weapon, { x: event.x, y: event.y })
 						if (behaviour === 'cone') {
 							effects.flame(event.x, event.y, event.angle, event.length, 0.3, weapon?.damageType === 'chemical', now)
 						} else {
@@ -336,28 +363,55 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					}
 					case 'launch':
+						if (event.player !== you || event.weapon === 255)
+							audio.synth('thump', { x: event.x, y: event.y, volume: 0.7 })
 						effects.launch(event.id, event.x, event.y, event.angle, event.speed, now)
 						if (event.player !== you) effects.muzzleFlash(event.x, event.y, event.angle, now)
 						break
 					case 'explode':
 						effects.explode(event.id, event.x, event.y, event.radius, now)
+						if (event.radius > 0) {
+							audio.synth('explosion', { x: event.x, y: event.y, rate: 1.4 - Math.min(0.6, event.radius / 10) })
+							const d = Math.hypot(event.x - drawn.x, event.y - drawn.y)
+							if (d < 18) stage.shake(0.6 * (1 - d / 18))
+						}
 						break
 					case 'hit':
 						if (event.by === you) {
 							ownHits.push({ at: performance.now(), amount: event.amount })
 							numbers?.show(event.x, event.y, event.amount, now)
 						}
-						if (now - lastOwnShotAt < 0.3) hud.set({ hitMarker: performance.now() }, performance.now(), true)
+						if (now - lastOwnShotAt < 0.3) {
+							hud.set({ hitMarker: performance.now() }, performance.now(), true)
+							if (event.by === you && now - lastHitSoundAt > 0.05) {
+								lastHitSoundAt = now
+								audio.synth('hit', { volume: 0.35, bus: 'interface' })
+							}
+						}
 						if (Math.random() < 0.3) effects.splat(event.x, event.y, 0.35 + Math.random() * 0.3)
 						break
 					case 'kill':
 						effects.splat(event.x, event.y, 0.8 + Math.random() * 0.6)
+						if (Math.random() < 0.35) {
+							const scale = zombieDefs[event.zombieType]?.scale ?? 1
+							audio.sound('zombie', { x: event.x, y: event.y, rate: 0.85 / scale, volume: 0.6 })
+						}
 						break
 					case 'burst':
 						effects.burst(event.x, event.y, event.radius, now, 0x9fe04a, true)
+						audio.synth('thump', { x: event.x, y: event.y, rate: 0.6 })
 						break
 					case 'player-down':
-						if (event.player === you) hud.set({ status: 'down' }, performance.now(), true)
+						if (event.player === you) {
+							hud.set({ status: 'down' }, performance.now(), true)
+							audio.synth('thud', { volume: 0.9 })
+						}
+						break
+					case 'player-hurt':
+						if (event.player === you && event.amount >= 5) {
+							audio.synth('thud', { volume: 0.4, rate: 1.4 })
+							stage.shake(Math.min(0.35, event.amount / 60))
+						}
 						break
 					case 'ability': {
 						const id = abilityDefs[event.ability]?.id ?? ''
@@ -385,6 +439,7 @@ export function startGame(options: GameOptions): GameHandle {
 						)
 						break
 					case 'checkpoint':
+						audio.synth('chime', { bus: 'interface', rate: 0.9 })
 						hud.set(
 							{ banner: { text: 'checkpoint', wave: event.index + 1, at: performance.now() } },
 							performance.now(),
@@ -393,6 +448,7 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					case 'failed':
 						hud.set({ banner: { text: 'failed', wave: 0, at: performance.now() } }, performance.now(), true)
+						audio.synth('alarm', { bus: 'interface' })
 						break
 					case 'run-over':
 						hud.set({ banner: { text: 'run-over', wave: event.wave, at: performance.now() } }, performance.now(), true)
@@ -402,12 +458,28 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					case 'item-found':
 						// drops are per player: only your own are shown
-						if (event.player === you) toast('item', items[event.item]?.name ?? '')
+						if (event.player === you) {
+							toast('item', items[event.item]?.name ?? '')
+							audio.synth('chime', { bus: 'interface', rate: 1.2 })
+						}
 						break
+					case 'prop': {
+						const prop = props[event.index]
+						if (!prop) break
+						if (prop.def.kind === 'door') audio.synth('door', { x: prop.x, y: prop.y })
+						else if (event.state === PropState.done && prop.def.kind === 'generator')
+							audio.synth('power', { x: prop.x, y: prop.y })
+						else if (prop.def.kind === 'trap' && event.state === PropState.active)
+							audio.synth('zap', { x: prop.x, y: prop.y, rate: 0.6 })
+						break
+					}
 					case 'buff': {
 						const buff = buffDefs.buffs[event.buff]
 						effects.burst(drawnX(event.player), drawnY(event.player), 3, now, 0xb8f23c)
-						if (buff && (buff.team || event.player === you)) toast('buff', buff.name, nameOf(event.player))
+						if (buff && (buff.team || event.player === you)) {
+							toast('buff', buff.name, nameOf(event.player))
+							audio.synth('pickup', { bus: 'interface' })
+						}
 						break
 					}
 					case 'threshold':
@@ -630,6 +702,28 @@ export function startGame(options: GameOptions): GameHandle {
 					}
 					effects.muzzleFlash(x, y, angle, now / 1000)
 					lastOwnShotAt = now / 1000
+					shotSound(held.index, undefined, (result & Step.minigun) !== 0)
+					// the feel of it: the camera kicks back, a case flies out, sparks where it hits a wall
+					stage.kick(Math.cos(angle), Math.sin(angle), weapons[held.index]?.sound.recoil ?? 0.1)
+					if (held.behaviour.type === 'hitscan') {
+						effects.casing(x, y, angle, now / 1000)
+						const reach = grid.rayToWall(x, y, Math.cos(angle), Math.sin(angle), held.range)
+						if (reach < held.range - 0.05)
+							effects.impact(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach, now / 1000)
+					}
+				}
+				// a reload starting, or the dry click of an empty magazine
+				const own = predictor.state
+				if (own.reloadEndTick !== 0 && lastReloadEnd === 0) {
+					const sound = weapons[activeWeapon(own).index]?.sound
+					if (sound) audio.sound(sound.reload, { volume: 0.8 })
+				}
+				lastReloadEnd = own.reloadEndTick
+				if (input.buttons & Button.fire && own.weapons[own.slot as 0 | 1 | 2].mag === 0 && own.reloadEndTick === 0) {
+					if (now - lastEmptyAt > 350) {
+						lastEmptyAt = now
+						audio.synth('empty', { volume: 0.6 })
+					}
 				}
 				recent.push(input)
 				if (recent.length > INPUT_REDUNDANCY) recent.shift()
@@ -644,6 +738,7 @@ export function startGame(options: GameOptions): GameHandle {
 		// draw
 		if (predictor && me) {
 			predictor.renderPosition(accumulator / TICK_MS, dt, drawn)
+			audio.setListener(drawn.x, drawn.y)
 			const own = predictor.state
 			me.set(drawn.x, drawn.y, aimToAngle(own.aim), own.alive, own.downed, own.reviveProgress / REVIVE_COMPLETE)
 			const aimAngle = aimToAngle(predictor.state.aim)
@@ -656,6 +751,23 @@ export function startGame(options: GameOptions): GameHandle {
 		}
 		if (interpolator.sample(renderTick)) {
 			zombies?.update(interpolator.view, now / 1000)
+			// now and then one of the zombies nearby makes itself heard
+			if (now >= nextGrowlAt && interpolator.view.count > 0) {
+				nextGrowlAt = now + 900 + Math.random() * 1600
+				const view = interpolator.view
+				const pick = Math.floor(Math.random() * view.count)
+				const zx = view.x[pick] as number
+				const zy = view.y[pick] as number
+				if (Math.hypot(zx - drawn.x, zy - drawn.y) < 25) {
+					const def = zombieDefs[view.type[pick] as number]
+					audio.sound(def && def.speed > 3 ? 'zombie-fast' : 'zombie', {
+						x: zx,
+						y: zy,
+						rate: 1 / (def?.scale ?? 1),
+						volume: 0.5
+					})
+				}
+			}
 			effects.setPools(interpolator.pools)
 			objectRenderer.update(interpolator.objects, now / 1000)
 			propRenderer.update(props, now / 1000, dt)
@@ -708,7 +820,14 @@ export function startGame(options: GameOptions): GameHandle {
 				interpolator.resync()
 			}
 		},
+		audio: {
+			get: () => audio.getSettings(),
+			set: (settings: AudioSettings) => audio.setSettings(settings)
+		},
 		stop() {
+			audio.dispose()
+			window.removeEventListener('pointerdown', unlock)
+			window.removeEventListener('keydown', unlock)
 			stopped = true
 			cancelAnimationFrame(frame)
 			connection.close()

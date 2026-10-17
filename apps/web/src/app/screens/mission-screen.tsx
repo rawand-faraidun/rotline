@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import type { GameHandle, HudState } from '@rotline/client'
+import type { AudioSettings, GameHandle, HudState } from '@rotline/client'
 import { missionById, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useNavigate } from '@tanstack/react-router'
@@ -271,13 +271,52 @@ function Toasts({ hud }: { hud: HudState }) {
  * The pause menu. Alone the game is paused; in a squad it goes on and you stand still. Leaving keeps
  * your place (rejoin from the lobby); abandoning gives it up.
  */
+/** Sound volumes, saved in this browser. */
+function SoundSettings({ handle }: { handle: GameHandle }) {
+	const [settings, setSettings] = useState<AudioSettings>(() => handle.audio.get())
+	const change = (patch: Partial<AudioSettings>) => {
+		const next = { ...settings, ...patch }
+		setSettings(next)
+		handle.audio.set(next)
+	}
+	const s = t.sound
+	const slider = (key: 'master' | 'effects' | 'interface', label: string) => (
+		<label className="flex items-center justify-between gap-3 text-sm">
+			<span className="text-muted text-xs uppercase tracking-[0.2em]">{label}</span>
+			<input
+				type="range"
+				min={0}
+				max={100}
+				value={Math.round(settings[key] * 100)}
+				onChange={event => change({ [key]: Number(event.target.value) / 100 })}
+				className="w-40 accent-rot-lime"
+				aria-label={label}
+			/>
+		</label>
+	)
+	return (
+		<fieldset className="flex flex-col gap-2">
+			<legend className="mb-1 font-bold text-muted text-xs uppercase tracking-[0.2em]">{s.title}</legend>
+			{slider('master', s.master)}
+			{slider('effects', s.effects)}
+			{slider('interface', s.interface)}
+			<label className="flex items-center gap-2 text-sm">
+				<input type="checkbox" checked={settings.muted} onChange={event => change({ muted: event.target.checked })} />
+				{s.mute}
+			</label>
+		</fieldset>
+	)
+}
+
 function PauseMenu({
+	handle,
 	range,
 	squad,
 	onResume,
 	onLobby,
 	onAbandon
 }: {
+	handle: GameHandle
 	range: boolean
 	squad: boolean
 	onResume: () => void
@@ -309,6 +348,7 @@ function PauseMenu({
 						</>
 					)}
 				</div>
+				<SoundSettings handle={handle} />
 				<p className="text-muted text-xs">{t.controls}</p>
 			</Panel>
 		</div>
@@ -633,8 +673,9 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 				</div>
 			)}
 
-			{menuOpen && hud && loaded && !hud.results && !ended && (
+			{menuOpen && hud && handle && loaded && !hud.results && !ended && (
 				<PauseMenu
+					handle={handle}
 					range={range}
 					squad={hud.teammates.length > 0}
 					onResume={() => setMenuOpen(false)}
