@@ -115,6 +115,10 @@ export class PlayerFigure {
 	private lastX = Number.NaN
 	private lastY = 0
 	private speed = 0
+	private moveX = 0
+	private moveY = 1
+	private legsYaw = 0
+	private spine: THREE.Object3D[] = []
 	private last = performance.now()
 
 	constructor(slot: number, isSelf: boolean, assets = '/assets') {
@@ -172,6 +176,9 @@ export class PlayerFigure {
 			this.clips = loaded.clips
 			this.aimOffset = loaded.aimOffset
 			this.hand = model.getObjectByName('hand_r') ?? null
+			this.spine = ['spine_01', 'spine_02', 'spine_03']
+				.map(name => model.getObjectByName(name))
+				.filter((bone): bone is THREE.Object3D => bone !== undefined)
 			this.mixer = new THREE.AnimationMixer(model)
 			this.legs = this.arms = this.pose = null
 			this.legsClip = this.armsClip = ''
@@ -238,19 +245,43 @@ export class PlayerFigure {
 			if (this.weapon) this.weapon.visible = false
 			return
 		}
-		// turn so the hands, not the chest, point along the aim
-		this.model.rotation.y = facing - this.aimOffset
+		// the hands, not the chest, point along the aim
+		if (moved > 0) {
+			const blend = Math.min(1, dt * 12)
+			this.moveX += (moveX / moved - this.moveX) * blend
+			this.moveY += (moveY / moved - this.moveY) * blend
+		}
+		// the legs run the way the player moves (backwards when that is more than ~110° from the aim)
+		// and the torso twists toward the aim; standing, the legs come round under the torso
+		let backwards = false
+		let legsTarget = facing - this.aimOffset
+		if (this.speed >= 0.4 && !downed) {
+			const heading = Math.atan2(this.moveX, this.moveY)
+			backwards = Math.abs(wrap(heading - facing)) > TWIST_LIMIT
+			legsTarget = backwards ? heading + Math.PI : heading
+		}
+		this.legsYaw += wrap(legsTarget - this.legsYaw) * Math.min(1, dt * 10)
+		this.model.rotation.y = this.legsYaw
 		if (downed) {
 			this.playPose('Sitting_Idle_Loop')
 		} else {
 			this.playPose(null)
-			const backwards = moved > 0 && moveX * Math.cos(aimAngle) + moveY * Math.sin(aimAngle) < -0.3 * moved
 			if (this.speed < 0.4) this.playLegs('Idle_Loop', 1)
 			else if (this.speed < 2.6) this.playLegs('Walk_Loop', (this.speed / WALK_SPEED) * (backwards ? -1 : 1))
 			else this.playLegs('Jog_Fwd_Loop', (this.speed / JOG_SPEED) * (backwards ? -1 : 1))
 			if (now > this.armsUntil) this.playArms('Pistol_Aim_Neutral', 0.2, 0)
 		}
 		this.mixer.update(dt)
+		// turn the torso until the hands point along the aim (measured, so every clip lines up)
+		if (!downed) {
+			let turned = 0
+			// the hands are not on the spine's axis, so a second, smaller pass corrects the first
+			for (let pass = 0; pass < 2; pass++) {
+				const turn = clamp(turned + wrap(facing - this.handYaw()), TWIST_LIMIT) - turned
+				this.twist(turn)
+				turned += turn
+			}
+		}
 		// the gun sits in the right hand, pointing exactly where the shots go
 		if (this.weapon && this.hand) {
 			this.weapon.visible = !downed
@@ -263,6 +294,34 @@ export class PlayerFigure {
 				at.z + Math.sin(aimAngle) * this.weaponShift
 			)
 			this.weapon.rotation.set(0, -aimAngle, 0)
+		}
+	}
+
+	/** Which way the hands point from the hips, as a yaw (radians). */
+	private handYaw(): number {
+		const hips = this.spine[0]
+		if (!this.model || !this.hand || !hips) return 0
+		this.model.updateMatrixWorld(true)
+		const hand = this.hand.getWorldPosition(scratch)
+		const x = hand.x
+		const z = hand.z
+		const from = hips.getWorldPosition(scratch)
+		return Math.atan2(x - from.x, z - from.z)
+	}
+
+	/** Turns the torso by `angle` (radians, about the vertical) on top of the clips, spread over the spine. */
+	private twist(angle: number): void {
+		if (!this.model || this.spine.length === 0 || Math.abs(angle) < 1e-3) return
+		this.model.updateMatrixWorld(true)
+		const turn = twistTurn.setFromAxisAngle(UP, angle / this.spine.length)
+		for (const bone of this.spine) {
+			const parent = bone.parent
+			if (!parent) continue
+			// a turn about the world's vertical, expressed in the bone's parent space
+			parent.getWorldQuaternion(twistParent)
+			twistLocal.copy(twistParent).invert().multiply(turn).multiply(twistParent)
+			bone.quaternion.premultiply(twistLocal)
+			bone.updateMatrixWorld(true)
 		}
 	}
 
@@ -329,3 +388,18 @@ export class PlayerFigure {
 }
 
 const scratch = new THREE.Vector3()
+const UP = new THREE.Vector3(0, 1, 0)
+const twistTurn = new THREE.Quaternion()
+const twistParent = new THREE.Quaternion()
+const twistLocal = new THREE.Quaternion()
+/** the most the torso turns away from the legs; beyond it the legs run backwards */
+const TWIST_LIMIT = (110 * Math.PI) / 180
+
+function clamp(value: number, limit: number): number {
+	return Math.max(-limit, Math.min(limit, value))
+}
+
+/** An angle brought into -π..π. */
+function wrap(angle: number): number {
+	return Math.atan2(Math.sin(angle), Math.cos(angle))
+}
