@@ -23,6 +23,8 @@ export class Predictor {
 	private readonly grid: Grid
 	corrections = 0
 	private started = false
+	/** keeps the player out of solid things the world knows about (zombies), after every step */
+	collide: ((state: PlayerState) => void) | null = null
 
 	/** `build` comes from the welcome message, so prediction uses exactly the server's numbers. */
 	constructor(grid: Grid, slot: number, build?: Build) {
@@ -41,7 +43,9 @@ export class Predictor {
 		this.pending.push({ input, tick })
 		this.previous.x = this.state.x
 		this.previous.y = this.state.y
-		return stepPlayer(this.grid, this.state, input, tick)
+		const result = stepPlayer(this.grid, this.state, input, tick)
+		this.collide?.(this.state)
+		return result
 	}
 
 	/** Resets to the server's state for `lastSeq` at `tick`, then replays the unconfirmed inputs. */
@@ -54,6 +58,7 @@ export class Predictor {
 		for (const [index, entry] of this.pending.entries()) {
 			entry.tick = tick + index + 1
 			stepPlayer(this.grid, corrected, entry.input, entry.tick)
+			this.collide?.(corrected)
 		}
 		const dx = beforeX - corrected.x
 		const dy = beforeY - corrected.y

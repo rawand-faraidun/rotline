@@ -196,6 +196,40 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 	}
 }
 
+const pushed = { x: 0, y: 0 }
+
+/**
+ * Bodies do not pass through each other: a player overlapping a zombie is pushed out (sliding along
+ * walls). The server runs it against the zombies as they are; the client against the zombies it draws,
+ * so prediction stays close and the server's word settles any difference.
+ */
+export function separateFromZombies(
+	grid: Grid,
+	state: PlayerState,
+	count: number,
+	zombieX: ArrayLike<number>,
+	zombieY: ArrayLike<number>,
+	zombieRadius: (index: number) => number,
+	alive?: ArrayLike<number>
+): void {
+	if (!state.alive) return
+	const r = playerDef.radius
+	for (let i = 0; i < count; i++) {
+		if (alive && alive[i] === 0) continue
+		const dx = state.x - (zombieX[i] as number)
+		const dy = state.y - (zombieY[i] as number)
+		const reach = r + zombieRadius(i) * 0.85
+		if (Math.abs(dx) > reach || Math.abs(dy) > reach) continue
+		const d = Math.hypot(dx, dy)
+		if (d >= reach) continue
+		const nx = d > 1e-6 ? dx / d : 1
+		const ny = d > 1e-6 ? dy / d : 0
+		grid.moveCircle(state.x, state.y, nx * (reach - d), ny * (reach - d), r, pushed)
+		state.x = pushed.x
+		state.y = pushed.y
+	}
+}
+
 /** Utility charges back to full and once-a-wave abilities ready again (a new wave or a checkpoint). */
 export function refillUtilities(state: PlayerState): void {
 	state.defibUsed = false

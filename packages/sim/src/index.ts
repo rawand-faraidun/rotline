@@ -22,6 +22,7 @@ export {
 	type PlayerState,
 	refillUtilities,
 	Step,
+	separateFromZombies,
 	stepPlayer,
 	type WeaponState
 } from './player.ts'

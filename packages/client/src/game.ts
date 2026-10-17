@@ -33,6 +33,7 @@ import {
 	REVIVE_COMPLETE,
 	REVIVE_RANGE,
 	Step,
+	separateFromZombies,
 	setPropState,
 	TICK_RATE
 } from '@rotline/sim'
@@ -188,6 +189,9 @@ export function startGame(options: GameOptions): GameHandle {
 		welcome: (slot, _tick, _map, build, missionId, difficulty) => {
 			you = slot
 			predictor = new Predictor(grid, slot, build)
+			// zombies are solid, as on the server (against where they are drawn)
+			predictor.collide = state =>
+				separateFromZombies(grid, state, interpolator.view.count, interpolator.view.x, interpolator.view.y, viewRadius)
 			me = new PlayerFigure(slot, true)
 			stage.scene.add(me.group)
 			mission = missionById(missionId) ?? null
@@ -502,6 +506,32 @@ export function startGame(options: GameOptions): GameHandle {
 		outdated: () => hud.set({ status: 'outdated' }, performance.now(), true)
 	})
 
+	/** A drawn zombie's body radius. */
+	function viewRadius(index: number): number {
+		return zombieDefs[interpolator.view.type[index] as number]?.radius ?? 0.4
+	}
+
+	/** How far a shot goes before the zombie that stops it (`pierce` more pass through), or `limit`. */
+	function firstZombie(x: number, y: number, angle: number, limit: number, pierce: number): number {
+		const dx = Math.cos(angle)
+		const dy = Math.sin(angle)
+		const view = interpolator.view
+		const hits: number[] = []
+		for (let i = 0; i < view.count; i++) {
+			const qx = (view.x[i] as number) - x
+			const qy = (view.y[i] as number) - y
+			const along = qx * dx + qy * dy
+			if (along < 0 || along > limit) continue
+			const px = qx - dx * along
+			const py = qy - dy * along
+			const r = viewRadius(i)
+			if (px * px + py * py < r * r) hits.push(along)
+		}
+		if (hits.length <= pierce) return limit
+		hits.sort((a, b) => a - b)
+		return hits[pierce] as number
+	}
+
 	/** Where a player is drawn (for effects at their feet). */
 	function drawnX(slot: number): number {
 		return slot === you ? drawn.x : (interpolator.others.find(other => other.id === slot)?.x ?? drawn.x)
@@ -693,12 +723,21 @@ export function startGame(options: GameOptions): GameHandle {
 					const angle = aimToAngle(predictor.state.aim)
 					const held = activeWeapon(predictor.state, (result & Step.minigun) !== 0)
 					const { x, y } = predictor.state
+					// where the drawn shot ends, and whether a wall (not a zombie) stopped it
+					let stop = 0
+					let wallHit = false
 					if (held.behaviour.type === 'cone') {
 						const half = (held.behaviour.angleDegrees * Math.PI) / 360
 						effects.flame(x, y, angle, held.range, half, held.damageType === 'chemical', now / 1000)
 					} else if (held.behaviour.type !== 'projectile') {
-						const reach = grid.rayToWall(x, y, Math.cos(angle), Math.sin(angle), held.range)
-						effects.tracer(x, y, angle, reach, now / 1000, 1.05, held.behaviour.type === 'chain' ? 0x7fd8ff : 0xffe2a0)
+						// the shot stops at the first zombie (more with piercing), else at the wall
+						const wall = grid.rayToWall(x, y, Math.cos(angle), Math.sin(angle), held.range)
+						const pierce =
+							(held.behaviour.type === 'hitscan' ? held.behaviour.pierce : 0) +
+							((result & Step.piercing) !== 0 ? (abilityById.get('overwatch')?.params.pierce ?? 0) : 0)
+						stop = firstZombie(x, y, angle, wall, pierce)
+						wallHit = stop === wall && wall < held.range - 0.05
+						effects.tracer(x, y, angle, stop, now / 1000, 1.05, held.behaviour.type === 'chain' ? 0x7fd8ff : 0xffe2a0)
 					}
 					effects.muzzleFlash(x, y, angle, now / 1000)
 					lastOwnShotAt = now / 1000
@@ -707,9 +746,7 @@ export function startGame(options: GameOptions): GameHandle {
 					stage.kick(Math.cos(angle), Math.sin(angle), weapons[held.index]?.sound.recoil ?? 0.1)
 					if (held.behaviour.type === 'hitscan') {
 						effects.casing(x, y, angle, now / 1000)
-						const reach = grid.rayToWall(x, y, Math.cos(angle), Math.sin(angle), held.range)
-						if (reach < held.range - 0.05)
-							effects.impact(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach, now / 1000)
+						if (wallHit) effects.impact(x + Math.cos(angle) * stop, y + Math.sin(angle) * stop, now / 1000)
 					}
 				}
 				// a reload starting, or the dry click of an empty magazine

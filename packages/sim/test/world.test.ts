@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { maps, zombieIndex } from '@rotline/game-data'
+import { maps, zombieIndex, zombies } from '@rotline/game-data'
 import { describe, expect, it } from 'vitest'
-import { angleToAim, Button, type PlayerInput, World } from '../src/index.ts'
+import { angleToAim, Button, type PlayerInput, TICK_RATE, World } from '../src/index.ts'
 import { input, quietWorld, steps } from './helpers.ts'
 
 describe('zombies', () => {
@@ -133,5 +133,35 @@ describe('determinism', () => {
 			const source = readFileSync(join(dir, file), 'utf8')
 			expect(source, file).not.toMatch(/Math\.random|Date\.now|performance\.now/)
 		}
+	})
+})
+
+describe('bodies collide', () => {
+	it('stops a player at a zombie instead of walking through it', () => {
+		const world = quietWorld()
+		const player = world.addPlayer(1)
+		player.x = 20
+		player.y = 20
+		const zombie = world.spawnZombie(zombieIndex('swell'), { x: 21.5, y: 20 })
+		world.stunUntil[zombie] = 1e6
+		steps(world, TICK_RATE, () => new Map([[1, input({ moveX: 127 })]]))
+		const radius = (zombies[zombieIndex('swell')] as { radius: number }).radius
+		expect(player.x).toBeLessThan(21.5 - radius * 0.8)
+	})
+
+	it('stops a thrown grenade on the first zombie in its way', () => {
+		const world = quietWorld()
+		const player = world.addPlayer(1)
+		player.x = 10
+		player.y = 20
+		const zombie = world.spawnZombie(zombieIndex('drudge'), { x: 13, y: 20 })
+		world.stunUntil[zombie] = 1e6
+		let landed = -1
+		world.lob(player, 20, 20, (_world, x) => {
+			landed = x
+		})
+		steps(world, 2 * TICK_RATE)
+		expect(landed).toBeGreaterThan(11)
+		expect(landed).toBeLessThan(13.5)
 	})
 })

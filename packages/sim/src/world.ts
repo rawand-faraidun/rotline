@@ -52,7 +52,15 @@ import {
 	updateTargets,
 	wipeMission
 } from './mission.ts'
-import { activeWeapon, createPlayer, type PlayerState, refillUtilities, Step, stepPlayer } from './player.ts'
+import {
+	activeWeapon,
+	createPlayer,
+	type PlayerState,
+	refillUtilities,
+	Step,
+	separateFromZombies,
+	stepPlayer
+} from './player.ts'
 import { damageProp, drop, interactProps, stepProps } from './prop-step.ts'
 import { createProps, type Prop, PropState } from './props.ts'
 import { Rng } from './rng.ts'
@@ -491,6 +499,9 @@ export class World {
 		this.wipe()
 	}
 
+	/** A zombie's body radius, by slot. */
+	readonly zombieRadius = (index: number): number => (zombieDefs[this.type[index] as number] as ZombieDef).radius
+
 	/** Missions and Survival keep score and drop buffs; the firing range does neither. */
 	get scoring(): boolean {
 		return this.mission !== null || this.survival
@@ -580,6 +591,8 @@ export class World {
 		if (input.moveX !== 0 || input.moveY !== 0 || input.buttons !== 0 || input.aim !== state.aim)
 			state.lastActiveTick = this.tick
 		const result = stepPlayer(this.grid, state, input, this.tick)
+		// zombies are solid: nobody walks through them
+		separateFromZombies(this.grid, state, MAX_ZOMBIES, this.x, this.y, this.zombieRadius, this.alive)
 		if (result === 0) return
 		if (result & Step.fired) {
 			this.fire(state, input.viewTick, (result & Step.piercing) !== 0, (result & Step.minigun) !== 0)
@@ -1004,8 +1017,8 @@ export class World {
 			const shot = this.projectiles[p] as Projectile
 			const step = Math.min(shot.speed * DT, shot.range - shot.travelled)
 			const wall = this.grid.rayToWall(shot.x, shot.y, shot.dirX, shot.dirY, step)
-			if (shot.lob) this.rayCount = 0
-			else this.raycastZombies(shot.x, shot.y, shot.dirX, shot.dirY, wall, this.tick, 1)
+			// thrown things stop on the first zombie in their way too
+			this.raycastZombies(shot.x, shot.y, shot.dirX, shot.dirY, wall, this.tick, 1)
 			const reach = this.rayCount > 0 ? (this.rayDistances[0] as number) : wall
 			shot.x += shot.dirX * reach
 			shot.y += shot.dirY * reach
