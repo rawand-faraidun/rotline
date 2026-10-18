@@ -50,8 +50,13 @@ export function ClassPanel() {
 								)}
 							>
 								<span className="flex items-baseline justify-between gap-2">
-									<span className="font-bold uppercase tracking-[0.12em]">{t.classes[cls].name}</span>
-									<span className={cn('font-display text-lg', active ? 'text-rot-lime' : 'text-bone')}>
+									<span className="truncate font-bold uppercase tracking-[0.12em]">{t.classes[cls].name}</span>
+									<span
+										className={cn(
+											'shrink-0 whitespace-nowrap font-display text-lg',
+											active ? 'text-rot-lime' : 'text-bone'
+										)}
+									>
 										{format(t.level, { level: String(entry.level) })}
 									</span>
 								</span>

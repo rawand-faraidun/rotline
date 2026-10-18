@@ -21,3 +21,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Abilities are equipped from the ability itself ("Equip in slot 1 (F)").
 - Armory: equip buttons come first, cards line up at the same height, and weapons show a picture instead of a 3D view (the shop too).
 - Addresses with a trailing slash ("/play/") work.
+- Soldiers are realistic now: a real face and hands, a combat shirt, trousers, boots, plate carrier and helmet, each class in its own colours and kit. Rifles and other long guns are held in both hands with the stock at the shoulder.

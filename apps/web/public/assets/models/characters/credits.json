@@ -1,6 +1,12 @@
 {
 	"models": [
 		{
+			"name": "Devgru_2 (CC0)",
+			"author": "britdawgmasterfunk",
+			"page": "https://sketchfab.com/3d-models/4ee9799e9182453d8d5046ae824c7f53",
+			"licence": "CC0 1.0"
+		},
+		{
 			"name": "Universal Base Characters",
 			"author": "Quaternius",
 			"page": "https://quaternius.com/packs/universalbasecharacters.html",

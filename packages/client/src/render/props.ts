@@ -4,7 +4,8 @@ import * as THREE from 'three'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { LOOKS, loadSoldier } from './players.ts'
+import { OUTFITS, wear } from './outfits.ts'
+import { loadSoldier } from './players.ts'
 
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
 const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door'])
@@ -196,10 +197,7 @@ export class PropRenderer {
 					void loadSoldier(`${this.assets}/models/characters/soldier.glb`).then(loaded => {
 						if (!loaded || !root.parent) return
 						const person = cloneSkinned(loaded.scene)
-						person.traverse(node => {
-							const owner = LOOKS.exec(node.name)?.[1]
-							if (owner) node.visible = owner === 'survivor'
-						})
+						if (OUTFITS.survivor) wear(person, OUTFITS.survivor)
 						const mixer = new THREE.AnimationMixer(person)
 						const idle = loaded.clips.full.get('Idle_Loop')
 						const walk = loaded.clips.full.get('Walk_Loop')

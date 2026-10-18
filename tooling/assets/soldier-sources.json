@@ -1,0 +1,178 @@
+{
+	"skeleton": {
+		"creator": "quaternius",
+		"game": "universal-base-characters",
+		"file": "Universal Base Characters[Standard].zip",
+		"gltf": "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf",
+		"name": "Universal Base Characters",
+		"author": "Quaternius",
+		"page": "https://quaternius.com/packs/universalbasecharacters.html",
+		"licence": "CC0 1.0"
+	},
+	"animations": {
+		"creator": "quaternius",
+		"game": "universal-animation-library",
+		"file": "Universal Animation Library[Standard].zip",
+		"glb": "Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
+		"name": "Universal Animation Library",
+		"author": "Quaternius",
+		"page": "https://quaternius.com/packs/universalanimationlibrary.html",
+		"licence": "CC0 1.0",
+		"clips": [
+			"Idle_Loop",
+			"Walk_Loop",
+			"Jog_Fwd_Loop",
+			"Sprint_Loop",
+			"Pistol_Idle_Loop",
+			"Pistol_Aim_Neutral",
+			"Pistol_Shoot",
+			"Pistol_Reload",
+			"Hit_Chest",
+			"Death01",
+			"Sitting_Idle_Loop",
+			"Crouch_Idle_Loop",
+			"Fixing_Kneeling",
+			"Interact"
+		]
+	},
+	"operator": {
+		"uid": "4ee9799e9182453d8d5046ae824c7f53",
+		"name": "Devgru_2 (CC0)",
+		"author": "britdawgmasterfunk",
+		"parts": [
+			{
+				"material": "^characterface",
+				"id": "skin-face",
+				"triangles": 3000
+			},
+			{
+				"material": "^blue_eye",
+				"id": "skin-eyes",
+				"joint": "Head",
+				"triangles": 300
+			},
+			{
+				"material": "^eye_transparency",
+				"id": "drop"
+			},
+			{
+				"material": "^hands",
+				"id": "skin-hands",
+				"stiffFingers": true,
+				"triangles": 2400
+			},
+			{
+				"material": "^ubacshirt",
+				"id": "body-ubacs",
+				"triangles": 4500
+			},
+			{
+				"material": "^combattrousers",
+				"id": "legs-combat",
+				"triangles": 4500
+			},
+			{
+				"material": "^sneakers",
+				"id": "feet-boots",
+				"triangles": 1500
+			},
+			{
+				"material": "^Material\\.001$",
+				"id": "vest-carrier",
+				"triangles": 1850
+			},
+			{
+				"material": "^Material$",
+				"id": "head-ops",
+				"joint": "Head",
+				"triangles": 2500
+			}
+		]
+	},
+	"gear": {
+		"head-tactical": {
+			"uid": "ad5de2de22af429cbcaf2a96e3520b80",
+			"name": "PBR Tactical Helmet",
+			"author": "simoncoenen",
+			"joint": "Head",
+			"offset": [0, 0.1, 0.01],
+			"rotation": [0, 0, 0],
+			"size": 0.3,
+			"triangles": 3000,
+			"nodes": ["Final_Helmet", "Final_Glasses"]
+		},
+		"head-mich": {
+			"uid": "18a7e45390ce44e98bb28c2f856d9697",
+			"name": "MICH Helmet [V1]",
+			"author": "x3dv3s",
+			"joint": "Head",
+			"offset": [0, 0.12, 0.0],
+			"rotation": [0, 0, 0],
+			"size": 0.28,
+			"triangles": 2500
+		},
+		"head-k6": {
+			"uid": "94701874d8b949718708b018c8d4f61d",
+			"name": "Combat helmet K6-3",
+			"author": "shamanoff",
+			"joint": "Head",
+			"offset": [0, 0.12, -0.01],
+			"rotation": [20, 180, 0],
+			"size": 0.36,
+			"triangles": 2500
+		},
+		"vest-plate": {
+			"uid": "3b51e6329dbb4b0aa14e43f12eb6c42a",
+			"name": "Tactical Plate Carrier Vest",
+			"author": "txyrm70",
+			"joint": "spine_03",
+			"offset": [0, -0.05, 0],
+			"rotation": [0, 0, 0],
+			"size": 0.55,
+			"triangles": 2960
+		},
+		"vest-heavy": {
+			"uid": "7c41d35e505c4057abe60f89537408bd",
+			"name": "Vest Armor Holster LowPoly GameReady Pack",
+			"author": "00amza",
+			"nodes": ["Vest_1_T1"],
+			"joint": "spine_03",
+			"offset": [0, -0.05, 0],
+			"rotation": [0, 0, 0],
+			"size": 0.6,
+			"triangles": 3000
+		},
+		"vest-rig": {
+			"uid": "7c41d35e505c4057abe60f89537408bd",
+			"name": "Vest Armor Holster LowPoly GameReady Pack",
+			"author": "00amza",
+			"nodes": ["Vest_T0"],
+			"joint": "spine_03",
+			"offset": [0, -0.05, 0.02],
+			"rotation": [0, 0, 0],
+			"size": 0.45,
+			"triangles": 3000
+		},
+		"pack-medical": {
+			"uid": "2aedfbd7581f47f5abcf89d39de57b67",
+			"name": "Medical BackPack",
+			"author": "deangothard",
+			"joint": "spine_03",
+			"offset": [0, -0.05, -0.2],
+			"rotation": [0, 0, 0],
+			"size": 0.45,
+			"triangles": 2000
+		},
+		"pack-military": {
+			"uid": "9fa2da2c42234b58896e8d23393cac24",
+			"name": "Military Tactical Backpack",
+			"author": "liamch",
+			"joint": "spine_03",
+			"offset": [0, -0.05, -0.22],
+			"rotation": [0, 0, 0],
+			"size": 0.42,
+			"triangles": 1474,
+			"tint": [0.45, 0.47, 0.4]
+		}
+	}
+}
