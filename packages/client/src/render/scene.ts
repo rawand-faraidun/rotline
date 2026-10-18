@@ -1,10 +1,11 @@
 import type { MapDef } from '@rotline/game-data'
 import * as THREE from 'three'
+import { PostProcessing } from './post.ts'
 import { pixelRatioFor, probeQuality, type Quality } from './quality.ts'
 
 /** Camera height and tilt: high and almost straight down, pulled back enough to see the horde coming. */
-const CAMERA_HEIGHT = 32
-const CAMERA_BACK = 8.5
+const CAMERA_HEIGHT = 27
+const CAMERA_BACK = 7.5
 /** How far the camera leans toward where the player aims, in metres. */
 const AIM_LEAN = 3.5
 
@@ -203,6 +204,7 @@ export class Stage {
 	private readonly reducedMotion =
 		typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 	private readonly canvas: HTMLCanvasElement
+	private post: PostProcessing | null = null
 
 	constructor(canvas: HTMLCanvasElement, map: MapDef, assets = '/assets') {
 		const look = map.look ?? { ground: 'concrete', walls: 'wall-concrete', light: 'overcast' }
@@ -253,6 +255,7 @@ export class Stage {
 		const walls = new THREE.Mesh(wallGeometry(map.walls, 2.4, 2), wallMaterial)
 		walls.castShadow = walls.receiveShadow = true
 		this.scene.add(walls)
+		if (high) this.post = new PostProcessing(this.renderer, this.scene, this.camera)
 		this.resize()
 	}
 
@@ -260,6 +263,7 @@ export class Stage {
 		const width = this.canvas.clientWidth || window.innerWidth
 		const height = this.canvas.clientHeight || window.innerHeight
 		this.renderer.setSize(width, height, false)
+		this.post?.setSize(width, height, this.renderer.getPixelRatio())
 		this.camera.aspect = width / height
 		this.camera.updateProjectionMatrix()
 	}
@@ -303,10 +307,12 @@ export class Stage {
 	}
 
 	render(): void {
-		this.renderer.render(this.scene, this.camera)
+		if (this.post) this.post.render(performance.now() / 1000)
+		else this.renderer.render(this.scene, this.camera)
 	}
 
 	dispose(): void {
+		this.post?.dispose()
 		this.renderer.dispose()
 	}
 }

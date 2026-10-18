@@ -22,3 +22,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Armory: equip buttons come first, cards line up at the same height, and weapons show a picture instead of a 3D view (the shop too).
 - Addresses with a trailing slash ("/play/") work.
 - Soldiers are realistic now: a real face and hands, a combat shirt, trousers, boots, plate carrier and helmet, each class in its own colours and kit. Rifles and other long guns are held in both hands with the stock at the shoulder.
+- On a graphics card the picture has a finish: ambient occlusion, a soft bloom on bright things, a colour grade, vignette and film grain. The camera sits a little closer.

@@ -33,7 +33,13 @@ export default defineConfig({
 				'three/addons/loaders/GLTFLoader.js',
 				'three/addons/libs/meshopt_decoder.module.js',
 				'three/addons/utils/SkeletonUtils.js',
-				'three/addons/environments/RoomEnvironment.js'
+				'three/addons/environments/RoomEnvironment.js',
+				'three/addons/postprocessing/EffectComposer.js',
+				'three/addons/postprocessing/GTAOPass.js',
+				'three/addons/postprocessing/OutputPass.js',
+				'three/addons/postprocessing/RenderPass.js',
+				'three/addons/postprocessing/ShaderPass.js',
+				'three/addons/postprocessing/UnrealBloomPass.js'
 			]
 		},
 		server: { proxy },
