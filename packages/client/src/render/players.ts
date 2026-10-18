@@ -122,6 +122,8 @@ export class PlayerFigure {
 	private legsYaw = 0
 	private spine: THREE.Object3D[] = []
 	private last = performance.now()
+	/** standing at ease (the lobby): no aiming, no gun in hand */
+	private relaxed = false
 
 	constructor(slot: number, isSelf: boolean, assets = '/assets') {
 		this.assets = assets
@@ -206,6 +208,11 @@ export class PlayerFigure {
 		})
 	}
 
+	/** At ease: stands with arms down and the gun put away (for the lobby), or back to the fight. */
+	setRelaxed(relaxed: boolean): void {
+		this.relaxed = relaxed
+	}
+
 	/** The weapon just fired: a short recoil in the arms. */
 	fired(): void {
 		this.playArms('Pistol_Shoot', 0.05, 0.22)
@@ -266,6 +273,8 @@ export class PlayerFigure {
 		this.model.rotation.y = this.legsYaw
 		if (downed) {
 			this.playPose('Sitting_Idle_Loop')
+		} else if (this.relaxed) {
+			this.playPose('Idle_Loop')
 		} else {
 			this.playPose(null)
 			if (this.speed < 0.4) this.playLegs('Idle_Loop', 1)
@@ -275,7 +284,7 @@ export class PlayerFigure {
 		}
 		this.mixer.update(dt)
 		// turn the torso until the hands point along the aim (measured, so every clip lines up)
-		if (!downed) {
+		if (!downed && !this.relaxed) {
 			let turned = 0
 			// the hands are not on the spine's axis, so a second, smaller pass corrects the first
 			for (let pass = 0; pass < 2; pass++) {
@@ -286,7 +295,7 @@ export class PlayerFigure {
 		}
 		// the gun sits in the right hand, pointing exactly where the shots go
 		if (this.weapon && this.hand) {
-			this.weapon.visible = !downed
+			this.weapon.visible = !downed && !this.relaxed
 			this.model.updateMatrixWorld(true)
 			const at = this.hand.getWorldPosition(scratch)
 			this.group.worldToLocal(at)

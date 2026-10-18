@@ -26,7 +26,6 @@ import {
 } from '../../lib/progress.ts'
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
-import { WeaponViewer } from './model-viewer.tsx'
 import { PageHeader } from './page-header.tsx'
 
 const t = en.app.armory
@@ -88,8 +87,39 @@ function ItemDetail({
 				{equippedIn.length > 0 && <Badge tone="lime">{t.equipped}</Badge>}
 			</PanelHeader>
 			<p className="text-muted text-sm">{kindLabel(id)}</p>
+			{/* equipping comes first: it is what you came here to do most often */}
+			<div className="flex flex-wrap gap-2">
+				{targets.map(target => (
+					<Button
+						key={target.field}
+						size="sm"
+						variant="secondary"
+						disabled={view.loadout[target.field] === id}
+						onClick={() => void act(progressActions.setLoadout(equip(view.loadout, target.field, id)))}
+					>
+						{format(t.equipAs, { slot: t.slots[target.field] })}
+					</Button>
+				))}
+				{(def.slot === 'armour' || def.slot === 'utility') &&
+					equippedIn.map(field => (
+						<Button
+							key={field}
+							size="sm"
+							variant="ghost"
+							onClick={() => void act(progressActions.setLoadout({ ...view.loadout, [field]: null }))}
+						>
+							{t.unequip}
+						</Button>
+					))}
+			</div>
 			{(def.slot === 'main' || def.slot === 'pistol') && (
-				<WeaponViewer id={id} label={format(t.modelOf, { name: def.name })} />
+				<img
+					src={`/assets/models/weapons/${id}.webp`}
+					alt=""
+					width={480}
+					height={270}
+					className="aspect-[16/9] w-full object-contain"
+				/>
 			)}
 			<div className="flex flex-col gap-1">
 				<span className="font-bold text-sm">{format(t.level, { level: String(owned.level), max: String(MAX) })}</span>
@@ -168,31 +198,6 @@ function ItemDetail({
 					</div>
 				)
 			})}
-
-			<div className="flex flex-wrap gap-2">
-				{targets.map(target => (
-					<Button
-						key={target.field}
-						size="sm"
-						variant="secondary"
-						disabled={view.loadout[target.field] === id}
-						onClick={() => void act(progressActions.setLoadout(equip(view.loadout, target.field, id)))}
-					>
-						{format(t.equipAs, { slot: t.slots[target.field] })}
-					</Button>
-				))}
-				{(def.slot === 'armour' || def.slot === 'utility') &&
-					equippedIn.map(field => (
-						<Button
-							key={field}
-							size="sm"
-							variant="ghost"
-							onClick={() => void act(progressActions.setLoadout({ ...view.loadout, [field]: null }))}
-						>
-							{t.unequip}
-						</Button>
-					))}
-			</div>
 
 			{confirming ? (
 				<div className="flex flex-col gap-2 border-alert border-l-4 pl-3" role="alertdialog">
@@ -313,13 +318,13 @@ export function ArmoryScreen() {
 									</span>
 									<ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
 										{owned.map(entry => (
-											<li key={entry.itemId}>
+											<li key={entry.itemId} className="flex">
 												<button
 													type="button"
 													data-testid={`item-${entry.itemId}`}
 													onClick={() => setSelected(entry.itemId)}
 													className={cn(
-														'frame cut flex w-full cursor-pointer flex-col gap-1 p-3 text-left',
+														'frame cut flex h-full w-full cursor-pointer flex-col gap-1 p-3 text-left',
 														chosen === entry.itemId
 															? '[--frame-color:var(--color-rot-lime)]'
 															: '[--frame-fill:var(--color-rot-black)] hover:[--frame-color:var(--color-bone)]'
@@ -337,7 +342,7 @@ export function ArmoryScreen() {
 													)}
 													<span className="font-bold">{item(entry.itemId).name}</span>
 													<span className="text-muted text-xs">{kindLabel(entry.itemId)}</span>
-													<span className="flex flex-wrap gap-1">
+													<span className="mt-auto flex flex-wrap gap-1 pt-1">
 														<Badge tone={entry.level > 0 ? 'lime' : 'muted'}>
 															{format(t.level, { level: String(entry.level), max: String(MAX) })}
 														</Badge>

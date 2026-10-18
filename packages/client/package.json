@@ -7,7 +7,8 @@
 		".": "./src/index.ts",
 		"./headless": "./src/headless.ts",
 		"./viewer": "./src/viewer.ts",
-		"./audio": "./src/audio.ts"
+		"./audio": "./src/audio.ts",
+		"./lobby": "./src/lobby.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc",

@@ -16,3 +16,8 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Zombies are new: rotting, torn and bloodied, hunched in a shambling walk, clawing when they reach you.
 - A graphics setting in the pause menu: automatic, high or low. Automatic picks the light version on devices without a graphics card.
 - Survivors are people in work clothes who walk with the squad when led out.
+- The lobby is a scene: your squad stands ready in a floodlit yard, with the squad and friends down the left, the classes and kit at their feet, and the mission card and Deploy on the right. Missions are picked in their own window.
+- Game screens use the whole window; nothing scrolls visibly, nothing can be selected by dragging, and the logo leads back to the lobby.
+- Abilities are equipped from the ability itself ("Equip in slot 1 (F)").
+- Armory: equip buttons come first, cards line up at the same height, and weapons show a picture instead of a 3D view (the shop too).
+- Addresses with a trailing slash ("/play/") work.

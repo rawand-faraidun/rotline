@@ -91,6 +91,24 @@
 	}
 }
 
+/* Game screens: nothing is selected by dragging or double-clicking, except what you type */
+@utility game-ui {
+	user-select: none;
+	-webkit-user-select: none;
+	& :is(input, textarea, [contenteditable]) {
+		user-select: text;
+		-webkit-user-select: text;
+	}
+}
+
+/* Scrolls without showing a scrollbar: game screens should not look like web pages */
+@utility no-scrollbar {
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
 /* Diagonal hazard stripes for danger and warnings */
 @utility hazard {
 	background-image: repeating-linear-gradient(

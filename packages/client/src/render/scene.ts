@@ -1,6 +1,6 @@
 import type { MapDef } from '@rotline/game-data'
 import * as THREE from 'three'
-import { detectQuality, type Quality } from './quality.ts'
+import { pixelRatioFor, probeQuality, type Quality } from './quality.ts'
 
 /** Camera height and tilt: high and almost straight down, pulled back enough to see the horde coming. */
 const CAMERA_HEIGHT = 32
@@ -208,10 +208,14 @@ export class Stage {
 		const look = map.look ?? { ground: 'concrete', walls: 'wall-concrete', light: 'overcast' }
 		const light = LIGHTS[look.light]
 		this.canvas = canvas
-		this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
-		this.quality = detectQuality(this.renderer.getContext())
+		this.quality = probeQuality()
+		this.renderer = new THREE.WebGLRenderer({
+			canvas,
+			antialias: this.quality === 'high',
+			powerPreference: 'high-performance'
+		})
 		const high = this.quality === 'high'
-		this.renderer.setPixelRatio(high ? Math.min(window.devicePixelRatio, 1.5) : 1)
+		this.renderer.setPixelRatio(pixelRatioFor(this.quality, 1.5))
 		this.renderer.shadowMap.enabled = high
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
 		this.renderer.toneMapping = THREE.ACESFilmicToneMapping

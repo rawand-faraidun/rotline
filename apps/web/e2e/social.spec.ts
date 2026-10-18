@@ -33,18 +33,21 @@ test('friends: request, accept, see presence, invite into the squad', async ({ b
 	await expect(ana).toHaveURL(/\/play\/lobby$/)
 	await expect(ben).toHaveURL(/\/play\/lobby$/)
 
+	// friends live behind the lobby's Friends tab
+	await ana.getByRole('tab', { name: /^friends$/i }).click()
 	await ana.getByLabel(/add a friend/i).fill(`Ben${run}`)
 	await ana.getByRole('button', { name: /^send$/i }).click()
 	await expect(ana.getByText(/request sent/i)).toBeVisible()
 
 	// the request arrives live
+	await ben.getByRole('tab', { name: /^friends$/i }).click()
 	await ben.getByRole('button', { name: /^accept$/i }).click()
 	await expect(ana.getByText(/in the lobby/i)).toBeVisible()
 
 	await ana.getByRole('button', { name: /^invite$/i }).click()
 	await expect(ben.getByText(`Ana${run} invited you to their squad`)).toBeVisible()
 	await ben.getByRole('button', { name: /join squad/i }).click()
-	await expect(ana.getByText('2 / 4')).toBeVisible()
+	await expect(ana.getByRole('tab', { name: /squad 2\/4/i })).toBeVisible()
 	await releaseSeats(ana, ben)
 })
 

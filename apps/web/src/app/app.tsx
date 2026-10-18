@@ -115,6 +115,10 @@ const skillsRoute = hubRoute('/play/skills', SkillsScreen)
 const armoryRoute = hubRoute('/play/armory', ArmoryScreen)
 const shopRoute = hubRoute('/play/shop', ShopScreen)
 
+// "/play/lobby/" and "/play/lobby" are the same screen
+if (typeof location !== 'undefined' && location.pathname.length > 1 && location.pathname.endsWith('/'))
+	history.replaceState(history.state, '', location.pathname.replace(/\/+$/, '') + location.search + location.hash)
+
 const router = createRouter({
 	routeTree: rootRoute.addChildren([
 		signInRoute,

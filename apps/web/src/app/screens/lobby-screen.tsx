@@ -1,25 +1,30 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import type { LobbyMember } from '@rotline/client/lobby'
 import type { AvatarStyle } from '@rotline/constants'
 import { difficulties, missionById, SURVIVAL } from '@rotline/game-data'
-import { AvatarFrame, Badge, Button, cn, Input, Label, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
+import { AvatarFrame, Badge, Button, cn, Input, Label, Panel } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
 import { useAvatar } from '../../lib/avatar.ts'
 import { type PartyMember, type PartyProblem, type PartyView, partyActions, partyQuery } from '../../lib/party.ts'
+import { progressQuery } from '../../lib/progress.ts'
 import { meQuery } from '../app.tsx'
 import { AdminPanel } from './admin-panel.tsx'
-import { ClassPanel, LoadoutSummary } from './class-panel.tsx'
+import { ClassPanel, glass, LoadoutSummary } from './class-panel.tsx'
 import { FriendsPanel } from './friends-panel.tsx'
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
+import { LobbyBackdrop } from './lobby-backdrop.tsx'
 import { MissionPanel } from './mission-panel.tsx'
-import { PageHeader } from './page-header.tsx'
 import { StableLabel } from './stable-label.tsx'
 
 const t = en.app.lobby
 
-function MemberCard({
+/** what other squad members hold in the scene (their loadout is theirs to know) */
+const CLASS_WEAPON: Record<string, string> = { assault: 'k-71', medic: 'vex-9', heavy: 'mower' }
+
+function MemberRow({
 	member,
 	you,
 	canKick,
@@ -34,21 +39,23 @@ function MemberCard({
 	return (
 		<li
 			className={cn(
-				'frame cut flex min-h-36 flex-col items-center gap-2 p-3 text-center',
+				'frame cut-sm flex items-center gap-3 p-2',
 				you ? '[--frame-color:var(--color-rot-lime)]' : member.ready ? '[--frame-color:var(--color-bone)]' : ''
 			)}
 		>
-			<AvatarFrame src={avatar} alt="" size={56} />
-			<span className="max-w-full truncate font-bold">
-				{member.name}
-				{you && <span className="text-muted"> {t.you}</span>}
+			<AvatarFrame src={avatar} alt="" size={40} />
+			<span className="flex min-w-0 flex-1 flex-col">
+				<span className="truncate font-bold">
+					{member.name}
+					{you && <span className="text-muted"> {t.you}</span>}
+				</span>
+				<span className="text-muted text-xs uppercase tracking-wider">
+					{t.classes[member.activeClass]} · {format(en.app.progression.level, { level: String(member.level) })}
+				</span>
 			</span>
-			<span className="text-muted text-xs uppercase tracking-wider">
-				{t.classes[member.activeClass]} · {format(en.app.progression.level, { level: String(member.level) })}
-			</span>
-			<span className="mt-auto flex flex-wrap justify-center gap-1.5">
-				{member.leader && <Badge tone="bone">{t.leader}</Badge>}
+			<span className="flex shrink-0 flex-col items-end gap-1">
 				<Badge tone={member.ready ? 'lime' : 'warning'}>{member.ready ? t.ready : t.notReady}</Badge>
+				{member.leader && <Badge tone="bone">{t.leader}</Badge>}
 			</span>
 			{canKick && (
 				<Button variant="ghost" size="sm" onClick={onKick}>
@@ -72,6 +79,9 @@ export function LobbyScreen() {
 	const [code, setCode] = useState('')
 	const [problem, setProblem] = useState<PartyProblem | null>(null)
 	const [copied, setCopied] = useState<'code' | 'link' | null>(null)
+	const [side, setSide] = useState<'squad' | 'friends'>('squad')
+	const [picking, setPicking] = useState(false)
+	const progress = useQuery(progressQuery)
 	const player = me.status === 'signed-in' ? me.player : null
 
 	const view = party.data
@@ -130,112 +140,126 @@ export function LobbyScreen() {
 		view?.mission.id === SURVIVAL ? en.app.missions.survival : (missionById(view?.mission.id ?? '')?.name ?? '')
 	const difficultyName = difficulties.tiers.find(tier => tier.id === view?.mission.difficulty)?.name ?? ''
 
-	return (
-		<GameShell>
-			<PageHeader title={t.title} />
-			<div className={cn(panes, 'lg:grid-cols-[2fr_1fr]')}>
-				<div className={cn(pane, 'lg:pb-0')}>
-					<Panel>
-						<PanelHeader>
-							<PanelTitle>{t.squad}</PanelTitle>
-							<span className="font-bold text-muted text-sm">{view?.members.length ?? 1} / 4</span>
-						</PanelHeader>
-						<ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-							{view?.members.map(member => (
-								<MemberCard
-									key={member.id}
-									member={member}
-									you={member.id === view.you}
-									canKick={isLeader && member.id !== view.you}
-									onKick={() => void act(() => partyActions.kick(member.id))}
-								/>
-							))}
-							{Array.from({ length: 4 - (view?.members.length ?? 1) }, (_, i) => (
-								<li
-									// biome-ignore lint/suspicious/noArrayIndexKey: empty slots have no identity
-									key={i}
-									className="frame cut flex min-h-36 flex-col items-center justify-center gap-2 p-3 text-center [--frame-fill:var(--color-rot-black)]"
-								>
-									<span className="text-muted text-xs uppercase tracking-[0.2em]">{t.slotOpen}</span>
-									{i === 0 && view?.state === 'lobby' && (
-										<Button variant="ghost" size="sm" onClick={() => void copy(inviteLink, 'link')}>
-											<StableLabel
-												labels={[t.inviteSomeone, t.copied]}
-												current={copied === 'link' ? t.copied : t.inviteSomeone}
-											/>
-										</Button>
-									)}
-								</li>
-							))}
-						</ul>
-					</Panel>
-					{view && <MissionPanel view={view} />}
-					{/* what the squad is about to do and the one button that does it, always in reach */}
-					<div className="frame cut sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4 [--frame-color:var(--color-rot-lime)] lg:mb-6">
-						{view && view.state === 'lobby' && (
-							<p className="flex flex-col">
-								<span className="text-muted text-xs uppercase tracking-[0.2em]">{t.next}</span>
-								<span className="font-display text-2xl uppercase">
-									{missionName}
-									{view.mission.id !== SURVIVAL && <span className="text-lg text-muted"> · {difficultyName}</span>}
-								</span>
-							</p>
-						)}
-						<div className="flex flex-wrap items-center gap-3">
-							{view?.state === 'mission' ? (
-								<>
-									<p className="text-warning">{t.inMission}</p>
-									<Button onClick={() => void navigate({ to: '/play/mission' })}>{t.rejoin}</Button>
-									<Button variant="ghost" onClick={() => void act(() => partyActions.abandon())}>
-										{solo ? t.abandon : t.abandonSquad}
-									</Button>
-								</>
-							) : isLeader ? (
-								<Button
-									size="lg"
-									disabled={!view?.canStart}
-									onClick={() => void act(() => partyActions.start(view?.mission))}
-								>
-									{solo ? t.deploy : t.deploySquad}
-								</Button>
-							) : (
-								<Button
-									size="lg"
-									variant={youMember?.ready ? 'secondary' : 'primary'}
-									onClick={() => void act(() => partyActions.ready(!youMember?.ready, view?.mission))}
-								>
-									<StableLabel labels={[t.markReady, t.unready]} current={youMember?.ready ? t.unready : t.markReady} />
-								</Button>
-							)}
-							{isLeader && !solo && !view?.canStart && <p className="text-muted text-sm">{t.waiting}</p>}
-							{!solo && (
-								<Button variant="ghost" size="sm" onClick={() => void act(() => partyActions.leave())}>
-									{t.leaveParty}
-								</Button>
-							)}
-						</div>
-						{problem && (
-							<p role="alert" className="w-full text-alert text-sm">
-								{t.problems[problem]}
-							</p>
-						)}
-					</div>
-				</div>
+	const deployBar = (
+		// what the squad is about to do and the one button that does it, always in reach
+		<div className={cn('frame cut flex shrink-0 flex-col gap-3 p-4 [--frame-color:var(--color-rot-lime)]', glass)}>
+			<div className="flex flex-wrap items-center gap-3">
+				{view?.state === 'mission' ? (
+					<>
+						<p className="w-full text-warning">{t.inMission}</p>
+						<Button onClick={() => void navigate({ to: '/play/mission' })}>{t.rejoin}</Button>
+						<Button variant="ghost" onClick={() => void act(() => partyActions.abandon())}>
+							{solo ? t.abandon : t.abandonSquad}
+						</Button>
+					</>
+				) : isLeader ? (
+					<Button
+						size="lg"
+						className="flex-1"
+						disabled={!view?.canStart}
+						onClick={() => void act(() => partyActions.start(view?.mission))}
+					>
+						{solo ? t.deploy : t.deploySquad}
+					</Button>
+				) : (
+					<Button
+						size="lg"
+						className="flex-1"
+						variant={youMember?.ready ? 'secondary' : 'primary'}
+						onClick={() => void act(() => partyActions.ready(!youMember?.ready, view?.mission))}
+					>
+						<StableLabel labels={[t.markReady, t.unready]} current={youMember?.ready ? t.unready : t.markReady} />
+					</Button>
+				)}
+				{!solo && (
+					<Button variant="ghost" size="sm" onClick={() => void act(() => partyActions.leave())}>
+						{t.leaveParty}
+					</Button>
+				)}
+			</div>
+			{isLeader && !solo && !view?.canStart && <p className="text-muted text-sm">{t.waiting}</p>}
+			{problem && (
+				<p role="alert" className="text-alert text-sm">
+					{t.problems[problem]}
+				</p>
+			)}
+		</div>
+	)
 
+	// the soldiers standing in the scene: you with your own gun, the others with their class's usual one
+	const members: LobbyMember[] = (view?.members ?? []).map((member, index) => {
+		const you = member.id === view?.you
+		const weaponId = (you ? progress.data?.loadout.main1 : null) ?? CLASS_WEAPON[member.activeClass] ?? 'k-71'
+		return { slot: index + 1, classId: member.activeClass, weaponId, pistol: false, you }
+	})
+
+	return (
+		<GameShell backdrop={<LobbyBackdrop members={members} />}>
+			<h1 className="sr-only">{t.title}</h1>
+			<div
+				className={cn(
+					panes,
+					'lg:grid-cols-[minmax(17rem,21rem)_minmax(0,1fr)_minmax(20rem,25rem)] lg:grid-rows-[minmax(0,1fr)]'
+				)}
+			>
+				{/* left: the squad and the way in for others, or friends */}
 				<div className={pane}>
-					<ClassPanel />
-					<Panel>
-						<PanelHeader>
-							<PanelTitle>{t.invite}</PanelTitle>
-						</PanelHeader>
-						<div className="flex flex-col gap-3">
-							<div className="flex flex-col gap-1">
-								<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.inviteCode}</span>
-								<span data-testid="party-code" className="font-display text-4xl text-rot-lime tracking-[0.15em]">
-									{view?.code ?? '······'}
+					<div className="flex shrink-0 gap-1" role="tablist" aria-label={t.sideTabs}>
+						{(['squad', 'friends'] as const).map(tab => (
+							<button
+								key={tab}
+								type="button"
+								role="tab"
+								aria-selected={side === tab}
+								onClick={() => setSide(tab)}
+								className={cn(
+									'frame cut-sm flex-1 px-3 py-2 font-bold text-xs uppercase tracking-[0.2em]',
+									glass,
+									side === tab ? 'text-rot-lime [--frame-color:var(--color-rot-lime)]' : 'text-muted hover:text-bone'
+								)}
+							>
+								{tab === 'squad' ? `${t.squad} ${view?.members.length ?? 1}/4` : en.app.friends.title}
+							</button>
+						))}
+					</div>
+					{side === 'squad' ? (
+						<Panel className={cn('shrink-0 gap-3 p-4', glass)}>
+							<h2 className="sr-only">{t.squad}</h2>
+							<ul className="flex flex-col gap-1.5">
+								{view?.members.map(member => (
+									<MemberRow
+										key={member.id}
+										member={member}
+										you={member.id === view.you}
+										canKick={isLeader && member.id !== view.you}
+										onKick={() => void act(() => partyActions.kick(member.id))}
+									/>
+								))}
+								{Array.from({ length: 4 - (view?.members.length ?? 1) }, (_, i) => (
+									<li
+										// biome-ignore lint/suspicious/noArrayIndexKey: empty slots have no identity
+										key={i}
+										className="frame cut-sm flex min-h-14 items-center justify-between gap-2 px-3 [--frame-fill:rgb(13_16_14/0.6)]"
+									>
+										<span className="text-muted text-xs uppercase tracking-[0.2em]">{t.slotOpen}</span>
+										{i === 0 && view?.state === 'lobby' && (
+											<Button variant="ghost" size="sm" onClick={() => void copy(inviteLink, 'link')}>
+												<StableLabel
+													labels={[t.inviteSomeone, t.copied]}
+													current={copied === 'link' ? t.copied : t.inviteSomeone}
+												/>
+											</Button>
+										)}
+									</li>
+								))}
+							</ul>
+							<div className="flex items-center justify-between gap-2 border-line border-t border-dashed pt-3">
+								<span className="flex flex-col">
+									<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.inviteCode}</span>
+									<span data-testid="party-code" className="font-display text-2xl text-rot-lime tracking-[0.15em]">
+										{view?.code ?? '······'}
+									</span>
 								</span>
-							</div>
-							<div className="grid grid-cols-2 gap-2">
 								<Button
 									variant="secondary"
 									size="sm"
@@ -244,40 +268,97 @@ export function LobbyScreen() {
 								>
 									<StableLabel labels={[t.copyCode, t.copied]} current={copied === 'code' ? t.copied : t.copyCode} />
 								</Button>
-								<Button variant="ghost" size="sm" disabled={!view} onClick={() => void copy(inviteLink, 'link')}>
-									<StableLabel labels={[t.copyLink, t.copied]} current={copied === 'link' ? t.copied : t.copyLink} />
-								</Button>
 							</div>
-						</div>
-						<form
-							className="flex flex-col gap-2"
-							onSubmit={event => {
-								event.preventDefault()
-								if (code.trim().length === 6) void act(() => partyActions.join(code.trim().toUpperCase()))
-							}}
-						>
-							<Label htmlFor={codeId}>{t.joinCode}</Label>
-							<div className="flex gap-2">
-								<Input
-									id={codeId}
-									value={code}
-									maxLength={6}
-									placeholder={t.joinPlaceholder}
-									autoComplete="off"
-									className="font-bold uppercase tracking-[0.3em]"
-									onChange={event => setCode(event.target.value.replace(/[^a-z0-9]/gi, ''))}
-								/>
-								<Button type="submit" variant="secondary" disabled={code.trim().length !== 6}>
-									{t.join}
-								</Button>
-							</div>
-						</form>
-					</Panel>
-					<LoadoutSummary />
-					<FriendsPanel squad={view?.members.map(member => member.id) ?? []} />
+							<form
+								className="flex flex-col gap-1.5"
+								onSubmit={event => {
+									event.preventDefault()
+									if (code.trim().length === 6) void act(() => partyActions.join(code.trim().toUpperCase()))
+								}}
+							>
+								<Label htmlFor={codeId}>{t.joinCode}</Label>
+								<div className="flex gap-2">
+									<Input
+										id={codeId}
+										value={code}
+										maxLength={6}
+										placeholder={t.joinPlaceholder}
+										autoComplete="off"
+										className="font-bold uppercase tracking-[0.3em]"
+										onChange={event => setCode(event.target.value.replace(/[^a-z0-9]/gi, ''))}
+									/>
+									<Button type="submit" variant="secondary" disabled={code.trim().length !== 6}>
+										{t.join}
+									</Button>
+								</div>
+							</form>
+						</Panel>
+					) : (
+						<FriendsPanel squad={view?.members.map(member => member.id) ?? []} />
+					)}
 					{player.isAdmin && <AdminPanel />}
 				</div>
+
+				{/* middle: the squad stands in the scene; the class and kit sit at their feet */}
+				<div className="flex min-h-0 flex-col justify-end gap-3 max-lg:min-h-[60dvh]">
+					<ClassPanel />
+					<LoadoutSummary />
+				</div>
+
+				{/* right: where to go, and going */}
+				<div className={cn(pane, 'lg:overflow-hidden')}>
+					<div className="flex-1" />
+					{view && (
+						// the mode card: what the squad is about to play; it opens the mission picker
+						<button
+							type="button"
+							onClick={() => setPicking(true)}
+							className={cn(
+								'frame cut flex shrink-0 flex-col gap-1 p-4 text-left hover:[--frame-color:var(--color-bone)]',
+								glass
+							)}
+						>
+							<span className="flex items-center justify-between gap-2">
+								<span className="text-muted text-xs uppercase tracking-[0.2em]">{en.app.missions.title}</span>
+								<span className="font-bold text-rot-lime text-xs uppercase tracking-[0.2em]">
+									{isLeader && view.state === 'lobby' ? t.changeMission : t.seeMission}
+								</span>
+							</span>
+							<span className="font-display text-3xl uppercase">{missionName}</span>
+							<span className="text-muted text-sm">
+								{view.mission.id === SURVIVAL
+									? en.app.missions.endless
+									: `${difficultyName} · ${missionById(view.mission.id)?.description ?? ''}`}
+							</span>
+						</button>
+					)}
+					{deployBar}
+				</div>
 			</div>
+			{picking && view && <MissionPicker view={view} onClose={() => setPicking(false)} />}
 		</GameShell>
+	)
+}
+
+/** Choosing where to go: the campaign, Survival and the difficulty, over the lobby. */
+function MissionPicker({ view, onClose }: { view: PartyView; onClose: () => void }) {
+	const dialog = useRef<HTMLDialogElement>(null)
+	useEffect(() => {
+		dialog.current?.showModal()
+	}, [])
+	return (
+		<dialog
+			ref={dialog}
+			aria-label={en.app.missions.title}
+			onClose={onClose}
+			className="no-scrollbar m-auto max-h-[92dvh] w-[min(64rem,96vw)] overflow-y-auto bg-transparent p-0 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+		>
+			<div className="flex flex-col gap-3">
+				<MissionPanel view={view} />
+				<Button className="self-end" onClick={() => dialog.current?.close()}>
+					{t.done}
+				</Button>
+			</div>
+		</dialog>
 	)
 }

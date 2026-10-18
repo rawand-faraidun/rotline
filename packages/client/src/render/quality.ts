@@ -43,3 +43,24 @@ export function detectQuality(gl: WebGLRenderingContext | WebGL2RenderingContext
 		return 'high'
 	}
 }
+
+/** Finds the quality before the real renderer exists (antialiasing can only be chosen at creation). */
+export function probeQuality(): Quality {
+	const chosen = loadGraphicsSetting()
+	if (chosen !== 'auto') return chosen
+	try {
+		const canvas = document.createElement('canvas')
+		const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl')
+		if (!gl) return 'low'
+		const quality = detectQuality(gl)
+		gl.getExtension('WEBGL_lose_context')?.loseContext()
+		return quality
+	} catch {
+		return 'high'
+	}
+}
+
+/** Pixel ratio per quality: a software renderer pays for every pixel, so it draws at half size. */
+export function pixelRatioFor(quality: Quality, cap: number): number {
+	return quality === 'high' ? Math.min(window.devicePixelRatio, cap) : 0.5
+}

@@ -19,6 +19,8 @@ import { GameShell } from './game-shell.tsx'
 import { panes } from './layout.ts'
 
 const t = en.app.skills
+/** the keys that fire ability slots 1, 2 and 3 in a mission */
+const SLOT_KEYS = ['F', 'C', 'V']
 const p = en.app.progression
 const CLASSES: ClassId[] = ['assault', 'medic', 'heavy']
 const TIERS = [1, 2, 3, 4, 5]
@@ -246,6 +248,46 @@ export function SkillsScreen() {
 								>
 									{t.learn}
 								</Button>
+								{learned.includes(selectedNode.id) && (
+									// an ability is equipped from the ability itself, into a slot you pick
+									<div className="flex flex-wrap gap-2" data-testid="equip-ability">
+										{slots.map((current, index) => (
+											<Button
+												// biome-ignore lint/suspicious/noArrayIndexKey: slots are positions
+												key={index}
+												size="sm"
+												variant={current === selectedNode.id ? 'primary' : 'secondary'}
+												disabled={pending || current === selectedNode.id}
+												onClick={() => {
+													// the ability leaves any other slot it was in
+													const next = slots.map((id, position) =>
+														position === index ? selectedNode.id : id === selectedNode.id ? '' : id
+													)
+													void act(progressActions.setAbilities(cls, next.filter(Boolean)))
+												}}
+											>
+												{format(t.equipInSlot, { slot: String(index + 1), key: SLOT_KEYS[index] ?? '' })}
+											</Button>
+										))}
+										{slots.includes(selectedNode.id) && (
+											<Button
+												size="sm"
+												variant="ghost"
+												disabled={pending}
+												onClick={() =>
+													void act(
+														progressActions.setAbilities(
+															cls,
+															slots.filter(id => id && id !== selectedNode.id)
+														)
+													)
+												}
+											>
+												{t.unequipAbility}
+											</Button>
+										)}
+									</div>
+								)}
 							</>
 						) : (
 							<p className="text-muted">{t.selectHint}</p>
@@ -257,38 +299,34 @@ export function SkillsScreen() {
 							<PanelTitle className="text-xl">{t.abilitiesTitle}</PanelTitle>
 						</PanelHeader>
 						<p className="text-muted text-sm">{t.abilitiesHint}</p>
-						{slots.map((current, index) => (
-							<label
-								// biome-ignore lint/suspicious/noArrayIndexKey: slots are positions
-								key={index}
-								className="flex flex-col gap-1"
-							>
-								<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">
-									{format(t.slot, { slot: String(index + 1) })}
-								</span>
-								<select
-									disabled={pending}
-									className="cut-sm h-10 border border-line bg-rot-black px-3 font-bold text-bone"
-									value={current}
-									onChange={event => {
-										const next = [...slots]
-										next[index] = event.target.value
-										// an ability moved into this slot leaves its old one
-										const cleaned = next.map((id, position) =>
-											position !== index && id === event.target.value ? '' : id
-										)
-										void act(progressActions.setAbilities(cls, cleaned.filter(Boolean)))
-									}}
+						<ul className="flex flex-col gap-1.5">
+							{slots.map((current, index) => (
+								<li
+									// biome-ignore lint/suspicious/noArrayIndexKey: slots are positions
+									key={index}
+									data-testid={`ability-slot-${index + 1}`}
+									className="frame cut-sm flex items-center justify-between gap-2 px-3 py-2 [--frame-fill:var(--color-rot-black)]"
 								>
-									<option value="">{t.emptySlot}</option>
-									{learned.map(id => (
-										<option key={id} value={id}>
-											{abilities.find(ability => ability.id === id)?.name ?? id}
-										</option>
-									))}
-								</select>
-							</label>
-						))}
+									<span className="flex items-center gap-2">
+										<span className="frame cut-sm grid size-6 place-items-center font-bold text-xs [--frame-fill:var(--color-surface-raised)]">
+											{SLOT_KEYS[index]}
+										</span>
+										<span className={cn('font-bold', !current && 'text-muted')}>
+											{current ? (abilities.find(ability => ability.id === current)?.name ?? current) : t.emptySlot}
+										</span>
+									</span>
+									{current && (
+										<button
+											type="button"
+											className="font-bold text-rot-lime text-xs uppercase tracking-[0.2em] hover:text-bone"
+											onClick={() => setSelected(current)}
+										>
+											{t.view}
+										</button>
+									)}
+								</li>
+							))}
+						</ul>
 						<p className="text-muted text-xs">{t.abilitiesArrive}</p>
 					</Panel>
 				</div>

@@ -29,7 +29,7 @@ const tabs = [
  * The frame around the lobby, skills, armory and shop: navigation, Salvage, the player, the
  * event stream (squad, friends, invites, rewards) and the seat heartbeat.
  */
-export function GameShell({ children }: { children: ReactNode }) {
+export function GameShell({ children, backdrop }: { children: ReactNode; backdrop?: ReactNode }) {
 	const { data: me } = useSuspenseQuery(meQuery)
 	const progress = useQuery(progressQuery)
 	const queryClient = useQueryClient()
@@ -54,6 +54,24 @@ export function GameShell({ children }: { children: ReactNode }) {
 	return (
 		<Shell
 			fill
+			home="/play/lobby"
+			backdrop={backdrop}
+			nav={
+				<nav className="no-scrollbar flex min-w-0 gap-1 overflow-x-auto" aria-label="Game">
+					{tabs.map(tab => (
+						<Link
+							key={tab.to}
+							to={tab.to}
+							className={cn(
+								'cut-sm -mb-px shrink-0 whitespace-nowrap border-transparent border-b-2 px-4 py-2.5 font-bold text-muted text-sm uppercase tracking-[0.18em] hover:text-bone',
+								'data-[status=active]:border-rot-lime data-[status=active]:text-rot-lime'
+							)}
+						>
+							{tab.label}
+						</Link>
+					))}
+				</nav>
+			}
 			aside={
 				<div className="flex items-center gap-3">
 					<span className="flex items-baseline gap-2" data-testid="salvage">
@@ -71,23 +89,6 @@ export function GameShell({ children }: { children: ReactNode }) {
 			}
 		>
 			<SeatKeeper />
-			<nav
-				className="-mx-6 mb-4 flex shrink-0 gap-1 overflow-x-auto border-line border-b border-dashed px-6 [scrollbar-width:none]"
-				aria-label="Game"
-			>
-				{tabs.map(tab => (
-					<Link
-						key={tab.to}
-						to={tab.to}
-						className={cn(
-							'cut-sm -mb-px shrink-0 whitespace-nowrap border-transparent border-b-2 px-4 py-2.5 font-bold text-muted text-sm uppercase tracking-[0.18em] hover:text-bone',
-							'data-[status=active]:border-rot-lime data-[status=active]:text-rot-lime'
-						)}
-					>
-						{tab.label}
-					</Link>
-				))}
-			</nav>
 			<div className="flex min-h-0 flex-1 flex-col">{children}</div>
 			{invite && (
 				<div role="status" className="fixed right-4 bottom-4 z-40 w-80">

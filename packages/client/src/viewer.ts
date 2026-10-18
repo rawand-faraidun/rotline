@@ -3,7 +3,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { detectQuality } from './render/quality.ts'
+import { pixelRatioFor, probeQuality } from './render/quality.ts'
 
 export type ShowOptions = {
 	/** for a model holding several looks (the soldier's classes): show only nodes named `<only>-…` */
@@ -23,8 +23,9 @@ export type ViewerHandle = {
  * drag to turn it yourself. The page loads it (and three.js) only when it is opened.
  */
 export function mountViewer(canvas: HTMLCanvasElement): ViewerHandle {
-	const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+	const quality = probeQuality()
+	const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality === 'high', alpha: true })
+	renderer.setPixelRatio(pixelRatioFor(quality, 2))
 	renderer.toneMapping = THREE.ACESFilmicToneMapping
 	renderer.outputColorSpace = THREE.SRGBColorSpace
 	const scene = new THREE.Scene()
@@ -86,11 +87,7 @@ export function mountViewer(canvas: HTMLCanvasElement): ViewerHandle {
 	canvas.addEventListener('pointerup', up)
 
 	// a weak device draws the turntable at a third of the rate; nobody draws it while it is off screen
-	const low = detectQuality(renderer.getContext()) === 'low'
-	if (low) {
-		renderer.setPixelRatio(1)
-		resize()
-	}
+	const low = quality === 'low'
 	let onScreen = true
 	const watcher = new IntersectionObserver(entries => {
 		onScreen = entries.some(entry => entry.isIntersecting)

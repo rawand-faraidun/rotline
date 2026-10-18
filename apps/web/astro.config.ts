@@ -18,13 +18,24 @@ const proxy = {
 export default defineConfig({
 	output: 'static',
 	site: process.env.PUBLIC_ORIGIN ?? 'http://localhost:4321',
-	trailingSlash: 'never',
+	// pages answer with or without a trailing slash (the app trims it from the address)
+	trailingSlash: 'ignore',
 	build: { format: 'file' },
 	integrations: [react()],
 	devToolbar: { enabled: false },
 	server: { port: 4321, host: true },
 	vite: {
 		plugins: [tailwindcss()],
+		// found up front, so the dev server never has to re-bundle them mid-session (and reload the page)
+		optimizeDeps: {
+			include: [
+				'three',
+				'three/addons/loaders/GLTFLoader.js',
+				'three/addons/libs/meshopt_decoder.module.js',
+				'three/addons/utils/SkeletonUtils.js',
+				'three/addons/environments/RoomEnvironment.js'
+			]
+		},
 		server: { proxy },
 		preview: { proxy }
 	}

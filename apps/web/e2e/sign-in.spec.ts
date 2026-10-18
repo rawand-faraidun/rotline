@@ -49,13 +49,18 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	await page.reload()
 	await expect(page).toHaveURL(/\/play\/lobby$/)
 
-	// the leader picks the mission and difficulty
+	// the leader picks the mission and difficulty from the mission picker
+	await page.getByRole('button', { name: /^mission/i }).click()
 	const recruit = page.getByRole('button', { name: /^recruit/i })
 	await recruit.click()
 	await expect(recruit).toHaveAttribute('aria-pressed', 'true')
 	// the campaign starts with Landfall; the next mission is locked
-	await expect(page.getByRole('button', { name: /landfall/i })).toHaveAttribute('aria-pressed', 'true')
-	await expect(page.getByRole('button', { name: /yard sweep/i })).toBeDisabled()
+	await expect(page.getByRole('dialog').getByRole('button', { name: /landfall/i })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	)
+	await expect(page.getByRole('dialog').getByRole('button', { name: /yard sweep/i })).toBeDisabled()
+	await page.getByRole('button', { name: /^done$/i }).click()
 
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition
 	await page.getByRole('button', { name: /^deploy$/i }).click()
@@ -103,7 +108,7 @@ test('two players form a squad by code and deploy together', async ({ browser })
 	const code = (await host.getByTestId('party-code').innerText()).trim()
 	await guest.getByLabel(/join a squad/i).fill(code)
 	await guest.getByRole('button', { name: /^join$/i }).click()
-	await expect(host.getByText('2 / 4')).toBeVisible()
+	await expect(host.getByRole('tab', { name: /squad 2\/4/i })).toBeVisible()
 	await expect(host.getByRole('button', { name: /deploy squad/i })).toBeDisabled()
 	await guest.getByRole('button', { name: /i am ready/i }).click()
 	await host.getByRole('button', { name: /deploy squad/i }).click()

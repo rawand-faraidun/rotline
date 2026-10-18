@@ -54,6 +54,11 @@ server {
 		proxy_read_timeout 120s;
 	}
 
+	# one address per page: "/play/lobby/" goes to "/play/lobby" (the API keeps its own paths)
+	location ~ ^/(?!api/|_astro/|brand/)(.+)/$ {
+		return 301 /$1$is_args$args;
+	}
+
 	# the app routes on the client
 	location /play {
 		add_header Cache-Control "no-cache";
