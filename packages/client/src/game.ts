@@ -45,7 +45,7 @@ import { HudStore, type InteractAction, type MissionHud, type Toast } from './hu
 import { Interpolator } from './interpolate.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
-import { Effects } from './render/effects.ts'
+import { Effects, SHOT_LOOKS } from './render/effects.ts'
 import { MissionMarkers } from './render/mission.ts'
 import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
 import { PlayerFigure } from './render/players.ts'
@@ -400,16 +400,10 @@ export function startGame(options: GameOptions): GameHandle {
 						if (behaviour === 'cone') {
 							effects.flame(event.x, event.y, event.angle, event.length, 0.3, weapon?.damageType === 'chemical', now)
 						} else {
-							effects.tracer(
-								event.x,
-								event.y,
-								event.angle,
-								event.length,
-								now,
-								1.05,
-								behaviour === 'chain' ? 0x7fd8ff : 0xffe2a0
-							)
-							if (behaviour !== 'chain' || event.player !== you) effects.muzzleFlash(event.x, event.y, event.angle, now)
+							const look = SHOT_LOOKS[weapon?.kind ?? 'rifle']
+							effects.tracer(event.x, event.y, event.angle, event.length, now, 1.05, look)
+							if (behaviour !== 'chain' || event.player !== you)
+								effects.muzzleFlash(event.x, event.y, event.angle, now, look?.flash ?? 1)
 						}
 						break
 					}
@@ -794,9 +788,17 @@ export function startGame(options: GameOptions): GameHandle {
 							((result & Step.piercing) !== 0 ? (abilityById.get('overwatch')?.params.pierce ?? 0) : 0)
 						stop = firstZombie(x, y, angle, wall, pierce)
 						wallHit = stop === wall && wall < held.range - 0.05
-						effects.tracer(x, y, angle, stop, now / 1000, 1.05, held.behaviour.type === 'chain' ? 0x7fd8ff : 0xffe2a0)
+						const look = SHOT_LOOKS[weapons[held.index]?.kind ?? 'rifle']
+						effects.tracer(x, y, angle, stop, now / 1000, 1.05, look)
+						// a shotgun's other pellets fan out (drawn only; the server decides what they hit)
+						const spread = (held.spreadDegrees * Math.PI) / 180
+						for (let pellet = 1; pellet < held.pellets; pellet++) {
+							const turn = angle + (Math.random() - 0.5) * spread
+							const reach = grid.rayToWall(x, y, Math.cos(turn), Math.sin(turn), held.range)
+							effects.tracer(x, y, turn, firstZombie(x, y, turn, reach, pierce), now / 1000, 1.05, look)
+						}
 					}
-					effects.muzzleFlash(x, y, angle, now / 1000)
+					effects.muzzleFlash(x, y, angle, now / 1000, SHOT_LOOKS[weapons[held.index]?.kind ?? 'rifle']?.flash ?? 1)
 					me?.fired()
 					lastOwnShotAt = now / 1000
 					shotSound(held.index, undefined, (result & Step.minigun) !== 0)

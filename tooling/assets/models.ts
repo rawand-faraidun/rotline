@@ -5,16 +5,24 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { type Document, NodeIO } from '@gltf-transform/core'
+import { type Document, MathUtils, type mat4, NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
-import { dedup, flatten, getBounds, prune, textureCompress, weld } from '@gltf-transform/functions'
+import { dedup, flatten, getBounds, metalRough, prune, textureCompress, weld } from '@gltf-transform/functions'
 import sharp from 'sharp'
 import { plainMaterials, publicAssets, sketchfabModel } from './sources.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const out = join(publicAssets, 'models', 'weapons')
 
-type Weapon = { id: string; uid: string; name: string; author: string; length: number; flip?: boolean }
+type Weapon = {
+	id: string
+	uid: string
+	name: string
+	author: string
+	length: number
+	flip?: boolean
+	upsideDown?: boolean
+}
 const { collection, weapons } = JSON.parse(readFileSync(join(here, 'model-sources.json'), 'utf8')) as {
 	collection: string
 	weapons: Weapon[]
@@ -25,7 +33,7 @@ mkdirSync(out, { recursive: true })
  * Turns and scales the whole scene: the longest axis becomes +X (the barrel), the model is centred
  * on its grip height, and it is `length` metres long. `flip` turns it end for end.
  */
-function normalise(document: Document, length: number, flip: boolean): void {
+function normalise(document: Document, length: number, flip: boolean, upsideDown = false): void {
 	const scene = document.getRoot().getDefaultScene() ?? document.getRoot().listScenes()[0]
 	if (!scene) return
 	const { min, max } = getBounds(scene)
@@ -40,12 +48,23 @@ function normalise(document: Document, length: number, flip: boolean): void {
 		wrapper.addChild(child)
 	}
 	scene.addChild(wrapper)
-	const half = Math.SQRT1_2
-	// rotation taking the longest axis onto +X (quaternions x, y, z, w)
-	const rotation: [number, number, number, number] =
-		longest === 0 ? [0, 0, 0, 1] : longest === 2 ? [0, half, 0, half] : [0, 0, -half, half]
-	// flipping is a half turn about +Y after that, so the model stays upright
-	wrapper.setRotation(flip ? multiply([0, 1, 0, 0], rotation) : rotation)
+	// the longest side becomes +X (the barrel), the next longest +Y (a gun is taller than it is
+	// wide), the shortest Z: a rotation built from those axes (right-handed)
+	const order = [0, 1, 2].sort((i, j) => (size[j] as number) - (size[i] as number))
+	const axis = (index: number) => [0, 1, 2].map(k => (k === index ? 1 : 0)) as [number, number, number]
+	const x = axis(order[0] as number)
+	const y = axis(order[1] as number)
+	const z: [number, number, number] = [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]]
+	// rows of the rotation are the model axes that land on X, Y and Z
+	const matrix = [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, 0, 0, 0, 1]
+	const t: [number, number, number] = [0, 0, 0]
+	const rotation: [number, number, number, number] = [0, 0, 0, 1]
+	const s: [number, number, number] = [1, 1, 1]
+	MathUtils.decompose(matrix as unknown as mat4, t, rotation, s)
+	// `flip` turns it end for end (a half turn about +Y), `upsideDown` rights it (a half turn about +X)
+	let turned = flip ? multiply([0, 1, 0, 0], rotation) : rotation
+	if (upsideDown) turned = multiply([1, 0, 0, 0], turned)
+	wrapper.setRotation(turned)
 	wrapper.setScale([scale, scale, scale])
 	// move the centre to the origin (applied before rotation and scale, so through a child)
 	const offset = document.createNode('centre')
@@ -72,8 +91,18 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
 const credits: { id: string; name: string; author: string; page: string; licence: string }[] = []
 for (const weapon of weapons) {
 	const document = await io.read(await sketchfabModel(weapon.uid))
+	// some models are rigged for first-person animation: their skins would ignore the turn below
+	for (const node of document.getRoot().listNodes()) node.setSkin(null)
+	for (const mesh of document.getRoot().listMeshes())
+		for (const primitive of mesh.listPrimitives()) {
+			primitive.setAttribute('JOINTS_0', null)
+			primitive.setAttribute('WEIGHTS_0', null)
+		}
+	for (const skin of document.getRoot().listSkins()) skin.dispose()
+	// older files describe colour as specular-glossiness: turn that into the usual metal-roughness
+	await document.transform(metalRough())
 	plainMaterials(document)
-	normalise(document, weapon.length, weapon.flip ?? false)
+	normalise(document, weapon.length, weapon.flip ?? false, weapon.upsideDown ?? false)
 	await document.transform(
 		dedup(),
 		flatten(),

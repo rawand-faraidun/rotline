@@ -13,6 +13,7 @@ import { ArmoryScreen } from './screens/armory-screen.tsx'
 import { ErrorScreen } from './screens/error-screen.tsx'
 import { LobbyScreen } from './screens/lobby-screen.tsx'
 import { MissionScreen, RangeScreen } from './screens/mission-screen.tsx'
+import { ProfileScreen } from './screens/profile-screen.tsx'
 import { ShopScreen } from './screens/shop-screen.tsx'
 import { SignInScreen } from './screens/sign-in-screen.tsx'
 import { SkillsScreen } from './screens/skills-screen.tsx'
@@ -87,7 +88,10 @@ const missionRoute = createRoute({
 })
 
 /** Lobby-side screens: signed in, enlisted, holding a seat. */
-function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop'>(path: P, component: () => React.ReactNode) {
+function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop' | '/play/profile'>(
+	path: P,
+	component: () => React.ReactNode
+) {
 	return createRoute({
 		getParentRoute: () => rootRoute,
 		path,
@@ -114,6 +118,7 @@ const rangeRoute = createRoute({
 const skillsRoute = hubRoute('/play/skills', SkillsScreen)
 const armoryRoute = hubRoute('/play/armory', ArmoryScreen)
 const shopRoute = hubRoute('/play/shop', ShopScreen)
+const profileRoute = hubRoute('/play/profile', ProfileScreen)
 
 // "/play/lobby/" and "/play/lobby" are the same screen
 if (typeof location !== 'undefined' && location.pathname.length > 1 && location.pathname.endsWith('/'))
@@ -127,6 +132,7 @@ const router = createRouter({
 		skillsRoute,
 		armoryRoute,
 		shopRoute,
+		profileRoute,
 		rangeRoute,
 		missionRoute
 	]),

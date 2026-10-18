@@ -3,51 +3,51 @@
 	"models": [
 		{
 			"id": "p9-service",
-			"name": "Sci-fi pistol",
-			"author": "Eugen Vahrushin",
-			"page": "https://sketchfab.com/3d-models/c23394d709d14772adf355da84408edc",
+			"name": "Low-Poly G17",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/60efc54ac59e47d18bdff94b2f5144ff",
 			"licence": "CC BY 4.0"
 		},
 		{
 			"id": "halcyon-45",
-			"name": "Absolute 357",
-			"author": "Frostoise",
-			"page": "https://sketchfab.com/3d-models/0bada928716d44a08fd70ea8323013f2",
+			"name": "Low-Poly Desert Eagle",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/b81da261345f4462b2c4412352162287",
 			"licence": "CC BY 4.0"
 		},
 		{
 			"id": "vex-9",
-			"name": "SMG-M32",
-			"author": "Frostoise",
-			"page": "https://sketchfab.com/3d-models/3a5f98f75e804e5888379cbe640cc883",
+			"name": "Low-Poly Kriss Vector",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/ec2fb60fecaf4aea94b681a52ec7bc26",
 			"licence": "CC BY 4.0"
 		},
 		{
 			"id": "k-71",
-			"name": "AR-181",
-			"author": "Frostoise",
-			"page": "https://sketchfab.com/3d-models/f32fe06215434fb2a159d29343079a1e",
+			"name": "Low-Poly HK416",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/059e968f6f764357880807c62c117ab7",
 			"licence": "CC BY 4.0"
 		},
 		{
 			"id": "breacher-12",
-			"name": "RL0N-25",
-			"author": "Frostoise",
-			"page": "https://sketchfab.com/3d-models/c54ce41b7b854834a13ef1ed42aed6ba",
+			"name": "Low-Poly Benelli M4 Super 90",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/caea90a9470143b69e6042f75b9c59cc",
 			"licence": "CC BY 4.0"
 		},
 		{
 			"id": "mower",
-			"name": "HMG-379",
-			"author": "Frostoise",
-			"page": "https://sketchfab.com/3d-models/533204d3a9f240f78b65973b323cba7c",
+			"name": "Low-Poly M249 SAW",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/76011c365636451c90a8e3a46c2d8ca5",
 			"licence": "CC BY 4.0"
 		},
 		{
 			"id": "longstride",
-			"name": "SSR-56",
-			"author": "Frostoise",
-			"page": "https://sketchfab.com/3d-models/5f7c2c15212242ccb9640aac9924ae1b",
+			"name": "Low-Poly L115A3",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/a795adf5f8dd4a2294210d427cbb0e58",
 			"licence": "CC BY 4.0"
 		},
 		{
@@ -59,16 +59,16 @@
 		},
 		{
 			"id": "thumper",
-			"name": "PSR-13",
-			"author": "Frostoise",
-			"page": "https://sketchfab.com/3d-models/8d3db25145904a818e081f010328e3d0",
+			"name": "Low-Poly Milkor MGL Mk 1s",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/f62f582eada147b8aeb3c08773379d29",
 			"licence": "CC BY 4.0"
 		},
 		{
 			"id": "arclight",
-			"name": "AR-H470",
-			"author": "Frostoise",
-			"page": "https://sketchfab.com/3d-models/4b38c160243743d681d6fdaf3bd77ddb",
+			"name": "Low-Poly HK XM8",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/67812c3deefc4d0991a721f7ec7d8a7d",
 			"licence": "CC BY 4.0"
 		},
 		{
@@ -80,9 +80,9 @@
 		},
 		{
 			"id": "minigun",
-			"name": "M134 handheld (Minigun)",
-			"author": "Alexander_Borisevich",
-			"page": "https://sketchfab.com/3d-models/8f008c3e18934707a834cde8c72364f5",
+			"name": "Low-Poly M134 Minigun",
+			"author": "TastyTony",
+			"page": "https://sketchfab.com/3d-models/eed0c95de51b4895a48c5729582732cc",
 			"licence": "CC BY 4.0"
 		}
 	]

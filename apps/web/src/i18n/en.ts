@@ -433,6 +433,20 @@ export const en = {
 			joinSquad: 'Join squad',
 			dismiss: 'Dismiss'
 		},
+		profile: {
+			title: 'Profile',
+			open: 'Your profile',
+			totalLevel: 'Total level',
+			missionsDone: 'Missions won',
+			golds: 'Gold masteries',
+			items: 'Items owned',
+			classes: 'Classes',
+			campaign: 'Campaign record',
+			mission: 'Mission',
+			completions: 'Won',
+			bestTime: 'Best time',
+			mastery: 'Mastery'
+		},
 		lobby: {
 			title: 'Lobby',
 			squad: 'Squad',

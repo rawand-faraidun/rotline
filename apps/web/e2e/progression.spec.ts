@@ -55,6 +55,11 @@ test('classes, skills, armory and shop', async ({ page }) => {
 	await expect(page.getByTestId('shop-mower').getByRole('button', { name: /^buy$/i })).toBeDisabled()
 	await expect(page.getByTestId('salvage')).toContainText('0')
 
+	// the profile: who you are and your record
+	await page.getByRole('link', { name: /your profile/i }).click()
+	await expect(page).toHaveURL(/\/play\/profile$/)
+	await expect(page.getByText(/campaign record/i)).toBeVisible()
+
 	// the firing range: dummies to shoot, a damage meter, and the Medkit on F
 	await page.getByRole('link', { name: /firing range/i }).click()
 	await expect(page).toHaveURL(/\/play\/range$/)

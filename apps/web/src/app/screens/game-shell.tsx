@@ -80,8 +80,14 @@ export function GameShell({ children, backdrop }: { children: ReactNode; backdro
 							{salvage(progress.data?.salvage ?? player.salvage)}
 						</span>
 					</span>
-					<AvatarFrame src={avatar} alt="" size={40} />
-					<span className="hidden font-bold tracking-wide sm:inline">{player.name}</span>
+					<Link
+						to="/play/profile"
+						className="flex items-center gap-2 hover:text-rot-lime data-[status=active]:text-rot-lime"
+						aria-label={en.app.profile.open}
+					>
+						<AvatarFrame src={avatar} alt="" size={40} />
+						<span className="hidden font-bold tracking-wide sm:inline">{player.name}</span>
+					</Link>
 					<Button variant="ghost" size="sm" onClick={() => void leave()}>
 						{en.app.lobby.signOut}
 					</Button>

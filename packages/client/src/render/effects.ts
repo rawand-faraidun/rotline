@@ -3,6 +3,25 @@ import * as THREE from 'three'
 
 const TRACERS = 96
 const TRACER_SECONDS = 0.07
+
+/** How a weapon's shots look: tracer colour, thickness and life (seconds), and muzzle flash size. */
+export type ShotLook = { color: number; width: number; life: number; flash: number }
+
+/** Each kind of gun draws its own shots: pellet sprays, long bright sniper streaks, orange MG tracers. */
+export const SHOT_LOOKS: Record<string, ShotLook> = {
+	pistol: { color: 0xffd9a0, width: 0.8, life: 0.05, flash: 0.7 },
+	smg: { color: 0xffe6b0, width: 0.75, life: 0.04, flash: 0.75 },
+	rifle: { color: 0xfff0b8, width: 1, life: 0.06, flash: 1 },
+	shotgun: { color: 0xffc878, width: 0.7, life: 0.06, flash: 1.5 },
+	lmg: { color: 0xff9a48, width: 1.3, life: 0.08, flash: 1.15 },
+	sniper: { color: 0xeaf4ff, width: 1.8, life: 0.22, flash: 1.5 },
+	minigun: { color: 0xff8a3a, width: 1.1, life: 0.06, flash: 1 },
+	shock: { color: 0x7fd8ff, width: 1.6, life: 0.12, flash: 0.9 },
+	launcher: { color: 0xffe2a0, width: 1, life: 0.06, flash: 1.6 },
+	flamethrower: { color: 0xffa040, width: 1, life: 0.06, flash: 0.6 },
+	chemical: { color: 0x9fe04a, width: 1, life: 0.06, flash: 0.6 }
+}
+const DEFAULT_LOOK = SHOT_LOOKS.rifle as ShotLook
 const DECALS = 256
 const BURSTS = 8
 const POOLS = 16
@@ -42,6 +61,7 @@ export class Effects {
 	private sparkHead = 0
 	private readonly tracers: THREE.InstancedMesh
 	private readonly tracerBorn = new Float32Array(TRACERS).fill(-1)
+	private readonly tracerLife = new Float32Array(TRACERS).fill(TRACER_SECONDS)
 	private tracerHead = 0
 	private readonly decals: THREE.InstancedMesh
 	private decalHead = 0
@@ -238,25 +258,39 @@ export class Effects {
 		this.flashUntil = now + 0.08
 	}
 
-	tracer(x: number, y: number, angle: number, length: number, now: number, height = 1.05, color = 0xffe2a0): void {
+	tracer(
+		x: number,
+		y: number,
+		angle: number,
+		length: number,
+		now: number,
+		height = 1.05,
+		look: ShotLook | number = DEFAULT_LOOK
+	): void {
+		const style = typeof look === 'number' ? { ...DEFAULT_LOOK, color: look } : look
 		const i = this.tracerHead
-		this.tracers.setColorAt(i, this.tint.set(color))
+		this.tracers.setColorAt(i, this.tint.set(style.color))
 		if (this.tracers.instanceColor) this.tracers.instanceColor.needsUpdate = true
 		this.tracerHead = (i + 1) % TRACERS
 		this.quaternion.setFromAxisAngle(this.up, Math.PI / 2 - angle)
-		this.matrix.compose(this.position.set(x, height, y), this.quaternion, this.scale.set(1, 1, Math.max(0.1, length)))
+		this.matrix.compose(
+			this.position.set(x, height, y),
+			this.quaternion,
+			this.scale.set(style.width, style.width, Math.max(0.1, length))
+		)
 		this.tracers.setMatrixAt(i, this.matrix)
 		this.tracerBorn[i] = now
+		this.tracerLife[i] = style.life
 		this.tracers.instanceMatrix.needsUpdate = true
 	}
 
-	muzzleFlash(x: number, y: number, angle: number, now: number): void {
+	muzzleFlash(x: number, y: number, angle: number, now: number, size = 1): void {
 		const fx = x + Math.cos(angle) * 0.9
 		const fy = y + Math.sin(angle) * 0.9
 		this.flash.position.set(fx, 1.3, fy)
-		this.flash.intensity = 14
+		this.flash.intensity = 14 * size
 		this.flashSprite.position.set(fx, 1.1, fy)
-		this.flashSprite.scale.setScalar(0.9 + Math.random() * 0.5)
+		this.flashSprite.scale.setScalar((0.9 + Math.random() * 0.5) * size)
 		this.flashSprite.visible = true
 		this.flashUntil = now + 0.05
 	}
@@ -377,7 +411,7 @@ export class Effects {
 		let changed = false
 		for (let i = 0; i < TRACERS; i++) {
 			const born = this.tracerBorn[i] as number
-			if (born >= 0 && now - born > TRACER_SECONDS) {
+			if (born >= 0 && now - born > (this.tracerLife[i] as number)) {
 				this.tracers.setMatrixAt(i, this.hidden)
 				this.tracerBorn[i] = -1
 				changed = true
