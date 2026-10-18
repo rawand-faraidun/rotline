@@ -58,6 +58,55 @@
 			"author": "MP",
 			"triangles": 1104,
 			"nodes": ["rollershutter_door"]
+		},
+		{
+			"kind": "scene-car",
+			"source": "covered_car",
+			"name": "Covered Car",
+			"author": "MP",
+			"triangles": 6000
+		},
+		{
+			"kind": "scene-tyre",
+			"source": "old_tyre",
+			"name": "Old Tyre",
+			"author": "MP",
+			"triangles": 1200
+		},
+		{
+			"kind": "scene-lamp",
+			"source": "street_lamp_01",
+			"name": "Street Lamp 01",
+			"author": "Josh Dean",
+			"triangles": 3000
+		},
+		{
+			"kind": "scene-trash",
+			"source": "trashbag",
+			"name": "Trashbag",
+			"author": "Benny Weimer",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-barrier",
+			"source": "concrete_road_barrier",
+			"name": "Concrete Road Barrier",
+			"author": "Amal Kumar",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-bin",
+			"source": "metal_trash_can",
+			"name": "Metal Trash Can",
+			"author": "GurJas Studios",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-searchlight",
+			"source": "portable_searchlight",
+			"name": "Portable Searchlight",
+			"author": "Elijah Cragg",
+			"triangles": 3000
 		}
 	]
 }

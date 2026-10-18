@@ -14,7 +14,21 @@ export async function grantStarterKit(tx: Tx, playerId: string): Promise<void> {
 	})
 	const { main, pistol, armour, utility } = economy.starter.loadout
 	await tx.loadout.createMany({
-		data: [{ playerId, main1: main[0], main2: main[1], pistol, armour, utility1: utility[0], utility2: utility[1] }],
+		data: [
+			{
+				playerId,
+				main1: main[0],
+				main2: main[1],
+				pistol,
+				armourHead: armour.head,
+				armourTorso: armour.torso,
+				armourVest: armour.vest,
+				armourLegs: armour.legs,
+				armourFeet: armour.feet,
+				utility1: utility[0],
+				utility2: utility[1]
+			}
+		],
 		skipDuplicates: true
 	})
 }
@@ -48,7 +62,13 @@ export async function loadBuild(db: Database, playerId: string): Promise<Build |
 		loadout: {
 			main: [ref(loadout.main1), ref(loadout.main2)],
 			pistol: ref(loadout.pistol),
-			armour: optional(loadout.armour),
+			armour: {
+				head: optional(loadout.armourHead),
+				torso: optional(loadout.armourTorso),
+				vest: optional(loadout.armourVest),
+				legs: optional(loadout.armourLegs),
+				feet: optional(loadout.armourFeet)
+			},
 			utility: [optional(loadout.utility1), optional(loadout.utility2)]
 		}
 	}

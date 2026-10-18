@@ -198,6 +198,7 @@ export const en = {
 				minigun: 'Minigun'
 			},
 			slotNames: { main: 'Main weapon', pistol: 'Pistol', armour: 'Armour', utility: 'Utility' },
+			pieces: { head: 'Helmet', torso: 'Torso', vest: 'Vest', legs: 'Legs', feet: 'Boots' },
 			damageTypes: {
 				ballistic: 'ballistic',
 				explosive: 'explosive',
@@ -325,7 +326,11 @@ export const en = {
 				main1: 'Main 1',
 				main2: 'Main 2',
 				pistol: 'Pistol',
-				armour: 'Armour',
+				armourHead: 'Head',
+				armourTorso: 'Torso',
+				armourVest: 'Vest',
+				armourLegs: 'Legs',
+				armourFeet: 'Feet',
 				utility1: 'Utility 1',
 				utility2: 'Utility 2'
 			},

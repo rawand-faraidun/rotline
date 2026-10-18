@@ -1,4 +1,4 @@
-import { type Build, buildSchema, classes, dataVersion, weapons } from '@rotline/game-data'
+import { ARMOUR_PIECES, type Build, buildSchema, classes, dataVersion, gear, weapons } from '@rotline/game-data'
 import {
 	CHAIN_TICKS,
 	currentObjective,
@@ -17,7 +17,7 @@ import {
 } from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
-export const PROTOCOL_VERSION = 7
+export const PROTOCOL_VERSION = 8
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
@@ -230,10 +230,12 @@ export type RosterEntry = {
 	classIndex: number
 	/** weapon indexes of main 1, main 2 and the pistol (255: none), for the gun in their hands */
 	weapons: readonly [number, number, number]
+	/** armour indexes worn on head, torso, vest, legs and feet (255: none), for how they look */
+	armour: readonly [number, number, number, number, number]
 }
 
 /** How a player looks to the others: their class and the weapons in their loadout. */
-export function lookOf(build: Build): Pick<RosterEntry, 'classIndex' | 'weapons'> {
+export function lookOf(build: Build): Pick<RosterEntry, 'classIndex' | 'weapons' | 'armour'> {
 	const weapon = (id: string) => {
 		const index = weapons.findIndex(entry => entry.id === id)
 		return index < 0 ? 255 : index
@@ -244,14 +246,19 @@ export function lookOf(build: Build): Pick<RosterEntry, 'classIndex' | 'weapons'
 			0,
 			classes.classes.findIndex(entry => entry.id === build.class)
 		),
-		weapons: [weapon(main[0].id), weapon(main[1].id), weapon(pistol.id)]
+		weapons: [weapon(main[0].id), weapon(main[1].id), weapon(pistol.id)],
+		armour: ARMOUR_PIECES.map(piece => {
+			const ref = build.loadout.armour[piece]
+			const index = ref ? gear.armour.findIndex(entry => entry.id === ref.id) : -1
+			return index < 0 ? 255 : index
+		}) as unknown as RosterEntry['armour']
 	}
 }
 
 /** Who is in the room, by player slot; sent whenever someone joins, leaves or reconnects. */
 export function writeRoster(w: Writer, entries: readonly RosterEntry[]): Uint8Array<ArrayBuffer> {
 	w.reset().u8(ServerMessage.roster).u8(entries.length)
-	for (const entry of entries)
+	for (const entry of entries) {
 		w.u8(entry.slot)
 			.u8(entry.connected ? 1 : 0)
 			.string(entry.name)
@@ -259,6 +266,8 @@ export function writeRoster(w: Writer, entries: readonly RosterEntry[]): Uint8Ar
 			.u8(entry.weapons[0])
 			.u8(entry.weapons[1])
 			.u8(entry.weapons[2])
+		for (const piece of entry.armour) w.u8(piece)
+	}
 	return w.finish()
 }
 
@@ -1163,7 +1172,8 @@ export function readServerHeader(r: Reader): ServerToClient {
 					connected: r.u8() === 1,
 					name: r.string(64),
 					classIndex: r.u8(),
-					weapons: [r.u8(), r.u8(), r.u8()]
+					weapons: [r.u8(), r.u8(), r.u8()],
+					armour: [r.u8(), r.u8(), r.u8(), r.u8(), r.u8()]
 				})
 			return { type: 'roster', entries }
 		}

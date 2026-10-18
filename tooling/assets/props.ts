@@ -96,13 +96,15 @@ for (const prop of props) {
 		await document.transform(
 			simplify({ simplifier: MeshoptSimplifier, ratio: prop.triangles / triangles, error: 0.05 })
 		)
-	// into a 1 m cube: centred on the ground, every side 1 m long
+	// game props into a 1 m cube (centred on the ground, every side 1 m long); scenery keeps its
+	// real size in metres, only centred on the ground
 	const scene = root.getDefaultScene() ?? root.listScenes()[0]
 	if (!scene) continue
 	const { min, max } = getBounds(scene)
+	const scenery = prop.kind.startsWith('scene-')
 	const fit = document
 		.createNode('prop')
-		.setScale([1 / (max[0] - min[0]), 1 / (max[1] - min[1]), 1 / (max[2] - min[2])])
+		.setScale(scenery ? [1, 1, 1] : [1 / (max[0] - min[0]), 1 / (max[1] - min[1]), 1 / (max[2] - min[2])])
 	const offset = document.createNode('base').setTranslation([-(min[0] + max[0]) / 2, -min[1], -(min[2] + max[2]) / 2])
 	for (const child of scene.listChildren()) {
 		scene.removeChild(child)

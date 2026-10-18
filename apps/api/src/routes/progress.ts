@@ -109,7 +109,11 @@ export async function progressView(db: Database, playerId: string, inMission: bo
 			main1: loadout.main1,
 			main2: loadout.main2,
 			pistol: loadout.pistol,
-			armour: loadout.armour,
+			armourHead: loadout.armourHead,
+			armourTorso: loadout.armourTorso,
+			armourVest: loadout.armourVest,
+			armourLegs: loadout.armourLegs,
+			armourFeet: loadout.armourFeet,
 			utility1: loadout.utility1,
 			utility2: loadout.utility2
 		}
@@ -132,9 +136,18 @@ export async function ensureStarterKit(db: Database, playerId: string): Promise<
 }
 
 const equippedSlots = (loadout: ProgressView['loadout']) =>
-	[loadout.main1, loadout.main2, loadout.pistol, loadout.armour, loadout.utility1, loadout.utility2].filter(
-		(id): id is string => id !== null
-	)
+	[
+		loadout.main1,
+		loadout.main2,
+		loadout.pistol,
+		loadout.armourHead,
+		loadout.armourTorso,
+		loadout.armourVest,
+		loadout.armourLegs,
+		loadout.armourFeet,
+		loadout.utility1,
+		loadout.utility2
+	].filter((id): id is string => id !== null)
 
 /**
  * Classes, skills, abilities, inventory, loadout, upgrades, perks, the shop and discards.
@@ -269,7 +282,11 @@ export function progressRoutes(services: Services) {
 					main1: itemId,
 					main2: itemId,
 					pistol: itemId,
-					armour: itemId.nullable(),
+					armourHead: itemId.nullable(),
+					armourTorso: itemId.nullable(),
+					armourVest: itemId.nullable(),
+					armourLegs: itemId.nullable(),
+					armourFeet: itemId.nullable(),
 					utility1: itemId.nullable(),
 					utility2: itemId.nullable()
 				})
@@ -288,7 +305,11 @@ export function progressRoutes(services: Services) {
 						[loadout.main1, 'main'],
 						[loadout.main2, 'main'],
 						[loadout.pistol, 'pistol'],
-						[loadout.armour, 'armour'],
+						[loadout.armourHead, 'armour'],
+						[loadout.armourTorso, 'armour'],
+						[loadout.armourVest, 'armour'],
+						[loadout.armourLegs, 'armour'],
+						[loadout.armourFeet, 'armour'],
 						[loadout.utility1, 'utility'],
 						[loadout.utility2, 'utility']
 					]
@@ -297,6 +318,15 @@ export function progressRoutes(services: Services) {
 						if (!owned.has(id)) throw new Refused('not-owned')
 						if (itemById.get(id)?.slot !== slot) throw new Refused('wrong-slot')
 					}
+					// each armour piece only where it is worn
+					const places: [string | null, string][] = [
+						[loadout.armourHead, 'head'],
+						[loadout.armourTorso, 'torso'],
+						[loadout.armourVest, 'vest'],
+						[loadout.armourLegs, 'legs'],
+						[loadout.armourFeet, 'feet']
+					]
+					for (const [id, piece] of places) if (id && itemById.get(id)?.piece !== piece) throw new Refused('wrong-slot')
 					if (loadout.main1 === loadout.main2) throw new Refused('duplicate')
 					if (loadout.utility1 && loadout.utility1 === loadout.utility2) throw new Refused('duplicate')
 					await tx.loadout.update({ where: { playerId: user.id }, data: loadout })
@@ -402,7 +432,8 @@ export function progressRoutes(services: Services) {
 					}
 					if (equipped) {
 						const used = new Set(equippedSlots(loadout))
-						const spare = sameSlot.find(row => !used.has(row.itemId))?.itemId ?? null
+						// a discarded armour piece leaves its place empty; other slots take a spare of the same kind
+						const spare = slot === 'armour' ? null : (sameSlot.find(row => !used.has(row.itemId))?.itemId ?? null)
 						const field = (Object.entries(loadout) as [string, string | null][]).find(
 							([key, value]) => key !== 'playerId' && value === id
 						)?.[0]

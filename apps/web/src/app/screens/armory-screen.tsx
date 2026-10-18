@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+	type ArmourPiece,
 	discardValue,
 	economy,
 	type ItemSlot,
@@ -32,18 +33,24 @@ const t = en.app.armory
 const p = en.app.progression
 const MAX = economy.upgrade.maxLevel
 
-const fields: { field: keyof Loadout; slot: ItemSlot }[] = [
+const fields: { field: keyof Loadout; slot: ItemSlot; piece?: ArmourPiece }[] = [
 	{ field: 'main1', slot: 'main' },
 	{ field: 'main2', slot: 'main' },
 	{ field: 'pistol', slot: 'pistol' },
-	{ field: 'armour', slot: 'armour' },
+	{ field: 'armourHead', slot: 'armour', piece: 'head' },
+	{ field: 'armourTorso', slot: 'armour', piece: 'torso' },
+	{ field: 'armourVest', slot: 'armour', piece: 'vest' },
+	{ field: 'armourLegs', slot: 'armour', piece: 'legs' },
+	{ field: 'armourFeet', slot: 'armour', piece: 'feet' },
 	{ field: 'utility1', slot: 'utility' },
 	{ field: 'utility2', slot: 'utility' }
 ]
 
 function kindLabel(id: string): string {
 	const weapon = weapons.find(entry => entry.id === id)
-	return weapon ? p.kinds[weapon.kind] : p.slotNames[item(id).slot]
+	if (weapon) return p.kinds[weapon.kind]
+	const piece = item(id).piece
+	return piece ? p.pieces[piece] : p.slotNames[item(id).slot]
 }
 
 /** A loadout with `id` put in `field`; an item already equipped elsewhere swaps places. */
@@ -72,7 +79,7 @@ function ItemDetail({
 	const current = itemStatRows(id, owned.level, owned.perks)
 	const next = owned.level < MAX ? itemStatRows(id, owned.level + 1, owned.perks) : null
 	const equippedIn = fields.filter(entry => view.loadout[entry.field] === id).map(entry => entry.field)
-	const targets = fields.filter(entry => entry.slot === def.slot)
+	const targets = fields.filter(entry => entry.slot === def.slot && (!entry.piece || entry.piece === def.piece))
 
 	async function act(action: ReturnType<typeof progressActions.upgrade>) {
 		const refusal = await runAction(queryClient, action)

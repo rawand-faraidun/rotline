@@ -11,10 +11,23 @@ buy,kiln,Kiln,2,14000,3.3
 buy,thumper,Thumper,3,28000,6.7
 buy,arclight,Arclight,2,14000,3.3
 buy,viper,Viper,2,14000,3.3
-buy,kevlar-vest,Kevlar Vest,0,1500,0.4
-buy,plated-carrier,Plated Carrier,2,12000,2.9
+buy,field-helmet,Field Helmet,0,1500,0.4
+buy,ridge-helmet,Ridge Helmet,2,14000,3.3
+buy,bastion-helmet,Bastion Helmet,3,28000,6.7
+buy,visor-helmet,Visor Helmet,2,14000,3.3
+buy,field-shirt,Field Shirt,0,1500,0.4
+buy,padded-jacket,Padded Jacket,1,6000,1.4
 buy,hazmat-suit,Hazmat Suit,2,12000,2.9
+buy,kevlar-vest,Kevlar Vest,0,1500,0.4
 buy,assault-rig,Assault Rig,2,12000,2.9
+buy,plated-carrier,Plated Carrier,2,12000,2.9
+buy,siege-plates,Siege Plates,3,28000,6.7
+buy,field-trousers,Field Trousers,0,1500,0.4
+buy,kneepad-trousers,Kneepad Trousers,1,6000,1.4
+buy,armoured-trousers,Armoured Trousers,2,14000,3.3
+buy,field-boots,Field Boots,0,1500,0.4
+buy,runner-boots,Runner Boots,1,6000,1.4
+buy,steel-toe-boots,Steel-Toe Boots,2,14000,3.3
 buy,frag-grenades,Frag Grenades,0,1500,0.4
 buy,incendiary-grenades,Incendiary Grenades,1,6000,1.4
 buy,shock-grenades,Shock Grenades,1,6000,1.4
@@ -32,10 +45,23 @@ upgrade 1-10,kiln,Kiln,2,97740,23.3
 upgrade 1-10,thumper,Thumper,3,153580,36.6
 upgrade 1-10,arclight,Arclight,2,97740,23.3
 upgrade 1-10,viper,Viper,2,97740,23.3
-upgrade 1-10,kevlar-vest,Kevlar Vest,0,41890,10.0
-upgrade 1-10,plated-carrier,Plated Carrier,2,97740,23.3
+upgrade 1-10,field-helmet,Field Helmet,0,41890,10.0
+upgrade 1-10,ridge-helmet,Ridge Helmet,2,97740,23.3
+upgrade 1-10,bastion-helmet,Bastion Helmet,3,153580,36.6
+upgrade 1-10,visor-helmet,Visor Helmet,2,97740,23.3
+upgrade 1-10,field-shirt,Field Shirt,0,41890,10.0
+upgrade 1-10,padded-jacket,Padded Jacket,1,55850,13.3
 upgrade 1-10,hazmat-suit,Hazmat Suit,2,97740,23.3
+upgrade 1-10,kevlar-vest,Kevlar Vest,0,41890,10.0
 upgrade 1-10,assault-rig,Assault Rig,2,97740,23.3
+upgrade 1-10,plated-carrier,Plated Carrier,2,97740,23.3
+upgrade 1-10,siege-plates,Siege Plates,3,153580,36.6
+upgrade 1-10,field-trousers,Field Trousers,0,41890,10.0
+upgrade 1-10,kneepad-trousers,Kneepad Trousers,1,55850,13.3
+upgrade 1-10,armoured-trousers,Armoured Trousers,2,97740,23.3
+upgrade 1-10,field-boots,Field Boots,0,41890,10.0
+upgrade 1-10,runner-boots,Runner Boots,1,55850,13.3
+upgrade 1-10,steel-toe-boots,Steel-Toe Boots,2,97740,23.3
 upgrade 1-10,frag-grenades,Frag Grenades,0,41890,10.0
 upgrade 1-10,incendiary-grenades,Incendiary Grenades,1,55850,13.3
 upgrade 1-10,shock-grenades,Shock Grenades,1,55850,13.3

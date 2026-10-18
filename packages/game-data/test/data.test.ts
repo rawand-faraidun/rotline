@@ -47,10 +47,11 @@ describe('game data', () => {
 		const { loadout } = economy.starter
 		const slotOf = (id: string) => items.find(item => item.id === id)?.slot
 		expect([...loadout.main, loadout.pistol].map(slotOf)).toEqual(['main', 'main', 'pistol'])
-		expect(slotOf(loadout.armour ?? '')).toBe('armour')
+		const pieceOf = (id: string) => items.find(item => item.id === id)?.piece
+		for (const [piece, id] of Object.entries(loadout.armour)) if (id) expect(pieceOf(id)).toBe(piece)
 		expect(slotOf(loadout.utility[0] ?? '')).toBe('utility')
 		const owned = new Set(economy.starter.items)
-		for (const id of [...loadout.main, loadout.pistol, loadout.armour, ...loadout.utility]) {
+		for (const id of [...loadout.main, loadout.pistol, ...Object.values(loadout.armour), ...loadout.utility]) {
 			if (id) expect(owned.has(id)).toBe(true)
 		}
 		expect(starterBuild().loadout.pistol.id).toBe('p9-service')

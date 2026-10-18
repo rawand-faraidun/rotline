@@ -12,6 +12,7 @@ import type {
 	WeaponDef,
 	WeaponKind
 } from './schema.ts'
+import { ARMOUR_PIECES } from './schema.ts'
 
 export type WeaponBehaviour = WeaponDef['behaviour']
 
@@ -192,14 +193,24 @@ export function computeStats(build: Build): PlayerStats {
 	const total = (stat: StatKey, filter?: (effect: Effect) => boolean) =>
 		effects.filter(effect => effect.stat === stat && (!filter || filter(effect))).reduce((sum, e) => sum + e.value, 0)
 
-	const armourDef = build.loadout.armour ? gear.armour.find(entry => entry.id === build.loadout.armour?.id) : undefined
-	const armourLevel = build.loadout.armour?.level ?? 0
-	const armourBase = armourDef ? armourDef.armour * (1 + (upgrades.armour.armour ?? 0) * armourLevel) : 0
+	// every worn piece adds its armour (with its upgrades), speed, resistances and utility charges
+	const pieces = ARMOUR_PIECES.flatMap(piece => {
+		const ref = build.loadout.armour[piece]
+		const def = ref ? gear.armour.find(entry => entry.id === ref.id) : undefined
+		return def && ref ? [{ def, level: ref.level }] : []
+	})
+	const armourBase = pieces.reduce(
+		(sum, { def, level }) => sum + def.armour * (1 + (upgrades.armour.armour ?? 0) * level),
+		0
+	)
+	const armourSpeed = pieces.reduce((sum, { def }) => sum + def.speed, 0)
+	const armourCharges = pieces.reduce((sum, { def }) => sum + def.utilityCharges, 0)
 	const resist = {} as Record<DamageType, number>
 	for (const type of ['ballistic', 'explosive', 'fire', 'shock', 'chemical'] as const) {
 		resist[type] = Math.min(
 			combat.resistCap,
-			(armourDef?.resist[type] ?? 0) + total('resist', effect => effect.damageType === type)
+			pieces.reduce((sum, { def }) => sum + (def.resist[type] ?? 0), 0) +
+				total('resist', effect => effect.damageType === type)
 		)
 	}
 
@@ -208,7 +219,7 @@ export function computeStats(build: Build): PlayerStats {
 		class: build.class,
 		level: build.level,
 		maxHealth: Math.round(cls.health * healthScale * (1 + total('maxHealth'))),
-		speed: cls.speed * (1 + total('moveSpeed') + (armourDef?.speed ?? 0)),
+		speed: cls.speed * (1 + total('moveSpeed') + armourSpeed),
 		reviveSeconds: Math.max(combat.reviveFloorSeconds, cls.reviveSeconds + total('reviveTime')),
 		armour: (armourBase + total('armour')) * (1 + total('armourPct')) * cls.armourEffectiveness,
 		damageReduction: Math.min(combat.damageReductionCap, total('damageReduction')),
@@ -235,8 +246,8 @@ export function computeStats(build: Build): PlayerStats {
 		],
 		minigun: weaponStats({ id: 'minigun', level: 0, perks: [] }, effects),
 		utilities: [
-			utilityStats(build.loadout.utility[0], effects, armourDef?.utilityCharges ?? 0),
-			utilityStats(build.loadout.utility[1], effects, armourDef?.utilityCharges ?? 0)
+			utilityStats(build.loadout.utility[0], effects, armourCharges),
+			utilityStats(build.loadout.utility[1], effects, armourCharges)
 		],
 		abilities: [...build.abilities],
 		specials: Object.keys(build.skills).flatMap(id => skillNodes.get(id)?.node.special ?? [])
@@ -263,7 +274,13 @@ export function starterBuild(classId: ClassId = 'assault'): Build {
 		loadout: {
 			main: [starterRef(loadout.main[0]), starterRef(loadout.main[1])],
 			pistol: starterRef(loadout.pistol),
-			armour: loadout.armour ? starterRef(loadout.armour) : null,
+			armour: {
+				head: loadout.armour.head ? starterRef(loadout.armour.head) : null,
+				torso: loadout.armour.torso ? starterRef(loadout.armour.torso) : null,
+				vest: loadout.armour.vest ? starterRef(loadout.armour.vest) : null,
+				legs: loadout.armour.legs ? starterRef(loadout.armour.legs) : null,
+				feet: loadout.armour.feet ? starterRef(loadout.armour.feet) : null
+			},
 			utility: [
 				loadout.utility[0] ? starterRef(loadout.utility[0]) : null,
 				loadout.utility[1] ? starterRef(loadout.utility[1]) : null
@@ -283,12 +300,17 @@ export function buildProblem(build: Build): BuildProblem | null {
 		[main[0], 'main'],
 		[main[1], 'main'],
 		[pistol, 'pistol'],
-		[armour, 'armour'],
+		...ARMOUR_PIECES.map(piece => [armour[piece], 'armour'] as [ItemRef | null, string]),
 		[utility[0], 'utility'],
 		[utility[1], 'utility']
 	]
 	if (main[0].id === main[1].id) return 'duplicate'
 	if (utility[0] && utility[1] && utility[0].id === utility[1].id) return 'duplicate'
+	// each armour piece in its own place
+	for (const piece of ARMOUR_PIECES) {
+		const ref = armour[piece]
+		if (ref && itemById.get(ref.id)?.piece !== piece) return 'slot'
+	}
 	for (const [ref, slot] of slots) {
 		if (!ref) continue
 		const def = itemById.get(ref.id)

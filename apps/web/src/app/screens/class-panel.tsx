@@ -87,7 +87,11 @@ export function LoadoutSummary() {
 		view.loadout.main1,
 		view.loadout.main2,
 		view.loadout.pistol,
-		view.loadout.armour,
+		view.loadout.armourHead,
+		view.loadout.armourTorso,
+		view.loadout.armourVest,
+		view.loadout.armourLegs,
+		view.loadout.armourFeet,
 		view.loadout.utility1,
 		view.loadout.utility2
 	].filter((id): id is string => id !== null)

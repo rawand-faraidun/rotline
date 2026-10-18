@@ -55,11 +55,27 @@
 		}
 	},
 	"starter": {
-		"items": ["vex-9", "k-71", "p9-service", "kevlar-vest", "frag-grenades"],
+		"items": [
+			"vex-9",
+			"k-71",
+			"p9-service",
+			"field-helmet",
+			"field-shirt",
+			"kevlar-vest",
+			"field-trousers",
+			"field-boots",
+			"frag-grenades"
+		],
 		"loadout": {
 			"main": ["vex-9", "k-71"],
 			"pistol": "p9-service",
-			"armour": "kevlar-vest",
+			"armour": {
+				"head": "field-helmet",
+				"torso": "field-shirt",
+				"vest": "kevlar-vest",
+				"legs": "field-trousers",
+				"feet": "field-boots"
+			},
 			"utility": ["frag-grenades", null]
 		}
 	},

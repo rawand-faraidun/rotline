@@ -1,7 +1,9 @@
 import * as THREE from 'three'
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { PlayerFigure } from './render/players.ts'
+import { PostProcessing } from './render/post.ts'
 import { pixelRatioFor, probeQuality } from './render/quality.ts'
 
 export type LobbyMember = {
@@ -11,6 +13,8 @@ export type LobbyMember = {
 	weaponId: string
 	pistol: boolean
 	you: boolean
+	/** armour item ids worn on head, torso, vest, legs, feet (omitted: the class's usual kit) */
+	armour?: (string | null)[]
 }
 
 export type LobbyHandle = {
@@ -40,8 +44,12 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 	renderer.shadowMap.enabled = high
 	renderer.shadowMap.type = THREE.PCFShadowMap
 	const scene = new THREE.Scene()
-	scene.background = new THREE.Color(0x07090a)
-	scene.fog = new THREE.Fog(0x07090a, 9, 26)
+	scene.background = new THREE.Color(0x06080a)
+	scene.fog = new THREE.FogExp2(0x0a0d10, 0.055)
+	// a faint studio reflection, so metal, wet ground and gear catch something
+	const environment = new THREE.PMREMGenerator(renderer)
+	scene.environment = environment.fromScene(new RoomEnvironment(), 0.04).texture
+	scene.environmentIntensity = 0.18
 	const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 80)
 
 	// night air, a work light from the front right, a cold rim from behind
@@ -76,13 +84,17 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 				} else if (map === 'normal') paint.normalMap = texture
 				else {
 					paint.roughnessMap = texture
-					paint.roughness = 1
+					paint.roughness = paint.roughness < 0.9 ? paint.roughness : 1
 				}
 				paint.needsUpdate = true
 			})
 		return paint
 	}
-	const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), material('asphalt', 15, 0xb0b0a8))
+	const groundPaint = material('asphalt', 15, 0x9a9a94)
+	// rain-wet: the lamp and the floodlight shine in it
+	groundPaint.roughness = 0.55
+	groundPaint.metalness = 0.15
+	const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), groundPaint)
 	ground.rotation.x = -Math.PI / 2
 	ground.receiveShadow = true
 	scene.add(ground)
@@ -97,7 +109,7 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 
 	// props from the game's own models, fitted to their 1 m cube
 	const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-	const place = (kind: string, x: number, z: number, size: [number, number, number], turn = 0) =>
+	const place = (kind: string, x: number, z: number, size: [number, number, number] = [1, 1, 1], turn = 0) =>
 		loader.load(`${assets}/models/props/${kind}.glb`, gltf => {
 			const model = gltf.scene
 			model.scale.set(...size)
@@ -116,6 +128,55 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 	place('barrel', -5.2, -3.4, [0.75, 1.05, 0.75], 1)
 	place('defend', 2.4, -4.4, [1.4, 1, 1], 0.2)
 	place('generator', -1.4, -4.6, [1.2, 0.85, 0.8], 0.1)
+	// the yard around them (real sizes)
+	place('scene-car', 6.8, -1.2, [1, 1, 1], -1.2)
+	place('scene-barrier', -6.5, -1.2, [1, 1, 1], 0.4)
+	place('scene-barrier', -4.2, 1.6, [1, 1, 1], 1.3)
+	place('scene-tyre', 3.1, 0.9, [1, 1, 1], 0.4)
+	place('scene-tyre', -2.6, 1.2, [1, 1, 1], 1.1)
+	place('scene-trash', -5.4, -4.4, [1, 1, 1], 0.2)
+	place('scene-trash', 0.8, -5, [1, 1, 1], 2.4)
+	place('scene-bin', -0.2, -4.8, [1, 1, 1], 0.6)
+	place('scene-lamp', -7.5, -3.6, [1, 1, 1], 0.6)
+	place('scene-searchlight', 4.4, 1.8, [1, 1, 1], -2.6)
+
+	// the street lamp's glow and pool of light; dust drifting through the beams
+	const lamp = new THREE.PointLight(0xffb070, 18, 9, 1.6)
+	lamp.position.set(-7.1, 4.4, -3.4)
+	scene.add(lamp)
+	const glow = new THREE.Sprite(
+		new THREE.SpriteMaterial({
+			map: glowTexture(),
+			color: 0xffc080,
+			transparent: true,
+			blending: THREE.AdditiveBlending,
+			depthWrite: false
+		})
+	)
+	glow.position.copy(lamp.position)
+	glow.scale.setScalar(1.6)
+	scene.add(glow)
+	const DUST = 220
+	const dustPositions = new Float32Array(DUST * 3)
+	for (let i = 0; i < DUST; i++) {
+		dustPositions[i * 3] = (Math.random() - 0.5) * 12
+		dustPositions[i * 3 + 1] = Math.random() * 5
+		dustPositions[i * 3 + 2] = (Math.random() - 0.5) * 8 - 1
+	}
+	const dustGeometry = new THREE.BufferGeometry()
+	dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3))
+	const dust = new THREE.Points(
+		dustGeometry,
+		new THREE.PointsMaterial({
+			color: 0xd8cbb0,
+			size: 0.03,
+			transparent: true,
+			opacity: 0.55,
+			depthWrite: false,
+			blending: THREE.AdditiveBlending
+		})
+	)
+	scene.add(dust)
 
 	// the squad
 	let figures: { figure: PlayerFigure; spot: [number, number] }[] = []
@@ -128,7 +189,7 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 		const ordered = [...members].sort((a, b) => Number(b.you) - Number(a.you))
 		figures = ordered.slice(0, SPOTS.length).map((member, index) => {
 			const figure = new PlayerFigure(member.slot, member.you, assets)
-			figure.setClass(member.classId)
+			figure.setClass(member.classId, member.armour)
 			figure.setRelaxed(true)
 			figure.setWeapon(member.weaponId, member.pistol)
 			scene.add(figure.group)
@@ -145,8 +206,17 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 		camera.fov = width / height < 1 ? 52 : 32
 		camera.updateProjectionMatrix()
 	}
-	resize()
-	const observer = new ResizeObserver(resize)
+	const post = high ? new PostProcessing(renderer, scene, camera) : null
+	const resizeAll = () => {
+		resize()
+		post?.setSize(
+			canvas.clientWidth || window.innerWidth,
+			canvas.clientHeight || window.innerHeight,
+			renderer.getPixelRatio()
+		)
+	}
+	resizeAll()
+	const observer = new ResizeObserver(resizeAll)
 	observer.observe(canvas)
 
 	let frame = 0
@@ -164,7 +234,17 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 		camera.position.set(Math.sin(t * 0.12) * 0.35, 1.9 + Math.sin(t * 0.21) * 0.05, 7.2)
 		camera.lookAt(0, 1.0, -0.8)
 		flood.intensity = 120 + Math.sin(t * 7.3) * Math.sin(t * 2.1) * 6
-		renderer.render(scene, camera)
+		// the dust drifts and settles, then rises again
+		const drift = dustGeometry.getAttribute('position') as THREE.BufferAttribute
+		for (let i = 0; i < DUST; i++) {
+			let y = (drift.getY(i) - 0.004) % 5
+			if (y < 0) y += 5
+			drift.setY(i, y)
+			drift.setX(i, drift.getX(i) + Math.sin(t * 0.7 + i) * 0.002)
+		}
+		drift.needsUpdate = true
+		if (post) post.render(t)
+		else renderer.render(scene, camera)
 	}
 	frame = requestAnimationFrame(loop)
 
@@ -174,8 +254,24 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 			cancelAnimationFrame(frame)
 			observer.disconnect()
 			for (const entry of figures) entry.figure.dispose()
+			post?.dispose()
+			environment.dispose()
 			renderer.dispose()
 			renderer.forceContextLoss()
 		}
 	}
+}
+
+/** A soft round glow for lamps. */
+function glowTexture(): THREE.CanvasTexture {
+	const canvas = document.createElement('canvas')
+	canvas.width = canvas.height = 64
+	const context = canvas.getContext('2d') as CanvasRenderingContext2D
+	const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32)
+	gradient.addColorStop(0, 'rgba(255,255,255,1)')
+	gradient.addColorStop(0.3, 'rgba(255,255,255,0.35)')
+	gradient.addColorStop(1, 'rgba(255,255,255,0)')
+	context.fillStyle = gradient
+	context.fillRect(0, 0, 64, 64)
+	return new THREE.CanvasTexture(canvas)
 }

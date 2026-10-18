@@ -1,10 +1,18 @@
 import { economy, gear, weapons } from './data.ts'
-import type { Perk } from './schema.ts'
+import type { ArmourPiece, Perk } from './schema.ts'
 
 export type ItemSlot = 'main' | 'pistol' | 'armour' | 'utility'
 
 /** Something a player can own: a weapon, an armour or a utility. One form each; no rarity. */
-export type ItemDef = { id: string; name: string; slot: ItemSlot; tier: 0 | 1 | 2 | 3; price: number }
+export type ItemDef = {
+	id: string
+	name: string
+	slot: ItemSlot
+	tier: 0 | 1 | 2 | 3
+	price: number
+	/** armour only: where it is worn */
+	piece?: ArmourPiece
+}
 
 const asTier = (tier: number) => tier as 0 | 1 | 2 | 3
 const tierPrice = (tier: number) => economy.tierPrices[String(tier) as '0']
@@ -27,6 +35,7 @@ export const items: ItemDef[] = [
 		id: armour.id,
 		name: armour.name,
 		slot: 'armour' as const,
+		piece: armour.piece,
 		tier: asTier(armour.tier),
 		price: armour.price ?? tierPrice(armour.tier)
 	})),

@@ -1,46 +1,252 @@
 {
 	"armour": [
 		{
-			"id": "kevlar-vest",
-			"name": "Kevlar Vest",
+			"id": "field-helmet",
+			"name": "Field Helmet",
+			"piece": "head",
 			"tier": 0,
-			"armour": 20,
+			"armour": 5,
 			"speed": 0,
 			"resist": {},
-			"utilityCharges": 0
+			"utilityCharges": 0,
+			"look": {
+				"model": "head-ops"
+			}
 		},
 		{
-			"id": "plated-carrier",
-			"name": "Plated Carrier",
+			"id": "ridge-helmet",
+			"name": "Ridge Helmet",
+			"piece": "head",
 			"tier": 2,
-			"price": 12000,
-			"armour": 40,
-			"speed": -0.05,
+			"armour": 8,
+			"speed": 0,
+			"resist": {
+				"explosive": 0.1
+			},
+			"utilityCharges": 0,
+			"look": {
+				"model": "head-mich"
+			}
+		},
+		{
+			"id": "bastion-helmet",
+			"name": "Bastion Helmet",
+			"piece": "head",
+			"tier": 3,
+			"armour": 12,
+			"speed": -0.02,
 			"resist": {},
-			"utilityCharges": 0
+			"utilityCharges": 0,
+			"look": {
+				"model": "head-k6"
+			}
+		},
+		{
+			"id": "visor-helmet",
+			"name": "Visor Helmet",
+			"piece": "head",
+			"tier": 2,
+			"armour": 7,
+			"speed": 0,
+			"resist": {
+				"chemical": 0.1,
+				"fire": 0.05
+			},
+			"utilityCharges": 0,
+			"look": {
+				"model": "head-tactical"
+			}
+		},
+		{
+			"id": "field-shirt",
+			"name": "Field Shirt",
+			"piece": "torso",
+			"tier": 0,
+			"armour": 2,
+			"speed": 0,
+			"resist": {},
+			"utilityCharges": 0,
+			"look": {
+				"model": "body-ubacs",
+				"tint": "#8f9a72"
+			}
+		},
+		{
+			"id": "padded-jacket",
+			"name": "Padded Jacket",
+			"piece": "torso",
+			"tier": 1,
+			"armour": 4,
+			"speed": 0,
+			"resist": {
+				"fire": 0.05
+			},
+			"utilityCharges": 0,
+			"look": {
+				"model": "body-ubacs",
+				"tint": "#5e5a4c"
+			}
 		},
 		{
 			"id": "hazmat-suit",
 			"name": "Hazmat Suit",
+			"piece": "torso",
 			"tier": 2,
 			"price": 12000,
-			"armour": 20,
+			"armour": 4,
 			"speed": 0,
 			"resist": {
 				"fire": 0.25,
 				"chemical": 0.25
 			},
-			"utilityCharges": 0
+			"utilityCharges": 0,
+			"look": {
+				"model": "body-ubacs",
+				"tint": "#b8a640"
+			}
+		},
+		{
+			"id": "kevlar-vest",
+			"name": "Kevlar Vest",
+			"piece": "vest",
+			"tier": 0,
+			"armour": 10,
+			"speed": 0,
+			"resist": {},
+			"utilityCharges": 0,
+			"look": {
+				"model": "vest-carrier",
+				"tint": "#a4a890"
+			}
 		},
 		{
 			"id": "assault-rig",
 			"name": "Assault Rig",
+			"piece": "vest",
 			"tier": 2,
 			"price": 12000,
-			"armour": 30,
+			"armour": 18,
 			"speed": 0,
 			"resist": {},
-			"utilityCharges": 1
+			"utilityCharges": 1,
+			"look": {
+				"model": "vest-rig"
+			}
+		},
+		{
+			"id": "plated-carrier",
+			"name": "Plated Carrier",
+			"piece": "vest",
+			"tier": 2,
+			"price": 12000,
+			"armour": 24,
+			"speed": -0.05,
+			"resist": {},
+			"utilityCharges": 0,
+			"look": {
+				"model": "vest-plate"
+			}
+		},
+		{
+			"id": "siege-plates",
+			"name": "Siege Plates",
+			"piece": "vest",
+			"tier": 3,
+			"armour": 30,
+			"speed": -0.08,
+			"resist": {
+				"explosive": 0.1
+			},
+			"utilityCharges": 0,
+			"look": {
+				"model": "vest-heavy"
+			}
+		},
+		{
+			"id": "field-trousers",
+			"name": "Field Trousers",
+			"piece": "legs",
+			"tier": 0,
+			"armour": 2,
+			"speed": 0,
+			"resist": {},
+			"utilityCharges": 0,
+			"look": {
+				"model": "legs-combat",
+				"tint": "#7c8664"
+			}
+		},
+		{
+			"id": "kneepad-trousers",
+			"name": "Kneepad Trousers",
+			"piece": "legs",
+			"tier": 1,
+			"armour": 4,
+			"speed": 0.02,
+			"resist": {},
+			"utilityCharges": 0,
+			"look": {
+				"model": "legs-combat",
+				"tint": "#4a4e44"
+			}
+		},
+		{
+			"id": "armoured-trousers",
+			"name": "Armoured Trousers",
+			"piece": "legs",
+			"tier": 2,
+			"armour": 7,
+			"speed": -0.02,
+			"resist": {},
+			"utilityCharges": 0,
+			"look": {
+				"model": "legs-combat",
+				"tint": "#3a3e40"
+			}
+		},
+		{
+			"id": "field-boots",
+			"name": "Field Boots",
+			"piece": "feet",
+			"tier": 0,
+			"armour": 1,
+			"speed": 0,
+			"resist": {},
+			"utilityCharges": 0,
+			"look": {
+				"model": "feet-boots",
+				"tint": "#2e2a26"
+			}
+		},
+		{
+			"id": "runner-boots",
+			"name": "Runner Boots",
+			"piece": "feet",
+			"tier": 1,
+			"armour": 1,
+			"speed": 0.05,
+			"resist": {},
+			"utilityCharges": 0,
+			"look": {
+				"model": "feet-boots",
+				"tint": "#4a3e32"
+			}
+		},
+		{
+			"id": "steel-toe-boots",
+			"name": "Steel-Toe Boots",
+			"piece": "feet",
+			"tier": 2,
+			"armour": 4,
+			"speed": 0,
+			"resist": {
+				"explosive": 0.05
+			},
+			"utilityCharges": 0,
+			"look": {
+				"model": "feet-boots",
+				"tint": "#1e1e20"
+			}
 		}
 	],
 	"utility": [

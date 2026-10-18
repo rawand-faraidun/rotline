@@ -26,3 +26,5 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Real-world style guns: a G17, Desert Eagle, Vector, HK416, Benelli M4, M249, L115A3, MGL, XM8 and M134 replace the sci-fi models.
 - Every kind of gun draws its own shots: shotguns spray pellets, sniper rifles leave a long bright streak, machine guns fire orange tracers, each with its own muzzle flash.
 - A profile screen (click your name): total level, missions won, gold masteries, classes and your campaign record.
+- Armour is worn in five places: head, torso, vest, legs and feet, each piece its own item with its own stats, bought, upgraded and equipped on its own. Everything you equip shows on your soldier, in the lobby and in the game (your squad sees it too). Everyone gets the starter helmet, shirt, trousers and boots.
+- The lobby is a better place: a wet yard at night with a street lamp, a covered car, barriers, tyres and bins, dust in the light, and the same picture finish as the game. Your soldier holds your main weapon at the low ready.

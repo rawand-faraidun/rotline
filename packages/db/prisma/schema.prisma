@@ -175,7 +175,11 @@ model InventoryItem {
   asMain1    Loadout[] @relation("loadout_main_1")
   asMain2    Loadout[] @relation("loadout_main_2")
   asPistol   Loadout[] @relation("loadout_pistol")
-  asArmour   Loadout[] @relation("loadout_armour")
+  asHead     Loadout[] @relation("loadout_armour_head")
+  asTorso    Loadout[] @relation("loadout_armour_torso")
+  asVest     Loadout[] @relation("loadout_armour_vest")
+  asLegs     Loadout[] @relation("loadout_armour_legs")
+  asFeet     Loadout[] @relation("loadout_armour_feet")
   asUtility1 Loadout[] @relation("loadout_utility_1")
   asUtility2 Loadout[] @relation("loadout_utility_2")
 
@@ -202,7 +206,12 @@ model Loadout {
   main1    String  @map("main_1")
   main2    String  @map("main_2")
   pistol   String
-  armour   String?
+  // the five armour pieces, each worn in its own place
+  armourHead  String? @map("armour_head")
+  armourTorso String? @map("armour_torso")
+  armourVest  String? @map("armour_vest")
+  armourLegs  String? @map("armour_legs")
+  armourFeet  String? @map("armour_feet")
   utility1 String? @map("utility_1")
   utility2 String? @map("utility_2")
   player   Player  @relation(fields: [playerId], references: [userId], onDelete: Cascade)
@@ -210,7 +219,11 @@ model Loadout {
   main1Item    InventoryItem  @relation("loadout_main_1", fields: [playerId, main1], references: [playerId, itemId], onDelete: Restrict)
   main2Item    InventoryItem  @relation("loadout_main_2", fields: [playerId, main2], references: [playerId, itemId], onDelete: Restrict)
   pistolItem   InventoryItem  @relation("loadout_pistol", fields: [playerId, pistol], references: [playerId, itemId], onDelete: Restrict)
-  armourItem   InventoryItem? @relation("loadout_armour", fields: [playerId, armour], references: [playerId, itemId], onDelete: Restrict)
+  headItem     InventoryItem? @relation("loadout_armour_head", fields: [playerId, armourHead], references: [playerId, itemId], onDelete: Restrict)
+  torsoItem    InventoryItem? @relation("loadout_armour_torso", fields: [playerId, armourTorso], references: [playerId, itemId], onDelete: Restrict)
+  vestItem     InventoryItem? @relation("loadout_armour_vest", fields: [playerId, armourVest], references: [playerId, itemId], onDelete: Restrict)
+  legsItem     InventoryItem? @relation("loadout_armour_legs", fields: [playerId, armourLegs], references: [playerId, itemId], onDelete: Restrict)
+  feetItem     InventoryItem? @relation("loadout_armour_feet", fields: [playerId, armourFeet], references: [playerId, itemId], onDelete: Restrict)
   utility1Item InventoryItem? @relation("loadout_utility_1", fields: [playerId, utility1], references: [playerId, itemId], onDelete: Restrict)
   utility2Item InventoryItem? @relation("loadout_utility_2", fields: [playerId, utility2], references: [playerId, itemId], onDelete: Restrict)
 

@@ -1,4 +1,5 @@
 import {
+	ARMOUR_PIECES,
 	abilityById,
 	abilities as abilityDefs,
 	buffs as buffDefs,
@@ -168,7 +169,10 @@ export function startGame(options: GameOptions): GameHandle {
 	const pointer = new THREE.Vector2()
 	const others = new Map<number, PlayerFigure>()
 	/** each player's class and loadout (from the roster), and the weapon they last fired */
-	const looks = new Map<number, { classIndex: number; weapons: readonly [number, number, number] }>()
+	const looks = new Map<
+		number,
+		{ classIndex: number; weapons: readonly [number, number, number]; armour: readonly number[] }
+	>()
 	const lastFired = new Map<number, { weapon: number; at: number }>()
 	const names = new Map<number, { name: string; connected: boolean }>()
 	let mission: MissionDef | null = null
@@ -232,7 +236,10 @@ export function startGame(options: GameOptions): GameHandle {
 				separateFromZombies(grid, state, interpolator.view.count, interpolator.view.x, interpolator.view.y, viewRadius)
 			me?.dispose()
 			me = new PlayerFigure(slot, true, options.assets)
-			me.setClass(build.class)
+			me.setClass(
+				build.class,
+				ARMOUR_PIECES.map(piece => build.loadout.armour[piece]?.id ?? null)
+			)
 			stage.scene.add(me.group)
 			mission = missionById(missionId) ?? null
 			rewardScale = difficultyDef(difficulty as DifficultyId)?.rewards ?? 1
@@ -265,7 +272,7 @@ export function startGame(options: GameOptions): GameHandle {
 			names.clear()
 			for (const entry of entries) {
 				names.set(entry.slot, { name: entry.name, connected: entry.connected })
-				looks.set(entry.slot, { classIndex: entry.classIndex, weapons: entry.weapons })
+				looks.set(entry.slot, { classIndex: entry.classIndex, weapons: entry.weapons, armour: entry.armour })
 			}
 			// someone joined: the game no longer pauses for one player's menu
 			if (paused && entries.length > 1) {
@@ -882,7 +889,10 @@ export function startGame(options: GameOptions): GameHandle {
 				// dressed as their class, holding the weapon of their slot (or the one they just fired)
 				const look = looks.get(other.id)
 				if (look) {
-					figure.setClass(classDefs.classes[look.classIndex]?.id ?? 'assault')
+					figure.setClass(
+						classDefs.classes[look.classIndex]?.id ?? 'assault',
+						look.armour.map(index => gear.armour[index]?.id ?? null)
+					)
 					const fired = lastFired.get(other.id)
 					const index = fired && now - fired.at < 1500 ? fired.weapon : look.weapons[other.slot as 0 | 1 | 2]
 					const held = index === undefined ? undefined : weapons[index]

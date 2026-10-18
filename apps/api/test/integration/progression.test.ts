@@ -47,7 +47,11 @@ describe('progression', () => {
 			main1: 'vex-9',
 			main2: 'k-71',
 			pistol: 'p9-service',
-			armour: 'kevlar-vest',
+			armourHead: 'field-helmet',
+			armourTorso: 'field-shirt',
+			armourVest: 'kevlar-vest',
+			armourLegs: 'field-trousers',
+			armourFeet: 'field-boots',
 			utility1: 'frag-grenades',
 			utility2: null
 		})
@@ -146,11 +150,17 @@ describe('progression', () => {
 			main1: 'k-71',
 			main2: 'vex-9',
 			pistol: 'p9-service',
-			armour: null,
+			armourHead: null,
+			armourTorso: null,
+			armourVest: null,
+			armourLegs: null,
+			armourFeet: null,
 			utility1: null,
 			utility2: null
 		}
 		expect((await post(jar, 'loadout', loadout, 'PUT')).body.loadout).toEqual(loadout)
+		// armour only goes where it is worn
+		expect((await post(jar, 'loadout', { ...loadout, armourHead: 'kevlar-vest' }, 'PUT')).body.error).toBe('wrong-slot')
 		expect((await post(jar, 'loadout', { ...loadout, main1: 'mower' }, 'PUT')).body.error).toBe('not-owned')
 		expect((await post(jar, 'loadout', { ...loadout, main1: 'p9-service' }, 'PUT')).body.error).toBe('wrong-slot')
 		expect((await post(jar, 'loadout', { ...loadout, main1: 'vex-9' }, 'PUT')).body.error).toBe('duplicate')

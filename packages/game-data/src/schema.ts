@@ -5,6 +5,9 @@ const fraction = z.number().min(-1).max(5)
 
 export const damageType = z.enum(['ballistic', 'explosive', 'fire', 'shock', 'chemical'])
 export const classId = z.enum(['assault', 'medic', 'heavy'])
+/** The five places armour is worn. */
+export const armourPiece = z.enum(['head', 'torso', 'vest', 'legs', 'feet'])
+
 export const weaponKind = z.enum([
 	'pistol',
 	'smg',
@@ -237,13 +240,23 @@ export const gearSchema = z.object({
 		z.object({
 			id,
 			name: z.string().min(1),
+			/** where it is worn: each piece has its own loadout slot */
+			piece: armourPiece,
 			tier,
 			price: z.number().int().positive().optional(),
 			armour: z.number().min(0),
 			/** move speed change, fraction */
 			speed: fraction,
 			resist: z.partialRecord(damageType, z.number().min(0).max(0.9)),
-			utilityCharges: z.number().int().min(0)
+			utilityCharges: z.number().int().min(0),
+			/** how it looks on the soldier: a piece model in soldier.glb and a colour */
+			look: z.object({
+				model: z.string().min(1),
+				tint: z
+					.string()
+					.regex(/^#[0-9a-f]{6}$/i)
+					.optional()
+			})
 		})
 	),
 	utility: z.array(
@@ -342,7 +355,13 @@ export const economySchema = z.object({
 		loadout: z.object({
 			main: z.tuple([id, id]),
 			pistol: id,
-			armour: id.nullable(),
+			armour: z.object({
+				head: id.nullable(),
+				torso: id.nullable(),
+				vest: id.nullable(),
+				legs: id.nullable(),
+				feet: id.nullable()
+			}),
 			utility: z.tuple([id.nullable(), id.nullable()])
 		})
 	})
@@ -643,7 +662,13 @@ export const buildSchema = z.object({
 	loadout: z.object({
 		main: z.tuple([itemRefSchema, itemRefSchema]),
 		pistol: itemRefSchema,
-		armour: itemRefSchema.nullable(),
+		armour: z.object({
+			head: itemRefSchema.nullable(),
+			torso: itemRefSchema.nullable(),
+			vest: itemRefSchema.nullable(),
+			legs: itemRefSchema.nullable(),
+			feet: itemRefSchema.nullable()
+		}),
 		utility: z.tuple([itemRefSchema.nullable(), itemRefSchema.nullable()])
 	})
 })
@@ -664,6 +689,9 @@ export type SkillNode = z.infer<typeof skillNodeSchema>
 export type SkillTree = z.infer<typeof skillTreeSchema>
 export type GearDef = z.infer<typeof gearSchema>
 export type ArmourDef = GearDef['armour'][number]
+export type ArmourPiece = z.infer<typeof armourPiece>
+/** the armour slots in loadout order */
+export const ARMOUR_PIECES = ['head', 'torso', 'vest', 'legs', 'feet'] as const satisfies readonly ArmourPiece[]
 export type UtilityDef = GearDef['utility'][number]
 export type EconomyDef = z.infer<typeof economySchema>
 export type MapDef = z.infer<typeof mapSchema>

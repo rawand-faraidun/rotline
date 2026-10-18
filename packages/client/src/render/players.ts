@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { OUTFITS, wear } from './outfits.ts'
+import { outfitFor, wear } from './outfits.ts'
 
 const SLOT_COLOURS = [0xb8f23c, 0x4fb3ff, 0xffc02e, 0xff7ad9]
 
@@ -166,15 +166,23 @@ export class PlayerFigure {
 		this.group.add(this.placeholder, this.ring, this.reviveArc)
 	}
 
-	/** Dresses the figure as a class (`assault`, `medic`, `heavy`); the model loads the first time. */
-	setClass(classId: string): void {
-		if (classId === this.look || !OUTFITS[classId]) return
-		this.look = classId
+	/**
+	 * Dresses the figure as a class (`assault`, `medic`, `heavy`, `survivor`) wearing these armour items
+	 * (head, torso, vest, legs, feet; omitted: the class's usual kit). The model loads the first time.
+	 */
+	setClass(classId: string, armour?: readonly (string | null)[]): void {
+		const look = `${classId}:${armour?.join(',') ?? ''}`
+		if (look === this.look) return
+		this.look = look
 		void loadSoldier(`${this.assets}/models/characters/soldier.glb`).then(loaded => {
-			if (!loaded || this.look !== classId) return
-			this.model?.removeFromParent()
+			if (!loaded || this.look !== look) return
+			if (this.model) {
+				// same soldier, new clothes: no need to rebuild the animation
+				wear(this.model, outfitFor(classId, armour))
+				return
+			}
 			const model = cloneSkinned(loaded.scene)
-			wear(model, OUTFITS[classId] as NonNullable<(typeof OUTFITS)[string]>)
+			wear(model, outfitFor(classId, armour))
 			this.model = model
 			this.clips = loaded.clips
 			this.aimOffset = loaded.aimOffset
@@ -301,32 +309,49 @@ export class PlayerFigure {
 			}
 		}
 		if (this.weapon && this.hand) {
-			this.weapon.visible = !downed && !this.relaxed
+			// at ease a long gun is held low across the body; a pistol is put away
+			this.weapon.visible = !downed && (!this.relaxed || this.longGun)
 			this.model.updateMatrixWorld(true)
 			const right = this.arms2[0]
 			const left = this.arms2[1]
 			if (this.longGun && right && left && this.weapon.visible) {
 				// a long gun: stock in the right shoulder, pointing along the aim, both hands on it
-				const ax = Math.cos(aimAngle)
-				const az = Math.sin(aimAngle)
+				// at ease the muzzle points down and across the body (low ready), else along the aim
+				const yaw = this.relaxed ? aimAngle - 0.9 : aimAngle
+				const pitch = this.relaxed ? 0.55 : 0
+				const ax = Math.cos(yaw) * Math.cos(pitch)
+				const ay = -Math.sin(pitch)
+				const az = Math.sin(yaw) * Math.cos(pitch)
 				const shoulder = right.upper.getWorldPosition(ikA)
 				const half = this.weaponLength / 2
 				// the gun's middle, ahead of the shoulder and a little in toward the chest and down
 				const centre = ikB.set(
-					shoulder.x + ax * (half - 0.06) + az * 0.06,
-					shoulder.y - 0.06,
-					shoulder.z + az * (half - 0.06) - ax * 0.06
+					shoulder.x + ax * (half - 0.06) + Math.sin(yaw) * 0.06,
+					shoulder.y + ay * (half - 0.06) - 0.06,
+					shoulder.z + az * (half - 0.06) - Math.cos(yaw) * 0.06
 				)
 				const local = this.group.worldToLocal(ikC.copy(centre))
 				this.weapon.position.copy(local)
-				this.weapon.rotation.set(0, -aimAngle, 0)
+				this.weapon.rotation.set(0, -yaw, -pitch)
 				// the grip a third of the way from the stock, the fore grip a little ahead of the middle
-				const grip = ikD.set(centre.x - ax * half * 0.4, centre.y - 0.05, centre.z - az * half * 0.4)
-				const fore = ikE.set(centre.x + ax * half * 0.35, centre.y - 0.04, centre.z + az * half * 0.35)
+				const grip = ikD.set(centre.x - ax * half * 0.4, centre.y - ay * half * 0.4 - 0.05, centre.z - az * half * 0.4)
+				const fore = ikE.set(
+					centre.x + ax * half * 0.35,
+					centre.y + ay * half * 0.35 - 0.04,
+					centre.z + az * half * 0.35
+				)
 				// elbows hang down and out to their own side
-				reach(right, grip, ikF.set(shoulder.x + az * 0.35, shoulder.y - 0.5, shoulder.z - ax * 0.35))
+				reach(
+					right,
+					grip,
+					ikF.set(shoulder.x + Math.sin(yaw) * 0.35, shoulder.y - 0.5, shoulder.z - Math.cos(yaw) * 0.35)
+				)
 				const leftShoulder = left.upper.getWorldPosition(ikG)
-				reach(left, fore, ikF.set(leftShoulder.x - az * 0.3, leftShoulder.y - 0.6, leftShoulder.z + ax * 0.3))
+				reach(
+					left,
+					fore,
+					ikF.set(leftShoulder.x - Math.sin(yaw) * 0.3, leftShoulder.y - 0.6, leftShoulder.z + Math.cos(yaw) * 0.3)
+				)
 			} else {
 				// a pistol sits in the right hand of the aiming pose, pointing exactly where the shots go
 				const at = this.hand.getWorldPosition(scratch)

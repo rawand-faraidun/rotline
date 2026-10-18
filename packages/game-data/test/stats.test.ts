@@ -50,9 +50,14 @@ describe('player stats', () => {
 		expect(damageTaken(stats, 100, null)).toBeCloseTo(75)
 		const hazmat = computeStats({
 			...starterBuild('assault'),
-			loadout: { ...starterBuild().loadout, armour: { id: 'hazmat-suit', level: 0, perks: [] } }
+			loadout: {
+				...starterBuild().loadout,
+				armour: { ...starterBuild().loadout.armour, torso: { id: 'hazmat-suit', level: 0, perks: [] } }
+			}
 		})
-		expect(damageTaken(hazmat, 100, 'chemical')).toBeCloseTo(75 * 0.75)
+		// the suit replaces the shirt: 2 more armour, and a quarter less chemical damage
+		expect(hazmat.armour).toBe(22)
+		expect(damageTaken(hazmat, 100, 'chemical')).toBeCloseTo(100 * (1 - 22 / 82) * 0.75)
 	})
 })
 
@@ -60,6 +65,13 @@ describe('build checks', () => {
 	it('accepts the starter build and rejects broken ones', () => {
 		const ok = starterBuild()
 		expect(buildProblem(ok)).toBeNull()
+		// armour only goes where it is worn
+		expect(
+			buildProblem({
+				...ok,
+				loadout: { ...ok.loadout, armour: { ...ok.loadout.armour, head: { id: 'kevlar-vest', level: 0, perks: [] } } }
+			})
+		).toBe('slot')
 		expect(buildProblem({ ...ok, skills: { 'medkit-drop': 1 } })).toBe('skills')
 		expect(buildProblem({ ...ok, abilities: ['adrenaline-burst'] })).toBe('abilities')
 		const swap = (main: Build['loadout']['main']) => ({ ...ok, loadout: { ...ok.loadout, main } })

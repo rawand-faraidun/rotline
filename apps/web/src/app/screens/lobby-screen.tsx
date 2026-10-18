@@ -190,7 +190,13 @@ export function LobbyScreen() {
 	const members: LobbyMember[] = (view?.members ?? []).map((member, index) => {
 		const you = member.id === view?.you
 		const weaponId = (you ? progress.data?.loadout.main1 : null) ?? CLASS_WEAPON[member.activeClass] ?? 'k-71'
-		return { slot: index + 1, classId: member.activeClass, weaponId, pistol: false, you }
+		const loadout = progress.data?.loadout
+		// your own soldier wears what you equipped; the others wear their class's usual kit
+		const armour =
+			you && loadout
+				? [loadout.armourHead, loadout.armourTorso, loadout.armourVest, loadout.armourLegs, loadout.armourFeet]
+				: undefined
+		return { slot: index + 1, classId: member.activeClass, weaponId, pistol: false, you, ...(armour ? { armour } : {}) }
 	})
 
 	return (

@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	INTEREST_RADIUS,
 	KickReason,
+	lookOf,
 	PROTOCOL_VERSION,
 	ProtocolError,
 	Reader,
@@ -89,6 +90,28 @@ describe('primitives', () => {
 		expect(() => new Reader(new Writer().string('x'.repeat(10)).finish()).string(5)).toThrow(ProtocolError)
 		expect(() => new Reader(new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0x01])).varint()).toThrow(ProtocolError)
 		expect(() => new Reader(new Uint8Array([1, 0xc3])).string()).toThrow()
+	})
+})
+
+describe('how players look', () => {
+	it('names the class, the loadout guns and the armour worn in each place', () => {
+		const build = starterBuild('medic')
+		const look = lookOf(build)
+		expect(look.classIndex).toBe(1)
+		expect(look.weapons.every(index => index !== 255)).toBe(true)
+		expect(look.armour.every(index => index !== 255)).toBe(true)
+		// an empty place, and an item the data does not know, show as nothing
+		const bare = lookOf({
+			...build,
+			loadout: {
+				...build.loadout,
+				main: [{ id: 'no-such-gun', level: 0, perks: [] }, build.loadout.main[1]],
+				armour: { ...build.loadout.armour, head: null, vest: { id: 'no-such-vest', level: 0, perks: [] } }
+			}
+		})
+		expect(bare.weapons[0]).toBe(255)
+		expect(bare.armour[0]).toBe(255)
+		expect(bare.armour[2]).toBe(255)
 	})
 })
 
@@ -187,8 +210,22 @@ describe('server messages', () => {
 			reason: KickReason.badTicket
 		})
 		const entries = [
-			{ slot: 1, name: 'Rook', connected: true, classIndex: 0, weapons: [3, 4, 0] as const },
-			{ slot: 2, name: 'Ghost', connected: false, classIndex: 2, weapons: [5, 255, 1] as const }
+			{
+				slot: 1,
+				name: 'Rook',
+				connected: true,
+				classIndex: 0,
+				weapons: [3, 4, 0] as const,
+				armour: [0, 4, 7, 11, 14] as const
+			},
+			{
+				slot: 2,
+				name: 'Ghost',
+				connected: false,
+				classIndex: 2,
+				weapons: [5, 255, 1] as const,
+				armour: [255, 255, 255, 255, 255] as const
+			}
 		]
 		expect(readServerHeader(new Reader(writeRoster(w, entries)))).toEqual({ type: 'roster', entries })
 	})
@@ -302,7 +339,8 @@ describe('snapshots', () => {
 			name: 'x',
 			connected: true,
 			classIndex: 0,
-			weapons: [0, 0, 0] as const
+			weapons: [0, 0, 0] as const,
+			armour: [255, 255, 255, 255, 255] as const
 		}))
 		expect(() => readServerHeader(new Reader(writeRoster(new Writer(), roster)))).toThrow(ProtocolError)
 	})

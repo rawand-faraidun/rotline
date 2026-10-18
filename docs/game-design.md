@@ -90,7 +90,7 @@ Coverage in a squad: Assault handles mobile threats and elites (Marksman), Medic
 Rotline uses health, not lives. What decides a fight is health, damage, armour, resistances, level and gear.
 
 - **Player health**: class base health × (1 + 1 % per class level) plus skill bonuses. Health does not regenerate by itself; it comes back from medkit pickups, Medic abilities, Stim, revives, and in full at each checkpoint.
-- **Player armour** (from the armour slot and skills) reduces incoming damage: `damage × (1 − armour / (armour + 60))`.
+- **Player armour** (the sum of the five worn armour pieces, and skills) reduces incoming damage: `damage × (1 − armour / (armour + 60))`.
 - **Damage dealt** = weapon damage at its upgrade level × skill bonuses × weak-point multiplier (×2, ×3 on elites' cores) × (1 − the target's resistance to that damage type) × the target's armour reduction.
 - **Damage types**: ballistic, explosive, fire, shock, chemical. Every zombie type has its own resistances (for example Bulwark: 90 % from the front; Cinder: immune to fire; Hive: weak to fire), shown in the bestiary.
 - **Enemy level**: every mission has an enemy level. Enemy health grows by 6 % and enemy damage by 4 % per level above 1, on top of the difficulty's multipliers (section 13). Each mission shows a recommended class level and gear level (the average upgrade level of the equipped items), so levelling up and upgrading gear is what makes harder missions possible.
@@ -99,7 +99,7 @@ Rotline uses health, not lives. What decides a fight is health, damage, armour, 
 
 ### Loadout
 
-Two main weapons, one pistol, armour, two utility slots. Equipped items are shared by all classes.
+Two main weapons, one pistol, five armour pieces (head, torso, vest, legs, feet), two utility slots. Equipped items are shared by all classes, and the soldier wears what is equipped: every armour piece shows on the character.
 
 ### Pistol rule
 
@@ -133,7 +133,7 @@ Weapon tiers for pricing: tier 1 = 6,000, tier 2 = 14,000, tier 3 = 28,000.
 
 | Slot | Items (examples) |
 |---|---|
-| Armour | Kevlar Vest (starter, 20 armour), Plated Carrier (40 armour, −5 % speed), Hazmat Suit (20 armour, 25 % fire and chemical resistance), Assault Rig (30 armour, +1 utility charge) |
+| Armour (five places) | Head: Field Helmet (starter, 5), Ridge Helmet (8, explosive resistance), Visor Helmet (7, chemical and fire resistance), Bastion Helmet (12, −2 % speed). Torso: Field Shirt (starter, 2), Padded Jacket (4, fire resistance), Hazmat Suit (4, 25 % fire and chemical resistance). Vest: Kevlar Vest (starter, 10), Assault Rig (18, +1 utility charge), Plated Carrier (24, −5 % speed), Siege Plates (30, −8 % speed, explosive resistance). Legs: Field Trousers (starter, 2), Kneepad Trousers (4, +2 % speed), Armoured Trousers (7, −2 % speed). Feet: Field Boots (starter, 1), Runner Boots (1, +5 % speed), Steel-Toe Boots (4, explosive resistance). The starter set totals 20 armour |
 | Utility (×2) | Frag grenades (3), Incendiary grenades (3), Shock grenades (3), Sticky mines (4), Decoy beacon (2), Mini-sentry (1, 30 s) |
 
 Armour absorbs a share of incoming damage: `damage × (1 − armour / (armour + 60))`.
