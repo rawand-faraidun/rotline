@@ -23,14 +23,14 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Addresses with a trailing slash ("/play/") work.
 - Soldiers are realistic now: a real face and hands, a combat shirt, trousers, boots, plate carrier and helmet, each class in its own colours and kit. Rifles and other long guns are held in both hands with the stock at the shoulder.
 - On a graphics card the picture has a finish: ambient occlusion, a soft bloom on bright things, a colour grade, vignette and film grain. The camera sits a little closer.
-- Real-world style guns: a G17, Desert Eagle, Vector, HK416, Benelli M4, M249, L115A3, MGL, XM8 and M134 replace the sci-fi models.
+- Real guns in full detail: a G19, Desert Eagle, Vector, HK416, Benelli M4 Super 90, M249, AWP, GL-06 grenade launcher, AUG and a handheld M134, plus two real flamethrowers for the Kiln and the Viper, all textured and sharp in the shop and armory.
 - Every kind of gun draws its own shots: shotguns spray pellets, sniper rifles leave a long bright streak, machine guns fire orange tracers, each with its own muzzle flash.
 - A profile screen (click your name): total level, missions won, gold masteries, classes and your campaign record.
 - Armour is worn in five places: head, torso, vest, legs and feet, each piece its own item with its own stats, bought, upgraded and equipped on its own. Everything you equip shows on your soldier, in the lobby and in the game (your squad sees it too). Everyone gets the starter helmet, shirt, trousers and boots.
 - The lobby is a better place: a wet yard at night with a street lamp, a covered car, barriers, tyres and bins, dust in the light, and the same picture finish as the game. Your soldier holds your main weapon at the low ready.
 - Missions play like missions: a briefing while the mission loads, the handler or a survivor on the radio as each step starts and ends, a debrief at the end, and more to every mission: zombie nests to burn out (they keep spawning until destroyed), ambushes that hit as a step starts, and a Brute boss with its own health bar. Landfall now has eight steps.
 - Two new zombies: the low, quick Crawler, and the Screamer, whose scream calls a pack in.
-- The guns go by their real names: G17, Desert Eagle, Vector, HK416, M4 Super 90, M249, L115A3, MGL, XM8 and M134.
+- The guns go by their real names: G19, Desert Eagle, Vector, HK416, M4 Super 90, M249, AWP, GL-06, AUG and M134.
 - Every weapon picture is taken from the same side view.
 - Each class is a different person in their own style: the Assault an operator in a combat shirt, the Medic a woman in a black tactical suit, the Heavy a shaven-headed man in a T-shirt and gloves. Helmets, vests and packs go on top of all three.
 - In the lobby your soldier holds a long gun across the chest in both hands.

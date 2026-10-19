@@ -109,16 +109,16 @@ Pistols have **unlimited reserve ammunition**; their only limits are magazine si
 
 | Weapon | Kind | Damage type | Damage | Fire rate (rpm) | Magazine | Max reserve | Reload (s) | Price |
 |---|---|---|---|---|---|---|---|---|
-| **G17** | Pistol | Ballistic | 22 | 300 | 12 | unlimited | 1.2 | starter |
+| **G19** | Pistol | Ballistic | 22 | 300 | 12 | unlimited | 1.2 | starter |
 | **Desert Eagle** | Pistol | Ballistic | 38 | 180 | 8 | unlimited | 1.4 | 4,000 |
 | **Vector** | SMG | Ballistic | 14 | 900 | 32 | 256 | 1.8 | starter |
 | **HK416** | Assault rifle | Ballistic | 24 | 600 | 30 | 210 | 2.2 | starter |
 | **M4 Super 90** | Shotgun | Ballistic | 10 × 8 pellets | 75 | 6 | 48 | 0.5 per shell | 6,000 |
 | **M249** | LMG | Ballistic | 26 | 750 | 100 | 300 | 4.5 | 28,000 |
-| **L115A3** | Sniper rifle | Ballistic, pierces 3 | 180 | 45 | 5 | 40 | 3.0 | 14,000 |
+| **AWP** | Sniper rifle | Ballistic, pierces 3 | 180 | 45 | 5 | 40 | 3.0 | 14,000 |
 | **Kiln** | Flamethrower | Fire, 7 m cone | 160 per second | continuous | 100 fuel | 300 | 3.5 | 14,000 |
-| **MGL** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 28,000 |
-| **XM8** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 14,000 |
+| **GL-06** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 28,000 |
+| **AUG** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 14,000 |
 | **Viper** | Chemical sprayer | Chemical, slows | 90 per second | continuous | 80 | 240 | 3.0 | 14,000 |
 
 Weapon tiers for pricing: tier 1 = 6,000, tier 2 = 14,000, tier 3 = 28,000.
@@ -160,7 +160,7 @@ Armour absorbs a share of incoming damage: `damage × (1 − armour / (armour + 
 
 ### Starter kit
 
-Vector SMG, HK416 assault rifle, G17 pistol, frag grenades, and a full set of basic armour: Field Helmet, Field Shirt, Kevlar Vest, Field Trousers and Field Boots.
+Vector SMG, HK416 assault rifle, G19 pistol, frag grenades, and a full set of basic armour: Field Helmet, Field Shirt, Kevlar Vest, Field Trousers and Field Boots.
 
 ## 6. Economy
 

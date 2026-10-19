@@ -3,99 +3,91 @@
 	"weapons": [
 		{
 			"id": "p9-service",
-			"uid": "60efc54ac59e47d18bdff94b2f5144ff",
-			"name": "Low-Poly G17",
-			"author": "TastyTony",
-			"length": 0.2
+			"uid": "06a2803e93ea40fa963b08b93cabcd9e",
+			"name": "low poly Glock-19",
+			"author": "yuiop001",
+			"length": 0.19
 		},
 		{
 			"id": "halcyon-45",
-			"uid": "b81da261345f4462b2c4412352162287",
-			"name": "Low-Poly Desert Eagle",
-			"author": "TastyTony",
+			"uid": "cabde59f5cf24effaf80536e35d04e95",
+			"name": "Desert Eagle",
+			"author": "ELIZION",
 			"length": 0.27,
-			"upsideDown": true
+			"drop": "^Bullet"
 		},
 		{
 			"id": "vex-9",
-			"uid": "ec2fb60fecaf4aea94b681a52ec7bc26",
-			"name": "Low-Poly Kriss Vector",
-			"author": "TastyTony",
+			"uid": "609166faf8e5416f957c88e0af657e09",
+			"name": "KRSV VECTOR",
+			"author": "h1ggs",
 			"length": 0.62
 		},
 		{
 			"id": "k-71",
-			"uid": "059e968f6f764357880807c62c117ab7",
-			"name": "Low-Poly HK416",
-			"author": "TastyTony",
+			"uid": "a16768f0ffa24737a4fe324a411cfbd9",
+			"name": "HK 416 A7",
+			"author": "r4m",
 			"length": 0.9,
 			"flip": true,
-			"upsideDown": true
+			"dropBottom": 0.2
 		},
 		{
 			"id": "breacher-12",
-			"uid": "caea90a9470143b69e6042f75b9c59cc",
-			"name": "Low-Poly Benelli M4 Super 90",
-			"author": "TastyTony",
+			"uid": "a4cb85ebf36c40f9af47dd3e38d340a2",
+			"name": "Shotgun BENELLI M4 Super 90 14\"",
+			"author": "drcrazzie",
 			"length": 1.0,
-			"flip": true,
-			"upsideDown": true
+			"flip": true
 		},
 		{
 			"id": "mower",
-			"uid": "76011c365636451c90a8e3a46c2d8ca5",
-			"name": "Low-Poly M249 SAW",
-			"author": "TastyTony",
-			"length": 1.04,
-			"flip": true,
-			"upsideDown": true
+			"uid": "bf0105376a2d4c37926f3ce95316460d",
+			"name": "M249 Machine Gun",
+			"author": "Buce",
+			"length": 1.04
 		},
 		{
 			"id": "longstride",
-			"uid": "a795adf5f8dd4a2294210d427cbb0e58",
-			"name": "Low-Poly L115A3",
-			"author": "TastyTony",
-			"length": 1.25
+			"uid": "b7101f0325aa4b0dad8512d0ec67bfa1",
+			"name": "AWP",
+			"author": "forestie",
+			"length": 1.2
 		},
 		{
 			"id": "kiln",
-			"uid": "dafa264a92344b8e98277267b532ba79",
-			"name": "AR77-90",
-			"author": "Frostoise",
+			"uid": "3f3ed85845574db48b4c943161469d14",
+			"name": "Apocalyptic Flamethrower",
+			"author": "Nazareno_rojas",
 			"length": 1.0
 		},
 		{
 			"id": "thumper",
-			"uid": "f62f582eada147b8aeb3c08773379d29",
-			"name": "Low-Poly Milkor MGL Mk 1s",
-			"author": "TastyTony",
-			"length": 0.78,
-			"flip": true,
-			"upsideDown": true
+			"uid": "c06031637904402c85179bfce8b73e28",
+			"name": "Game Ready PBR Grenade Launcher GL-06",
+			"author": "Leo_Newman",
+			"length": 0.75
 		},
 		{
 			"id": "arclight",
-			"uid": "67812c3deefc4d0991a721f7ec7d8a7d",
-			"name": "Low-Poly HK XM8",
-			"author": "TastyTony",
-			"length": 0.86,
-			"flip": true,
-			"upsideDown": true
-		},
-		{
-			"id": "viper",
-			"uid": "de66c5d5ebe5479f986f72fb5c3c3d2f",
-			"name": "SM-237",
-			"author": "Frostoise",
+			"uid": "dd8ffca1ab094999a2c332e7540e09ad",
+			"name": "Steyr AUG",
+			"author": "emmerick.opsomer",
 			"length": 0.8
 		},
 		{
+			"id": "viper",
+			"uid": "1ee1c43da8be454caf13c09bbab8ccb0",
+			"name": "Flamethrower FINAL",
+			"author": "ZachWilkins1997",
+			"length": 0.95
+		},
+		{
 			"id": "minigun",
-			"uid": "eed0c95de51b4895a48c5729582732cc",
-			"name": "Low-Poly M134 Minigun",
-			"author": "TastyTony",
-			"length": 1.1,
-			"flip": true
+			"uid": "8f008c3e18934707a834cde8c72364f5",
+			"name": "M134 handheld (Minigun)",
+			"author": "boriseviav",
+			"length": 1.0
 		}
 	]
 }

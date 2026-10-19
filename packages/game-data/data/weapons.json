@@ -1,7 +1,7 @@
 [
 	{
 		"id": "p9-service",
-		"name": "G17",
+		"name": "G19",
 		"kind": "pistol",
 		"tier": 0,
 		"damageType": "ballistic",
@@ -476,7 +476,7 @@
 	},
 	{
 		"id": "longstride",
-		"name": "L115A3",
+		"name": "AWP",
 		"kind": "sniper",
 		"tier": 2,
 		"damageType": "ballistic",
@@ -634,7 +634,7 @@
 	},
 	{
 		"id": "thumper",
-		"name": "MGL",
+		"name": "GL-06",
 		"kind": "launcher",
 		"tier": 3,
 		"damageType": "explosive",
@@ -714,7 +714,7 @@
 	},
 	{
 		"id": "arclight",
-		"name": "XM8",
+		"name": "AUG",
 		"kind": "shock",
 		"tier": 2,
 		"damageType": "shock",
