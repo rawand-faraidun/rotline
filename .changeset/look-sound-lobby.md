@@ -31,3 +31,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Missions play like missions: a briefing while the mission loads, the handler or a survivor on the radio as each step starts and ends, a debrief at the end, and more to every mission: zombie nests to burn out (they keep spawning until destroyed), ambushes that hit as a step starts, and a Brute boss with its own health bar. Landfall now has eight steps.
 - Two new zombies: the low, quick Crawler, and the Screamer, whose scream calls a pack in.
 - The guns go by their real names: G17, Desert Eagle, Vector, HK416, M4 Super 90, M249, L115A3, MGL, XM8 and M134.
+- Every weapon picture is taken from the same side view.

@@ -21,12 +21,15 @@
 			scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture
 			scene.add(new THREE.HemisphereLight(0xdfe6ee, 0x2a3129, 1.6))
 			const key = new THREE.DirectionalLight(0xfff1dd, 3)
-			key.position.set(2, 3, 2)
+			key.position.set(1.5, 3, 3)
 			const rim = new THREE.DirectionalLight(0xb8f23c, 1.4)
 			rim.position.set(-3, 1, -2)
 			scene.add(key, rim)
-			const camera = new THREE.PerspectiveCamera(30, canvas.width / canvas.height, 0.01, 50)
-			camera.position.set(0, 0.3, 2.6)
+			// every gun from the same side view, a little from above, without perspective, so the stills all match
+			const half = 0.8
+			const aspect = canvas.width / canvas.height
+			const camera = new THREE.OrthographicCamera(-half * aspect, half * aspect, half, -half, 0.01, 50)
+			camera.position.set(0.25, 0.55, 4)
 			camera.lookAt(0, 0, 0)
 			const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 
@@ -38,13 +41,10 @@
 				const fit = 1.45 / Math.max(size.x, size.y, size.z, 0.01)
 				model.scale.setScalar(fit)
 				model.position.sub(box.getCenter(new THREE.Vector3()).multiplyScalar(fit))
-				const turn = new THREE.Group()
-				turn.rotation.y = -0.35
-				turn.add(model)
-				scene.add(turn)
+				scene.add(model)
 				renderer.render(scene, camera)
 				const data = canvas.toDataURL('image/png')
-				scene.remove(turn)
+				scene.remove(model)
 				return data
 			}
 			window.ready = true
