@@ -65,10 +65,10 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition
 	await page.getByRole('button', { name: /^deploy$/i }).click()
 	await expect(page).toHaveURL(/\/play\/mission$/)
-	await expect(page.getByText(/objective 1 of 5/i)).toBeVisible({ timeout: 45_000 })
-	await expect(page.getByText(/get clear of the wreck/i)).toBeVisible()
+	await expect(page.getByText(/objective 1 of 8/i)).toBeVisible({ timeout: 45_000 })
+	await expect(page.getByText(/^get clear of the wreck$/i)).toBeVisible()
 	await expect(page.getByText(/^multiplier$/i)).toBeVisible()
-	const magazine = page.locator('li', { hasText: 'Vex-9' }).locator('[data-slot="magazine"]')
+	const magazine = page.locator('li', { hasText: 'Vector' }).locator('[data-slot="magazine"]')
 	await expect(magazine).toHaveText('32')
 	await page.mouse.move(900, 300)
 	await page.mouse.down()

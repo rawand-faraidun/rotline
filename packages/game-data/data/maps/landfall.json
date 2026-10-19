@@ -1,7 +1,11 @@
 {
 	"id": "landfall",
 	"name": "Landfall",
-	"look": { "ground": "dirt", "walls": "stone", "light": "dusk" },
+	"look": {
+		"ground": "dirt",
+		"walls": "stone",
+		"light": "dusk"
+	},
 	"layout": [
 		"########################################",
 		"#...................1..................#",
@@ -57,6 +61,22 @@
 			"kind": "carry",
 			"x": 12.5,
 			"y": 26.5
+		},
+		{
+			"id": "nest-road",
+			"kind": "nest",
+			"x": 9,
+			"y": 27,
+			"w": 2,
+			"h": 2
+		},
+		{
+			"id": "nest-depot",
+			"kind": "nest",
+			"x": 33,
+			"y": 20,
+			"w": 2,
+			"h": 2
 		}
 	]
 }

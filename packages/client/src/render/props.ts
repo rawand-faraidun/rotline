@@ -233,6 +233,31 @@ export class PropRenderer {
 				this.dressUp(prop, root, [body], [0.62, 0.42, 0.34], null)
 				break
 			}
+			case 'nest': {
+				// a swollen mass of flesh, veined and wet, that breathes
+				const geometry = new THREE.IcosahedronGeometry(0.5, 4)
+				const position = geometry.getAttribute('position') as THREE.BufferAttribute
+				for (let v = 0; v < position.count; v++) {
+					const x = position.getX(v)
+					const y = position.getY(v)
+					const z = position.getZ(v)
+					const bump = 1 + 0.18 * Math.sin(x * 9 + z * 5) * Math.cos(y * 7) + 0.1 * Math.sin(z * 13 + x * 3)
+					position.setXYZ(v, x * bump, Math.max(-0.1, y) * bump * 0.8, z * bump)
+				}
+				geometry.computeVertexNormals()
+				glow = new THREE.MeshStandardMaterial({
+					color: 0x4a1612,
+					roughness: 0.35,
+					metalness: 0.1,
+					emissive: 0x7a1a10,
+					emissiveIntensity: 0.4
+				})
+				const mass = add(new THREE.Mesh(geometry, glow), 0.1)
+				mass.scale.set(w * 1.1, 1.1, h * 1.1)
+				root.userData.mass = mass
+				bar = this.bar(root, 1.6)
+				break
+			}
 			case 'defend': {
 				const body = add(new THREE.Mesh(this.box, this.material(0x56605c)), 1)
 				body.scale.set(w * 0.95, 2, h * 0.95)
@@ -334,6 +359,14 @@ export class PropRenderer {
 				case 'defend':
 					this.setBar(drawn.bar, prop.health / prop.maxHealth)
 					break
+				case 'nest': {
+					this.setBar(drawn.bar, prop.health / prop.maxHealth)
+					const mass = root.userData.mass as THREE.Mesh | undefined
+					const breath = 1 + 0.05 * Math.sin(timeSeconds * 2.2 + prop.index)
+					if (mass) mass.scale.y = 1.1 * breath
+					if (drawn.glow) drawn.glow.emissiveIntensity = 0.3 + 0.25 * Math.sin(timeSeconds * 2.2 + prop.index) ** 2
+					break
+				}
 			}
 			drawn.lastState = prop.state
 		}

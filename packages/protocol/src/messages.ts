@@ -926,7 +926,8 @@ const EventType = {
 	threshold: 22,
 	'run-over': 23,
 	prop: 24,
-	failed: 25
+	failed: 25,
+	scream: 26
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -949,6 +950,9 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'kill':
 				w.u16(event.zombie).u8(event.zombieType).u16(q(event.x)).u16(q(event.y)).u8(event.by)
+				break
+			case 'scream':
+				w.u16(q(event.x)).u16(q(event.y))
 				break
 			case 'burst':
 				w.u16(q(event.x))
@@ -1049,6 +1053,9 @@ export function readEvents(r: Reader): SimEvent[] {
 				break
 			case EventType.kill:
 				events.push({ type: 'kill', zombie: r.u16(), zombieType: r.u8(), x: dq(r.u16()), y: dq(r.u16()), by: r.u8() })
+				break
+			case EventType.scream:
+				events.push({ type: 'scream', x: dq(r.u16()), y: dq(r.u16()) })
 				break
 			case EventType.burst:
 				events.push({ type: 'burst', x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })

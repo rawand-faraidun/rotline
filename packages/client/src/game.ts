@@ -182,6 +182,8 @@ export function startGame(options: GameOptions): GameHandle {
 	let paused = false
 	let markers: MissionMarkers | null = null
 	let missionHud: MissionHud | null = null
+	/** the objective the radio last spoke for */
+	let radioFor = -1
 	let toastId = 0
 	let toasts: Toast[] = []
 	const toast = (kind: Toast['kind'], text: string, by: string | null = null) => {
@@ -323,6 +325,20 @@ export function startGame(options: GameOptions): GameHandle {
 					goal: timed ? Math.round(progress.goal / TICK_RATE) : progress.goal,
 					complete: progress.status === 2
 				}
+				// the radio speaks when an objective starts (and again when it is restarted)
+				if (progress.status === 1 && progress.objective !== radioFor) {
+					const previous = mission.objectives[radioFor]
+					radioFor = progress.objective
+					const line = objective?.radio?.start
+						? { speaker: objective.radio.speaker, text: objective.radio.start }
+						: previous?.radio?.done
+							? { speaker: previous.radio.speaker, text: previous.radio.done }
+							: null
+					if (line) {
+						hud.set({ radio: { ...line, at: performance.now() } }, performance.now(), true)
+						audio.synth('chime', { bus: 'interface', rate: 1.4, volume: 0.4 })
+					}
+				}
 				if (
 					next.objective !== missionHud.objective ||
 					next.progress !== missionHud.progress ||
@@ -458,6 +474,10 @@ export function startGame(options: GameOptions): GameHandle {
 							if (Math.random() < 0.5) audio.sound('bodyfall', { x: event.x, y: event.y, rate: 1 / scale, volume: 0.5 })
 						}
 						break
+					case 'scream':
+						audio.sound('zombie-fast', { x: event.x, y: event.y, rate: 0.7, volume: 1 })
+						audio.sound('zombie-roar', { x: event.x, y: event.y, rate: 1.3, volume: 0.6 })
+						break
 					case 'burst':
 						effects.burst(event.x, event.y, event.radius, now, 0x9fe04a, true)
 						audio.synth('thump', { x: event.x, y: event.y, rate: 0.6 })
@@ -516,6 +536,12 @@ export function startGame(options: GameOptions): GameHandle {
 						hud.set({ banner: { text: 'run-over', wave: event.wave, at: performance.now() } }, performance.now(), true)
 						break
 					case 'mission-complete':
+						if (mission?.debrief)
+							hud.set(
+								{ radio: { speaker: 'Command', text: mission.debrief, at: performance.now() } },
+								performance.now(),
+								true
+							)
 						hud.set({ banner: { text: 'complete', wave: 0, at: performance.now() } }, performance.now(), true)
 						break
 					case 'item-found':
@@ -859,6 +885,23 @@ export function startGame(options: GameOptions): GameHandle {
 		}
 		if (interpolator.sample(renderTick)) {
 			zombies?.update(interpolator.view, now / 1000)
+			// the toughest elite in sight gets a health bar at the top of the screen
+			{
+				const view = interpolator.view
+				let boss: { name: string; health: number } | null = null
+				for (let n = 0; n < view.count; n++) {
+					const def = zombieDefs[view.type[n] as number]
+					if (!def?.elite) continue
+					const health = (view.health[n] as number) / 255
+					if (!boss || health < boss.health) boss = { name: def.name, health }
+				}
+				const shown = hud.getSnapshot().boss
+				if (
+					(boss === null) !== (shown === null) ||
+					(boss && shown && (boss.name !== shown.name || Math.abs(boss.health - shown.health) > 0.01))
+				)
+					hud.set({ boss }, performance.now())
+			}
 			// now and then one of the zombies nearby makes itself heard
 			if (now >= nextGrowlAt && interpolator.view.count > 0) {
 				nextGrowlAt = now + 900 + Math.random() * 1600

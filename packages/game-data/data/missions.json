@@ -5,16 +5,17 @@
 		"zone": "ashgate",
 		"map": "landfall",
 		"description": "The transport went down short of Ashgate. Get off the landing zone, through the gate and onto the pad before the next bird leaves.",
-		"parTimeSeconds": 300,
-		"scoreTarget": 15000,
+		"parTimeSeconds": 540,
+		"scoreTarget": 24000,
 		"enemyLevel": 1,
 		"recommendedLevel": 1,
 		"spawn": {
 			"perSecond": 0.9,
 			"maxAlive": 50,
 			"composition": {
-				"drudge": 85,
-				"bolter": 15
+				"drudge": 70,
+				"bolter": 15,
+				"crawler": 15
 			}
 		},
 		"caches": [
@@ -29,7 +30,7 @@
 		],
 		"gates": {
 			"gate": {
-				"openOn": 2
+				"openOn": 4
 			}
 		},
 		"objectives": [
@@ -42,7 +43,11 @@
 					"radius": 3
 				},
 				"sections": [0],
-				"spawnScale": 0.5
+				"spawnScale": 0.5,
+				"radio": {
+					"speaker": "Command",
+					"start": "Rook, this is Command. Your bird is down short of Ashgate. Get clear of the wreck before they smell the fuel."
+				}
 			},
 			{
 				"type": "retrieve",
@@ -54,7 +59,30 @@
 					"radius": 2.5
 				},
 				"sections": [0],
-				"checkpoint": true
+				"checkpoint": true,
+				"radio": {
+					"speaker": "Command",
+					"start": "That flight recorder has every evac route on it. Find it in the wreckage and bring it to the gate.",
+					"done": "Recorder secured. Keep it safe."
+				}
+			},
+			{
+				"type": "destroy",
+				"label": "Burn the nests on the road",
+				"props": ["nest-road", "nest-depot"],
+				"sections": [0],
+				"ambush": {
+					"count": 8,
+					"composition": {
+						"crawler": 60,
+						"drudge": 40
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "Those growths on the road are nests. They will keep spitting the dead out until you burn them.",
+					"done": "Nests are down. The road's quieter."
+				}
 			},
 			{
 				"type": "kill",
@@ -65,7 +93,42 @@
 					"x": 20.5,
 					"y": 17.5
 				},
-				"checkpoint": true
+				"checkpoint": true,
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"bolter": 70,
+						"drudge": 30
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "Runners coming down the street! Put them down!"
+				}
+			},
+			{
+				"type": "hold",
+				"label": "Hold while the gate opens",
+				"area": {
+					"x": 20.5,
+					"y": 15.5,
+					"radius": 4
+				},
+				"seconds": 25,
+				"sections": [0],
+				"spawnScale": 1.4,
+				"ambush": {
+					"count": 8,
+					"composition": {
+						"screamer": 15,
+						"drudge": 85
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "Gate motors are slow. Hold at the gate until it opens.",
+					"done": "Gate's open. Move!"
+				}
 			},
 			{
 				"type": "reach",
@@ -79,6 +142,25 @@
 				"checkpoint": true
 			},
 			{
+				"type": "kill",
+				"label": "Put down the Brute on the pad",
+				"count": 1,
+				"of": "brute",
+				"sections": [1],
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 20.5,
+						"y": 5.5
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "Something big is on the pad. That's a Brute. Keep moving and hit it from range.",
+					"done": "It's down. Clear the pad!"
+				}
+			},
+			{
 				"type": "extract",
 				"label": "Reach the landing pad",
 				"area": {
@@ -88,15 +170,25 @@
 				},
 				"seconds": 90,
 				"sections": [1],
-				"spawnScale": 1.5
+				"spawnScale": 1.5,
+				"radio": {
+					"speaker": "Command",
+					"start": "Bird is two minutes out. Everyone on the pad!"
+				}
 			},
 			{
 				"type": "kill",
-				"label": "Optional: put down 60",
-				"count": 60,
+				"label": "Optional: put down 80",
+				"count": 80,
 				"optional": true
 			}
-		]
+		],
+		"briefing": [
+			"Your transport went down on the approach to Ashgate. The pilot did not make it.",
+			"Get clear of the wreck and recover the flight recorder: it holds the routes for every evacuation run out of the city.",
+			"Then through the town gate to the landing pad. Command has a bird inbound, and it will not wait."
+		],
+		"debrief": "Bird is lifting. Good work, squad. That recorder is going to get a lot of people out."
 	},
 	{
 		"id": "yard-sweep",
@@ -104,17 +196,18 @@
 		"zone": "ashgate",
 		"map": "yard",
 		"description": "Clear the yard, secure the gate and hold it until the convoy is through.",
-		"parTimeSeconds": 480,
-		"scoreTarget": 30000,
+		"parTimeSeconds": 660,
+		"scoreTarget": 42000,
 		"enemyLevel": 1,
 		"recommendedLevel": 1,
 		"spawn": {
 			"perSecond": 1.6,
 			"maxAlive": 90,
 			"composition": {
-				"drudge": 70,
-				"bolter": 22,
-				"swell": 8
+				"drudge": 60,
+				"bolter": 20,
+				"swell": 8,
+				"crawler": 12
 			}
 		},
 		"caches": [
@@ -131,7 +224,33 @@
 			{
 				"type": "kill",
 				"label": "Thin the horde",
-				"count": 40
+				"count": 40,
+				"radio": {
+					"speaker": "Sergeant",
+					"start": "The yard's crawling. Thin them out so the convoy has a chance."
+				}
+			},
+			{
+				"type": "destroy",
+				"label": "Burn the nests in the sheds",
+				"props": ["nest-sheds-west", "nest-sheds-east", "nest-centre"],
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"crawler": 70,
+						"bolter": 30
+					}
+				},
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 32,
+					"y": 24
+				},
+				"radio": {
+					"speaker": "Sergeant",
+					"start": "Three nests down by the sheds. While they stand, this never ends.",
+					"done": "That's the last nest."
+				}
 			},
 			{
 				"type": "reach",
@@ -141,7 +260,11 @@
 					"y": 4,
 					"radius": 4
 				},
-				"checkpoint": true
+				"checkpoint": true,
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Convoy here, we're at the north gate. Can't open it from out here!"
+				}
 			},
 			{
 				"type": "hold",
@@ -153,21 +276,68 @@
 				},
 				"seconds": 45,
 				"spawnScale": 1.6,
-				"checkpoint": true
+				"checkpoint": true,
+				"ambush": {
+					"count": 15,
+					"composition": {
+						"bolter": 60,
+						"drudge": 40
+					}
+				},
+				"radio": {
+					"speaker": "Sergeant",
+					"start": "Hold that gate while they cycle it. Here they come!",
+					"done": "Gate's up. First trucks rolling."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Stop the Brute before it reaches the trucks",
+				"count": 1,
+				"of": "brute",
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 32,
+						"y": 44
+					}
+				},
+				"spawnScale": 0.8,
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Big one coming up from the south! It's heading straight for the trucks!",
+					"done": "It dropped. Keep them rolling."
+				}
 			},
 			{
 				"type": "survive",
 				"label": "Survive until the convoy is through",
 				"seconds": 40,
-				"spawnScale": 2
+				"spawnScale": 2,
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"screamer": 20,
+						"drudge": 80
+					}
+				},
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Last trucks moving. Forty seconds, give us forty seconds!"
+				}
 			},
 			{
 				"type": "kill",
-				"label": "Optional: put down 120",
-				"count": 120,
+				"label": "Optional: put down 150",
+				"count": 150,
 				"optional": true
 			}
-		]
+		],
+		"briefing": [
+			"A supply convoy is stuck outside the freight yard and the dead have found it.",
+			"Thin the horde, burn the nests in the sheds and get the north gate open. Then keep the yard clear until the last truck is through."
+		],
+		"debrief": "Last truck is through. The yard is yours, and the city eats tonight."
 	},
 	{
 		"id": "power-out",
@@ -175,17 +345,18 @@
 		"zone": "ashgate",
 		"map": "substation",
 		"description": "Ashgate's substation went dark. Restart the generators, keep the transformer alive while the grid comes back, then get out.",
-		"parTimeSeconds": 480,
-		"scoreTarget": 40000,
+		"parTimeSeconds": 720,
+		"scoreTarget": 52000,
 		"enemyLevel": 2,
 		"recommendedLevel": 2,
 		"spawn": {
 			"perSecond": 1.8,
 			"maxAlive": 110,
 			"composition": {
-				"drudge": 60,
-				"bolter": 25,
-				"swell": 15
+				"drudge": 55,
+				"bolter": 22,
+				"swell": 13,
+				"crawler": 10
 			}
 		},
 		"caches": [
@@ -200,6 +371,20 @@
 		],
 		"objectives": [
 			{
+				"type": "reach",
+				"label": "Get inside the substation",
+				"area": {
+					"x": 36,
+					"y": 30,
+					"radius": 5
+				},
+				"spawnScale": 0.6,
+				"radio": {
+					"speaker": "Engineer",
+					"start": "Substation's dead and so is half the city. Get me inside the fence."
+				}
+			},
+			{
 				"type": "interact",
 				"label": "Restart the three generators",
 				"props": ["generator-west", "generator-east", "generator-south"],
@@ -207,6 +392,27 @@
 				"checkpointAt": {
 					"x": 36,
 					"y": 30
+				},
+				"radio": {
+					"speaker": "Engineer",
+					"start": "Three generators: west, east and south. They take a while to catch, and they're loud.",
+					"done": "All three running. The turrets have power."
+				}
+			},
+			{
+				"type": "destroy",
+				"label": "Clear the nests by the fences",
+				"props": ["nest-southwest", "nest-southeast"],
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"crawler": 60,
+						"drudge": 40
+					}
+				},
+				"radio": {
+					"speaker": "Engineer",
+					"start": "Nests in the south corners. They'll swamp the transformer if you leave them."
 				}
 			},
 			{
@@ -219,6 +425,36 @@
 				"checkpointAt": {
 					"x": 36,
 					"y": 30
+				},
+				"ambush": {
+					"count": 18,
+					"composition": {
+						"screamer": 15,
+						"bolter": 35,
+						"drudge": 50
+					}
+				},
+				"radio": {
+					"speaker": "Engineer",
+					"start": "Transformer's spinning up. Ninety seconds. Don't let them touch it!",
+					"done": "It's holding. We have power."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Brute at the gate",
+				"count": 1,
+				"of": "brute",
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 36,
+						"y": 6
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "A Brute is sitting on the north road. That's your way out."
 				}
 			},
 			{
@@ -230,15 +466,24 @@
 					"radius": 4
 				},
 				"seconds": 90,
-				"spawnScale": 1.4
+				"spawnScale": 1.4,
+				"radio": {
+					"speaker": "Command",
+					"start": "Road's clear. Get out before the whole district wakes up."
+				}
 			},
 			{
 				"type": "kill",
 				"label": "Optional: thin them out",
-				"count": 150,
+				"count": 180,
 				"optional": true
 			}
-		]
+		],
+		"briefing": [
+			"The substation that feeds the east side has gone dark. Without it the shelters lose their lights and their fences.",
+			"Restart its three generators, clear the nests around the yard and keep the transformer alive while it spins up. The noise will bring everything for a mile."
+		],
+		"debrief": "Power is back on the east side. Fences are live. Get home."
 	},
 	{
 		"id": "survivors",
@@ -246,17 +491,18 @@
 		"zone": "ashgate",
 		"map": "depot",
 		"description": "Two depot workers are holed up inside. Break in, find them, walk them to the truck. The doors lock behind you.",
-		"parTimeSeconds": 600,
-		"scoreTarget": 50000,
+		"parTimeSeconds": 840,
+		"scoreTarget": 64000,
 		"enemyLevel": 3,
 		"recommendedLevel": 4,
 		"spawn": {
 			"perSecond": 2.0,
 			"maxAlive": 120,
 			"composition": {
-				"drudge": 55,
-				"bolter": 30,
-				"swell": 15
+				"drudge": 50,
+				"bolter": 25,
+				"swell": 13,
+				"crawler": 12
 			}
 		},
 		"caches": [
@@ -279,8 +525,8 @@
 				}
 			},
 			"gate-east": {
-				"openOn": 1,
-				"closeOn": 2,
+				"openOn": 2,
+				"closeOn": 3,
 				"side": {
 					"x": 78.5,
 					"y": 32.5
@@ -297,17 +543,51 @@
 				"checkpointAt": {
 					"x": 28.5,
 					"y": 32.5
+				},
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"drudge": 70,
+						"crawler": 30
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "The depot's front lot is full of them. Clear it and get the west gate open."
 				}
 			},
 			{
 				"type": "interact",
-				"label": "Find out where they are hiding",
+				"label": "Find them on the office cameras",
 				"props": ["office-terminal"],
 				"sections": [1],
 				"checkpoint": true,
 				"checkpointAt": {
 					"x": 44.5,
 					"y": 32.5
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "The office terminal still has the camera feeds. Find out where they are.",
+					"done": "Got them. One in the cold room, one up by the north stairs."
+				}
+			},
+			{
+				"type": "destroy",
+				"label": "Burn the nests in the warehouse",
+				"props": ["nest-warehouse", "nest-yard"],
+				"sections": [1],
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"crawler": 50,
+						"bolter": 50
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "Two nests between you and them. Burn them or you'll never get them out.",
+					"done": "Nests are gone. Go get them."
 				}
 			},
 			{
@@ -320,7 +600,37 @@
 					"radius": 4
 				},
 				"sections": [1, 2],
-				"checkpoint": true
+				"checkpoint": true,
+				"ambush": {
+					"count": 8,
+					"composition": {
+						"screamer": 20,
+						"drudge": 80
+					}
+				},
+				"radio": {
+					"speaker": "Survivor",
+					"start": "Is someone there? Please, we can hear them on the roof...",
+					"done": "We're with you. Thank you, thank you."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Brute on the dock",
+				"count": 1,
+				"of": "brute",
+				"sections": [2],
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 88,
+						"y": 20
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "There's a Brute on the loading dock, right by the truck. It has to go."
+				}
 			},
 			{
 				"type": "extract",
@@ -332,7 +642,11 @@
 				},
 				"seconds": 90,
 				"sections": [2],
-				"spawnScale": 1.5
+				"spawnScale": 1.5,
+				"radio": {
+					"speaker": "Command",
+					"start": "Truck's running. Everyone aboard, now!"
+				}
 			},
 			{
 				"type": "interact",
@@ -340,7 +654,12 @@
 				"props": ["armoury-safe"],
 				"optional": true
 			}
-		]
+		],
+		"briefing": [
+			"A family has been holed up in the old food depot for nine days. Their radio went quiet this morning.",
+			"Break in, find them on the office cameras, burn the nests in the warehouse and walk them to the truck on the far dock. Nobody gets left behind."
+		],
+		"debrief": "Truck's rolling with everyone on it. Nine days. They made it."
 	},
 	{
 		"id": "yard-stand",
@@ -348,17 +667,18 @@
 		"zone": "ashgate",
 		"map": "yard",
 		"description": "Hold the centre of the yard against a growing horde, then break out before it closes in.",
-		"parTimeSeconds": 360,
-		"scoreTarget": 45000,
+		"parTimeSeconds": 660,
+		"scoreTarget": 60000,
 		"enemyLevel": 2,
 		"recommendedLevel": 3,
 		"spawn": {
 			"perSecond": 2.2,
 			"maxAlive": 140,
 			"composition": {
-				"drudge": 55,
-				"bolter": 30,
-				"swell": 15
+				"drudge": 50,
+				"bolter": 28,
+				"swell": 12,
+				"crawler": 10
 			}
 		},
 		"caches": [
@@ -377,7 +697,14 @@
 					"radius": 6
 				},
 				"seconds": 60,
-				"checkpoint": true
+				"checkpoint": true,
+				"ambush": {
+					"count": 12
+				},
+				"radio": {
+					"speaker": "Sergeant",
+					"start": "Column's moving. Hold the centre of the yard and draw them onto us."
+				}
 			},
 			{
 				"type": "kill",
@@ -388,6 +715,42 @@
 				"checkpointAt": {
 					"x": 32,
 					"y": 24
+				},
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"screamer": 15,
+						"bolter": 45,
+						"drudge": 40
+					}
+				},
+				"radio": {
+					"speaker": "Sergeant",
+					"start": "Second wave, and they brought screamers. Kill the screamers first!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Brutes",
+				"count": 2,
+				"of": "brute",
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 32,
+						"y": 44
+					}
+				},
+				"ambush": {
+					"count": 1,
+					"composition": {
+						"brute": 1
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "Two Brutes coming through the south fence!",
+					"done": "Both down. Unbelievable."
 				}
 			},
 			{
@@ -400,7 +763,11 @@
 				},
 				"seconds": 90,
 				"spawnScale": 1.8,
-				"checkpoint": true
+				"checkpoint": true,
+				"radio": {
+					"speaker": "Sergeant",
+					"start": "Last of the column. Ninety more seconds!"
+				}
 			},
 			{
 				"type": "extract",
@@ -411,14 +778,23 @@
 					"radius": 4
 				},
 				"seconds": 90,
-				"spawnScale": 1.5
+				"spawnScale": 1.5,
+				"radio": {
+					"speaker": "Command",
+					"start": "Column's clear. North gate, all of you, now!"
+				}
 			},
 			{
 				"type": "kill",
-				"label": "Optional: put down 200",
-				"count": 200,
+				"label": "Optional: put down 250",
+				"count": 250,
 				"optional": true
 			}
-		]
+		],
+		"briefing": [
+			"The evacuation column is pulling out of the freight yard and the horde is following the noise.",
+			"Hold the centre of the yard as long as the column needs. Brutes have been seen in the area. When the last vehicle is gone, get to the north gate."
+		],
+		"debrief": "Column's clear and the yard's quiet. That was the hardest stand yet."
 	}
 ]

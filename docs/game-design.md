@@ -59,7 +59,7 @@ One profile per player; class is switched in the lobby only. Per class: level, X
 
 **Tier rule:** a tier opens after 5 points in the branch's earlier tiers (tier 5 needs 20). Each branch has 22 nodes and 24 ranks; most nodes have one rank, a few two. Node ids, effects and ranks are in `packages/game-data/data/skills/`.
 
-**Earning XP:** each kill gives class XP by zombie type (Drudge 4, Bolter 6, Swell 15); score converts at 1 XP per 20 score; each objective completed gives 100 XP and 100 Salvage, each optional objective 150 XP and 150 Salvage, and completing a mission 400 XP and 250 Salvage. In Survival every round cleared gives 40 XP and 25 Salvage. In missions all of it is multiplied by the difficulty's reward multiplier (section 13). XP goes to the class the player deployed with.
+**Earning XP:** each kill gives class XP by zombie type (Drudge 4, Crawler 5, Bolter 6, Swell 15, Screamer 20, Brute 80); score converts at 1 XP per 20 score; each objective completed gives 100 XP and 100 Salvage, each optional objective 150 XP and 150 Salvage, and completing a mission 400 XP and 250 Salvage. In Survival every round cleared gives 40 XP and 25 Salvage. In missions all of it is multiplied by the difficulty's reward multiplier (section 13). XP goes to the class the player deployed with.
 
 ## 4. Skill trees
 
@@ -109,16 +109,16 @@ Pistols have **unlimited reserve ammunition**; their only limits are magazine si
 
 | Weapon | Kind | Damage type | Damage | Fire rate (rpm) | Magazine | Max reserve | Reload (s) | Price |
 |---|---|---|---|---|---|---|---|---|
-| **P9 Service** | Pistol | Ballistic | 22 | 300 | 12 | unlimited | 1.2 | starter |
-| **Halcyon .45** | Pistol | Ballistic | 38 | 180 | 8 | unlimited | 1.4 | 4,000 |
-| **Vex-9** | SMG | Ballistic | 14 | 900 | 32 | 256 | 1.8 | starter |
-| **K-71** | Assault rifle | Ballistic | 24 | 600 | 30 | 210 | 2.2 | starter |
-| **Breacher 12** | Shotgun | Ballistic | 10 × 8 pellets | 75 | 6 | 48 | 0.5 per shell | 6,000 |
-| **Mower** | LMG | Ballistic | 26 | 750 | 100 | 300 | 4.5 | 28,000 |
-| **Longstride** | Sniper rifle | Ballistic, pierces 3 | 180 | 45 | 5 | 40 | 3.0 | 14,000 |
+| **G17** | Pistol | Ballistic | 22 | 300 | 12 | unlimited | 1.2 | starter |
+| **Desert Eagle** | Pistol | Ballistic | 38 | 180 | 8 | unlimited | 1.4 | 4,000 |
+| **Vector** | SMG | Ballistic | 14 | 900 | 32 | 256 | 1.8 | starter |
+| **HK416** | Assault rifle | Ballistic | 24 | 600 | 30 | 210 | 2.2 | starter |
+| **M4 Super 90** | Shotgun | Ballistic | 10 × 8 pellets | 75 | 6 | 48 | 0.5 per shell | 6,000 |
+| **M249** | LMG | Ballistic | 26 | 750 | 100 | 300 | 4.5 | 28,000 |
+| **L115A3** | Sniper rifle | Ballistic, pierces 3 | 180 | 45 | 5 | 40 | 3.0 | 14,000 |
 | **Kiln** | Flamethrower | Fire, 7 m cone | 160 per second | continuous | 100 fuel | 300 | 3.5 | 14,000 |
-| **Thumper** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 28,000 |
-| **Arclight** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 14,000 |
+| **MGL** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 28,000 |
+| **XM8** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 14,000 |
 | **Viper** | Chemical sprayer | Chemical, slows | 90 per second | continuous | 80 | 240 | 3.0 | 14,000 |
 
 Weapon tiers for pricing: tier 1 = 6,000, tier 2 = 14,000, tier 3 = 28,000.
@@ -160,7 +160,7 @@ Armour absorbs a share of incoming damage: `damage × (1 − armour / (armour + 
 
 ### Starter kit
 
-Vex-9 SMG, K-71 assault rifle, P9 Service pistol, Kevlar Vest, frag grenades.
+Vector SMG, HK416 assault rifle, G17 pistol, frag grenades, and a full set of basic armour: Field Helmet, Field Shirt, Kevlar Vest, Field Trousers and Field Boots.
 
 ## 6. Economy
 
@@ -208,17 +208,19 @@ An objective is a data record (type, parameters, triggers, rewards) plus one sma
 
 | # | Mission | Map | Steps | Optional |
 |---|---|---|---|---|
-| 1 | **Landfall** | Landfall (40 × 32 m) | reach an area; carry the flight recorder to an area; kill 25; through the gate; extract to the landing pad (90 s) | kill 60 |
-| 2 | **Yard Sweep** | Yard (64 × 48 m) | kill 40; reach the north gate; hold it 45 s; survive 40 s | kill 120 |
-| 3 | **Power Out** | Substation (72 × 56 m) | restart three generators; defend the transformer 90 s; extract (90 s) | kill 150 |
-| 4 | **Survivors** | Depot (96 × 64 m, three sections behind gates) | kill 25; work the office terminal; rescue two survivors; extract (90 s) | crack the armoury safe (a terminal) |
-| 5 | **Last Stand** | Yard | hold the centre 60 s; kill 80; hold the centre 90 s; extract (90 s) | kill 200 |
+| 1 | **Landfall** | Landfall (40 × 32 m) | get clear of the wreck; carry the flight recorder to an area; burn two nests; clear the street (25); hold while the gate opens (25 s); through the gate; kill the Brute on the pad; extract to the landing pad (90 s) | kill 80 |
+| 2 | **Yard Sweep** | Yard (64 × 48 m) | kill 40; burn three nests; reach the north gate; hold it 45 s; kill the Brute; survive 40 s | kill 150 |
+| 3 | **Power Out** | Substation (72 × 56 m) | get inside; restart three generators; burn two nests; defend the transformer 90 s; kill the Brute at the gate; extract (90 s) | kill 180 |
+| 4 | **Survivors** | Depot (96 × 64 m, three sections behind gates) | kill 25; work the office terminal; burn two nests; rescue two survivors; kill the Brute on the dock; extract (90 s) | crack the armoury safe (a terminal) |
+| 5 | **Last Stand** | Yard | hold the centre 60 s; kill 80; kill two Brutes; hold the centre 90 s; extract (90 s) | kill 250 |
+
+Every mission has a briefing (shown while it loads), a radio line from the squad's handler or a survivor when each step starts and ends, and a debrief on the results screen.
 
 ### Objective types
 
 | Type | Done when |
 |---|---|
-| Kill | The squad has killed a set number of zombies |
+| Kill | The squad has killed a set number of zombies, or of one type ("kill the Brute") |
 | Reach | A standing player who is playing (not idle) enters an area |
 | Hold | A standing, playing player has been in an area for a set time; the timer runs only while someone is there |
 | Survive | A set time has passed; the clock stops while the whole squad is down |
@@ -226,6 +228,7 @@ An objective is a data record (type, parameters, triggers, rewards) plus one sma
 | Defend | A defend target has stood for a set time; the clock stops while the whole squad is down. Losing the target fails the objective |
 | Rescue | Every listed survivor is either safe (walked into the area) or lost, and at least one is safe. Losing every survivor fails the objective |
 | Retrieve | An object has been carried into the area |
+| Destroy | Every listed nest has been destroyed |
 | Extract | Every player who is standing and playing (not away, and active within the last 15 s) is inside the area at once, with at least one there, before the timer runs out; the timer stops while the whole squad is down. Running out of time fails the objective |
 
 Optional objectives can be kill or interact objectives.
@@ -239,6 +242,8 @@ Optional objectives can be kill or interact objectives.
 - Zombies arrive in a steady stream: the mission's spawn rate × the objective's spawn scale × the difficulty's enemy count × the squad-size scale, up to the mission's own cap (scaled the same way) and never more than 300 alive. They come from the spawn points of the map sections the current step names (every section when it names none). Nothing spawns while the whole squad is down.
 - Zombies go for the nearest player, or for the current step's survivors, its defend target or a generator it is starting up when one of those is nearer. Only the current step's props draw zombies, and losing one fails only that step.
 - **Gates** divide some maps into sections. A gate is a locked door that nobody can open, break or work; it opens when the objective the mission names is done, and it can close again behind the squad when a later step is done. When a gate closes, anyone left on the far side or standing in the doorway, survivors following the squad and objects still to be carried are brought to the gate's side point, and zombies shut out on the far side are gone.
+- **Ambushes**: a step can name an ambush, a burst of extra zombies (its count scaled by difficulty and squad size, at least one) that arrives as the step starts, three a tick while fewer than 292 are alive.
+- **Bosses**: a step can bring an elite (the Brute) onto the map when it starts, at a point the mission names or at a zombie spawn of the step's sections. While an elite is in view the HUD shows its name and a health bar.
 - When the last step is done the mission is complete: the board is cleared and nobody can be hurt. Each player sees their results screen (time, score, kills, XP, Salvage, downs, items found, mastery) for 20 seconds while the squad is already back in the lobby; then the room closes.
 
 ### Objective rules (starting values)
@@ -251,10 +256,9 @@ Optional objectives can be kill or interact objectives.
 | **Rescue** | Survivors (150 HP) wait where the map puts them; holding interact for 2 s frees one. A freed survivor follows the player who freed them (or the nearest standing player once that one is down or gone), keeping 2.2 m back at up to 4.2 m/s; a survivor stuck for 3 s catches up beside them. Only zombies hurt survivors |
 | **Retrieve** | Holding interact for 1 s picks the object up; a player carries one at a time and moves at 80 % speed. The object drops where its carrier goes down or leaves the mission, and stays there until someone picks it up |
 | **Timed extraction** (extract) | 90 s in every mission now |
-| Destroy nests (planned) | Destroy 3–6 nests (800 HP, spawn Wrigglers until destroyed) |
+| **Destroy nests** | A nest (2 × 2 m, 900 HP) sends out a zombie (Drudge 70 %, Crawler 30 %) every 4 s near the closest player while one is within 22 m, until it is destroyed. Only shots and explosions hurt it. A squad wipe or failed objective brings the step's nests back. Nests a mission does not use are not on the map |
 | Hold terminal (planned) | Stand in a 5 m zone while a 120 s upload runs; the timer pauses when the zone is empty |
 | Escort vehicle (planned) | A slow APC (2 m/s, 3,000 HP) that stops when no player is within 10 m |
-| Boss hunt (planned) | Find and kill a named elite |
 
 How this differs from the brief's sketch, as the game stands: survivors do not panic or stop when zombies come near; a retrieve objective has one object, not several samples, and a dropped object has no timer sending it back; Defend protects one target rather than several barricades; the carrier is only slowed (sprinting is not in the game yet, so there is none to take away).
 
@@ -275,7 +279,7 @@ Interact (E) works the nearest usable prop within 1.6 m of its edge with a clear
 
 ### Maps
 
-Maps are drawn as text in the game data, one character per metre: walls, floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets) are listed beside the drawing. The maps now are the Yard (64 × 48 m), Landfall (40 × 32 m), the Substation (72 × 56 m) and the Depot (96 × 64 m).
+Maps are drawn as text in the game data, one character per metre: walls, floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets, nests) are listed beside the drawing. The maps now are the Yard (64 × 48 m), Landfall (40 × 32 m), the Substation (72 × 56 m) and the Depot (96 × 64 m).
 
 The data checks refuse a map or mission where:
 
@@ -285,6 +289,7 @@ The data checks refuse a map or mission where:
 - a step cannot be done: its area or props cannot be reached from where the squad starts it (the spawn or the last checkpoint), with the gates as the earlier steps left them (walls and locked gates block; doors and cover do not, since they can be opened or broken);
 - a gate is not a locked door, names an objective that is not a step, closes before it opens, or closes without a side point;
 - an optional objective is not a kill or interact objective, or a mission has no steps;
+- a kill objective names a zombie type that does not exist, a boss is not an elite or stands outside the map, or an ambush names an unknown type;
 - a mission is in no campaign zone or listed twice, or the campaign names a mission that does not exist.
 
 ## 8. Zombies
@@ -312,7 +317,9 @@ Eighteen types. Each is recognisable from above by silhouette, size and an accen
 | 17 | **Clutch** | Grabber | 150 | 2.5 | Pins a player; teammate frees with interact (1.5 s) or the player breaks out with 15 taps | Stay grouped, Medic antidote | Long arms, hooked hands |
 | 18 | **Colossus** | Juggernaut (elite) | 2,500 | 1.6 | Heavy armour, 3 glowing weak points (×3 damage) | Aim for weak points, Marksman | Huge, armour plates, orange cores |
 
-Plus **Wriggler** (parasite, 10 HP, from Hive and Matron) as a sub-enemy. Health and counts scale by difficulty (section 13).
+Plus **Wriggler** (parasite, 10 HP, from Hive and Matron) as a sub-enemy.
+
+In the game now: Drudge, Bolter and Swell, plus three more that stand in for planned types with simpler rules: the **Crawler** (40 HP, 2.6 m/s, low and quick), the **Brute** (elite, 1,400 HP, 1.5 m/s, 38 melee damage; the missions' boss) and the **Screamer** (120 HP; every 9 s, with a player within 20 m, it screams and six zombies arrive: Drudge 60 %, Bolter 25 %, Crawler 15 %). Health and counts scale by difficulty (section 13).
 
 ### Mutation system
 

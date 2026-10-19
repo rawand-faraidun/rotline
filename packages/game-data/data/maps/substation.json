@@ -1,7 +1,11 @@
 {
 	"id": "substation",
 	"name": "Substation",
-	"look": { "ground": "grass", "walls": "brick", "light": "dusk" },
+	"look": {
+		"ground": "grass",
+		"walls": "brick",
+		"light": "dusk"
+	},
 	"layout": [
 		"########################################################################",
 		"#..................................0...................................#",
@@ -163,6 +167,22 @@
 			"kind": "trap",
 			"x": 48,
 			"y": 28
+		},
+		{
+			"id": "nest-southwest",
+			"kind": "nest",
+			"x": 8,
+			"y": 40,
+			"w": 2,
+			"h": 2
+		},
+		{
+			"id": "nest-southeast",
+			"kind": "nest",
+			"x": 62,
+			"y": 40,
+			"w": 2,
+			"h": 2
 		}
 	]
 }

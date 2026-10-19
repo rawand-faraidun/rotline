@@ -42,9 +42,9 @@ test('classes, skills, armory and shop', async ({ page }) => {
 	// armory: the starter kit, and swapping the two main weapons
 	await page.getByRole('link', { name: /^armory$/i }).click()
 	await page.getByTestId('item-k-71').click()
-	await expect(page.getByTestId('item-detail')).toContainText('K-71')
+	await expect(page.getByTestId('item-detail')).toContainText('HK416')
 	await page.getByRole('button', { name: /equip as main 1/i }).click()
-	await expect(page.getByRole('button', { name: /main 1.*k-71/i })).toBeVisible()
+	await expect(page.getByRole('button', { name: /main 1.*hk416/i })).toBeVisible()
 	// with no Salvage, the upgrade is refused
 	await page.getByTestId('upgrade').click()
 	await expect(page.getByRole('alert')).toHaveText(/not enough salvage/i)
@@ -67,7 +67,7 @@ test('classes, skills, armory and shop', async ({ page }) => {
 	await expect(page.getByText('Medkit Drop')).toBeVisible()
 	const box = await page.locator('canvas').boundingBox()
 	if (!box) throw new Error('no canvas')
-	await page.mouse.move(box.x + box.width * 0.85, box.y + box.height / 2)
+	await page.mouse.move(box.x + box.width * 0.7, box.y + box.height / 2)
 	await page.mouse.down()
 	await expect(page.getByTestId('dps')).not.toHaveText('0', { timeout: 10_000 })
 	await page.mouse.up()

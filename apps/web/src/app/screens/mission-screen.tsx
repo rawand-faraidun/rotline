@@ -9,7 +9,7 @@ import {
 } from '@rotline/client'
 import { missionById, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
 import { fetchRangeTicket, fetchTicket, partyActions, partyQuery, usePlayerEvents } from '../../lib/party.ts'
@@ -158,6 +158,49 @@ function objectiveProgress(mission: NonNullable<HudState['mission']>): string {
 		default:
 			return format(t.progressKills, values)
 	}
+}
+
+/** The last radio message, for a few seconds after it came in: who speaks and what they say. */
+function Radio({ hud }: { hud: HudState }) {
+	const [now, setNow] = useState(() => performance.now())
+	const radio = hud.radio
+	useEffect(() => {
+		if (!radio) return
+		const timer = window.setInterval(() => setNow(performance.now()), 500)
+		return () => window.clearInterval(timer)
+	}, [radio])
+	if (!radio || now - radio.at > RADIO_MS) return null
+	return (
+		<section
+			role="status"
+			aria-live="polite"
+			className="frame cut pointer-events-none absolute bottom-36 left-4 flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-1 px-4 py-3 [--frame-color:var(--color-rot-lime)] [--frame-fill:rgb(13_16_14/0.88)]"
+		>
+			<span className="flex items-center gap-2 font-bold text-[11px] text-rot-lime uppercase tracking-[0.25em]">
+				<span className="inline-block size-2 animate-pulse bg-rot-lime" aria-hidden="true" />
+				{radio.speaker}
+			</span>
+			<span className="text-sm leading-snug">{radio.text}</span>
+		</section>
+	)
+}
+
+const RADIO_MS = 9000
+
+/** An elite in the fight: its name and a long health bar at the top of the screen. */
+function BossBar({ hud }: { hud: HudState }) {
+	if (!hud.boss) return null
+	return (
+		<section
+			aria-label={hud.boss.name}
+			className="pointer-events-none absolute top-28 left-1/2 flex w-[min(36rem,80vw)] -translate-x-1/2 flex-col gap-1"
+		>
+			<span className="text-center font-display text-alert text-xl uppercase tracking-wider">{hud.boss.name}</span>
+			<span className="h-2.5 border border-alert/60 bg-rot-black/80">
+				<span className="block h-full bg-alert" style={{ width: `${Math.round(hud.boss.health * 100)}%` }} />
+			</span>
+		</section>
+	)
 }
 
 /** The current objective, top right: what to do and how far along. */
@@ -487,6 +530,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 	const queryClient = useQueryClient()
 	const hud = useHud(handle)
 	usePlayerEvents()
+	const party = useQuery({ ...partyQuery, enabled: !range })
+	const briefing = range ? undefined : missionById(party.data?.mission.id ?? '')
 
 	useEffect(() => {
 		let game: GameHandle | null = null
@@ -555,9 +600,19 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 
 			{!loaded && !ended && (
 				<div className="absolute inset-0 grid place-items-center bg-rot-black">
-					<div className="flex flex-col items-center gap-4">
+					<div className="flex max-w-2xl flex-col items-center gap-4 px-6 text-center">
 						<img src="/brand/svg/rotline-mark.svg" alt="" width={72} height={72} className="animate-pulse" />
 						<p className="font-display text-3xl uppercase tracking-wider">{t.loading}</p>
+						{briefing && (
+							<div className="flex flex-col gap-3">
+								<p className="font-display text-5xl text-rot-lime uppercase">{briefing.name}</p>
+								{(briefing.briefing ?? [briefing.description]).map(paragraph => (
+									<p key={paragraph} className="text-bone/85 leading-relaxed">
+										{paragraph}
+									</p>
+								))}
+							</div>
+						)}
 					</div>
 				</div>
 			)}
@@ -567,6 +622,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					{range && handle && <RangePanel handle={handle} hud={hud} />}
 					{!range && <Multiplier hud={hud} round={inMission ? null : hud.wave} />}
 					<ObjectiveTracker hud={hud} />
+					<BossBar hud={hud} />
+					<Radio hud={hud} />
 					<Toasts hud={hud} />
 					{hud.teammates.length > 0 && (
 						<ul className="pointer-events-none absolute top-16 left-4 flex flex-col gap-2">

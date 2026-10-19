@@ -48,6 +48,12 @@ export type MissionState = {
 	/** the objective `World.targetProps` was worked out for */
 	targetsFor: number
 	spawnAccumulator: number
+	/** the objective whose start (radio, ambush, boss) has run; -1 makes the current one run again */
+	startedFor: number
+	/** zombies of the current ambush still to come in, and the types they are picked from */
+	burst: number
+	burstPool: { type: number; upTo: number }[]
+	burstTotal: number
 	/** composition as cumulative weights, for weighted picks */
 	pool: { type: number; upTo: number }[]
 	poolTotal: number
@@ -98,6 +104,10 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 		optionalDone: [],
 		targetsFor: -1,
 		spawnAccumulator: 0,
+		startedFor: -1,
+		burst: 0,
+		burstPool: [],
+		burstTotal: 0,
 		pool,
 		poolTotal: total
 	}
@@ -128,6 +138,7 @@ export function objectiveGoal(objective: ObjectiveDef | null): number {
 		case 'extract':
 			return Math.round(objective.seconds * TICK_RATE)
 		case 'interact':
+		case 'destroy':
 			return objective.props.length
 		case 'rescue':
 			return objective.survivors.length
@@ -212,9 +223,16 @@ export function stepMission(world: World): void {
 	const squad = Math.max(1, Math.min(4, world.players.size))
 	const squadScale = difficulties.squadEnemyCount[squad - 1] ?? 1
 	const count = mission.difficulty.enemyCount * squadScale
-	const maxAlive = Math.min(difficulties.maxAlive, Math.round(mission.def.spawn.maxAlive * count))
-	// zombies come from the parts of the map this objective names, and go for what it protects
 	world.spawnSections = objective.sections ?? null
+	if (mission.startedFor !== mission.index) startObjective(world, mission, objective, count)
+	// an ambush pours in a few a tick, past the stream's cap (never past the engine's)
+	for (let n = 0; n < 3 && mission.burst > 0 && world.aliveCount < MAX_ZOMBIES - 8; n++) {
+		mission.burst--
+		const roll = world.rng.next() * mission.burstTotal
+		const pick = mission.burstPool.find(entry => roll < entry.upTo) ?? mission.burstPool[0]
+		if (pick) world.spawnZombie(pick.type)
+	}
+	const maxAlive = Math.min(difficulties.maxAlive, Math.round(mission.def.spawn.maxAlive * count))
 	// nothing spawns while the whole squad is down: they come back to the checkpoint, not into a horde
 	if (standing(world)) {
 		mission.spawnAccumulator += mission.def.spawn.perSecond * (objective.spawnScale ?? 1) * count * DT
@@ -245,6 +263,9 @@ export function stepMission(world: World): void {
 		case 'interact':
 			mission.progress = countDone(world, objective.props)
 			break
+		case 'destroy':
+			mission.progress = countDestroyed(world, objective.props)
+			break
 		case 'defend':
 			// losing the target fails the objective (World.propLost)
 			if (standing(world)) mission.progress++
@@ -268,6 +289,33 @@ export function stepMission(world: World): void {
 	// optional objectives first, so one done on the final tick still counts
 	stepOptional(world, mission)
 	if (mission.progress >= objectiveGoal(objective)) completeObjective(world, mission, objective)
+}
+
+/**
+ * What happens the moment an objective starts (and again when it is restarted after a wipe): its
+ * ambush is queued and its boss turns up. The radio line is the client's to show.
+ */
+function startObjective(world: World, mission: MissionState, objective: ObjectiveDef, count: number): void {
+	mission.startedFor = mission.index
+	mission.burst = 0
+	if (objective.ambush) {
+		let total = 0
+		const composition = objective.ambush.composition ?? mission.def.spawn.composition
+		mission.burstPool = Object.entries(composition).map(([id, weight]) => {
+			total += weight
+			return { type: zombieIndex(id), upTo: total }
+		})
+		mission.burstTotal = total
+		mission.burst = Math.max(1, Math.round(objective.ambush.count * count))
+	}
+	if (objective.boss) world.spawnZombie(zombieIndex(objective.boss.type), objective.boss.at)
+}
+
+/** Nests among `ids` that have been destroyed. */
+function countDestroyed(world: World, ids: readonly string[]): number {
+	let done = 0
+	for (const id of ids) if (world.propById.get(id)?.state === PropState.destroyed) done++
+	return done
 }
 
 /** Generators or terminals among `ids` that have been worked. */
@@ -355,11 +403,13 @@ function stepOptional(world: World, mission: MissionState): void {
 }
 
 /** A kill by a player counts toward a kill objective. */
-export function countKill(world: World): void {
+export function countKill(world: World, type: number): void {
 	const mission = world.mission
 	if (!mission || mission.status !== MissionStatus.active) return
 	mission.kills++
-	if (currentObjective(mission)?.type === 'kill') mission.progress++
+	const objective = currentObjective(mission)
+	// a kill objective may count one kind only (put down the Brute)
+	if (objective?.type === 'kill' && (!objective.of || zombieIndex(objective.of) === type)) mission.progress++
 }
 
 function completeObjective(world: World, mission: MissionState, objective: ObjectiveDef): void {
@@ -444,11 +494,14 @@ export function wipeMission(world: World, mission: MissionState): void {
 	mission.index = nextStep(mission.def, mission.checkpointIndex)
 	mission.progress = 0
 	mission.spawnAccumulator = 0
+	// the restarted objective's ambush and boss come again
+	mission.startedFor = -1
+	mission.burst = 0
 	// what the objectives from the checkpoint on use goes back to how it was
 	for (const [index, objective] of mission.def.objectives.entries()) {
 		if (index < mission.checkpointIndex || objective.optional) continue
 		const ids =
-			objective.type === 'interact'
+			objective.type === 'interact' || objective.type === 'destroy'
 				? objective.props
 				: objective.type === 'defend'
 					? [objective.prop]

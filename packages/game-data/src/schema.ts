@@ -138,6 +138,15 @@ export const zombieSchema = z.object({
 	dummy: z.boolean().optional(),
 	/** elites may drop an item when killed, and take only part of a screen nuke */
 	elite: z.boolean().optional(),
+	/** a screamer: while alive and near players, calls a burst of others every so often */
+	call: z
+		.object({
+			everySeconds: z.number().positive(),
+			count: z.number().int().positive().max(30),
+			range: z.number().positive(),
+			composition: z.record(id, z.number().positive())
+		})
+		.optional(),
 	deathBurst: z
 		.object({
 			damage: z.number().min(0),
@@ -393,7 +402,8 @@ export const propKindId = z.enum([
 	'trap',
 	'survivor',
 	'carry',
-	'defend'
+	'defend',
+	'nest'
 ])
 
 /**
@@ -522,11 +532,35 @@ const objectiveBase = {
 	/** map sections whose zombie spawns are used while this objective runs (default: all) */
 	sections: z.array(z.number().int().min(0).max(9)).min(1).optional(),
 	/** optional objectives run alongside the others, pay extra and count toward mastery */
-	optional: z.boolean().optional()
+	optional: z.boolean().optional(),
+	/** what the radio says when this objective starts and when it is done */
+	radio: z
+		.object({
+			speaker: z.string().min(1),
+			start: z.string().min(1).optional(),
+			done: z.string().min(1).optional()
+		})
+		.optional(),
+	/** a burst of zombies the moment the objective starts (again after a wipe), on top of the stream */
+	ambush: z
+		.object({
+			count: z.number().int().positive().max(120),
+			/** types and weights (default: the mission's composition) */
+			composition: z.record(id, z.number().positive()).optional()
+		})
+		.optional(),
+	/** an elite who turns up when the objective starts: its type, and where (default: a spawn point) */
+	boss: z.object({ type: id, at: point.optional() }).optional()
 }
 
 export const objectiveSchema = z.discriminatedUnion('type', [
-	z.object({ type: z.literal('kill'), count: z.number().int().positive(), ...objectiveBase }),
+	z.object({
+		type: z.literal('kill'),
+		count: z.number().int().positive(),
+		/** only kills of this kind count */
+		of: id.optional(),
+		...objectiveBase
+	}),
 	z.object({ type: z.literal('reach'), area, ...objectiveBase }),
 	z.object({ type: z.literal('hold'), area, seconds: z.number().positive(), ...objectiveBase }),
 	z.object({ type: z.literal('survive'), seconds: z.number().positive(), ...objectiveBase }),
@@ -538,6 +572,8 @@ export const objectiveSchema = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('rescue'), survivors: z.array(id).min(1), area, ...objectiveBase }),
 	/** carry an object to an area */
 	z.object({ type: z.literal('retrieve'), item: id, area, ...objectiveBase }),
+	/** destroy every listed nest (nests keep spawning until they are gone) */
+	z.object({ type: z.literal('destroy'), props: z.array(id).min(1), ...objectiveBase }),
 	/** everyone standing reaches an area before the time runs out */
 	z.object({ type: z.literal('extract'), area, seconds: z.number().positive(), ...objectiveBase })
 ])
@@ -548,6 +584,10 @@ export const missionSchema = z.object({
 	zone: id,
 	map: id,
 	description: z.string().min(1),
+	/** read before deploying: the situation, in a few short paragraphs */
+	briefing: z.array(z.string().min(1)).max(6).optional(),
+	/** what the radio says when the squad gets out */
+	debrief: z.string().min(1).optional(),
 	parTimeSeconds: z.number().positive(),
 	scoreTarget: z.number().int().positive(),
 	enemyLevel: z.number().int().min(1).max(60),
@@ -636,6 +676,14 @@ export const propsDataSchema = z.object({
 	}),
 	carry: z.object({ speedMultiplier: z.number().positive().max(1), pickupSeconds: z.number().positive() }),
 	defend: z.object({ health: z.number().positive() }),
+	/** a nest: shoot or blow it up; until then it sends zombies out while players are near */
+	nest: z.object({
+		health: z.number().positive(),
+		spawnEverySeconds: z.number().positive(),
+		/** players within this distance wake it */
+		wakeRange: z.number().positive(),
+		composition: z.record(id, z.number().positive())
+	}),
 	interactRange: z.number().positive(),
 	/** holding interact on a damaged defend target or welded door mends it this fast */
 	repairPerSecond: z.number().positive(),

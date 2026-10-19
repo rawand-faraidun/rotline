@@ -28,3 +28,6 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - A profile screen (click your name): total level, missions won, gold masteries, classes and your campaign record.
 - Armour is worn in five places: head, torso, vest, legs and feet, each piece its own item with its own stats, bought, upgraded and equipped on its own. Everything you equip shows on your soldier, in the lobby and in the game (your squad sees it too). Everyone gets the starter helmet, shirt, trousers and boots.
 - The lobby is a better place: a wet yard at night with a street lamp, a covered car, barriers, tyres and bins, dust in the light, and the same picture finish as the game. Your soldier holds your main weapon at the low ready.
+- Missions play like missions: a briefing while the mission loads, the handler or a survivor on the radio as each step starts and ends, a debrief at the end, and more to every mission: zombie nests to burn out (they keep spawning until destroyed), ambushes that hit as a step starts, and a Brute boss with its own health bar. Landfall now has eight steps.
+- Two new zombies: the low, quick Crawler, and the Screamer, whose scream calls a pack in.
+- The guns go by their real names: G17, Desert Eagle, Vector, HK416, M4 Super 90, M249, L115A3, MGL, XM8 and M134.

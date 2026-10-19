@@ -1,4 +1,4 @@
-import { player as playerDef, propsDef, zombies as zombieDefs } from '@rotline/game-data'
+import { player as playerDef, propsDef, zombies as zombieDefs, zombieIndex } from '@rotline/game-data'
 import { DT, MAX_ZOMBIES, REVIVE_RANGE } from './constants.ts'
 import type { PlayerState } from './player.ts'
 import { holdStep, type Prop, PropState, reach, setPropState, ticks } from './props.ts'
@@ -36,6 +36,9 @@ export function stepProps(world: World): void {
 				break
 			case 'carry':
 				if (prop.state === PropState.carried) carried(world, prop)
+				break
+			case 'nest':
+				if (prop.state !== PropState.destroyed) nest(world, prop)
 				break
 		}
 		// a hold is only kept by someone holding it this tick
@@ -77,6 +80,33 @@ function turret(world: World, prop: Prop): void {
 	const angle = Math.atan2((world.y[best] as number) - prop.y, (world.x[best] as number) - prop.x)
 	world.events.push({ type: 'shot', player: 0, x: prop.x, y: prop.y, angle, length: bestDistance, weapon: 0 })
 	world.damageZombie(best, propsDef.turret.damage, 0, propsDef.turret.damageType)
+}
+
+const NEST_INTERVAL = ticks(propsDef.nest.spawnEverySeconds)
+let nestPool: { type: number; upTo: number }[] | null = null
+let nestTotal = 0
+
+/** A nest sends a zombie out every so often while players are near and the horde is not too big. */
+function nest(world: World, prop: Prop): void {
+	if (world.tick < prop.readyTick) return
+	prop.readyTick = world.tick + NEST_INTERVAL
+	let near = false
+	for (const state of world.players.values())
+		if (state.alive && Math.hypot(state.x - prop.x, state.y - prop.y) < propsDef.nest.wakeRange) near = true
+	if (!near || world.aliveCount >= MAX_ZOMBIES - 16) return
+	if (!nestPool) {
+		nestPool = Object.entries(propsDef.nest.composition).map(([id, weight]) => {
+			nestTotal += weight
+			return { type: zombieIndex(id), upTo: nestTotal }
+		})
+	}
+	const roll = world.rng.next() * nestTotal
+	const pick = nestPool.find(entry => roll < entry.upTo) ?? nestPool[0]
+	// out of the nest's side, so it does not stand inside the nest's cells
+	const angle = world.rng.next() * Math.PI * 2
+	const half = Math.max(prop.def.w ?? 1, prop.def.h ?? 1) / 2 + 0.7
+	const at = { x: prop.x + Math.cos(angle) * half, y: prop.y + Math.sin(angle) * half }
+	if (pick && !world.grid.isWall(Math.floor(at.x), Math.floor(at.y))) world.spawnZombie(pick.type, at)
 }
 
 function trap(world: World, prop: Prop): void {
@@ -315,6 +345,7 @@ export function damageProp(world: World, prop: Prop, amount: number, by: number)
 		case 'crate':
 		case 'sandbags':
 		case 'defend':
+		case 'nest':
 			break
 		case 'generator':
 			// only while it runs up; broken then, it stops and must be started again

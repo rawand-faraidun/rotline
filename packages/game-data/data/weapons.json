@@ -1,7 +1,7 @@
 [
 	{
 		"id": "p9-service",
-		"name": "P9 Service",
+		"name": "G17",
 		"kind": "pistol",
 		"tier": 0,
 		"damageType": "ballistic",
@@ -80,7 +80,7 @@
 	},
 	{
 		"id": "halcyon-45",
-		"name": "Halcyon .45",
+		"name": "Desert Eagle",
 		"kind": "pistol",
 		"tier": 1,
 		"price": 4000,
@@ -160,7 +160,7 @@
 	},
 	{
 		"id": "vex-9",
-		"name": "Vex-9",
+		"name": "Vector",
 		"kind": "smg",
 		"tier": 0,
 		"damageType": "ballistic",
@@ -239,7 +239,7 @@
 	},
 	{
 		"id": "k-71",
-		"name": "K-71",
+		"name": "HK416",
 		"kind": "rifle",
 		"tier": 0,
 		"damageType": "ballistic",
@@ -318,7 +318,7 @@
 	},
 	{
 		"id": "breacher-12",
-		"name": "Breacher 12",
+		"name": "M4 Super 90",
 		"kind": "shotgun",
 		"tier": 1,
 		"damageType": "ballistic",
@@ -397,7 +397,7 @@
 	},
 	{
 		"id": "mower",
-		"name": "Mower",
+		"name": "M249",
 		"kind": "lmg",
 		"tier": 3,
 		"damageType": "ballistic",
@@ -476,7 +476,7 @@
 	},
 	{
 		"id": "longstride",
-		"name": "Longstride",
+		"name": "L115A3",
 		"kind": "sniper",
 		"tier": 2,
 		"damageType": "ballistic",
@@ -634,7 +634,7 @@
 	},
 	{
 		"id": "thumper",
-		"name": "Thumper",
+		"name": "MGL",
 		"kind": "launcher",
 		"tier": 3,
 		"damageType": "explosive",
@@ -714,7 +714,7 @@
 	},
 	{
 		"id": "arclight",
-		"name": "Arclight",
+		"name": "XM8",
 		"kind": "shock",
 		"tier": 2,
 		"damageType": "shock",
@@ -873,7 +873,7 @@
 	},
 	{
 		"id": "minigun",
-		"name": "Minigun",
+		"name": "M134",
 		"kind": "minigun",
 		"tier": null,
 		"damageType": "ballistic",

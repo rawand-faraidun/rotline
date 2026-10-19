@@ -35,6 +35,10 @@ export type HudState = {
 		wave: number
 		at: number
 	} | null
+	/** the last radio message: who speaks, what they say, when it came in (performance.now) */
+	radio: { speaker: string; text: string; at: number } | null
+	/** an elite in the fight: its name and health 0..1 */
+	boss: { name: string; health: number } | null
 	/** the mission being played, null outside missions */
 	mission: MissionHud | null
 	/** this player's kill chain, its multiplier, the chain timer left (0..1) and mission score */
@@ -82,7 +86,7 @@ export type MissionHud = {
 	step: number
 	count: number
 	label: string
-	type: 'kill' | 'reach' | 'hold' | 'survive' | 'interact' | 'defend' | 'rescue' | 'retrieve' | 'extract'
+	type: 'kill' | 'reach' | 'hold' | 'survive' | 'interact' | 'defend' | 'rescue' | 'retrieve' | 'destroy' | 'extract'
 	/** kills, things done, or seconds (extract: seconds left) */
 	progress: number
 	goal: number
@@ -129,6 +133,8 @@ export const initialHud: HudState = {
 	interactHint: null,
 	teammates: [],
 	banner: null,
+	radio: null,
+	boss: null,
 	mission: null,
 	chain: 0,
 	multiplier: 1,

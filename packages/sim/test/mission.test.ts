@@ -47,7 +47,7 @@ describe('mission objectives', () => {
 	})
 
 	it('completes a reach objective when someone stands in the area, saving a checkpoint there', () => {
-		const world = missionWorld({ objectives: [sweep.objectives[1], sweep.objectives[3]] as MissionDef['objectives'] })
+		const world = missionWorld({ objectives: [sweep.objectives[2], sweep.objectives[5]] as MissionDef['objectives'] })
 		const a = world.addPlayer(1)
 		const b = world.addPlayer(2)
 		// b bled out earlier and is waiting; a is hurt and has used a grenade
@@ -67,7 +67,7 @@ describe('mission objectives', () => {
 	})
 
 	it('runs a hold timer only while someone is inside the area', () => {
-		const world = missionWorld({ objectives: [sweep.objectives[2]] as MissionDef['objectives'] })
+		const world = missionWorld({ objectives: [sweep.objectives[3]] as MissionDef['objectives'] })
 		const state = world.addPlayer(1)
 		state.x = 10
 		state.y = 30
@@ -140,7 +140,14 @@ describe('mission difficulty and spawning', () => {
 	})
 
 	it('spawns a steady stream scaled for a solo player, up to the alive cap', () => {
-		const world = new World({ seed: 1, map: yard, mission: { mission: sweep, difficulty: 'veteran' } })
+		// the stream alone: no nests, ambushes or bosses
+		const plain: MissionDef = {
+			...sweep,
+			objectives: sweep.objectives
+				.filter(objective => objective.type !== 'destroy')
+				.map(({ ambush: _ambush, boss: _boss, ...objective }) => objective) as MissionDef['objectives']
+		}
+		const world = new World({ seed: 1, map: yard, mission: { mission: plain, difficulty: 'veteran' } })
 		world.addPlayer(1)
 		steps(world, 10 * TICK_RATE)
 		// 1.6 a second at half strength for one player
@@ -341,7 +348,7 @@ describe('fair payouts', () => {
 	})
 
 	it('joins a mission under way at the last checkpoint', () => {
-		const world = missionWorld({ objectives: [sweep.objectives[1], sweep.objectives[3]] as MissionDef['objectives'] })
+		const world = missionWorld({ objectives: [sweep.objectives[2], sweep.objectives[5]] as MissionDef['objectives'] })
 		const a = world.addPlayer(1)
 		a.x = 32
 		a.y = 5

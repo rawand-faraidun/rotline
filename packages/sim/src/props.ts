@@ -16,7 +16,8 @@ export const PropKind: Record<PropKindId, number> = {
 	trap: 9,
 	survivor: 10,
 	carry: 11,
-	defend: 12
+	defend: 12,
+	nest: 13
 }
 
 /** What a prop is doing. Not every state applies to every kind. */
@@ -89,7 +90,8 @@ const CELL_KINDS = new Set<PropKindId>([
 	'generator',
 	'terminal',
 	'turret',
-	'defend'
+	'defend',
+	'nest'
 ])
 
 function startState(def: MapProp): number {
@@ -117,6 +119,8 @@ function startHealth(def: MapProp): number {
 			return propsDef.generator.health
 		case 'defend':
 			return def.health ?? propsDef.defend.health
+		case 'nest':
+			return def.health ?? propsDef.nest.health
 		default:
 			return 0
 	}

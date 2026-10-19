@@ -69,5 +69,64 @@
 		"scale": 1.1,
 		"deathBurst": null,
 		"dummy": true
+	},
+	{
+		"id": "crawler",
+		"name": "Crawler",
+		"health": 40,
+		"speed": 2.6,
+		"radius": 0.34,
+		"meleeDamage": 8,
+		"meleeRange": 0.5,
+		"meleeCooldownSeconds": 0.9,
+		"score": 12,
+		"tint": "#6e7468",
+		"scale": 0.85,
+		"deathBurst": null,
+		"xp": 5,
+		"salvage": 0.5
+	},
+	{
+		"id": "brute",
+		"name": "Brute",
+		"health": 1400,
+		"speed": 1.5,
+		"radius": 0.7,
+		"meleeDamage": 38,
+		"meleeRange": 0.9,
+		"meleeCooldownSeconds": 1.8,
+		"score": 250,
+		"tint": "#9a6a58",
+		"scale": 1.7,
+		"elite": true,
+		"deathBurst": null,
+		"xp": 80,
+		"salvage": 12
+	},
+	{
+		"id": "screamer",
+		"name": "Screamer",
+		"health": 120,
+		"speed": 1.8,
+		"radius": 0.36,
+		"meleeDamage": 6,
+		"meleeRange": 0.5,
+		"meleeCooldownSeconds": 1.4,
+		"score": 60,
+		"tint": "#c4b8a0",
+		"scale": 0.95,
+		"deathBurst": null,
+		"xp": 20,
+		"salvage": 3,
+		"call": {
+			"everySeconds": 9,
+			"count": 6,
+			"range": 20,
+			"composition": {
+				"drudge": 60,
+				"bolter": 25,
+				"crawler": 15
+			}
+		}
 	}
 ]

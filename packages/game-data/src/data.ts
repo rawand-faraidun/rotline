@@ -181,7 +181,21 @@ for (const mission of missions) {
 		for (const section of objective.sections ?? [])
 			check(sections.has(section), `missions/${mission.id}: no zombie spawns in section ${section}`)
 		if (objective.type === 'interact') for (const id of objective.props) needs(id, ['generator', 'terminal'], 'prop')
+		if (objective.type === 'destroy') for (const id of objective.props) needs(id, ['nest'], 'nest')
 		if (objective.type === 'defend') needs(objective.prop, ['defend'], 'prop')
+		const known = (id: string) => zombies.some(zombie => zombie.id === id && !zombie.dummy)
+		if (objective.type === 'kill' && objective.of)
+			check(known(objective.of), `missions/${mission.id}: kill objective names unknown zombie ${objective.of}`)
+		for (const id of Object.keys(objective.ambush?.composition ?? {}))
+			check(known(id), `missions/${mission.id}: ambush names unknown zombie ${id}`)
+		if (objective.boss) {
+			check(
+				zombies.find(zombie => zombie.id === objective.boss?.type)?.elite === true,
+				`missions/${mission.id}: boss ${objective.boss.type} is not an elite`
+			)
+			if (objective.boss.at)
+				check(inside(objective.boss.at.x, objective.boss.at.y), `missions/${mission.id}: boss outside the map`)
+		}
 		if (objective.type === 'rescue') for (const id of objective.survivors) needs(id, ['survivor'], 'survivor')
 		if (objective.type === 'retrieve') needs(objective.item, ['carry'], 'item')
 		if (objective.optional)
@@ -274,7 +288,7 @@ function checkReachable(mission: MissionDef, map: MapDef): void {
 		}
 		const where = `missions/${mission.id}: objective ${index}`
 		if ('area' in objective) check(at(objective.area), `${where}'s area cannot be reached`)
-		if (objective.type === 'interact')
+		if (objective.type === 'interact' || objective.type === 'destroy')
 			for (const id of objective.props) check(near(id), `${where}: ${id} cannot be reached`)
 		if (objective.type === 'defend') check(near(objective.prop), `${where}: ${objective.prop} cannot be reached`)
 		if (objective.type === 'rescue')
@@ -293,7 +307,7 @@ const NEIGHBOURS = [
 	[0, -1]
 ] as const
 
-const ON_CELLS = new Set(['barrel', 'crate', 'sandbags', 'door', 'generator', 'terminal', 'turret', 'defend'])
+const ON_CELLS = new Set(['barrel', 'crate', 'sandbags', 'door', 'generator', 'terminal', 'turret', 'defend', 'nest'])
 const occupied = new Map<string, Uint8Array>()
 for (const [name, map] of Object.entries(maps)) {
 	const ids = new Set<string>()

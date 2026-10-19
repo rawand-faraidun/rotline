@@ -633,4 +633,72 @@ describe('review fixes', () => {
 		expect(a.health).toBeLessThan(a.stats.maxHealth)
 		expect(b.health).toBe(b.stats.maxHealth)
 	})
+
+	it('runs set pieces: an ambush and a boss when an objective starts, nests to destroy, screamers that call', () => {
+		const base = missionById('yard-sweep') as MissionDef
+		const map = room([
+			{ id: 'n1', kind: 'nest', x: 20, y: 4 },
+			{ id: 'n2', kind: 'nest', x: 20, y: 15 }
+		])
+		const world = new World({
+			seed: 4,
+			map,
+			mission: {
+				mission: {
+					...base,
+					map: map.id,
+					caches: [],
+					gates: {},
+					spawn: { ...base.spawn, perSecond: 0 },
+					objectives: [
+						{
+							type: 'destroy',
+							label: 'Burn the nests',
+							props: ['n1', 'n2'],
+							ambush: { count: 6, composition: { crawler: 1 } },
+							boss: { type: 'brute', at: { x: 25, y: 10 } }
+						},
+						{ type: 'survive', label: 'Wait', seconds: 60 }
+					]
+				},
+				difficulty: 'veteran'
+			}
+		})
+		const player = world.addPlayer(1)
+		player.x = 18
+		player.y = 9
+		world.step(new Map())
+		// the boss is there at once; the ambush pours in a few a tick
+		const brute = zombieIndex('brute')
+		const crawler = zombieIndex('crawler')
+		const count = (type: number) => {
+			let n = 0
+			for (let i = 0; i < world.alive.length; i++) if (world.alive[i] && world.type[i] === type) n++
+			return n
+		}
+		expect(count(brute)).toBe(1)
+		steps(world, 10)
+		// (scaled by difficulty and squad size, like the stream)
+		expect(count(crawler)).toBeGreaterThan(0)
+		expect(world.mission?.burst).toBe(0)
+		// nests wake for players nearby and send zombies out
+		const before = world.aliveCount
+		steps(world, Math.round(propsDef.nest.spawnEverySeconds * TICK_RATE) + 2)
+		expect(world.aliveCount).toBeGreaterThan(before)
+		// destroying both nests completes the objective
+		for (const id of ['n1', 'n2']) {
+			const nest = world.propById.get(id)
+			if (!nest) throw new Error()
+			damageProp(world, nest, 1e6, 1)
+			expect(nest.state).toBe(PropState.destroyed)
+		}
+		world.step(new Map())
+		expect(world.mission?.index).toBe(1)
+		// a screamer near players calls others in
+		const screamer = world.spawnZombie(zombieIndex('screamer'), { x: 19, y: 9 })
+		world.callAt[screamer] = world.tick + 1
+		const alive = world.aliveCount
+		steps(world, 3)
+		expect(world.events.some(event => event.type === 'scream') || world.aliveCount > alive).toBe(true)
+	})
 })

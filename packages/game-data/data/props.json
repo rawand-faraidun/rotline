@@ -54,6 +54,15 @@
 	"defend": {
 		"health": 1500
 	},
+	"nest": {
+		"health": 900,
+		"spawnEverySeconds": 4,
+		"wakeRange": 22,
+		"composition": {
+			"drudge": 70,
+			"crawler": 30
+		}
+	},
 	"interactRange": 1.6,
 	"repairPerSecond": 50,
 	"extractIdleSeconds": 15

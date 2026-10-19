@@ -62,7 +62,7 @@ import {
 	stepPlayer
 } from './player.ts'
 import { damageProp, drop, interactProps, stepProps } from './prop-step.ts'
-import { createProps, type Prop, PropState } from './props.ts'
+import { createProps, type Prop, PropState, setPropState } from './props.ts'
 import { Rng } from './rng.ts'
 
 export type SimEvent =
@@ -70,6 +70,7 @@ export type SimEvent =
 	| { type: 'hit'; zombie: number; x: number; y: number; amount: number; by: number }
 	| { type: 'kill'; zombie: number; zombieType: number; x: number; y: number; by: number }
 	| { type: 'burst'; x: number; y: number; radius: number }
+	| { type: 'scream'; x: number; y: number }
 	| { type: 'launch'; id: number; player: number; x: number; y: number; angle: number; speed: number; weapon: number }
 	| { type: 'explode'; id: number; x: number; y: number; radius: number }
 	| { type: 'player-hurt'; player: number; amount: number }
@@ -284,6 +285,8 @@ export class World {
 	readonly poisonBy = new Uint8Array(MAX_ZOMBIES)
 	/** taunted toward a player (1..4) or, with 0, toward (tauntX, tauntY) */
 	readonly tauntUntil = new Uint32Array(MAX_ZOMBIES)
+	/** screamers: the tick of their next call */
+	readonly callAt = new Uint32Array(MAX_ZOMBIES)
 	readonly tauntTarget = new Uint8Array(MAX_ZOMBIES)
 	readonly tauntX = new Float32Array(MAX_ZOMBIES)
 	readonly tauntY = new Float32Array(MAX_ZOMBIES)
@@ -371,6 +374,18 @@ export class World {
 		this.hashWidth = Math.ceil(Math.max(this.grid.width, this.grid.height) / HASH_CELL)
 		this.hashStart = new Int32Array(this.hashWidth * this.hashWidth + 1)
 		this.props = createProps(options.map, this.grid)
+		// nests belong to the missions that send players to burn them; anywhere else (Survival, other
+		// missions on the map) they are not there at all
+		const burned = new Set(
+			(options.mission?.mission.objectives ?? []).flatMap(objective =>
+				objective.type === 'destroy' ? objective.props : []
+			)
+		)
+		for (const prop of this.props)
+			if (prop.def.kind === 'nest' && !burned.has(prop.def.id)) {
+				setPropState(this.grid, prop, PropState.destroyed)
+				prop.home.state = PropState.destroyed
+			}
 		this.propCell = new Int16Array(cells).fill(-1)
 		this.breakable = new Uint8Array(cells)
 		for (const prop of this.props) {
@@ -871,7 +886,7 @@ export class World {
 		if (!prop) return
 		const kind = prop.def.kind
 		// doors too: a closed or welded door can always be shot open (never a mission gate)
-		if (kind === 'barrel' || kind === 'crate' || kind === 'sandbags' || kind === 'door')
+		if (kind === 'barrel' || kind === 'crate' || kind === 'sandbags' || kind === 'door' || kind === 'nest')
 			damageProp(this, prop, damage, by)
 	}
 
@@ -1059,7 +1074,7 @@ export class World {
 		if (damage > 0 && this.props.length > 0) {
 			for (const prop of this.props) {
 				const kind = prop.def.kind
-				if (kind !== 'barrel' && kind !== 'crate' && kind !== 'sandbags' && kind !== 'door') continue
+				if (kind !== 'barrel' && kind !== 'crate' && kind !== 'sandbags' && kind !== 'door' && kind !== 'nest') continue
 				const d = Math.hypot(prop.x - x, prop.y - y)
 				if (d < radius + 0.5) damageProp(this, prop, damage * (1 - (1 - EDGE_DAMAGE) * Math.min(1, d / radius)), owner)
 			}
@@ -1274,7 +1289,7 @@ export class World {
 		}
 		if (this.scoring) maybeDropBuff(this, x, y, def.elite ? buffDefs.drop.eliteChance : buffDefs.drop.chancePerKill)
 		if (this.mission) {
-			countKill(this)
+			countKill(this, this.type[index] as number)
 			// elites may drop an item, rolled for each player taking part, on their own
 			if (def.elite) {
 				for (const state of this.players.values()) {
@@ -1444,6 +1459,31 @@ export class World {
 		}
 	}
 
+	/** How far the nearest standing player is. */
+	private nearestPlayerDistance(x: number, y: number): number {
+		let best = Number.POSITIVE_INFINITY
+		for (const state of this.players.values()) {
+			if (!state.alive || state.downed) continue
+			best = Math.min(best, Math.hypot(state.x - x, state.y - y))
+		}
+		return best
+	}
+
+	/** A screamer's call: a handful of others come out of the spawn points (the event lets players hear it). */
+	private call(index: number, call: NonNullable<ZombieDef['call']>): void {
+		this.events.push({ type: 'scream', x: this.x[index] as number, y: this.y[index] as number })
+		let total = 0
+		const pool = Object.entries(call.composition).map(([id, weight]) => {
+			total += weight
+			return { type: zombieIndex(id), upTo: total }
+		})
+		for (let n = 0; n < call.count && this.aliveCount < MAX_ZOMBIES - 8; n++) {
+			const roll = this.rng.next() * total
+			const pick = pool.find(entry => roll < entry.upTo) ?? pool[0]
+			if (pick) this.spawnZombie(pick.type)
+		}
+	}
+
 	spawnZombie(typeIndex: number, at?: { x: number; y: number }): number {
 		let index = -1
 		for (let i = 0; i < MAX_ZOMBIES; i++) {
@@ -1470,6 +1510,7 @@ export class World {
 		this.markUntil[index] = 0
 		this.poisonUntil[index] = 0
 		this.tauntUntil[index] = 0
+		this.callAt[index] = this.tick + Math.round((def.call?.everySeconds ?? 0) * TICK_RATE * 0.5)
 		this.lastHitTick[index] = this.tick
 		this.aliveCount++
 		return index
@@ -1714,6 +1755,12 @@ export class World {
 			this.grid.moveCircle(x, y, vx * DT, vy * DT, def.radius * 0.8, this.moved)
 			this.x[i] = this.moved.x
 			this.y[i] = this.moved.y
+
+			// a screamer near players calls others in now and then
+			if (def.call && this.tick >= (this.callAt[i] as number)) {
+				this.callAt[i] = this.tick + Math.round(def.call.everySeconds * TICK_RATE)
+				if (this.nearestPlayerDistance(this.moved.x, this.moved.y) < def.call.range) this.call(i, def.call)
+			}
 
 			// melee
 			const cooldown = this.cooldown[i] as number
