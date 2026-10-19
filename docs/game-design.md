@@ -99,7 +99,7 @@ Rotline uses health, not lives. What decides a fight is health, damage, armour, 
 
 ### Loadout
 
-Two main weapons, one pistol, five armour pieces (head, torso, vest, legs, feet), two utility slots. Equipped items are shared by all classes, and the soldier wears what is equipped: every armour piece shows on the character.
+Two main weapons, one pistol, five armour pieces (head, torso, vest, legs, feet), two utility slots. Equipped items are shared by all classes, and the soldier wears what is equipped. Each class is its own person in their own clothes: the Assault is an operator in a combat shirt and trousers, the Medic a woman in a black tactical suit, the Heavy a shaven-headed man in a T-shirt and gloves. Helmets, vests and packs show on all three; torso, legs and feet pieces show on the Assault (as the shirt, trousers and boots), while the Medic and the Heavy keep their own clothes.
 
 ### Pistol rule
 

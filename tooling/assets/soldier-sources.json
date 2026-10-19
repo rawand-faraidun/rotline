@@ -89,6 +89,26 @@
 			}
 		]
 	},
+	"people": [
+		{
+			"id": "medic",
+			"uid": "367a37bf5c0b48e688195d915c5496a2",
+			"name": "female specops",
+			"author": "bumstrum",
+			"licence": "CC BY 4.0",
+			"material": "^olga$",
+			"triangles": 9000
+		},
+		{
+			"id": "heavy",
+			"uid": "2439a285a35c4a28bb0778adb4310b40",
+			"name": "SF Operator (CC0)",
+			"author": "britdawgmasterfunk",
+			"licence": "CC0 1.0",
+			"material": "^Material\\.002$",
+			"triangles": 9000
+		}
+	],
 	"gear": {
 		"head-tactical": {
 			"uid": "ad5de2de22af429cbcaf2a96e3520b80",

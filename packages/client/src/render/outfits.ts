@@ -4,11 +4,27 @@ import type * as THREE from 'three'
 /** One worn piece: which model in soldier.glb, and the colour its paint is multiplied by. */
 export type Piece = { id: string; tint?: number }
 
-/** What a soldier wears: the five armour places and a pack. */
-export type Outfit = Record<ArmourPiece, Piece | null> & { pack: Piece | null }
+/** What a soldier wears: the five armour places and a pack, on a person (face, hands, own clothes). */
+export type Outfit = Record<ArmourPiece, Piece | null> & { pack: Piece | null; person: Piece[] }
 
 /** every worn piece in soldier.glb is a node named `<place>-<id>` */
-const PIECE = /^(head|vest|body|legs|feet|pack)-/
+const PIECE = /^(head|vest|body|legs|feet|pack|skin|person)-/
+
+/** the operator: face, eyes and hands, dressed by the torso, legs and feet places */
+const OPERATOR: Piece[] = [{ id: 'skin-face' }, { id: 'skin-eyes' }, { id: 'skin-hands' }]
+
+/**
+ * Who each class is. The Medic and the Heavy are whole figures in their own clothes, so their
+ * torso, legs and feet armour counts but does not change how they look; helmets, vests and packs
+ * still go on top.
+ */
+const PEOPLE: Record<string, Piece[]> = {
+	assault: OPERATOR,
+	medic: [{ id: 'person-medic' }],
+	heavy: [{ id: 'person-heavy' }],
+	survivor: OPERATOR
+}
+const CLOTHES: readonly ArmourPiece[] = ['torso', 'legs', 'feet']
 
 /** what shows where nothing is worn: plain clothes (a soldier is never drawn bare) */
 const UNDERNEATH: Record<ArmourPiece, Piece | null> = {
@@ -47,8 +63,13 @@ const SURVIVOR: Partial<Record<ArmourPiece, Piece>> = {
  */
 export function outfitFor(classId: string, armour?: readonly (string | null)[]): Outfit {
 	const ids = armour ?? CLASS_ARMOUR[classId] ?? CLASS_ARMOUR.assault ?? []
-	const outfit = { pack: PACKS[classId] ?? null } as Outfit
+	const person = PEOPLE[classId] ?? OPERATOR
+	const outfit = { pack: PACKS[classId] ?? null, person } as Outfit
 	for (const [index, place] of ARMOUR_PIECES.entries()) {
+		if (person !== OPERATOR && CLOTHES.includes(place)) {
+			outfit[place] = null
+			continue
+		}
 		const def = gear.armour.find(entry => entry.id === ids[index])
 		outfit[place] = def
 			? { id: def.look.model, ...(def.look.tint ? { tint: Number.parseInt(def.look.tint.slice(1), 16) } : {}) }
@@ -65,7 +86,8 @@ export function outfitFor(classId: string, armour?: readonly (string | null)[]):
  */
 export function wear(model: THREE.Object3D, outfit: Outfit): void {
 	const worn = new Map<string, Piece>()
-	for (const piece of [...ARMOUR_PIECES.map(place => outfit[place]), outfit.pack]) if (piece) worn.set(piece.id, piece)
+	for (const piece of [...ARMOUR_PIECES.map(place => outfit[place]), outfit.pack, ...outfit.person])
+		if (piece) worn.set(piece.id, piece)
 	model.traverse(object => {
 		if (!PIECE.test(object.name)) return
 		const piece = worn.get(object.name)

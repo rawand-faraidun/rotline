@@ -2,7 +2,8 @@
 //
 // A realistic CC0 operator (britdawgmasterfunk's "Devgru 2": face, hands, combat shirt and trousers,
 // boots, plate carrier, helmet) is skinned onto the Universal Animation Library skeleton (see rig.ts),
-// and the extra helmets, vests and packs from Sketchfab are fixed to its bones. Every piece is its own
+// and the extra helmets, vests and packs from Sketchfab are fixed to its bones. The other classes'
+// people (whole figures) are skinned the same way, each with its own bind pose, named `person-<class>`. Every piece is its own
 // node named `<slot>-<id>` (head, vest, body, legs, feet, pack, skin): the game shows the pieces a
 // player wears and tints them. The library's clips are moved onto the skeleton by bone name.
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -47,11 +48,21 @@ type Gear = {
 	triangles: number
 	tint?: [number, number, number]
 }
+type Person = {
+	id: string
+	uid: string
+	name: string
+	author: string
+	licence: string
+	material: string
+	triangles: number
+}
 type Pack = { creator: string; game: string; file: string; name: string; author: string; page: string; licence: string }
 const config = JSON.parse(readFileSync(join(here, 'soldier-sources.json'), 'utf8')) as {
 	skeleton: Pack & { gltf: string }
 	animations: Pack & { glb: string; clips: string[] }
 	operator: { uid: string; name: string; author: string; parts: Part[] }
+	people: Person[]
 	gear: Record<string, Gear>
 }
 
@@ -98,6 +109,10 @@ const partOf = (node: Node) => {
 	const material = node.getMesh()?.listPrimitives()[0]?.getMaterial()?.getName() ?? ''
 	return config.operator.parts.find(part => new RegExp(part.material).test(material))
 }
+
+// the skeleton's own arms, before they are bent to any model's
+const arms = ['upperarm_l', 'upperarm_r'].map(name => joints.get(name) as Node)
+const restArms = arms.map(arm => [...arm.getRotation()] as [number, number, number, number])
 
 // arms down to the operator's: aim each upper arm at where the operator's hand is
 {
@@ -199,6 +214,170 @@ for (const sceneOf of operatorScenes) {
 	for (const child of copy.listChildren()) child.traverse(node => node.dispose())
 	copy.dispose()
 }
+// ---- the other classes' people: each a whole figure (face, clothes, boots), bound in its own pose ----
+
+const operatorArms = arms.map(arm => [...arm.getRotation()] as [number, number, number, number])
+// where the operator's head is (the helmets were placed on it): its top, and the middle of its top 20 cm
+const operatorHead = (() => {
+	const face = scene.listChildren().find(node => node.getName() === 'skin-face')
+	const position = face?.getMesh()?.listPrimitives()[0]?.getAttribute('POSITION')
+	if (!position) throw new Error('the operator has no face')
+	const p: number[] = []
+	let top = 0
+	for (let v = 0; v < position.getCount(); v++) top = Math.max(top, position.getElement(v, p)[1] as number)
+	let x = 0
+	let z = 0
+	let count = 0
+	for (let v = 0; v < position.getCount(); v++) {
+		position.getElement(v, p)
+		if ((p[1] as number) < top - 0.2) continue
+		x += p[0] as number
+		z += p[2] as number
+		count++
+	}
+	return { top, x: x / count, z: z / count }
+})()
+const point = (m: mat4, p: number[]): [number, number, number] => [
+	(m[0] as number) * (p[0] as number) +
+		(m[4] as number) * (p[1] as number) +
+		(m[8] as number) * (p[2] as number) +
+		(m[12] as number),
+	(m[1] as number) * (p[0] as number) +
+		(m[5] as number) * (p[1] as number) +
+		(m[9] as number) * (p[2] as number) +
+		(m[13] as number),
+	(m[2] as number) * (p[0] as number) +
+		(m[6] as number) * (p[1] as number) +
+		(m[10] as number) * (p[2] as number) +
+		(m[14] as number)
+]
+const people: Person[] = config.people
+for (const person of people) {
+	const source = await io.read(await sketchfabModel(person.uid))
+	const sourceRoot = source.getRoot()
+	const pattern = new RegExp(person.material)
+	const kept = sourceRoot
+		.listNodes()
+		.filter(node => pattern.test(node.getMesh()?.listPrimitives()[0]?.getMaterial()?.getName() ?? ''))
+	if (kept.length === 0) throw new Error(`${person.id}: nothing matches ${person.material}`)
+	for (const node of sourceRoot.listNodes()) if (node.getMesh() && !kept.includes(node)) node.setMesh(null)
+	// stand the figure on the ground as tall as the operator, its head where the operator's is
+	const min = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY]
+	const max = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]
+	const p: number[] = []
+	for (const node of kept) {
+		node.setSkin(null)
+		const world = node.getWorldMatrix()
+		for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
+			primitive.setAttribute('JOINTS_0', null).setAttribute('WEIGHTS_0', null)
+			const position = primitive.getAttribute('POSITION') as Accessor
+			for (let v = 0; v < position.getCount(); v++) {
+				const at = point(world, position.getElement(v, p))
+				for (let i = 0; i < 3; i++) {
+					min[i] = Math.min(min[i] as number, at[i] as number)
+					max[i] = Math.max(max[i] as number, at[i] as number)
+				}
+			}
+		}
+	}
+	const scale = operatorHead.top / ((max[1] as number) - (min[1] as number))
+	let headX = 0
+	let headZ = 0
+	let headCount = 0
+	for (const node of kept) {
+		const world = node.getWorldMatrix()
+		for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
+			const position = primitive.getAttribute('POSITION') as Accessor
+			for (let v = 0; v < position.getCount(); v++) {
+				const at = point(world, position.getElement(v, p))
+				if (at[1] < (max[1] as number) - 0.2 / scale) continue
+				headX += at[0]
+				headZ += at[2]
+				headCount++
+			}
+		}
+	}
+	const fit = MathUtils.compose(
+		[
+			operatorHead.x - (headX / headCount) * scale,
+			-(min[1] as number) * scale,
+			operatorHead.z - (headZ / headCount) * scale
+		],
+		[0, 0, 0, 1],
+		[scale, scale, scale],
+		[] as unknown as mat4
+	)
+	const sourceScene = (sourceRoot.getDefaultScene() ?? sourceRoot.listScenes()[0]) as Scene
+	for (const node of kept) {
+		const placed = multiply(fit, node.getWorldMatrix())
+		node.getParentNode()?.removeChild(node)
+		for (const sceneOf of sourceRoot.listScenes()) sceneOf.removeChild(node)
+		sourceScene.addChild(node)
+		node.setMatrix(placed)
+		const count = triangles(node)
+		if (count > person.triangles)
+			for (const primitive of node.getMesh()?.listPrimitives() ?? [])
+				simplifyPrimitive(primitive, { simplifier: MeshoptSimplifier, ratio: person.triangles / count, error: 0.01 })
+	}
+	// arms bent to this figure's: aim each upper arm at its hand (the outermost few centimetres)
+	for (const [index, arm] of arms.entries()) arm.setRotation(restArms[index] as [number, number, number, number])
+	const reach = (max[0] as number) * scale + (fit[12] as number)
+	let sumX = 0
+	let sumY = 0
+	let count = 0
+	for (const node of kept) {
+		const world = node.getMatrix()
+		for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
+			const position = primitive.getAttribute('POSITION') as Accessor
+			for (let v = 0; v < position.getCount(); v++) {
+				const at = point(world, position.getElement(v, p))
+				if (at[0] < reach - 0.12) continue
+				sumX += at[0]
+				sumY += at[1]
+				count++
+			}
+		}
+	}
+	const shoulder = jointPosition(joints.get('upperarm_l') as Node)
+	const angle = Math.atan2(shoulder[1] - sumY / count, sumX / count - shoulder[0])
+	turnJoint(joints.get('upperarm_l') as Node, [0, 0, 1], -angle)
+	turnJoint(joints.get('upperarm_r') as Node, [0, 0, 1], angle)
+	const personPosed = poseBody(bodyPrimitive, baseSkin, baseBind)
+	const personSkin = document.createSkin(`person-${person.id}`).setSkeleton(baseSkin.getSkeleton())
+	for (const joint of jointList) personSkin.addJoint(joint)
+	const personBind = new Float32Array(jointList.length * 16)
+	for (const [index, joint] of jointList.entries())
+		personBind.set(invert(joint.getWorldMatrix()) as unknown as number[], index * 16)
+	personSkin.setInverseBindMatrices(
+		document
+			.createAccessor(`bind-${person.id}`)
+			.setType('MAT4')
+			.setArray(personBind)
+			.setBuffer(root.listBuffers()[0] ?? null)
+	)
+	const merged = mergeDocuments(document, source)
+	for (const source of kept) {
+		const node = merged.get(source) as Node
+		bindMesh(document, node, personSkin, personPosed, { kind: 'transfer', stiffFingers: true })
+		node.getParentNode()?.removeChild(node)
+		for (const sceneOf of root.listScenes()) sceneOf.removeChild(node)
+		scene.addChild(node)
+		node.setName(`person-${person.id}`)
+		for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
+			const material = primitive.getMaterial()
+			material?.setName(`person-${person.id}`)
+			material?.getBaseColorTexture()?.setName(`piece-person-${person.id}`)
+		}
+	}
+	for (const sceneOf of sourceRoot.listScenes()) {
+		const copy = merged.get(sceneOf) as Scene
+		for (const child of copy.listChildren()) child.traverse(node => node.dispose())
+		copy.dispose()
+	}
+	process.stdout.write(`${person.id}: arms lowered ${((angle * 180) / Math.PI).toFixed(1)}°\n`)
+}
+for (const [index, arm] of arms.entries()) arm.setRotation(operatorArms[index] as [number, number, number, number])
+
 // the base body was only the source of the weights
 for (const node of root.listNodes()) if (node.getMesh() && node.getSkin() === baseSkin) node.dispose()
 baseSkin.dispose()
@@ -225,6 +404,13 @@ const credits: { name: string; author: string; page: string; licence: string }[]
 		licence: config.animations.licence
 	}
 ]
+for (const person of people)
+	credits.push({
+		name: person.name,
+		author: person.author,
+		page: `https://sketchfab.com/3d-models/${person.uid}`,
+		licence: person.licence
+	})
 for (const [id, gear] of Object.entries(config.gear)) {
 	const source = await io.read(await sketchfabModel(gear.uid))
 	const sourceRoot = source.getRoot()
