@@ -32,7 +32,7 @@
 	],
 	"tasks": {
 		"build": {
-			"dependsOn": ["^build", "generate"],
+			"dependsOn": ["^build", "generate", "^generate"],
 			"outputs": ["dist/**"]
 		},
 		"generate": {
@@ -44,22 +44,22 @@
 			"persistent": true
 		},
 		"dev": {
-			"dependsOn": ["generate"],
+			"dependsOn": ["generate", "^generate"],
 			"cache": false,
 			"persistent": true
 		},
 		"typecheck": {
-			"dependsOn": ["generate", "transit"]
+			"dependsOn": ["generate", "^generate", "transit"]
 		},
 		"transit": {
 			"dependsOn": ["^transit"]
 		},
 		"test": {
-			"dependsOn": ["generate"],
+			"dependsOn": ["generate", "^generate"],
 			"outputs": ["coverage/**"]
 		},
 		"test:integration": {
-			"dependsOn": ["generate"],
+			"dependsOn": ["generate", "^generate"],
 			"cache": false
 		},
 		"test:e2e": {
