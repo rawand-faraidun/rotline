@@ -122,9 +122,9 @@ describe('missions', () => {
 			kills: 1,
 			result: outcome
 		})
-		await grantReward(db, null, report(0, result(par * 0.7, sweep.scoreTarget, 'nightmare')))
-		await grantReward(db, null, report(1, result(par * 1.2, 100)))
-		await grantReward(db, null, report(2, result(par * 0.9, 50, 'nightmare')))
+		await grantReward(db, null, report(0, result(Math.round(par * 0.7), sweep.scoreTarget, 'nightmare')))
+		await grantReward(db, null, report(1, result(Math.round(par * 1.2), 100)))
+		await grantReward(db, null, report(2, result(Math.round(par * 0.9), 50, 'nightmare')))
 		const list = (await (await call(jar, '/api/missions')).json()) as {
 			id: string
 			open: boolean

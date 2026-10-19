@@ -1,6 +1,6 @@
 import { difficultyDef, economy, items, starterBuild, zombieIndex, zombies } from '@rotline/game-data'
 import { KickReason, RangeAction, Reader, readServerHeader } from '@rotline/protocol'
-import { angleToAim, Button } from '@rotline/sim'
+import { angleToAim, Button, PropState } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
 import { type Connection, Room } from '../src/room.ts'
 
@@ -174,9 +174,11 @@ describe('mission rooms', () => {
 		play(room, 2)
 		expect(mission.index).toBe(1)
 		expect(reports).toHaveLength(0)
-		// the gate: a checkpoint, which reports everything including the item
-		a.x = 32
-		a.y = 4
+		// the nests burnt out: a checkpoint, which reports everything including the item
+		for (const id of ['nest-sheds-west', 'nest-sheds-east', 'nest-centre']) {
+			const nest = room.world.propById.get(id)
+			if (nest) nest.state = PropState.destroyed
+		}
 		play(room, 2)
 		expect(mission.checkpointIndex).toBe(2)
 		const forA = reports.filter(report => report.userId === 'user-a')
