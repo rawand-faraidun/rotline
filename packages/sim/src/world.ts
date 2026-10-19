@@ -202,6 +202,15 @@ const p = (params: Record<string, number>, key: string) => params[key] ?? 0
 const ABILITY_BITS = [Step.ability1, Step.ability2, Step.ability3] as const
 /** at most this many zombies are collected along one ray (pierce limit + 1) */
 const MAX_RAY_HITS = 12
+/**
+ * What a player sees around them (metres; the camera looks north from the south, so it sees
+ * farther north): zombies come in outside it when a spawn point allows
+ */
+const VIEW_HALF_WIDTH = 18
+const VIEW_UP = 13
+const VIEW_DOWN = 9
+/** never closer than this to a player, even when every spawn point is on screen */
+const SPAWN_CLEARANCE = 8
 
 /** Zombie animation state, sent to clients. */
 export const ZombieState = { moving: 0, attacking: 1 } as const
@@ -1447,8 +1456,10 @@ export class World {
 		if (spawning.queue.length > 0) {
 			spawning.accumulator += this.wavesDef.spawnPerSecond * DT
 			while (spawning.accumulator >= 1 && spawning.queue.length > 0 && this.aliveCount < this.wavesDef.maxAlive) {
+				// no clear spawn point this tick: the wave waits
+				if (this.spawnZombie(spawning.queue.at(-1) as number) < 0) break
+				spawning.queue.pop()
 				spawning.accumulator -= 1
-				this.spawnZombie(spawning.queue.pop() as number)
 			}
 			if (spawning.queue.length === 0) spawning.accumulator = 0
 		} else if (spawning.nextWaveTick < 0 && this.aliveCount === 0) {
@@ -1460,7 +1471,7 @@ export class World {
 	}
 
 	/** How far the nearest standing player is. */
-	private nearestPlayerDistance(x: number, y: number): number {
+	nearestPlayerDistance(x: number, y: number): number {
 		let best = Number.POSITIVE_INFINITY
 		for (const state of this.players.values()) {
 			if (!state.alive || state.downed) continue
@@ -1494,6 +1505,7 @@ export class World {
 		}
 		if (index < 0) return -1
 		const point = at ?? this.pickSpawnPoint()
+		if (!point) return -1
 		const def = zombieDefs[typeIndex] as ZombieDef
 		this.alive[index] = 1
 		this.type[index] = typeIndex
@@ -1527,23 +1539,40 @@ export class World {
 		return this.sectionCache.points
 	}
 
-	private pickSpawnPoint(): { x: number; y: number } {
+	/**
+	 * Where the next zombie comes in: a spawn point off every player's screen when there is one,
+	 * else the one farthest from everyone, but never within SPAWN_CLEARANCE of a player (then
+	 * nothing comes in this time).
+	 */
+	pickSpawnPoint(): { x: number; y: number } | null {
 		const points = this.spawnPoints()
-		// prefer points away from every player, so zombies do not appear on top of anyone
-		for (let attempt = 0; attempt < 8; attempt++) {
-			const point = points[this.rng.int(points.length)] as { x: number; y: number }
-			let far = true
+		const hidden = this.hiddenPoints
+		hidden.length = 0
+		let best: { x: number; y: number } | null = null
+		let bestDistance = -1
+		for (const point of points) {
+			let nearest = Number.POSITIVE_INFINITY
+			let seen = false
 			for (const state of this.players.values()) {
-				if (Math.hypot(state.x - point.x, state.y - point.y) < 12) far = false
+				if (!state.alive) continue
+				const dx = point.x - state.x
+				const dy = point.y - state.y
+				nearest = Math.min(nearest, Math.hypot(dx, dy))
+				if (Math.abs(dx) < VIEW_HALF_WIDTH && dy > -VIEW_UP && dy < VIEW_DOWN) seen = true
 			}
-			if (far || attempt === 7) {
-				const x = point.x + (this.rng.next() - 0.5) * 1.5
-				const y = point.y + (this.rng.next() - 0.5) * 1.5
-				return this.grid.isWall(x, y) ? point : { x, y }
+			if (!seen) hidden.push(point)
+			if (nearest > bestDistance) {
+				bestDistance = nearest
+				best = point
 			}
 		}
-		return points[0] as { x: number; y: number }
+		const point = hidden.length > 0 ? (hidden[this.rng.int(hidden.length)] as { x: number; y: number }) : best
+		if (!point || (hidden.length === 0 && bestDistance < SPAWN_CLEARANCE)) return null
+		const x = point.x + (this.rng.next() - 0.5) * 1.5
+		const y = point.y + (this.rng.next() - 0.5) * 1.5
+		return this.grid.isWall(x, y) ? point : { x, y }
 	}
+	private readonly hiddenPoints: { x: number; y: number }[] = []
 
 	// --- movement ----------------------------------------------------------------------------
 

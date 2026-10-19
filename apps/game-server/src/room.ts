@@ -232,7 +232,12 @@ export class Room {
 		if (action !== RangeAction.spawn || !def || def.dummy) return
 		const dummies = rules.dummies.length
 		const room = Math.max(0, rules.maxZombies + dummies - this.world.aliveCount)
-		for (let n = 0; n < Math.min(count, rules.spawnPerCommand, room); n++) this.world.spawnZombie(zombieType)
+		// the range asked for them: they may come in on screen, at the lanes' far ends
+		const spawns = this.world.map.zombieSpawns
+		for (let n = 0; n < Math.min(count, rules.spawnPerCommand, room); n++) {
+			const at = this.world.pickSpawnPoint() ?? spawns[n % spawns.length]
+			this.world.spawnZombie(zombieType, at)
+		}
 	}
 
 	get playerCount(): number {

@@ -227,10 +227,11 @@ export function stepMission(world: World): void {
 	if (mission.startedFor !== mission.index) startObjective(world, mission, objective, count)
 	// an ambush pours in a few a tick, past the stream's cap (never past the engine's)
 	for (let n = 0; n < 3 && mission.burst > 0 && world.aliveCount < MAX_ZOMBIES - 8; n++) {
-		mission.burst--
 		const roll = world.rng.next() * mission.burstTotal
 		const pick = mission.burstPool.find(entry => roll < entry.upTo) ?? mission.burstPool[0]
-		if (pick) world.spawnZombie(pick.type)
+		// no clear spawn point this tick: the rest of the ambush waits
+		if (!pick || world.spawnZombie(pick.type) < 0) break
+		mission.burst--
 	}
 	const maxAlive = Math.min(difficulties.maxAlive, Math.round(mission.def.spawn.maxAlive * count))
 	// nothing spawns while the whole squad is down: they come back to the checkpoint, not into a horde
@@ -240,7 +241,10 @@ export function stepMission(world: World): void {
 			mission.spawnAccumulator -= 1
 			const roll = world.rng.next() * mission.poolTotal
 			const pick = mission.pool.find(entry => roll < entry.upTo) ?? mission.pool[0]
-			if (pick) world.spawnZombie(pick.type)
+			if (pick && world.spawnZombie(pick.type) < 0) {
+				mission.spawnAccumulator += 1
+				break
+			}
 		}
 		if (world.aliveCount >= maxAlive) mission.spawnAccumulator = Math.min(mission.spawnAccumulator, 1)
 	}
@@ -308,7 +312,13 @@ function startObjective(world: World, mission: MissionState, objective: Objectiv
 		mission.burstTotal = total
 		mission.burst = Math.max(1, Math.round(objective.ambush.count * count))
 	}
-	if (objective.boss) world.spawnZombie(zombieIndex(objective.boss.type), objective.boss.at)
+	if (objective.boss) {
+		// the boss's own place, unless someone stands near it: then it walks in from out of sight
+		const at = objective.boss.at
+		const clear = at && world.nearestPlayerDistance(at.x, at.y) > 12
+		const type = zombieIndex(objective.boss.type)
+		if (world.spawnZombie(type, clear ? at : (world.pickSpawnPoint() ?? at)) < 0) world.spawnZombie(type, at)
+	}
 }
 
 /** Nests among `ids` that have been destroyed. */

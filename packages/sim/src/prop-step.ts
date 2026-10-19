@@ -102,11 +102,20 @@ function nest(world: World, prop: Prop): void {
 	}
 	const roll = world.rng.next() * nestTotal
 	const pick = nestPool.find(entry => roll < entry.upTo) ?? nestPool[0]
-	// out of the nest's side, so it does not stand inside the nest's cells
-	const angle = world.rng.next() * Math.PI * 2
+	// out of the nest's far side from the nearest player, so it never crawls out on top of anyone
+	let away = world.rng.next() * Math.PI * 2
+	let nearest = Number.POSITIVE_INFINITY
+	for (const state of world.players.values()) {
+		const distance = Math.hypot(state.x - prop.x, state.y - prop.y)
+		if (!state.alive || distance >= nearest) continue
+		nearest = distance
+		away = Math.atan2(prop.y - state.y, prop.x - state.x) + (world.rng.next() - 0.5) * 1.6
+	}
 	const half = Math.max(prop.def.w ?? 1, prop.def.h ?? 1) / 2 + 0.7
-	const at = { x: prop.x + Math.cos(angle) * half, y: prop.y + Math.sin(angle) * half }
-	if (pick && !world.grid.isWall(Math.floor(at.x), Math.floor(at.y))) world.spawnZombie(pick.type, at)
+	const at = { x: prop.x + Math.cos(away) * half, y: prop.y + Math.sin(away) * half }
+	if (!pick || world.grid.isWall(Math.floor(at.x), Math.floor(at.y))) return
+	if (world.nearestPlayerDistance(at.x, at.y) < 2.5) return
+	world.spawnZombie(pick.type, at)
 }
 
 function trap(world: World, prop: Prop): void {

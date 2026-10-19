@@ -165,3 +165,31 @@ describe('bodies collide', () => {
 		expect(landed).toBeLessThan(13.5)
 	})
 })
+
+describe('spawning', () => {
+	const yard = maps.yard as NonNullable<typeof maps.yard>
+
+	it('brings zombies in off screen, or never within 8 m of a player', () => {
+		const world = new World({ seed: 5, map: yard })
+		const player = world.addPlayer(1)
+		for (const spot of yard.zombieSpawns) {
+			player.x = spot.x
+			player.y = spot.y
+			for (let n = 0; n < 20; n++) {
+				const point = world.pickSpawnPoint()
+				if (point) expect(Math.hypot(point.x - player.x, point.y - player.y)).toBeGreaterThan(7)
+			}
+		}
+	})
+
+	it('waits when every spawn point is too close', () => {
+		const tiny = { ...yard, zombieSpawns: [yard.zombieSpawns[0] as (typeof yard.zombieSpawns)[number]] }
+		const world = new World({ seed: 5, map: tiny })
+		const player = world.addPlayer(1)
+		player.x = tiny.zombieSpawns[0]?.x ?? 0
+		player.y = (tiny.zombieSpawns[0]?.y ?? 0) + 2
+		expect(world.pickSpawnPoint()).toBeNull()
+		expect(world.spawnZombie(zombieIndex('drudge'))).toBe(-1)
+		expect(world.aliveCount).toBe(0)
+	})
+})
