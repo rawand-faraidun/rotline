@@ -314,14 +314,40 @@ export class PlayerFigure {
 			this.model.updateMatrixWorld(true)
 			const right = this.arms2[0]
 			const left = this.arms2[1]
-			if (this.longGun && right && left && this.weapon.visible) {
+			if (this.longGun && right && left && this.weapon.visible && this.relaxed) {
+				// at ease (low ready): stock against the right of the chest, the gun across the body,
+				// muzzle forward, down and to the left, one hand on the grip and one on the fore grip
+				const forward = ikA.set(Math.cos(aimAngle), 0, Math.sin(aimAngle))
+				const side = ikB.set(-forward.z, 0, forward.x)
+				const along = ikC.copy(forward).multiplyScalar(0.3).addScaledVector(side, -0.8)
+				along.y = -0.55
+				along.normalize()
+				const stock = right.upper
+					.getWorldPosition(ikD)
+					.addScaledVector(UP, -0.16)
+					.addScaledVector(forward, 0.2)
+					.addScaledVector(side, -0.04)
+				const length = this.weaponLength
+				const centre = ikE.copy(stock).addScaledVector(along, length / 2)
+				this.weapon.position.copy(this.group.worldToLocal(ikF.copy(centre)))
+				this.weapon.quaternion.setFromUnitVectors(X_AXIS, along)
+				const grip = ikF
+					.copy(stock)
+					.addScaledVector(along, length * 0.28)
+					.addScaledVector(UP, -0.05)
+				reach(right, grip, ikG.copy(stock).addScaledVector(side, 0.35).addScaledVector(UP, -0.35))
+				const fore = ikF
+					.copy(stock)
+					.addScaledVector(along, length * 0.62)
+					.addScaledVector(UP, -0.03)
+				const leftShoulder = left.upper.getWorldPosition(ikG)
+				reach(left, fore, ikJ.copy(leftShoulder).addScaledVector(side, -0.3).addScaledVector(UP, -0.45))
+			} else if (this.longGun && right && left && this.weapon.visible) {
 				// a long gun: stock in the right shoulder, pointing along the aim, both hands on it
-				// at ease the muzzle points down and across the body (low ready), else along the aim
-				const yaw = this.relaxed ? aimAngle - 0.9 : aimAngle
-				const pitch = this.relaxed ? 0.55 : 0
-				const ax = Math.cos(yaw) * Math.cos(pitch)
-				const ay = -Math.sin(pitch)
-				const az = Math.sin(yaw) * Math.cos(pitch)
+				const yaw = aimAngle
+				const ax = Math.cos(yaw)
+				const ay = 0
+				const az = Math.sin(yaw)
 				const shoulder = right.upper.getWorldPosition(ikA)
 				const half = this.weaponLength / 2
 				// the gun's middle, ahead of the shoulder and a little in toward the chest and down
@@ -332,7 +358,7 @@ export class PlayerFigure {
 				)
 				const local = this.group.worldToLocal(ikC.copy(centre))
 				this.weapon.position.copy(local)
-				this.weapon.rotation.set(0, -yaw, -pitch)
+				this.weapon.rotation.set(0, -yaw, 0)
 				// the grip a third of the way from the stock, the fore grip a little ahead of the middle
 				const grip = ikD.set(centre.x - ax * half * 0.4, centre.y - ay * half * 0.4 - 0.05, centre.z - az * half * 0.4)
 				const fore = ikE.set(
@@ -466,6 +492,7 @@ const ikF = new THREE.Vector3()
 const ikG = new THREE.Vector3()
 const ikH = new THREE.Vector3()
 const ikI = new THREE.Vector3()
+const ikJ = new THREE.Vector3()
 const ikTurn = new THREE.Quaternion()
 const ikParent = new THREE.Quaternion()
 
@@ -508,6 +535,7 @@ function reach(
 	aimBone(arm.lower, cNow.sub(bNow), new THREE.Vector3().subVectors(target, bNow))
 }
 const UP = new THREE.Vector3(0, 1, 0)
+const X_AXIS = new THREE.Vector3(1, 0, 0)
 const twistTurn = new THREE.Quaternion()
 const twistParent = new THREE.Quaternion()
 const twistLocal = new THREE.Quaternion()

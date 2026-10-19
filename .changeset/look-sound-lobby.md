@@ -33,3 +33,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - The guns go by their real names: G17, Desert Eagle, Vector, HK416, M4 Super 90, M249, L115A3, MGL, XM8 and M134.
 - Every weapon picture is taken from the same side view.
 - Each class is a different person in their own style: the Assault an operator in a combat shirt, the Medic a woman in a black tactical suit, the Heavy a shaven-headed man in a T-shirt and gloves. Helmets, vests and packs go on top of all three.
+- In the lobby your soldier holds a long gun across the chest in both hands.
