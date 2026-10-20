@@ -35,3 +35,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Each class is a different person in their own style: the Assault an operator in a combat shirt, the Medic a woman in a black tactical suit, the Heavy a shaven-headed man in a T-shirt and gloves. Helmets, vests and packs go on top of all three.
 - In the lobby your soldier holds a long gun across the chest in both hands.
 - Zombies no longer appear on top of you: they come in from off screen, never closer than 8 m, and nests send them out on their far side.
+- Pausing a solo game freezes everything on screen: zombies, soldiers, effects and props stop where they are.

@@ -240,8 +240,16 @@ export class PlayerFigure {
 	}
 
 	/** `revive` is 0..1 progress while a teammate revives this player. */
-	set(x: number, y: number, aimAngle: number, alive: boolean, downed: boolean, revive = 0): void {
-		const now = performance.now()
+	set(
+		x: number,
+		y: number,
+		aimAngle: number,
+		alive: boolean,
+		downed: boolean,
+		revive = 0,
+		/** the game's clock (ms); it stands still while the game is paused, and so does the figure */
+		now = performance.now()
+	): void {
 		const dt = Math.min(0.1, (now - this.last) / 1000)
 		this.last = now
 		this.group.visible = alive

@@ -180,6 +180,12 @@ export function startGame(options: GameOptions): GameHandle {
 	let rewardScale = 1
 	let menuOpen = false
 	let paused = false
+	/** how long the game stood paused before the current pause (ms), when this one began, and the tick it stopped on */
+	let pausedFor = 0
+	let pauseStarted = 0
+	let frozenTick = 0
+	/** the game's clock (ms): the wall clock less every pause, so it stands still while paused */
+	const worldNow = (wall = performance.now()) => wall - pausedFor - (paused ? wall - pauseStarted : 0)
 	let markers: MissionMarkers | null = null
 	let missionHud: MissionHud | null = null
 	/** the objective the radio last spoke for */
@@ -278,6 +284,7 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 			// someone joined: the game no longer pauses for one player's menu
 			if (paused && entries.length > 1) {
+				pausedFor += performance.now() - pauseStarted
 				paused = false
 				accumulator = 0
 				interpolator.resync()
@@ -405,7 +412,7 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		},
 		events: events => {
-			const now = performance.now() / 1000
+			const now = worldNow() / 1000
 			for (const event of events) {
 				switch (event.type) {
 					case 'shot': {
@@ -779,12 +786,16 @@ export function startGame(options: GameOptions): GameHandle {
 		return Math.round(total / (DPS_WINDOW_MS / 1000))
 	}
 
-	function loop(now: number): void {
+	function loop(wallNow: number): void {
 		if (stopped) return
 		frame = requestAnimationFrame(loop)
-		const dt = Math.min(0.1, (now - last) / 1000)
-		last = now
-		const renderTick = interpolator.renderTick(now)
+		// while paused the world's clock stands still: zombies, figures, effects and props freeze
+		const frameDt = Math.min(0.1, (wallNow - last) / 1000)
+		last = wallNow
+		const now = worldNow(wallNow)
+		const dt = paused ? 0 : frameDt
+		if (!paused) frozenTick = interpolator.renderTick(wallNow)
+		const renderTick = frozenTick
 
 		// fixed-rate input and prediction, independent of the display rate (stopped while paused)
 		if (predictor && !paused) {
@@ -874,7 +885,7 @@ export function startGame(options: GameOptions): GameHandle {
 			const own = predictor.state
 			const held = weapons[activeWeapon(own, own.minigunSteps > 0).index]
 			if (held) me.setWeapon(held.id, held.kind === 'pistol')
-			me.set(drawn.x, drawn.y, aimToAngle(own.aim), own.alive, own.downed, own.reviveProgress / REVIVE_COMPLETE)
+			me.set(drawn.x, drawn.y, aimToAngle(own.aim), own.alive, own.downed, own.reviveProgress / REVIVE_COMPLETE, now)
 			const aimAngle = aimToAngle(predictor.state.aim)
 			const aimX = controls.pointer.inside ? aimPoint.x : drawn.x + Math.cos(aimAngle) * 8
 			const aimY = controls.pointer.inside ? aimPoint.z : drawn.y + Math.sin(aimAngle) * 8
@@ -941,7 +952,7 @@ export function startGame(options: GameOptions): GameHandle {
 					const held = index === undefined ? undefined : weapons[index]
 					if (held) figure.setWeapon(held.id, held.kind === 'pistol')
 				}
-				figure.set(other.x, other.y, aimToAngle(other.aim), other.alive, other.downed, other.revive)
+				figure.set(other.x, other.y, aimToAngle(other.aim), other.alive, other.downed, other.revive, now)
 			}
 		}
 		effects.update(now / 1000)
@@ -949,12 +960,13 @@ export function startGame(options: GameOptions): GameHandle {
 		stage.render()
 
 		frames++
-		if (now - fpsSince > 500) {
-			hud.set({ fps: Math.round((frames * 1000) / (now - fpsSince)) }, now)
+		// the frame rate and the HUD run on the wall clock (the HUD keeps updating behind the menu)
+		if (wallNow - fpsSince > 500) {
+			hud.set({ fps: Math.round((frames * 1000) / (wallNow - fpsSince)) }, wallNow)
 			frames = 0
-			fpsSince = now
+			fpsSince = wallNow
 		}
-		hud.flush(now)
+		hud.flush(wallNow)
 	}
 	frame = requestAnimationFrame(loop)
 
@@ -972,10 +984,12 @@ export function startGame(options: GameOptions): GameHandle {
 			// alone in the room: really pause (the server stops it too)
 			const alone = [...names.values()].length <= 1
 			if (open && alone) {
+				pauseStarted = performance.now()
 				paused = true
 				connection.send(writePause(rangeWriter, true))
 			}
 			if (!open && paused) {
+				pausedFor += performance.now() - pauseStarted
 				paused = false
 				connection.send(writePause(rangeWriter, false))
 				accumulator = 0
