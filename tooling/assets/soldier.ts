@@ -500,8 +500,9 @@ await document.transform(
 	resample(),
 	dedup(),
 	prune(),
-	textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [512, 512], quality: 80, pattern: /^gear-/ }),
-	textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], quality: 82, pattern: /^piece-/ }),
+	// close-ups in the lobby and armory: faces, clothes and gear keep their detail
+	textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], quality: 82, pattern: /^gear-/ }),
+	textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [2048, 2048], quality: 85, pattern: /^piece-/ }),
 	textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [512, 512], quality: 80, formats: /png|jpe?g/ }),
 	// quantised and packed vertices and keyframes (the client loads it with the meshopt decoder)
 	meshopt({ encoder: MeshoptEncoder, level: 'medium' })

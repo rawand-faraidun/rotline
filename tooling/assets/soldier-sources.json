@@ -43,13 +43,13 @@
 			{
 				"material": "^characterface",
 				"id": "skin-face",
-				"triangles": 3000
+				"triangles": 9000
 			},
 			{
 				"material": "^blue_eye",
 				"id": "skin-eyes",
 				"joint": "Head",
-				"triangles": 300
+				"triangles": 600
 			},
 			{
 				"material": "^eye_transparency",
@@ -59,22 +59,22 @@
 				"material": "^hands",
 				"id": "skin-hands",
 				"stiffFingers": true,
-				"triangles": 2400
+				"triangles": 6000
 			},
 			{
 				"material": "^ubacshirt",
 				"id": "body-ubacs",
-				"triangles": 4500
+				"triangles": 10000
 			},
 			{
 				"material": "^combattrousers",
 				"id": "legs-combat",
-				"triangles": 4500
+				"triangles": 11500
 			},
 			{
 				"material": "^sneakers",
 				"id": "feet-boots",
-				"triangles": 1500
+				"triangles": 3000
 			},
 			{
 				"material": "^Material\\.001$",
@@ -85,7 +85,7 @@
 				"material": "^Material$",
 				"id": "head-ops",
 				"joint": "Head",
-				"triangles": 2500
+				"triangles": 4000
 			}
 		]
 	},
@@ -97,7 +97,7 @@
 			"author": "bumstrum",
 			"licence": "CC BY 4.0",
 			"material": "^olga$",
-			"triangles": 9000
+			"triangles": 24000
 		},
 		{
 			"id": "heavy",
@@ -106,7 +106,7 @@
 			"author": "britdawgmasterfunk",
 			"licence": "CC0 1.0",
 			"material": "^Material\\.002$",
-			"triangles": 9000
+			"triangles": 24000
 		}
 	],
 	"gear": {
@@ -118,7 +118,7 @@
 			"offset": [0, 0.1, 0.01],
 			"rotation": [0, 0, 0],
 			"size": 0.3,
-			"triangles": 3000,
+			"triangles": 6000,
 			"nodes": ["Final_Helmet", "Final_Glasses"]
 		},
 		"head-mich": {
@@ -129,7 +129,7 @@
 			"offset": [0, 0.12, 0.0],
 			"rotation": [0, 0, 0],
 			"size": 0.28,
-			"triangles": 2500
+			"triangles": 6000
 		},
 		"head-k6": {
 			"uid": "94701874d8b949718708b018c8d4f61d",
@@ -139,7 +139,7 @@
 			"offset": [0, 0.12, -0.01],
 			"rotation": [20, 180, 0],
 			"size": 0.36,
-			"triangles": 2500
+			"triangles": 6000
 		},
 		"vest-plate": {
 			"uid": "3b51e6329dbb4b0aa14e43f12eb6c42a",
@@ -149,7 +149,7 @@
 			"offset": [0, -0.05, 0],
 			"rotation": [0, 0, 0],
 			"size": 0.55,
-			"triangles": 2960
+			"triangles": 6000
 		},
 		"vest-heavy": {
 			"uid": "7c41d35e505c4057abe60f89537408bd",
@@ -160,7 +160,7 @@
 			"offset": [0, -0.05, 0],
 			"rotation": [0, 0, 0],
 			"size": 0.6,
-			"triangles": 3000
+			"triangles": 6000
 		},
 		"vest-rig": {
 			"uid": "7c41d35e505c4057abe60f89537408bd",
@@ -171,7 +171,7 @@
 			"offset": [0, -0.05, 0.02],
 			"rotation": [0, 0, 0],
 			"size": 0.45,
-			"triangles": 3000
+			"triangles": 6000
 		},
 		"pack-medical": {
 			"uid": "2aedfbd7581f47f5abcf89d39de57b67",
@@ -181,7 +181,7 @@
 			"offset": [0, -0.05, -0.2],
 			"rotation": [0, 0, 0],
 			"size": 0.45,
-			"triangles": 2000
+			"triangles": 6000
 		},
 		"pack-military": {
 			"uid": "9fa2da2c42234b58896e8d23393cac24",
@@ -191,7 +191,7 @@
 			"offset": [0, -0.05, -0.22],
 			"rotation": [0, 0, 0],
 			"size": 0.42,
-			"triangles": 1474,
+			"triangles": 6000,
 			"tint": [0.45, 0.47, 0.4]
 		}
 	}
