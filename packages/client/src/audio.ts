@@ -1,6 +1,7 @@
 /**
- * The game's sound: recorded sounds from the asset manifest (weapons, reloads, zombies) and a few
- * made on the fly with Web Audio (explosions, flames, clicks, chimes) until recordings replace them.
+ * The game's sound: recorded sounds from the asset manifest (weapons, impacts, gore, zombies, the
+ * interface), with the made-up Web Audio sounds kept only where no recording exists (flames) or as
+ * the fallback while files load.
  * Positional by hand for a top-down view: left/right pan from the horizontal offset, volume from the
  * distance to the listener. Each sound has a voice limit, so a horde never clips the mix.
  */
@@ -107,6 +108,14 @@ const LOOP_CROSSFADE = 2.5
 /** How many of one sound may play at once; the oldest stops for a new one. */
 const VOICES: Record<string, number> = {
 	default: 6,
+	smg: 8,
+	rifle: 8,
+	mg: 10,
+	gore: 3,
+	splat: 3,
+	casing: 3,
+	impact: 3,
+	stinger: 1,
 	zombie: 4,
 	'zombie-fast': 3,
 	'zombie-pain': 3,
@@ -175,7 +184,7 @@ export class AudioEngine {
 			const reverb = context.createConvolver()
 			reverb.buffer = this.impulse(context, 1.8)
 			const send = context.createGain()
-			send.gain.value = 0.16
+			send.gain.value = 0.07
 			this.buses.effects.connect(send)
 			send.connect(reverb)
 			reverb.connect(this.master)

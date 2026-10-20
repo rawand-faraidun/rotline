@@ -152,9 +152,9 @@
 			}
 		],
 		"sound": {
-			"shot": "pistol",
+			"shot": "pistol-heavy",
 			"reload": "reload-pistol",
-			"rate": 0.82,
+			"rate": 1.0,
 			"recoil": 0.22
 		}
 	},
@@ -231,9 +231,9 @@
 			}
 		],
 		"sound": {
-			"shot": "rifle",
+			"shot": "smg",
 			"reload": "reload-pistol",
-			"rate": 1.25,
+			"rate": 1.0,
 			"recoil": 0.08
 		}
 	},

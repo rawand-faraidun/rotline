@@ -36,3 +36,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - In the lobby your soldier holds a long gun across the chest in both hands.
 - Zombies no longer appear on top of you: they come in from off screen, never closer than 8 m, and nests send them out on their far side.
 - Pausing a solo game freezes everything on screen: zombies, soldiers, effects and props stop where they are.
+- New sound throughout, from professional game-audio libraries: punchy guns per weapon (with the shotgun's pump and the sniper's bolt after each shot, and brass hitting the ground), wet hits, bodies bursting apart, bites, zombie groans and screams, metal doors, generators, a boss sting, and a cleaner interface. Every kind of sound is levelled to sit right in the mix, and the made-up beeps are gone.

@@ -129,18 +129,23 @@ export function startGame(options: GameOptions): GameHandle {
 			rate: sound.rate * (minigun ? 1.15 : 1),
 			volume: at ? 0.7 : 0.85
 		})
-		// the weight under it: heavier guns thump harder (only for recorded gunshots)
-		if (sound.shot !== 'flame' && sound.shot !== 'zap' && sound.shot !== 'thump')
-			audio.synth('body', { ...(at ?? {}), volume: Math.min(1, 0.35 + sound.recoil * 1.4) * (at ? 0.5 : 0.8) })
+		// the action after the shot: a pump for the shotgun, the bolt for the sniper rifle
+		const after = sound.shot === 'shotgun' ? 'pump' : sound.shot === 'sniper' ? 'cock' : null
+		if (after) window.setTimeout(() => audio.sound(after, { ...(at ?? {}), volume: at ? 0.45 : 0.6 }), 320)
+		// our own brass hitting the ground, now and then
+		if (!at && sound.shot !== 'flame' && sound.shot !== 'zap' && sound.shot !== 'thump' && Math.random() < 0.35)
+			window.setTimeout(() => audio.sound('casing', { volume: 0.5 }), 280 + Math.random() * 180)
 	}
 	let lastPainAt = 0
+	let lastGoreAt = 0
+	let lastImpactAt = 0
 	/** the soundscape: a bed for the place, the horde's murmur, and music that rises with the fight */
 	type Loops = { bed: LoopHandle; horde: LoopHandle; calm: LoopHandle; fight: LoopHandle }
 	let loops: Loops | null = null
 	let nextMixAt = 0
 	const startLoops = (mapId: string) => {
 		if (loops) return
-		const beds = ['ambience-dark', 'ambience-terror', 'ambience-wind']
+		const beds = ['ambience-dark', 'ambience-industrial', 'ambience-drone']
 		let hash = 0
 		for (const char of mapId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
 		loops = {
@@ -343,7 +348,7 @@ export function startGame(options: GameOptions): GameHandle {
 							: null
 					if (line) {
 						hud.set({ radio: { ...line, at: performance.now() } }, performance.now(), true)
-						audio.synth('chime', { bus: 'interface', rate: 1.4, volume: 0.4 })
+						audio.sound('chime', { bus: 'interface', rate: 1.4, volume: 0.4 })
 					}
 				}
 				if (
@@ -439,15 +444,14 @@ export function startGame(options: GameOptions): GameHandle {
 					}
 					case 'launch':
 						if (event.player !== you || event.weapon === 255)
-							audio.synth('thump', { x: event.x, y: event.y, volume: 0.7 })
+							audio.sound('thump', { x: event.x, y: event.y, volume: 0.7 })
 						effects.launch(event.id, event.x, event.y, event.angle, event.speed, now)
 						if (event.player !== you) effects.muzzleFlash(event.x, event.y, event.angle, now)
 						break
 					case 'explode':
 						effects.explode(event.id, event.x, event.y, event.radius, now)
 						if (event.radius > 0) {
-							audio.sound('explosion', { x: event.x, y: event.y, rate: 1.25 - Math.min(0.4, event.radius / 12) })
-							audio.synth('body', { x: event.x, y: event.y, rate: 0.6 })
+							audio.sound('explosion', { x: event.x, y: event.y, rate: 1.15 - Math.min(0.3, event.radius / 14) })
 							const d = Math.hypot(event.x - drawn.x, event.y - drawn.y)
 							if (d < 18) stage.shake(0.6 * (1 - d / 18))
 						}
@@ -461,7 +465,7 @@ export function startGame(options: GameOptions): GameHandle {
 							hud.set({ hitMarker: performance.now() }, performance.now(), true)
 							if (event.by === you && now - lastHitSoundAt > 0.05) {
 								lastHitSoundAt = now
-								audio.synth('hit', { volume: 0.35, bus: 'interface' })
+								audio.sound('hit', { volume: 0.35, bus: 'interface' })
 							}
 						}
 						if (Math.random() < 0.3) effects.splat(event.x, event.y, 0.35 + Math.random() * 0.3)
@@ -479,6 +483,12 @@ export function startGame(options: GameOptions): GameHandle {
 							if (Math.random() < 0.6)
 								audio.sound('zombie-death', { x: event.x, y: event.y, rate: 0.95 / scale, volume: 0.65 })
 							if (Math.random() < 0.5) audio.sound('bodyfall', { x: event.x, y: event.y, rate: 1 / scale, volume: 0.5 })
+							// the wet burst of a body coming apart, and the splash it leaves
+							if (now - lastGoreAt > 0.08) {
+								lastGoreAt = now
+								audio.sound('gore', { x: event.x, y: event.y, volume: 0.55 })
+								window.setTimeout(() => audio.sound('splat', { x: event.x, y: event.y, volume: 0.5 }), 120)
+							}
 						}
 						break
 					case 'scream':
@@ -487,18 +497,18 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					case 'burst':
 						effects.burst(event.x, event.y, event.radius, now, 0x9fe04a, true)
-						audio.synth('thump', { x: event.x, y: event.y, rate: 0.6 })
+						audio.sound('thump', { x: event.x, y: event.y, rate: 0.6 })
 						break
 					case 'player-down':
 						if (event.player === you) {
 							hud.set({ status: 'down' }, performance.now(), true)
-							audio.synth('thud', { volume: 0.9 })
+							audio.sound('thud', { volume: 0.9 })
 						}
 						break
 					case 'player-hurt':
 						if (event.player === you && event.amount >= 5) {
 							audio.sound('zombie-bite', { volume: 0.7 })
-							audio.synth('thud', { volume: 0.4, rate: 1.4 })
+							audio.sound('thud', { volume: 0.4, rate: 1.4 })
 							stage.shake(Math.min(0.35, event.amount / 60))
 						}
 						break
@@ -518,9 +528,11 @@ export function startGame(options: GameOptions): GameHandle {
 						hud.set({ banner: { text: 'wave', wave: event.wave, at: performance.now() } }, performance.now(), true)
 						break
 					case 'wipe':
+						audio.sound('stinger-high', { bus: 'interface', volume: 0.8 })
 						hud.set({ banner: { text: 'wipe', wave: event.wave, at: performance.now() } }, performance.now(), true)
 						break
 					case 'objective':
+						audio.sound('chime', { bus: 'interface', volume: 0.8 })
 						hud.set(
 							{ banner: { text: 'objective', wave: event.index + 1, at: performance.now() } },
 							performance.now(),
@@ -528,7 +540,7 @@ export function startGame(options: GameOptions): GameHandle {
 						)
 						break
 					case 'checkpoint':
-						audio.synth('chime', { bus: 'interface', rate: 0.9 })
+						audio.sound('chime', { bus: 'interface', rate: 0.9 })
 						hud.set(
 							{ banner: { text: 'checkpoint', wave: event.index + 1, at: performance.now() } },
 							performance.now(),
@@ -537,7 +549,7 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					case 'failed':
 						hud.set({ banner: { text: 'failed', wave: 0, at: performance.now() } }, performance.now(), true)
-						audio.synth('alarm', { bus: 'interface' })
+						audio.sound('alarm', { bus: 'interface' })
 						break
 					case 'run-over':
 						hud.set({ banner: { text: 'run-over', wave: event.wave, at: performance.now() } }, performance.now(), true)
@@ -555,17 +567,17 @@ export function startGame(options: GameOptions): GameHandle {
 						// drops are per player: only your own are shown
 						if (event.player === you) {
 							toast('item', items[event.item]?.name ?? '')
-							audio.synth('chime', { bus: 'interface', rate: 1.2 })
+							audio.sound('chime', { bus: 'interface', rate: 1.2 })
 						}
 						break
 					case 'prop': {
 						const prop = props[event.index]
 						if (!prop) break
-						if (prop.def.kind === 'door') audio.synth('door', { x: prop.x, y: prop.y })
+						if (prop.def.kind === 'door') audio.sound('door', { x: prop.x, y: prop.y })
 						else if (event.state === PropState.done && prop.def.kind === 'generator')
-							audio.synth('power', { x: prop.x, y: prop.y })
+							audio.sound('power', { x: prop.x, y: prop.y })
 						else if (prop.def.kind === 'trap' && event.state === PropState.active)
-							audio.synth('zap', { x: prop.x, y: prop.y, rate: 0.6 })
+							audio.sound('zap', { x: prop.x, y: prop.y, rate: 0.6 })
 						break
 					}
 					case 'buff': {
@@ -573,7 +585,7 @@ export function startGame(options: GameOptions): GameHandle {
 						effects.burst(drawnX(event.player), drawnY(event.player), 3, now, 0xb8f23c)
 						if (buff && (buff.team || event.player === you)) {
 							toast('buff', buff.name, nameOf(event.player))
-							audio.synth('pickup', { bus: 'interface' })
+							audio.sound('pickup', { bus: 'interface' })
 						}
 						break
 					}
@@ -850,7 +862,15 @@ export function startGame(options: GameOptions): GameHandle {
 					stage.kick(Math.cos(angle), Math.sin(angle), weapons[held.index]?.sound.recoil ?? 0.1)
 					if (held.behaviour.type === 'hitscan') {
 						effects.casing(x, y, angle, now / 1000)
-						if (wallHit) effects.impact(x + Math.cos(angle) * stop, y + Math.sin(angle) * stop, now / 1000)
+						if (wallHit) {
+							const hitX = x + Math.cos(angle) * stop
+							const hitY = y + Math.sin(angle) * stop
+							effects.impact(hitX, hitY, now / 1000)
+							if (now - lastImpactAt > 90) {
+								lastImpactAt = now
+								audio.sound('impact', { x: hitX, y: hitY, volume: 0.35 })
+							}
+						}
 					}
 				}
 				// a reload starting, or the dry click of an empty magazine
@@ -864,7 +884,7 @@ export function startGame(options: GameOptions): GameHandle {
 				if (input.buttons & Button.fire && own.weapons[own.slot as 0 | 1 | 2].mag === 0 && own.reloadEndTick === 0) {
 					if (now - lastEmptyAt > 350) {
 						lastEmptyAt = now
-						audio.synth('empty', { volume: 0.6 })
+						audio.sound('empty', { volume: 0.6 })
 					}
 				}
 				recent.push(input)
@@ -907,6 +927,8 @@ export function startGame(options: GameOptions): GameHandle {
 					if (!boss || health < boss.health) boss = { name: def.name, health }
 				}
 				const shown = hud.getSnapshot().boss
+				// a boss walking into view gets its sting
+				if (boss && !shown) audio.sound('stinger', { bus: 'interface', volume: 0.9 })
 				if (
 					(boss === null) !== (shown === null) ||
 					(boss && shown && (boss.name !== shown.name || Math.abs(boss.health - shown.health) > 0.01))

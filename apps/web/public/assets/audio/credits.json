@@ -1,279 +1,9 @@
 {
 	"sounds": [
 		{
-			"name": "Gunshot sounds",
-			"author": "Tabasco",
-			"page": "https://opengameart.org/content/gunshot-sounds",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Gun reload sounds (pistol)",
-			"author": "SpringySpringo",
-			"page": "https://opengameart.org/content/gun-reload-sounds",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Gun reload sounds (rifle)",
-			"author": "SpringySpringo",
-			"page": "https://opengameart.org/content/gun-reload-sounds",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Gun reload sounds (shotgun)",
-			"author": "SpringySpringo",
-			"page": "https://opengameart.org/content/gun-reload-sounds",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "9mm pistol shot",
-			"author": "michorvath",
-			"page": "https://freesound.org/people/michorvath/sounds/427592/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Pistol Shot",
-			"author": "LeMudCrab",
-			"page": "https://freesound.org/people/LeMudCrab/sounds/163456/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "22 magnum pistol shot",
-			"author": "michorvath",
-			"page": "https://freesound.org/people/michorvath/sounds/427594/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "AR15 pistol shot",
-			"author": "michorvath",
-			"page": "https://freesound.org/people/michorvath/sounds/427598/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "M4 Assault rifle firing.wav",
-			"author": "mnslugger20",
-			"page": "https://freesound.org/people/mnslugger20/sounds/259758/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Rifle Shooting",
-			"author": "qubodup",
-			"page": "https://freesound.org/people/qubodup/sounds/238916/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Sniper Shot",
-			"author": "LeMudCrab",
-			"page": "https://freesound.org/people/LeMudCrab/sounds/163460/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "405Win.wav",
-			"author": "Jon285",
-			"page": "https://freesound.org/people/Jon285/sounds/49513/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "20 gauge shotgun gunshot",
-			"author": "michorvath",
-			"page": "https://freesound.org/people/michorvath/sounds/427595/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Shotgun Shot 03.wav",
-			"author": "LilMati",
-			"page": "https://freesound.org/people/LilMati/sounds/473846/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "shotgun.wav",
-			"author": "Marregheriti",
-			"page": "https://freesound.org/people/Marregheriti/sounds/266105/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Machine Gun 002 - single shot.ogg",
-			"author": "pgi",
-			"page": "https://freesound.org/people/pgi/sounds/212607/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Machine Gun Shooting",
-			"author": "deleted_user_7146007",
-			"page": "https://freesound.org/people/deleted_user_7146007/sounds/383796/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Explosion_01.wav",
-			"author": "tommccann",
-			"page": "https://freesound.org/people/tommccann/sounds/235968/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "bad explosion",
-			"author": "deleted_user_364925",
-			"page": "https://freesound.org/people/deleted_user_364925/sounds/47252/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Cinematic_Boom_Rhapsodize.wav",
-			"author": "rhapsodize",
-			"page": "https://freesound.org/people/rhapsodize/sounds/255111/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "VisceralBulletImpacts.wav",
-			"author": "u1769092",
-			"page": "https://freesound.org/people/u1769092/sounds/423301/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Headshot.wav",
-			"author": "Pablobd",
-			"page": "https://freesound.org/people/Pablobd/sounds/511194/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Meaty Splosh",
-			"author": "magnuswaker",
-			"page": "https://freesound.org/people/magnuswaker/sounds/528834/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "BODY FALL - V HVY - DIRT",
-			"author": "leonelmail",
-			"page": "https://freesound.org/people/leonelmail/sounds/504626/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Growl 1.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555416/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Growl 2.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555415/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Growl 3.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555414/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Growl 4.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555413/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Growl 5.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555417/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Pain 1.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555424/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Pain 2.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555423/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Pain 3.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555422/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Pain 4.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555421/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Pain 5.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555426/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Pain 6.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555425/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Death 1.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555412/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Death 2.wav",
-			"author": "tonsil5",
-			"page": "https://freesound.org/people/tonsil5/sounds/555411/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Flesh Bites",
-			"author": "MrPokephile",
-			"page": "https://freesound.org/people/MrPokephile/sounds/155973/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Zombie Demon Scream",
-			"author": "Wakerone",
-			"page": "https://freesound.org/people/Wakerone/sounds/435651/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Mutant Scream",
-			"author": "scorpion67890",
-			"page": "https://freesound.org/people/scorpion67890/sounds/396797/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Monster Zombie Scream.wav",
-			"author": "lolamadeus",
-			"page": "https://freesound.org/people/lolamadeus/sounds/179345/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "zombie roar",
-			"author": "Thanra",
-			"page": "https://freesound.org/people/Thanra/sounds/245223/",
-			"licence": "CC0 1.0"
-		},
-		{
 			"name": "Zombie group 2 (small) .wav",
 			"author": "GaryQ",
 			"page": "https://freesound.org/people/GaryQ/sounds/111044/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Soft Tonal Wind_01",
-			"author": "janbezouska",
-			"page": "https://freesound.org/people/janbezouska/sounds/397091/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "Dark Ambience - Abandoned Fields",
-			"author": "Dredile",
-			"page": "https://freesound.org/people/Dredile/sounds/164272/",
-			"licence": "CC0 1.0"
-		},
-		{
-			"name": "terror ambience.mp3",
-			"author": "burning-mir",
-			"page": "https://freesound.org/people/burning-mir/sounds/155142/",
 			"licence": "CC0 1.0"
 		},
 		{
@@ -289,40 +19,454 @@
 			"licence": "CC0 1.0"
 		},
 		{
-			"name": "SFX UI Button Click",
-			"author": "suntemple",
-			"page": "https://freesound.org/people/suntemple/sounds/253168/",
-			"licence": "CC0 1.0"
+			"name": "Gamemaster Audio -  Gun Sound Pack",
+			"author": "Gamemaster Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
 		},
 		{
-			"name": "Click_1.wav",
-			"author": "JonnyRuss01",
-			"page": "https://freesound.org/people/JonnyRuss01/sounds/478197/",
-			"licence": "CC0 1.0"
+			"name": "Audiobeast - The London Warehouse Firearms Library",
+			"author": "Audiobeast",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
 		},
 		{
-			"name": "Menu Scroll/ Selection Sound",
-			"author": "CS279",
-			"page": "https://freesound.org/people/CS279/sounds/200469/",
-			"licence": "CC0 1.0"
+			"name": "Coll Anderson - Guns",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
 		},
 		{
-			"name": "metallicclick.wav",
-			"author": "j1987",
-			"page": "https://freesound.org/people/j1987/sounds/107806/",
-			"licence": "CC0 1.0"
+			"name": "Gamemaster Audio -  Gun Sound Pack",
+			"author": "Gamemaster Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
 		},
 		{
-			"name": "inspect item.wav",
-			"author": "niamhd00145229",
-			"page": "https://freesound.org/people/niamhd00145229/sounds/422709/",
-			"licence": "CC0 1.0"
+			"name": "Watson Wu - Battle Rifles & Pistols",
+			"author": "Watson Wu",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
 		},
 		{
-			"name": "effect_notify.wav",
-			"author": "ricemaster",
-			"page": "https://freesound.org/people/ricemaster/sounds/278142/",
-			"licence": "CC0 1.0"
+			"name": "Audiobeast - The London Warehouse Firearms Library",
+			"author": "Audiobeast",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Guns",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Fascinated Sound - The Gun Locker SFX Pack",
+			"author": "Fascinated Sound",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "TS Sound - 12 Gauge Shotgun",
+			"author": "TS Sound",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Audiobeast - The London Warehouse Firearms Library",
+			"author": "Audiobeast",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Gamemaster Audio -  Gun Sound Pack",
+			"author": "Gamemaster Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Fascinated Sound - The Gun Locker SFX Pack",
+			"author": "Fascinated Sound",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Gamemaster Audio - Guns, Bullets and Explosions",
+			"author": "Gamemaster Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Olivier Girardot - Guns & Explosions",
+			"author": "Olivier Girardot",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Bluezone Corporation - War Zone (Designed Explosions)",
+			"author": "Bluezone Corporation",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Bluezone Corporation - War Zone (Designed Explosions)",
+			"author": "Bluezone Corporation",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Baxter Audio - IMPACT",
+			"author": "Baxter Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "BlueZone - Dark Mesa Industrial Ambiences and SFX",
+			"author": "BlueZone",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Gamemaster Audio -  Bullet Impact Sounds",
+			"author": "Gamemaster Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Soundopolis - Gore Toolkit HD",
+			"author": "Soundopolis",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Gore",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "PMSFX - BLOODBATH",
+			"author": "PMSFX",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Gore",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "SoundMorph - Gore",
+			"author": "SoundMorph",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "PMSFX - BLOODBATH",
+			"author": "PMSFX",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Gore",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "PMSFX - BLOODBATH",
+			"author": "PMSFX",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "SoundMorph - Gore",
+			"author": "SoundMorph",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Red Libraries - Bodyfall",
+			"author": "Red Libraries",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Red Libraries - Bodyfall",
+			"author": "Red Libraries",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Olivier Girardot - Guns & Explosions",
+			"author": "Olivier Girardot",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Sound Spark LLC – Metal Hits, Scrapes and Squeaks",
+			"author": "Sound Spark LLC",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "BlueZone - Heavy Metal Impact Sound Effects",
+			"author": "BlueZone",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Stuart Duffield - Bullet SFX",
+			"author": "Stuart Duffield",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Watson Wu - Battle Rifles & Pistols",
+			"author": "Watson Wu",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Glitchedtones - Zombie",
+			"author": "Glitchedtones",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Glitchedtones - Zombie",
+			"author": "Glitchedtones",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Glitchedtones - Zombie",
+			"author": "Glitchedtones",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Glitchedtones - Zombie",
+			"author": "Glitchedtones",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "MatiasMacSD - INFECTED ZONE",
+			"author": "MatiasMacSD",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Monster Zombie Vocal",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Monster Zombie Vocal",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Monster Zombie Vocal",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Monster Zombie Vocal",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Monster Zombie Vocal",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "MatiasMacSD - INFECTED ZONE",
+			"author": "MatiasMacSD",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Guns",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Coll Anderson - Guns",
+			"author": "Coll Anderson",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "TS Sound - 12 Gauge Shotgun",
+			"author": "TS Sound",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "TS Sound - 12 Gauge Shotgun",
+			"author": "TS Sound",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Gamemaster Audio -  Gun Sound Pack",
+			"author": "Gamemaster Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Gamemaster Audio - Footstep and Foley Sounds",
+			"author": "Gamemaster Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Gamemaster Audio - Footstep and Foley Sounds",
+			"author": "Gamemaster Audio",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Glitchedtones - User Interface",
+			"author": "Glitchedtones",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "InspectorJ - UI - Mechanical",
+			"author": "InspectorJ",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Kpow Sounds - UI SOUNDPACKS",
+			"author": "Kpow Sounds",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Kpow Sounds - UI SOUNDPACKS",
+			"author": "Kpow Sounds",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "InspectorJ - UI - Mechanical",
+			"author": "InspectorJ",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "InspectorJ - UI - Mechanical",
+			"author": "InspectorJ",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "CB_Sounddesign – ACTIVATION UI & HUD Sound Effects Library",
+			"author": "CB_Sounddesign",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Kpow Sounds - UI SOUNDPACKS",
+			"author": "Kpow Sounds",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Airborne Sound - Interface Accents",
+			"author": "Airborne Sound",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Sound Ex Machina - UI SOUNDS - FUTURISTIC",
+			"author": "Sound Ex Machina",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "3maze - UI FX",
+			"author": "3maze",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "3maze - Doors",
+			"author": "3maze",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "3maze - Doors",
+			"author": "3maze",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "3maze - Electric Motors",
+			"author": "3maze",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Glitchedtones - Impact",
+			"author": "Glitchedtones",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Sir Bedlam Productions – Bedlam Stingers - Cinematic Horror Sound FX",
+			"author": "Sir Bedlam Productions",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Sir Bedlam Productions – Bedlam Stingers - Cinematic Horror Sound FX",
+			"author": "Sir Bedlam Productions",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "MatiasMacSD - INFECTED ZONE",
+			"author": "MatiasMacSD",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Bluezone - Scary Ambiences and Sound Effects",
+			"author": "Bluezone",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "BlueZone - Dark Mesa Industrial Ambiences and SFX",
+			"author": "BlueZone",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Sound Spark LLC – Industrial Drones and Ambiences",
+			"author": "Sound Spark LLC",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "The Sound Keeper - Small Fire",
+			"author": "The Sound Keeper",
+			"page": "https://sonniss.com/gameaudiogdc",
+			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
 		}
 	]
 }
