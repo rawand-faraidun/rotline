@@ -29,17 +29,17 @@ export default defineConfig({
 		// found up front, so the dev server never has to re-bundle them mid-session (and reload the page)
 		optimizeDeps: {
 			include: [
-				'three',
-				'three/addons/loaders/GLTFLoader.js',
-				'three/addons/libs/meshopt_decoder.module.js',
-				'three/addons/utils/SkeletonUtils.js',
-				'three/addons/environments/RoomEnvironment.js',
-				'three/addons/postprocessing/EffectComposer.js',
-				'three/addons/postprocessing/GTAOPass.js',
-				'three/addons/postprocessing/OutputPass.js',
-				'three/addons/postprocessing/RenderPass.js',
-				'three/addons/postprocessing/ShaderPass.js',
-				'three/addons/postprocessing/UnrealBloomPass.js'
+				'@rotline/client > three',
+				'@rotline/client > three/addons/loaders/GLTFLoader.js',
+				'@rotline/client > three/addons/libs/meshopt_decoder.module.js',
+				'@rotline/client > three/addons/utils/SkeletonUtils.js',
+				'@rotline/client > three/addons/environments/RoomEnvironment.js',
+				'@rotline/client > three/addons/postprocessing/EffectComposer.js',
+				'@rotline/client > three/addons/postprocessing/GTAOPass.js',
+				'@rotline/client > three/addons/postprocessing/OutputPass.js',
+				'@rotline/client > three/addons/postprocessing/RenderPass.js',
+				'@rotline/client > three/addons/postprocessing/ShaderPass.js',
+				'@rotline/client > three/addons/postprocessing/UnrealBloomPass.js'
 			]
 		},
 		server: { proxy },
