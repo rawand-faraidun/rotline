@@ -31,7 +31,11 @@ export function stepProps(world: World): void {
 			case 'generator':
 				if (prop.state === PropState.active && world.tick >= prop.untilTick) {
 					prop.state = PropState.done
+					prop.progress = 0
 					world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+				} else if (prop.state === PropState.active) {
+					// running up: how far along, so everyone can see it coming on
+					prop.progress = 1 - (prop.untilTick - world.tick) / START_TICKS
 				}
 				break
 			case 'carry':
@@ -83,6 +87,7 @@ function turret(world: World, prop: Prop): void {
 }
 
 const NEST_INTERVAL = ticks(propsDef.nest.spawnEverySeconds)
+const START_TICKS = Math.max(1, ticks(propsDef.generator.startSeconds))
 let nestPool: { type: number; upTo: number }[] | null = null
 let nestTotal = 0
 

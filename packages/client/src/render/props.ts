@@ -322,7 +322,14 @@ export class PropRenderer {
 				}
 				case 'generator':
 				case 'terminal':
-					drawn.glow?.emissive.setHex(prop.state === PropState.done ? 0xb8f23c : 0xff3a2a)
+					// red until worked, amber and pulsing while a generator runs up, green once on
+					if (prop.state === PropState.active) {
+						drawn.glow?.emissive.setHex(0xffa020)
+						if (drawn.glow) drawn.glow.emissiveIntensity = 0.6 + 0.4 * Math.sin(timeSeconds * 8)
+					} else {
+						drawn.glow?.emissive.setHex(prop.state === PropState.done ? 0xb8f23c : 0xff3a2a)
+						if (drawn.glow) drawn.glow.emissiveIntensity = 1
+					}
 					this.setBar(drawn.bar, prop.state === PropState.done ? 0 : prop.progress)
 					break
 				case 'turret':

@@ -590,9 +590,13 @@ export function startGame(options: GameOptions): GameHandle {
 						const prop = props[event.index]
 						if (!prop) break
 						if (prop.def.kind === 'door') audio.sound('door', { x: prop.x, y: prop.y })
-						else if (event.state === PropState.done && prop.def.kind === 'generator')
-							audio.sound('power', { x: prop.x, y: prop.y })
-						else if (prop.def.kind === 'trap' && event.state === PropState.active)
+						else if (prop.def.kind === 'generator' && event.state === PropState.active)
+							// cranked: it coughs into life and runs up (the bar over it fills)
+							audio.sound('power', { x: prop.x, y: prop.y, rate: 0.8 })
+						else if (event.state === PropState.done && prop.def.kind === 'generator') {
+							audio.sound('power', { x: prop.x, y: prop.y, rate: 1.15 })
+							audio.sound('chime', { bus: 'interface', rate: 1.2, volume: 0.6 })
+						} else if (prop.def.kind === 'trap' && event.state === PropState.active)
 							audio.sound('zap', { x: prop.x, y: prop.y, rate: 0.6 })
 						break
 					}

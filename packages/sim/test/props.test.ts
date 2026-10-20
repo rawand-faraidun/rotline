@@ -132,7 +132,12 @@ describe('props', () => {
 		steps(world, Math.round(propsDef.generator.holdSeconds * TICK_RATE) + 2, () => hold())
 		// it runs up first, then it is on
 		expect(generator.state).toBe(PropState.active)
-		steps(world, Math.round(propsDef.generator.startSeconds * TICK_RATE) + 1)
+		// running up: its progress climbs for everyone to see, and is cleared once it is on
+		steps(world, Math.round((propsDef.generator.startSeconds * TICK_RATE) / 2))
+		expect(generator.progress).toBeGreaterThan(0.4)
+		expect(generator.progress).toBeLessThan(0.6)
+		steps(world, Math.round((propsDef.generator.startSeconds * TICK_RATE) / 2) + 1)
+		expect(generator.progress).toBe(0)
 		expect(generator.state).toBe(PropState.done)
 		steps(world, 3 * TICK_RATE)
 		expect(turret.powered).toBe(true)
