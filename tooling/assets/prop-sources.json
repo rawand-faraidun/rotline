@@ -107,6 +107,97 @@
 			"name": "Portable Searchlight",
 			"author": "Elijah Cragg",
 			"triangles": 3000
+		},
+		{
+			"kind": "scene-fence",
+			"source": "modular_chainlink_fence",
+			"name": "Modular Chainlink Fence",
+			"author": "James Ray Cock, Amal Kumar",
+			"triangles": 6000
+		},
+		{
+			"kind": "scene-military-crate",
+			"source": "old_military_crate",
+			"name": "Old Military Crate",
+			"author": "Jack Mava",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-jerrycan",
+			"source": "metal_jerrycan_green",
+			"name": "Metal Jerrycan Green",
+			"author": "Ulan Cabanilla",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-compressor",
+			"source": "old_military_compressor",
+			"name": "Old Military Compressor",
+			"author": "Brian Speight",
+			"triangles": 6000
+		},
+		{
+			"kind": "scene-stove",
+			"source": "barrel_stove",
+			"name": "Barrel Stove",
+			"author": "MP",
+			"triangles": 3000
+		},
+		{
+			"kind": "scene-propane",
+			"source": "propane_tank",
+			"name": "Propane Tank",
+			"author": "Slinc",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-utility",
+			"source": "utility_box_01",
+			"name": "Utility Box 01",
+			"author": "James Ray Cock",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-barrier2",
+			"source": "concrete_road_barrier_02",
+			"name": "Concrete Road Barrier 02",
+			"author": "Amal Kumar",
+			"triangles": 3000
+		},
+		{
+			"kind": "scene-lamp2",
+			"source": "street_lamp_02",
+			"name": "Street Lamp 02",
+			"author": "Josh Dean",
+			"triangles": 4000
+		},
+		{
+			"kind": "scene-cart",
+			"source": "industrial_storage_cart",
+			"name": "Industrial Storage Cart",
+			"author": "Jule Bielitz",
+			"triangles": 4000
+		},
+		{
+			"kind": "scene-cardboard",
+			"source": "cardboard_box_01",
+			"name": "Cardboard Box 01",
+			"author": "Rahul Chaudhary",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-plastic-crate",
+			"source": "plastic_crate_03",
+			"name": "Plastic Crate 03",
+			"author": "Pacific Penguin",
+			"triangles": 3000
+		},
+		{
+			"kind": "scene-medical",
+			"source": "medical_box",
+			"name": "Medical Box",
+			"author": "Ulan Cabanilla",
+			"triangles": 1500
 		}
 	]
 }

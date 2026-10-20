@@ -66,7 +66,7 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	await page.getByRole('button', { name: /^deploy$/i }).click()
 	await expect(page).toHaveURL(/\/play\/mission$/)
 	await expect(page.getByText(/objective 1 of 8/i)).toBeVisible({ timeout: 45_000 })
-	await expect(page.getByText(/^get clear of the wreck$/i)).toBeVisible()
+	await expect(page.getByText(/^grab the flight recorder$/i)).toBeVisible()
 	await expect(page.getByText(/^multiplier$/i)).toBeVisible()
 	const magazine = page.locator('li', { hasText: 'Vector' }).locator('[data-slot="magazine"]')
 	await expect(magazine).toHaveText('32')

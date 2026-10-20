@@ -10,7 +10,8 @@ export class Grid {
 		this.width = map.width
 		this.height = map.height
 		this.walls = new Uint8Array(map.width * map.height)
-		for (const wall of map.walls) {
+		// blockers (under scenery) stop movement and shots like walls
+		for (const wall of [...map.walls, ...(map.blockers ?? [])]) {
 			for (let y = wall.y; y < wall.y + wall.h; y++) {
 				for (let x = wall.x; x < wall.x + wall.w; x++) {
 					if (x >= 0 && y >= 0 && x < this.width && y < this.height) this.walls[y * this.width + x] = 1

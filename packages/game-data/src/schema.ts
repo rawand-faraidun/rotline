@@ -432,12 +432,29 @@ const zombieSpawn = point.extend({
 	section: z.number().int().min(0).max(9).optional()
 })
 
+/**
+ * Scenery placed on a map: a model from the scenery set at a spot (metres), turned (degrees about
+ * x, y, z) and scaled; `fire` sets it burning. Drawing only: whatever should block is drawn into the
+ * layout as blockers under it.
+ */
+export const decorSchema = z.object({
+	model: id,
+	x: z.number(),
+	y: z.number(),
+	rotation: z.tuple([z.number(), z.number(), z.number()]).optional(),
+	scale: z.number().positive().max(20).optional(),
+	fire: z.number().positive().max(4).optional()
+})
+
 export const mapSchema = z.object({
 	id,
 	name: z.string(),
 	width: z.number().int().positive().max(1000),
 	height: z.number().int().positive().max(1000),
 	walls: z.array(rect),
+	/** cells that block like walls but are not drawn (under scenery: wrecks, cars, barriers) */
+	blockers: z.array(rect).optional(),
+	decor: z.array(decorSchema).max(2000).optional(),
 	playerSpawns: z.array(point).min(4),
 	zombieSpawns: z.array(zombieSpawn).min(1),
 	props: z.array(mapPropSchema).max(4096).optional(),

@@ -50,14 +50,14 @@ describe('screen waypoints', () => {
 		expect(screenWaypoint(0.3, 0.6, false)).toMatchObject({ x: 0.3, y: 0.6, onScreen: true })
 	})
 
-	it('pin to the edge toward the target when off screen', () => {
+	it('sit on a ring around the middle toward the target when off screen', () => {
 		const right = screenWaypoint(1.8, 0.5, false)
 		expect(right.onScreen).toBe(false)
-		expect(right.x).toBeCloseTo(0.94)
+		expect(right.x).toBeCloseTo(0.86)
 		expect(right.y).toBeCloseTo(0.5)
 		expect(right.angle).toBeCloseTo(0)
 		const up = screenWaypoint(0.5, -2, false)
-		expect(up.y).toBeCloseTo(0.06)
+		expect(up.y).toBeCloseTo(0.16)
 		expect(up.angle).toBeCloseTo(-Math.PI / 2)
 	})
 

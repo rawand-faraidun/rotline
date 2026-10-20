@@ -221,10 +221,10 @@ for (const mission of missions) {
 		)
 	}
 }
-/** The map's walls and blocking props as cells: 1 wall, 2 prop; for checking positions in the data. */
+/** The map's walls (and blockers) and blocking props as cells: 1 wall, 2 prop; for checking positions in the data. */
 function occupancy(map: MapDef): Uint8Array {
 	const cells = new Uint8Array(map.width * map.height)
-	for (const wall of map.walls) {
+	for (const wall of [...map.walls, ...(map.blockers ?? [])]) {
 		for (let y = wall.y; y < wall.y + wall.h; y++) {
 			for (let x = wall.x; x < wall.x + wall.w; x++) {
 				if (x >= 0 && y >= 0 && x < map.width && y < map.height) cells[y * map.width + x] = 1

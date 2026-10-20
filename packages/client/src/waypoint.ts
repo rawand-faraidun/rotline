@@ -49,15 +49,16 @@ export function objectiveTarget(objective: Objective, props: readonly Prop[], fr
 }
 
 /**
- * Where a waypoint is drawn: its own place on screen when it is in view, else pinned to the edge of
- * the screen (inset by `margin`) on the line from the centre, with the angle it points at.
- * Coordinates are 0..1 of the screen.
+ * Where a waypoint is drawn: its own place on screen when it is in view, else on an ellipse around
+ * the middle of the screen (clear of the HUD in the corners) on the line toward it, with the angle it
+ * points at. Coordinates are 0..1 of the screen.
  */
 export function screenWaypoint(
 	sx: number,
 	sy: number,
 	behind: boolean,
-	margin = 0.06
+	margin = 0.08,
+	ring = { x: 0.36, y: 0.34 }
 ): { x: number; y: number; onScreen: boolean; angle: number } {
 	// behind the camera the projection is mirrored: point the other way
 	let dx = sx - 0.5
@@ -66,9 +67,8 @@ export function screenWaypoint(
 		dx = -dx
 		dy = -dy
 	}
+	const angle = Math.atan2(dy, dx)
 	const inside = !behind && sx >= margin && sx <= 1 - margin && sy >= margin && sy <= 1 - margin
-	if (inside) return { x: sx, y: sy, onScreen: true, angle: Math.atan2(dy, dx) }
-	const half = 0.5 - margin
-	const scale = half / Math.max(Math.abs(dx), Math.abs(dy), 1e-6)
-	return { x: 0.5 + dx * scale, y: 0.5 + dy * scale, onScreen: false, angle: Math.atan2(dy, dx) }
+	if (inside) return { x: sx, y: sy, onScreen: true, angle }
+	return { x: 0.5 + Math.cos(angle) * ring.x, y: 0.5 + Math.sin(angle) * ring.y, onScreen: false, angle }
 }

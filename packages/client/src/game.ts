@@ -46,6 +46,7 @@ import { HudStore, type InteractAction, type MissionHud, type Toast } from './hu
 import { Interpolator } from './interpolate.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
+import { Decor } from './render/decor.ts'
 import { Effects, SHOT_LOOKS } from './render/effects.ts'
 import { MissionMarkers } from './render/mission.ts'
 import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
@@ -107,6 +108,8 @@ export function startGame(options: GameOptions): GameHandle {
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene)
 	const propRenderer = new PropRenderer(stage.scene, props, options.assets, stage.quality === 'high')
+	// the map's scenery: wrecks, cars, barriers, lamps, fires
+	const decor = new Decor(stage.scene, map, options.assets, stage.quality === 'high')
 	const showNumbers = options.damageNumbers ?? options.map === 'range'
 	const numbers = showNumbers ? new DamageNumbers(stage.scene) : null
 	const ownHits: { at: number; amount: number }[] = []
@@ -999,6 +1002,7 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		}
 		effects.update(now / 1000)
+		decor.update(now / 1000)
 		numbers?.update(now / 1000)
 		stage.render()
 

@@ -45,3 +45,5 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - A marker shows where the current objective is, and an arrow at the screen's edge points the way when it is out of view, with the distance.
 - Zombies climb out of holes in the ground instead of appearing from nowhere, and burst apart when killed: lumps thrown across the ground and blood that stays.
 - The firing range's targets and zombies come in where you can see them.
+- Landfall is a 12-minute run against the clock through four areas that close behind you: carry the flight recorder out of a burning wreck, fight up a high street of wrecked cars (a pharmacy behind a door holds supplies), restart the checkpoint's gate generator and hold while it opens, burn the nests in the square and put down the Brute, then hold the helipad until the bird lands. Run out of time and the mission is lost.
+- Maps can have scenery: wrecked and burning cars, barriers, lamps, crates, fences and fires, solid where they look solid.

@@ -346,7 +346,7 @@ describe('campaign objectives', () => {
 		world.addPlayer(1)
 		steps(world, 3 * TICK_RATE)
 		for (let i = 0; i < 300; i++) if (world.alive[i] === 1) expect(world.x[i]).toBeGreaterThan(15)
-		expect(maps.landfall?.props?.some(prop => prop.id === 'gate')).toBe(true)
+		expect(maps.landfall?.props?.some(prop => prop.id === 'gate-crash')).toBe(true)
 	})
 })
 

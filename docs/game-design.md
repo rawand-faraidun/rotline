@@ -208,7 +208,7 @@ An objective is a data record (type, parameters, triggers, rewards) plus one sma
 
 | # | Mission | Map | Steps | Optional |
 |---|---|---|---|---|
-| 1 | **Landfall** | Landfall (40 × 32 m) | get clear of the wreck; carry the flight recorder to an area; burn two nests; clear the street (25); hold while the gate opens (25 s); through the gate; kill the Brute on the pad; extract to the landing pad (90 s) | kill 80 |
+| 1 | **Landfall** | Landfall (46 × 150 m, four areas closed behind the squad) | a 12-minute run: carry the flight recorder from the burning wreck to the street gate; fight up the high street (a pharmacy behind a door holds a cache); restart the checkpoint generator; hold while the gate opens (25 s); burn three nests in the square; kill the Brute; hold the helipad 40 s; get on the bird (40 s) | kill 150 |
 | 2 | **Yard Sweep** | Yard (64 × 48 m) | kill 40; burn three nests; reach the north gate; hold it 45 s; kill the Brute; survive 40 s | kill 150 |
 | 3 | **Power Out** | Substation (72 × 56 m) | get inside; restart three generators; burn two nests; defend the transformer 90 s; kill the Brute at the gate; extract (90 s) | kill 180 |
 | 4 | **Survivors** | Depot (96 × 64 m, three sections behind gates) | kill 25; work the office terminal; burn two nests; rescue two survivors; kill the Brute on the dock; extract (90 s) | crack the armoury safe (a terminal) |
@@ -244,6 +244,8 @@ Optional objectives can be kill or interact objectives.
 - **Gates** divide some maps into sections. A gate is a locked door that nobody can open, break or work; it opens when the objective the mission names is done, and it can close again behind the squad when a later step is done. When a gate closes, anyone left on the far side or standing in the doorway, survivors following the squad and objects still to be carried are brought to the gate's side point, and zombies shut out on the far side are gone.
 - **Ambushes**: a step can name an ambush, a burst of extra zombies (its count scaled by difficulty and squad size, at least one) that arrives as the step starts, three a tick while fewer than 292 are alive.
 - **Bosses**: a step can bring an elite (the Brute) onto the map when it starts, at a point the mission names or at a zombie spawn of the step's sections. While an elite is in view the HUD shows its name and a health bar.
+- **Timed missions**: a mission may run against a clock (Landfall: 12 minutes). The time left shows in the objective panel, red in the last minute; when it runs out the mission is lost. Everyone keeps the XP, Salvage and items earned on the way, but there is no completion reward, result or final item.
+- **Waypoint**: a marker shows where the current objective is, or the nearest nest, generator, survivor or object still to deal with. When it is out of view, an arrow on a ring around the middle of the screen points the way, with the distance.
 - When the last step is done the mission is complete: the board is cleared and nobody can be hurt. Each player sees their results screen (time, score, kills, XP, Salvage, downs, items found, mastery) for 20 seconds while the squad is already back in the lobby; then the room closes.
 
 ### Objective rules (starting values)
@@ -279,7 +281,7 @@ Interact (E) works the nearest usable prop within 1.6 m of its edge with a clear
 
 ### Maps
 
-Maps are drawn as text in the game data, one character per metre: walls, floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets, nests) are listed beside the drawing. The maps now are the Yard (64 × 48 m), Landfall (40 × 32 m), the Substation (72 × 56 m) and the Depot (96 × 64 m).
+Maps are drawn as text in the game data, one character per metre: walls, blockers (solid like walls but not drawn: they sit under scenery such as wrecks, cars and barriers), floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Scenery models are placed beside the drawing (position, rotation, size), some of them burning. Every zombie spawn is a hole in the ground the zombies climb out of; zombies come in off screen when a spawn point allows, and never closer than 8 m to a player. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets, nests) are listed beside the drawing. The maps now are the Yard (64 × 48 m), Landfall (40 × 32 m), the Substation (72 × 56 m) and the Depot (96 × 64 m).
 
 The data checks refuse a map or mission where:
 

@@ -4,191 +4,238 @@
 		"name": "Landfall",
 		"zone": "ashgate",
 		"map": "landfall",
-		"description": "The transport went down short of Ashgate. Get off the landing zone, through the gate and onto the pad before the next bird leaves.",
-		"parTimeSeconds": 540,
-		"scoreTarget": 24000,
+		"description": "The transport went down short of Ashgate. Grab the flight recorder, fight up the high street, through the checkpoint and the square, and make the helipad before the evacuation bird leaves.",
+		"parTimeSeconds": 480,
+		"timeLimitSeconds": 720,
+		"scoreTarget": 30000,
 		"enemyLevel": 1,
 		"recommendedLevel": 1,
 		"spawn": {
-			"perSecond": 0.9,
-			"maxAlive": 50,
+			"perSecond": 1.5,
+			"maxAlive": 70,
 			"composition": {
-				"drudge": 70,
-				"bolter": 15,
-				"crawler": 15
+				"drudge": 62,
+				"bolter": 14,
+				"crawler": 19,
+				"screamer": 5
 			}
 		},
 		"caches": [
 			{
-				"x": 36.5,
-				"y": 14.5
+				"x": 39.5,
+				"y": 96.5
 			},
 			{
-				"x": 2.5,
-				"y": 1.5
+				"x": 4.5,
+				"y": 51.5
 			}
 		],
 		"gates": {
-			"gate": {
-				"openOn": 4
-			}
-		},
-		"objectives": [
-			{
-				"type": "reach",
-				"label": "Get clear of the wreck",
-				"area": {
-					"x": 20,
-					"y": 20,
-					"radius": 3
-				},
-				"sections": [0],
-				"spawnScale": 0.5,
-				"radio": {
-					"speaker": "Command",
-					"start": "Rook, this is Command. Your bird is down short of Ashgate. Get clear of the wreck before they smell the fuel."
+			"gate-crash": {
+				"openOn": 0,
+				"closeOn": 1,
+				"side": {
+					"x": 22.5,
+					"y": 114.5
 				}
 			},
+			"gate-checkpoint": {
+				"openOn": 3,
+				"closeOn": 4,
+				"side": {
+					"x": 22.5,
+					"y": 64.5
+				}
+			},
+			"gate-pad": {
+				"openOn": 5,
+				"closeOn": 6,
+				"side": {
+					"x": 22.5,
+					"y": 22.5
+				}
+			}
+		},
+		"briefing": [
+			"Your transport went down on the approach to Ashgate. The pilot did not make it.",
+			"Recover the flight recorder from the wreck: it holds the routes for every evacuation run out of the city.",
+			"Fight up the high street, get the checkpoint gate open and clear the square. The bird lifts off the helipad in twelve minutes, with or without you."
+		],
+		"debrief": "Bird is lifting. Good work, squad. That recorder is going to get a lot of people out.",
+		"objectives": [
 			{
 				"type": "retrieve",
-				"label": "Recover the flight recorder",
+				"label": "Grab the flight recorder",
 				"item": "recorder",
 				"area": {
-					"x": 20.5,
-					"y": 15.5,
+					"x": 22.5,
+					"y": 120.5,
 					"radius": 2.5
 				},
 				"sections": [0],
+				"spawnScale": 0.3,
 				"checkpoint": true,
 				"radio": {
 					"speaker": "Command",
-					"start": "That flight recorder has every evac route on it. Find it in the wreckage and bring it to the gate.",
-					"done": "Recorder secured. Keep it safe."
+					"start": "Rook, this is Command. Your bird is down short of Ashgate. Pull the flight recorder out of that wreck and get to the street gate before they smell the fuel.",
+					"done": "Recorder secured. The street gate is open: move."
 				}
 			},
 			{
-				"type": "destroy",
-				"label": "Burn the nests on the road",
-				"props": ["nest-road", "nest-depot"],
-				"sections": [0],
-				"ambush": {
-					"count": 8,
-					"composition": {
-						"crawler": 60,
-						"drudge": 40
-					}
+				"type": "reach",
+				"label": "Fight up the high street",
+				"area": {
+					"x": 22.5,
+					"y": 74.5,
+					"radius": 3
 				},
-				"radio": {
-					"speaker": "Scout",
-					"start": "Those growths on the road are nests. They will keep spitting the dead out until you burn them.",
-					"done": "Nests are down. The road's quieter."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Clear the street",
-				"count": 25,
-				"sections": [0],
-				"checkpointAt": {
-					"x": 20.5,
-					"y": 17.5
-				},
+				"sections": [1],
+				"spawnScale": 1.0,
 				"checkpoint": true,
 				"ambush": {
-					"count": 12,
+					"count": 14,
 					"composition": {
-						"bolter": 70,
-						"drudge": 30
+						"drudge": 60,
+						"bolter": 20,
+						"crawler": 20
 					}
 				},
 				"radio": {
-					"speaker": "Scout",
-					"start": "Runners coming down the street! Put them down!"
+					"speaker": "Command",
+					"start": "The high street runs straight to the army checkpoint. The pharmacy on the right still has supplies if you can get the door down.",
+					"done": "Checkpoint ahead. Its gate is dead."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Restart the gate generator",
+				"props": ["gate-generator"],
+				"sections": [1, 2],
+				"spawnScale": 1.1,
+				"radio": {
+					"speaker": "Command",
+					"start": "Gate's on its own generator. Start it up and keep them off it."
 				}
 			},
 			{
 				"type": "hold",
-				"label": "Hold while the gate opens",
+				"label": "Hold the checkpoint while the gate opens",
 				"area": {
-					"x": 20.5,
-					"y": 15.5,
-					"radius": 4
+					"x": 22.5,
+					"y": 71.5,
+					"radius": 5
 				},
 				"seconds": 25,
-				"sections": [0],
-				"spawnScale": 1.4,
+				"sections": [1, 2],
+				"spawnScale": 1.3,
+				"checkpoint": true,
 				"ambush": {
-					"count": 8,
+					"count": 18,
 					"composition": {
-						"screamer": 15,
-						"drudge": 85
+						"drudge": 55,
+						"bolter": 25,
+						"crawler": 20
 					}
 				},
 				"radio": {
 					"speaker": "Command",
-					"start": "Gate motors are slow. Hold at the gate until it opens.",
-					"done": "Gate's open. Move!"
+					"start": "Gate's grinding open. Every one of them heard that. Hold!",
+					"done": "You're through. The square is crawling."
 				}
 			},
 			{
-				"type": "reach",
-				"label": "Through the gate",
-				"area": {
-					"x": 20.5,
-					"y": 11.5,
-					"radius": 3
-				},
-				"sections": [0, 1],
-				"checkpoint": true
-			},
-			{
-				"type": "kill",
-				"label": "Put down the Brute on the pad",
-				"count": 1,
-				"of": "brute",
-				"sections": [1],
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 20.5,
-						"y": 5.5
+				"type": "destroy",
+				"label": "Burn the nests in the square",
+				"props": ["nest-west", "nest-east", "nest-north"],
+				"sections": [3],
+				"spawnScale": 0.9,
+				"checkpoint": true,
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"drudge": 70,
+						"crawler": 30
 					}
 				},
 				"radio": {
-					"speaker": "Scout",
-					"start": "Something big is on the pad. That's a Brute. Keep moving and hit it from range.",
-					"done": "It's down. Clear the pad!"
+					"speaker": "Command",
+					"start": "Those growths in the square are breeding them. Burn all three or the pad will never be clear.",
+					"done": "Nests are down. Something big is coming out of the rubble."
+				},
+				"checkpointAt": {
+					"x": 22.5,
+					"y": 64.5
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Brute",
+				"count": 1,
+				"of": "brute",
+				"sections": [3],
+				"spawnScale": 0.6,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 22.5,
+						"y": 38.5
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "Brute in the square! Stay off its line and keep shooting.",
+					"done": "It's down. The pad gate is open."
+				}
+			},
+			{
+				"type": "hold",
+				"label": "Hold the pad until the bird lands",
+				"area": {
+					"x": 22.5,
+					"y": 12.5,
+					"radius": 6
+				},
+				"seconds": 40,
+				"sections": [4],
+				"spawnScale": 1.4,
+				"checkpoint": true,
+				"ambush": {
+					"count": 20,
+					"composition": {
+						"drudge": 55,
+						"bolter": 25,
+						"crawler": 15,
+						"screamer": 5
+					}
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "Raven Two, forty seconds out. Keep that pad clear for me."
 				}
 			},
 			{
 				"type": "extract",
-				"label": "Reach the landing pad",
+				"label": "Get on the bird",
 				"area": {
-					"x": 20,
-					"y": 4,
+					"x": 22.5,
+					"y": 12.5,
 					"radius": 4
 				},
-				"seconds": 90,
-				"sections": [1],
-				"spawnScale": 1.5,
+				"seconds": 40,
+				"sections": [4],
+				"spawnScale": 1.2,
 				"radio": {
-					"speaker": "Command",
-					"start": "Bird is two minutes out. Everyone on the pad!"
+					"speaker": "Pilot",
+					"start": "Wheels down! Everybody on, now!"
 				}
 			},
 			{
 				"type": "kill",
-				"label": "Optional: put down 80",
-				"count": 80,
+				"label": "Optional: put down 150",
+				"count": 150,
 				"optional": true
 			}
-		],
-		"briefing": [
-			"Your transport went down on the approach to Ashgate. The pilot did not make it.",
-			"Get clear of the wreck and recover the flight recorder: it holds the routes for every evacuation run out of the city.",
-			"Then through the town gate to the landing pad. Command has a bird inbound, and it will not wait."
-		],
-		"debrief": "Bird is lifting. Good work, squad. That recorder is going to get a lot of people out."
+		]
 	},
 	{
 		"id": "yard-sweep",
