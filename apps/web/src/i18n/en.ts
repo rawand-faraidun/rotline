@@ -318,6 +318,11 @@ export const en = {
 		},
 		armory: {
 			title: 'Armory',
+			tabs: { weapons: 'Weapons', armour: 'Armour', equipment: 'Equipment' },
+			tabsLabel: 'What to look at',
+			owned: 'Owned',
+			stageHint: 'Drag to turn',
+			classTitle: 'Class',
 			inventory: 'Inventory',
 			duplicates: 'Found duplicates',
 			duplicatesHint: 'Copies of items you already own. Their only use is Salvage.',
@@ -385,6 +390,7 @@ export const en = {
 		},
 		shop: {
 			title: 'Shop',
+			tabs: { weapons: 'Weapons', armour: 'Armour', equipment: 'Equipment' },
 			intro: 'Fixed prices. What you see is exactly what you get.',
 			buy: 'Buy',
 			confirmBuy: 'Buy for {price}',

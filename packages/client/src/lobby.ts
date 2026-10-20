@@ -19,8 +19,16 @@ export type LobbyMember = {
 
 export type LobbyHandle = {
 	setSquad(members: readonly LobbyMember[]): void
+	/** portrait view: turns the soldier (radians, added to the pose's own turn) */
+	setTurn(radians: number): void
 	dispose(): void
 }
+
+/**
+ * `squad`: the squad standing ready, seen whole (the lobby). `portrait`: one soldier close up,
+ * head to boots, turned by the player (the armory).
+ */
+export type LobbyView = 'squad' | 'portrait'
 
 /** Where squad members stand: you in front, the others fanned out behind. */
 const SPOTS: readonly [number, number][] = [
@@ -34,7 +42,9 @@ const SPOTS: readonly [number, number][] = [
  * The lobby's backdrop: the squad standing ready in a floodlit yard at night, among crates, sandbags
  * and barrels, the camera breathing slowly. The menus are laid over it by the page.
  */
-export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): LobbyHandle {
+export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets', view: LobbyView = 'squad'): LobbyHandle {
+	const portrait = view === 'portrait'
+	let turn = 0
 	const quality = probeQuality()
 	const high = quality === 'high'
 	const renderer = new THREE.WebGLRenderer({ canvas, antialias: high, powerPreference: 'high-performance' })
@@ -187,7 +197,7 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 		wanted = key
 		for (const entry of figures) entry.figure.dispose()
 		const ordered = [...members].sort((a, b) => Number(b.you) - Number(a.you))
-		figures = ordered.slice(0, SPOTS.length).map((member, index) => {
+		figures = ordered.slice(0, portrait ? 1 : SPOTS.length).map((member, index) => {
 			const figure = new PlayerFigure(member.slot, member.you, assets)
 			figure.setClass(member.classId, member.armour)
 			figure.setRelaxed(true)
@@ -202,8 +212,8 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 		const height = canvas.clientHeight || window.innerHeight
 		renderer.setSize(width, height, false)
 		camera.aspect = width / height
-		// a narrow window frames the squad closer
-		camera.fov = width / height < 1 ? 52 : 32
+		// a narrow window frames the squad closer; the portrait frames one soldier head to boots
+		camera.fov = portrait ? (width / height < 0.8 ? 34 : 28) : width / height < 1 ? 52 : 32
 		camera.updateProjectionMatrix()
 	}
 	const post = high ? new PostProcessing(renderer, scene, camera) : null
@@ -230,9 +240,14 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 		const t = (now - start) / 1000
 		// standing ready, turned a little toward the light
 		for (const [index, { figure, spot }] of figures.entries())
-			figure.set(spot[0], spot[1], Math.PI / 2 + 0.25 - index * 0.1, true, false, 0)
-		camera.position.set(Math.sin(t * 0.12) * 0.35, 1.9 + Math.sin(t * 0.21) * 0.05, 7.2)
-		camera.lookAt(0, 1.0, -0.8)
+			figure.set(spot[0], spot[1], Math.PI / 2 + 0.25 - index * 0.1 + turn, true, false, 0)
+		if (portrait) {
+			camera.position.set(Math.sin(t * 0.12) * 0.08, 1.15 + Math.sin(t * 0.21) * 0.02, 4.6)
+			camera.lookAt(0, 0.95, 0)
+		} else {
+			camera.position.set(Math.sin(t * 0.12) * 0.35, 1.9 + Math.sin(t * 0.21) * 0.05, 7.2)
+			camera.lookAt(0, 1.0, -0.8)
+		}
 		flood.intensity = 120 + Math.sin(t * 7.3) * Math.sin(t * 2.1) * 6
 		// the dust drifts and settles, then rises again
 		const drift = dustGeometry.getAttribute('position') as THREE.BufferAttribute
@@ -250,6 +265,9 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets'): Lobby
 
 	return {
 		setSquad,
+		setTurn(radians) {
+			turn = radians
+		},
 		dispose() {
 			cancelAnimationFrame(frame)
 			observer.disconnect()

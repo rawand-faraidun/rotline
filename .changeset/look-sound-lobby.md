@@ -38,3 +38,6 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Pausing a solo game freezes everything on screen: zombies, soldiers, effects and props stop where they are.
 - New sound throughout, from professional game-audio libraries: punchy guns per weapon (with the shotgun's pump and the sniper's bolt after each shot, and brass hitting the ground), wet hits, bodies bursting apart, bites, zombie groans and screams, metal doors, generators, a boss sting, and a cleaner interface. Every kind of sound is levelled to sit right in the mix, and the made-up beeps are gone.
 - Soldiers in full detail: faces, hands, clothes and gear keep far more of their shape and sharper textures.
+- The armory is set out like a loadout screen: your soldier stands full size on the left, wearing exactly what you equip (drag to turn them), with the class chosen above them; Weapons, Armour and Equipment have their own tabs, each with what is equipped and what you own.
+- The shop has the same tabs, and every armour piece has a picture in the shop and the armory.
+- Classes are chosen in the armory; the lobby shows your class with your kit.

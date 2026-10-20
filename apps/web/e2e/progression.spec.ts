@@ -26,7 +26,11 @@ async function enlist(page: Page, tag: string) {
 test('classes, skills, armory and shop', async ({ page }) => {
 	await enlist(page, 'Kit')
 
-	// three classes at level 1; switching makes Medic the class for the next mission
+	// three classes at level 1, chosen in the armory over the soldier; switching makes Medic the class for the next mission
+	await page
+		.getByRole('link', { name: /^armory$/i })
+		.first()
+		.click()
 	await page.getByRole('button', { name: /medic/i }).click()
 	await expect(page.getByRole('button', { name: /medic/i })).toHaveAttribute('aria-pressed', 'true')
 

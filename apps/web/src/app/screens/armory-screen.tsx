@@ -25,6 +25,7 @@ import {
 	type Refusal,
 	runAction
 } from '../../lib/progress.ts'
+import { CharacterStage, itemPicture } from './character-stage.tsx'
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
 import { PageHeader } from './page-header.tsx'
@@ -119,9 +120,9 @@ function ItemDetail({
 						</Button>
 					))}
 			</div>
-			{(def.slot === 'main' || def.slot === 'pistol') && (
+			{itemPicture(id) && (
 				<img
-					src={`/assets/models/weapons/${id}.webp`}
+					src={itemPicture(id) ?? ''}
 					alt=""
 					width={480}
 					height={270}
@@ -256,22 +257,35 @@ function ItemDetail({
 	)
 }
 
+/** The armory's tabs: what each shows of the loadout and the inventory. */
+export const TABS = {
+	weapons: { slots: ['main', 'pistol'] as ItemSlot[], fields: ['main1', 'main2', 'pistol'] as (keyof Loadout)[] },
+	armour: {
+		slots: ['armour'] as ItemSlot[],
+		fields: ['armourHead', 'armourTorso', 'armourVest', 'armourLegs', 'armourFeet'] as (keyof Loadout)[]
+	},
+	equipment: { slots: ['utility'] as ItemSlot[], fields: ['utility1', 'utility2'] as (keyof Loadout)[] }
+} as const
+export type Tab = keyof typeof TABS
+
 export function ArmoryScreen() {
 	const progress = useQuery(progressQuery)
 	const ledger = useQuery({ ...ledgerQuery, enabled: progress.isSuccess })
 	const queryClient = useQueryClient()
+	const [tab, setTab] = useState<Tab>('weapons')
 	const [selected, setSelected] = useState<string | null>(null)
 	const [problem, setProblem] = useState<Refusal | null>(null)
 	const view = progress.data
 	if (!view) return <GameShell>{null}</GameShell>
 
-	const groups: ItemSlot[] = ['main', 'pistol', 'armour', 'utility']
+	const shown = TABS[tab]
 	const equipped = new Set(Object.values(view.loadout).filter(Boolean))
-	// something is always shown in detail: the pick, else the first main weapon
+	const owned = view.inventory.filter(entry => shown.slots.includes(item(entry.itemId).slot))
+	// something of this tab is always shown in detail: the pick, else what is in its first slot
 	const chosen =
-		selected && view.inventory.some(entry => entry.itemId === selected)
+		selected && owned.some(entry => entry.itemId === selected)
 			? selected
-			: (view.loadout.main1 ?? view.inventory[0]?.itemId ?? null)
+			: (shown.fields.map(field => view.loadout[field]).find(Boolean) ?? owned[0]?.itemId ?? null)
 
 	return (
 		<GameShell>
@@ -281,89 +295,130 @@ export function ArmoryScreen() {
 					{p.problems[problem.error]}
 				</p>
 			)}
-			<div className={cn(panes, 'lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_22rem]')}>
-				<Panel className="lg:max-h-full lg:self-start lg:overflow-y-auto">
-					<PanelHeader>
-						<PanelTitle className="text-xl">{p.loadoutTitle}</PanelTitle>
-					</PanelHeader>
-					<ul className="flex flex-col gap-1.5">
-						{fields.map(({ field }) => {
-							const id = view.loadout[field]
-							return (
-								<li key={field}>
-									<button
-										type="button"
-										disabled={!id}
-										onClick={() => id && setSelected(id)}
-										className="frame cut-sm flex w-full cursor-pointer flex-col p-2 text-left [--frame-fill:var(--color-rot-black)] disabled:cursor-default"
-									>
-										<span className="font-bold text-[0.65rem] text-muted uppercase tracking-[0.2em]">
-											{t.slots[field]}
-										</span>
-										<span className={cn('font-bold', !id && 'text-muted')}>
-											{id ? itemById.get(id)?.name : t.emptySlot}
-										</span>
-									</button>
-								</li>
-							)
-						})}
-					</ul>
-				</Panel>
+			<div
+				className={cn(
+					panes,
+					'lg:grid-cols-[minmax(17rem,24rem)_minmax(0,1fr)] xl:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)_minmax(19rem,22rem)]'
+				)}
+			>
+				{/* the soldier as equipped, and the class they go out as */}
+				<CharacterStage className="max-lg:min-h-[32rem]" />
 
 				<div className={pane}>
+					<div className="flex shrink-0 gap-1" role="tablist" aria-label={t.tabsLabel}>
+						{(Object.keys(TABS) as Tab[]).map(key => (
+							<button
+								key={key}
+								type="button"
+								role="tab"
+								aria-selected={tab === key}
+								onClick={() => {
+									setTab(key)
+									setSelected(null)
+								}}
+								className={cn(
+									'frame cut-sm flex-1 px-3 py-2.5 font-bold text-xs uppercase tracking-[0.2em]',
+									tab === key
+										? 'text-rot-lime [--frame-color:var(--color-rot-lime)]'
+										: 'text-muted [--frame-fill:var(--color-rot-black)] hover:text-bone'
+								)}
+							>
+								{t.tabs[key]}
+							</button>
+						))}
+					</div>
+
+					{/* what is equipped in this tab's slots */}
+					<Panel className="shrink-0">
+						<PanelHeader>
+							<PanelTitle className="text-xl">{p.loadoutTitle}</PanelTitle>
+						</PanelHeader>
+						<ul className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2">
+							{shown.fields.map(field => {
+								const id = view.loadout[field]
+								const picture = id ? itemPicture(id) : null
+								return (
+									<li key={field} className="flex">
+										<button
+											type="button"
+											disabled={!id}
+											onClick={() => id && setSelected(id)}
+											className={cn(
+												'frame cut-sm flex w-full cursor-pointer flex-col gap-1 p-2 text-left disabled:cursor-default',
+												id && chosen === id
+													? '[--frame-color:var(--color-rot-lime)]'
+													: '[--frame-fill:var(--color-rot-black)]'
+											)}
+										>
+											<span className="font-bold text-[0.65rem] text-muted uppercase tracking-[0.2em]">
+												{t.slots[field]}
+											</span>
+											{picture && (
+												<img
+													src={picture}
+													alt=""
+													width={480}
+													height={270}
+													className="aspect-[16/9] w-full object-contain"
+												/>
+											)}
+											<span className={cn('font-bold', !id && 'text-muted')}>
+												{id ? itemById.get(id)?.name : t.emptySlot}
+											</span>
+										</button>
+									</li>
+								)
+							})}
+						</ul>
+					</Panel>
+
+					{/* everything owned that fits this tab */}
 					<Panel>
 						<PanelHeader>
-							<PanelTitle className="text-xl">{t.inventory}</PanelTitle>
+							<PanelTitle className="text-xl">{t.owned}</PanelTitle>
 						</PanelHeader>
-						{groups.map(group => {
-							const owned = view.inventory.filter(entry => item(entry.itemId).slot === group)
-							if (owned.length === 0) return null
-							return (
-								<div key={group} className="flex flex-col gap-2">
-									<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">
-										{en.app.shop.categories[group]}
-									</span>
-									<ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
-										{owned.map(entry => (
-											<li key={entry.itemId} className="flex">
-												<button
-													type="button"
-													data-testid={`item-${entry.itemId}`}
-													onClick={() => setSelected(entry.itemId)}
-													className={cn(
-														'frame cut flex h-full w-full cursor-pointer flex-col gap-1 p-3 text-left',
-														chosen === entry.itemId
-															? '[--frame-color:var(--color-rot-lime)]'
-															: '[--frame-fill:var(--color-rot-black)] hover:[--frame-color:var(--color-bone)]'
-													)}
-												>
-													{(item(entry.itemId).slot === 'main' || item(entry.itemId).slot === 'pistol') && (
-														<img
-															src={`/assets/models/weapons/${entry.itemId}.webp`}
-															alt=""
-															width={480}
-															height={270}
-															loading="lazy"
-															className="aspect-[16/9] w-full object-contain"
-														/>
-													)}
-													<span className="font-bold">{item(entry.itemId).name}</span>
-													<span className="text-muted text-xs">{kindLabel(entry.itemId)}</span>
-													<span className="mt-auto flex flex-wrap gap-1 pt-1">
-														<Badge tone={entry.level > 0 ? 'lime' : 'muted'}>
-															{format(t.level, { level: String(entry.level), max: String(MAX) })}
-														</Badge>
-														{equipped.has(entry.itemId) && <Badge tone="bone">{t.equipped}</Badge>}
-													</span>
-												</button>
-											</li>
-										))}
-									</ul>
-								</div>
-							)
-						})}
+						<ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
+							{owned.map(entry => {
+								const picture = itemPicture(entry.itemId)
+								return (
+									<li key={entry.itemId} className="flex">
+										<button
+											type="button"
+											data-testid={`item-${entry.itemId}`}
+											onClick={() => setSelected(entry.itemId)}
+											className={cn(
+												'frame cut flex h-full w-full cursor-pointer flex-col gap-1 p-3 text-left',
+												chosen === entry.itemId
+													? '[--frame-color:var(--color-rot-lime)]'
+													: '[--frame-fill:var(--color-rot-black)] hover:[--frame-color:var(--color-bone)]'
+											)}
+										>
+											{picture && (
+												<img
+													src={picture}
+													alt=""
+													width={480}
+													height={270}
+													loading="lazy"
+													className="aspect-[16/9] w-full object-contain"
+												/>
+											)}
+											<span className="font-bold">{item(entry.itemId).name}</span>
+											<span className="text-muted text-xs">{kindLabel(entry.itemId)}</span>
+											<span className="mt-auto flex flex-wrap gap-1 pt-1">
+												<Badge tone={entry.level > 0 ? 'lime' : 'muted'}>
+													{format(t.level, { level: String(entry.level), max: String(MAX) })}
+												</Badge>
+												{equipped.has(entry.itemId) && <Badge tone="bone">{t.equipped}</Badge>}
+											</span>
+										</button>
+									</li>
+								)
+							})}
+						</ul>
 					</Panel>
-					{view.duplicates.length > 0 && (
+
+					{tab === 'equipment' && view.duplicates.length > 0 && (
 						<Panel>
 							<PanelHeader>
 								<PanelTitle className="text-xl">{t.duplicates}</PanelTitle>

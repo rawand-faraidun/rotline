@@ -47,6 +47,37 @@
 				scene.remove(model)
 				return data
 			}
+			// an armour piece: the soldier with every other piece hidden, turned a little toward the light
+			let soldier = null
+			window.renderPiece = async (url, piece, tint) => {
+				if (!soldier) soldier = (await loader.loadAsync(url)).scene
+				const model = soldier
+				model.rotation.set(0, -0.45, 0)
+				model.scale.setScalar(1)
+				model.position.set(0, 0, 0)
+				model.updateMatrixWorld(true)
+				const shown = new Set()
+				model.getObjectByName(piece)?.traverse(object => shown.add(object))
+				const box = new THREE.Box3()
+				model.traverse(object => {
+					if (!object.isMesh) return
+					object.visible = shown.has(object)
+					if (!object.visible) return
+					if (!object.userData.paint) object.userData.paint = object.material
+					object.material = object.userData.paint.clone()
+					if (tint) object.material.color.setHex(tint)
+					box.expandByObject(object, true)
+				})
+				const size = box.getSize(new THREE.Vector3())
+				const fit = 1.3 / Math.max(size.x, size.y, size.z, 0.01)
+				model.scale.setScalar(fit)
+				model.position.copy(box.getCenter(new THREE.Vector3()).multiplyScalar(-fit))
+				scene.add(model)
+				renderer.render(scene, camera)
+				const data = canvas.toDataURL('image/png')
+				scene.remove(model)
+				return data
+			}
 			window.ready = true
 		</script>
 	</body>

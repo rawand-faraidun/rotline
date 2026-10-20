@@ -14,10 +14,10 @@ const CLASSES = ['assault', 'medic', 'heavy'] as const satisfies readonly ClassN
 export const glass = '[--frame-fill:rgb(13_16_14/0.74)] backdrop-blur-sm'
 
 /**
- * The three classes under the soldier in the lobby, with their levels and progress; picking one
+ * The three classes, with their levels and progress (in the armory, over the soldier); picking one
  * makes it the class for the next mission (the soldier changes with it).
  */
-export function ClassPanel() {
+export function ClassPanel({ compact = false }: { compact?: boolean }) {
 	const progress = useQuery(progressQuery)
 	const queryClient = useQueryClient()
 	const [problem, setProblem] = useState<ProgressProblem | null>(null)
@@ -49,11 +49,19 @@ export function ClassPanel() {
 									active ? '[--frame-color:var(--color-rot-lime)]' : 'hover:[--frame-color:var(--color-bone)]'
 								)}
 							>
-								<span className="flex items-baseline justify-between gap-2">
-									<span className="truncate font-bold uppercase tracking-[0.12em]">{t.classes[cls].name}</span>
+								<span className={cn('flex justify-between gap-x-2', compact ? 'flex-col' : 'items-baseline')}>
 									<span
 										className={cn(
-											'shrink-0 whitespace-nowrap font-display text-lg',
+											'truncate font-bold uppercase',
+											compact ? 'text-sm tracking-[0.08em]' : 'tracking-[0.12em]'
+										)}
+									>
+										{t.classes[cls].name}
+									</span>
+									<span
+										className={cn(
+											'shrink-0 whitespace-nowrap font-display',
+											compact ? 'text-sm' : 'text-lg',
 											active ? 'text-rot-lime' : 'text-bone'
 										)}
 									>
@@ -63,7 +71,9 @@ export function ClassPanel() {
 								<span className="h-1 w-full bg-rot-black" aria-hidden="true">
 									<span className="block h-full bg-rot-lime" style={{ width: `${Math.round(share * 100)}%` }} />
 								</span>
-								<span className="truncate text-muted text-xs">{active ? t.activeClass : t.classes[cls].role}</span>
+								{!compact && (
+									<span className="truncate text-muted text-xs">{active ? t.activeClass : t.classes[cls].role}</span>
+								)}
 							</button>
 						</li>
 					)
@@ -95,9 +105,18 @@ export function LoadoutSummary() {
 		view.loadout.utility1,
 		view.loadout.utility2
 	].filter((id): id is string => id !== null)
+	const cls = view.classes[view.activeClass]
 	return (
 		<div className="flex flex-wrap items-center justify-center gap-1.5">
 			<h2 className="sr-only">{t.loadoutTitle}</h2>
+			<span
+				className={cn(
+					'frame cut-sm px-2 py-1 font-bold text-rot-lime text-xs uppercase tracking-wider [--frame-color:var(--color-rot-lime)]',
+					glass
+				)}
+			>
+				{t.classes[view.activeClass].name} · {format(t.level, { level: String(cls.level) })}
+			</span>
 			{slots.map(id => (
 				<span key={id} className={cn('frame cut-sm px-2 py-1 font-bold text-xs uppercase tracking-wider', glass)}>
 					{item(id).name}

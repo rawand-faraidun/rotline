@@ -11,7 +11,7 @@ import { type PartyMember, type PartyProblem, type PartyView, partyActions, part
 import { progressQuery } from '../../lib/progress.ts'
 import { meQuery } from '../app.tsx'
 import { AdminPanel } from './admin-panel.tsx'
-import { ClassPanel, glass, LoadoutSummary } from './class-panel.tsx'
+import { glass, LoadoutSummary } from './class-panel.tsx'
 import { FriendsPanel } from './friends-panel.tsx'
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
@@ -305,9 +305,8 @@ export function LobbyScreen() {
 					{player.isAdmin && <AdminPanel />}
 				</div>
 
-				{/* middle: the squad stands in the scene; the class and kit sit at their feet */}
+				{/* middle: the squad stands in the scene; the class and kit sit at their feet (changed in the armory) */}
 				<div className="flex min-h-0 flex-col justify-end gap-3 max-lg:min-h-[60dvh]">
-					<ClassPanel />
 					<LoadoutSummary />
 				</div>
 
