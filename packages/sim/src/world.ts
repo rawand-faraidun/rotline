@@ -206,9 +206,9 @@ const MAX_RAY_HITS = 12
  * What a player sees around them (metres; the camera looks north from the south, so it sees
  * farther north): zombies come in outside it when a spawn point allows
  */
-const VIEW_HALF_WIDTH = 18
-const VIEW_UP = 13
-const VIEW_DOWN = 9
+const VIEW_HALF_WIDTH = 16
+const VIEW_UP = 11
+const VIEW_DOWN = 8
 /** never closer than this to a player, even when every spawn point is on screen */
 const SPAWN_CLEARANCE = 8
 

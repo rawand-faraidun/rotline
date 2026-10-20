@@ -203,6 +203,36 @@ function BossBar({ hud }: { hud: HudState }) {
 	)
 }
 
+/**
+ * Where the objective is: a pulsing marker over it with the distance, or, when it is off screen, an
+ * arrow at the edge pointing the way.
+ */
+function Waypoint({ hud }: { hud: HudState }) {
+	const point = hud.waypoint
+	if (!point) return null
+	const metres = `${Math.round(point.distance)} m`
+	return (
+		<div
+			className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
+			style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
+			aria-hidden="true"
+		>
+			{point.onScreen ? (
+				<span className="block size-4 rotate-45 animate-pulse border-2 border-rot-lime bg-rot-lime/25 shadow-[0_0_12px_var(--color-rot-lime)]" />
+			) : (
+				<svg
+					viewBox="0 0 24 24"
+					className="size-9 text-rot-lime drop-shadow-[0_0_6px_var(--color-rot-lime)]"
+					style={{ transform: `rotate(${point.angle}rad)` }}
+				>
+					<path d="M4 4 L22 12 L4 20 L9 12 Z" fill="currentColor" />
+				</svg>
+			)}
+			<span className="bg-rot-black/70 px-1.5 font-bold text-rot-lime text-xs tabular-nums">{metres}</span>
+		</div>
+	)
+}
+
 /** The current objective, top right: what to do and how far along. */
 function ObjectiveTracker({ hud }: { hud: HudState }) {
 	const mission = hud.mission
@@ -622,6 +652,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					{range && handle && <RangePanel handle={handle} hud={hud} />}
 					{!range && <Multiplier hud={hud} round={inMission ? null : hud.wave} />}
 					<ObjectiveTracker hud={hud} />
+					<Waypoint hud={hud} />
 					<BossBar hud={hud} />
 					<Radio hud={hud} />
 					<Toasts hud={hud} />

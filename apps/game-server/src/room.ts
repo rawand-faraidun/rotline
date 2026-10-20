@@ -155,6 +155,8 @@ export class Room {
 	emptySince = 0
 	/** wall-clock time the mission was completed or the run ended (0 before); the room closes RESULTS_SECONDS later */
 	completedAt = 0
+	/** firing range: which lane the next spawned zombies start in */
+	private rangeSpawns = 0
 	/** a room of one can be paused from the pause menu */
 	private pausedAt = 0
 	/** something paid the players who played this tick; their "played" marks are cleared after it */
@@ -232,12 +234,13 @@ export class Room {
 		if (action !== RangeAction.spawn || !def || def.dummy) return
 		const dummies = rules.dummies.length
 		const room = Math.max(0, rules.maxZombies + dummies - this.world.aliveCount)
-		// the range asked for them: they may come in on screen, at the lanes' far ends
+		// the range asked for them: they come in at the lanes' far ends, in view, spread over the lanes
 		const spawns = this.world.map.zombieSpawns
 		for (let n = 0; n < Math.min(count, rules.spawnPerCommand, room); n++) {
-			const at = this.world.pickSpawnPoint() ?? spawns[n % spawns.length]
-			this.world.spawnZombie(zombieType, at)
+			const spot = spawns[(this.rangeSpawns + n) % spawns.length]
+			if (spot) this.world.spawnZombie(zombieType, { x: spot.x + (n % 3) * 0.6 - 0.6, y: spot.y })
 		}
+		this.rangeSpawns += count
 	}
 
 	get playerCount(): number {

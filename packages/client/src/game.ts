@@ -51,8 +51,9 @@ import { MissionMarkers } from './render/mission.ts'
 import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
 import { PlayerFigure } from './render/players.ts'
 import { PropRenderer } from './render/props.ts'
-import { Stage } from './render/scene.ts'
+import { Stage, spawnHoles } from './render/scene.ts'
 import { ZombieRenderer } from './render/zombies.ts'
+import { objectiveTarget, screenWaypoint } from './waypoint.ts'
 
 const TICK_MS = 1000 / TICK_RATE
 
@@ -101,6 +102,8 @@ export function startGame(options: GameOptions): GameHandle {
 	// the map's props, kept in step with the server's (their blocking cells match its grid)
 	const props = createProps(map, grid)
 	const stage = new Stage(options.canvas, map, options.assets)
+	// the holes the dead climb out of
+	stage.scene.add(spawnHoles(map.zombieSpawns))
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene)
 	const propRenderer = new PropRenderer(stage.scene, props, options.assets, stage.quality === 'high')
@@ -181,6 +184,7 @@ export function startGame(options: GameOptions): GameHandle {
 	const lastFired = new Map<number, { weapon: number; at: number }>()
 	const names = new Map<number, { name: string; connected: boolean }>()
 	let mission: MissionDef | null = null
+	const waypointVector = new THREE.Vector3()
 	let openedCaches = 0
 	let rewardScale = 1
 	let menuOpen = false
@@ -234,6 +238,7 @@ export function startGame(options: GameOptions): GameHandle {
 	void ZombieRenderer.load(`${options.assets}/models/characters/zombie.glb`).then(renderer => {
 		if (stopped) return
 		zombies = renderer
+		renderer.setSpawnHoles(map.zombieSpawns)
 		stage.scene.add(renderer.mesh)
 		modelReady = true
 		checkReady()
@@ -477,9 +482,10 @@ export function startGame(options: GameOptions): GameHandle {
 						}
 						break
 					case 'kill':
-						effects.splat(event.x, event.y, 0.8 + Math.random() * 0.6)
 						{
 							const scale = zombieDefs[event.zombieType]?.scale ?? 1
+							// the body comes apart: lumps thrown out, blood spread around
+							effects.burstBody(event.x, event.y, Math.round(5 + Math.random() * 4 * scale), scale)
 							if (Math.random() < 0.6)
 								audio.sound('zombie-death', { x: event.x, y: event.y, rate: 0.95 / scale, volume: 0.65 })
 							if (Math.random() < 0.5) audio.sound('bodyfall', { x: event.x, y: event.y, rate: 1 / scale, volume: 0.5 })
@@ -913,6 +919,14 @@ export function startGame(options: GameOptions): GameHandle {
 			const watched = own.alive ? null : interpolator.others.find(other => other.alive)
 			if (watched) stage.follow(watched.x, watched.y, watched.x, watched.y, dt)
 			else stage.follow(drawn.x, drawn.y, aimX, aimY, dt)
+			// where the objective is: a marker on screen, or an arrow at the edge pointing to it
+			const current = mission && missionHud && !missionHud.complete ? mission.objectives[missionHud.objective] : null
+			const target = current ? objectiveTarget(current, props, drawn) : null
+			if (target) {
+				waypointVector.set(target.x, 0.6, target.y).project(stage.camera)
+				const placed = screenWaypoint((waypointVector.x + 1) / 2, (1 - waypointVector.y) / 2, waypointVector.z > 1)
+				hud.set({ waypoint: { ...placed, distance: Math.hypot(target.x - drawn.x, target.y - drawn.y) } }, wallNow)
+			} else if (hud.getSnapshot().waypoint) hud.set({ waypoint: null }, wallNow)
 		}
 		if (interpolator.sample(renderTick)) {
 			zombies?.update(interpolator.view, now / 1000)

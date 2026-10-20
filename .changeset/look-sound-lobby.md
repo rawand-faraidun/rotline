@@ -41,3 +41,7 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - The armory is set out like a loadout screen: your soldier stands full size on the left, wearing exactly what you equip (drag to turn them), with the class chosen above them; Weapons, Armour and Equipment have their own tabs, each with what is equipped and what you own.
 - The shop has the same tabs, and every armour piece has a picture in the shop and the armory.
 - Classes are chosen in the armory; the lobby shows your class with your kit.
+- The camera sits closer, so soldiers and zombies read at a glance.
+- A marker shows where the current objective is, and an arrow at the screen's edge points the way when it is out of view, with the distance.
+- Zombies climb out of holes in the ground instead of appearing from nowhere, and burst apart when killed: lumps thrown across the ground and blood that stays.
+- The firing range's targets and zombies come in where you can see them.

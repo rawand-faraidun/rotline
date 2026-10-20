@@ -3,11 +3,72 @@ import * as THREE from 'three'
 import { PostProcessing } from './post.ts'
 import { pixelRatioFor, probeQuality, type Quality } from './quality.ts'
 
-/** Camera height and tilt: high and almost straight down, pulled back enough to see the horde coming. */
-const CAMERA_HEIGHT = 27
-const CAMERA_BACK = 7.5
+/**
+ * Camera height and tilt: close over the soldier and almost straight down, so soldiers and zombies
+ * read at a glance; leaning toward the aim shows the horde coming from that way.
+ */
+const CAMERA_HEIGHT = 19
+const CAMERA_BACK = 6
 /** How far the camera leans toward where the player aims, in metres. */
-const AIM_LEAN = 3.5
+const AIM_LEAN = 3
+
+/**
+ * The holes zombies climb out of, one at each spawn point: a dark, ragged pit in the ground with a
+ * lip of broken earth around it.
+ */
+export function spawnHoles(points: readonly { x: number; y: number }[]): THREE.Object3D {
+	const size = 128
+	const canvas = document.createElement('canvas')
+	canvas.width = canvas.height = size
+	const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+	let seed = 17
+	const random = () => {
+		seed = (seed * 1664525 + 1013904223) >>> 0
+		return seed / 4294967296
+	}
+	// the lip: broken ground, then the dark pit inside, both with ragged edges
+	const ragged = (radius: number, colour: string) => {
+		ctx.beginPath()
+		for (let i = 0; i <= 28; i++) {
+			const angle = (i / 28) * Math.PI * 2
+			const r = radius * (0.82 + random() * 0.3)
+			ctx.lineTo(size / 2 + Math.cos(angle) * r, size / 2 + Math.sin(angle) * r)
+		}
+		ctx.fillStyle = colour
+		ctx.fill()
+	}
+	ragged(58, 'rgba(46, 38, 30, 0.85)')
+	ragged(40, 'rgba(14, 11, 9, 1)')
+	const glow = ctx.createRadialGradient(size / 2, size / 2, 2, size / 2, size / 2, 34)
+	glow.addColorStop(0, 'rgba(0,0,0,1)')
+	glow.addColorStop(1, 'rgba(0,0,0,0)')
+	ctx.fillStyle = glow
+	ctx.fillRect(0, 0, size, size)
+	const texture = new THREE.CanvasTexture(canvas)
+	texture.colorSpace = THREE.SRGBColorSpace
+	const holes = new THREE.InstancedMesh(
+		new THREE.PlaneGeometry(2.2, 2.2).rotateX(-Math.PI / 2),
+		new THREE.MeshStandardMaterial({
+			map: texture,
+			transparent: true,
+			depthWrite: false,
+			roughness: 1,
+			polygonOffset: true,
+			polygonOffsetFactor: -1
+		}),
+		Math.max(1, points.length)
+	)
+	const matrix = new THREE.Matrix4()
+	const turn = new THREE.Quaternion()
+	for (const [index, point] of points.entries()) {
+		turn.setFromAxisAngle(new THREE.Vector3(0, 1, 0), random() * Math.PI * 2)
+		matrix.compose(new THREE.Vector3(point.x, 0.015, point.y), turn, new THREE.Vector3(1, 1, 1))
+		holes.setMatrixAt(index, matrix)
+	}
+	holes.count = points.length
+	holes.receiveShadow = true
+	return holes
+}
 
 function groundTexture(): THREE.CanvasTexture {
 	const size = 256

@@ -6,6 +6,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import type { ZombieView } from '../interpolate.ts'
 
 const BAKE_FPS = 30
+/** how long a zombie takes to climb out of a spawn hole (seconds) */
+const EMERGE = 0.9
 
 type Clip = { start: number; frames: number; fps: number }
 
@@ -207,8 +209,27 @@ export class ZombieRenderer {
 		return new ZombieRenderer(bake(gltf.scene, gltf.animations))
 	}
 
+	/**
+	 * The holes zombies come out of (the map's spawn points): a zombie that appears next to one
+	 * climbs out of the ground instead of popping into being.
+	 */
+	setSpawnHoles(points: readonly { x: number; y: number }[]): void {
+		this.holes = points
+	}
+	private holes: readonly { x: number; y: number }[] = []
+	/** per zombie slot: seen last frame, and when it climbed out (seconds; 0 = it walked in) */
+	private readonly seen = new Uint8Array(MAX_ZOMBIES)
+	private readonly seenNow = new Uint8Array(MAX_ZOMBIES)
+	private readonly bornAt = new Float64Array(MAX_ZOMBIES)
+
+	private nearHole(x: number, y: number): boolean {
+		for (const hole of this.holes) if (Math.abs(hole.x - x) < 1.6 && Math.abs(hole.y - y) < 1.6) return true
+		return false
+	}
+
 	update(view: ZombieView, timeSeconds: number): void {
 		this.uniforms.batTime.value = timeSeconds
+		this.seenNow.fill(0)
 		for (let n = 0; n < view.count; n++) {
 			const type = view.type[n] as number
 			const def = zombieDefs[type]
@@ -226,8 +247,15 @@ export class ZombieRenderer {
 			// sim (x, y) maps to world (x, z); the model faces +z
 			this.quaternion.setFromAxisAngle(this.up, Math.PI / 2 - (view.facing[n] as number))
 			const size = def?.scale ?? 1
+			// one that just appeared at a hole climbs out of it over EMERGE seconds
+			const slot = view.index[n] as number
+			this.seenNow[slot] = 1
+			if (this.seen[slot] === 0)
+				this.bornAt[slot] = this.nearHole(view.x[n] as number, view.y[n] as number) ? timeSeconds : 0
+			const rising = (timeSeconds - (this.bornAt[slot] as number)) / EMERGE
+			const below = rising < 1 && this.bornAt[slot] !== 0 ? (1 - rising) ** 2 * 1.7 * size : 0
 			this.matrix.compose(
-				this.position.set(view.x[n] as number, 0, view.y[n] as number),
+				this.position.set(view.x[n] as number, -below, view.y[n] as number),
 				this.quaternion,
 				this.scale.set(size, size, size)
 			)
@@ -242,6 +270,7 @@ export class ZombieRenderer {
 			else if (status & ZombieStatus.slowed) this.color.lerp(SLOWED, 0.35)
 			this.mesh.setColorAt(n, this.color)
 		}
+		this.seen.set(this.seenNow)
 		this.mesh.count = view.count
 		this.mesh.instanceMatrix.needsUpdate = true
 		if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true

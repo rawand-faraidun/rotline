@@ -41,6 +41,11 @@ export type HudState = {
 	boss: { name: string; health: number } | null
 	/** the mission being played, null outside missions */
 	mission: MissionHud | null
+	/**
+	 * where the current objective is (0..1 of the screen): on screen, or pinned to the edge with the
+	 * angle toward it; metres away. Null when the objective is not a place.
+	 */
+	waypoint: { x: number; y: number; onScreen: boolean; angle: number; distance: number } | null
 	/** this player's kill chain, its multiplier, the chain timer left (0..1) and mission score */
 	chain: number
 	multiplier: number
@@ -136,6 +141,7 @@ export const initialHud: HudState = {
 	radio: null,
 	boss: null,
 	mission: null,
+	waypoint: null,
 	chain: 0,
 	multiplier: 1,
 	chainLeft: 0,

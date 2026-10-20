@@ -1,7 +1,11 @@
 {
 	"id": "range",
 	"name": "Firing Range",
-	"look": { "ground": "concrete", "walls": "wall-concrete", "light": "overcast" },
+	"look": {
+		"ground": "concrete",
+		"walls": "wall-concrete",
+		"light": "overcast"
+	},
 	"width": 40,
 	"height": 30,
 	"walls": [
@@ -74,30 +78,30 @@
 	],
 	"zombieSpawns": [
 		{
-			"x": 34,
+			"x": 27,
 			"y": 15
 		},
 		{
-			"x": 34,
+			"x": 27,
 			"y": 10
 		},
 		{
-			"x": 34,
+			"x": 27,
 			"y": 20
 		}
 	],
 	"range": {
 		"dummies": [
 			{
-				"x": 26,
+				"x": 16,
 				"y": 9
 			},
 			{
-				"x": 26,
+				"x": 16,
 				"y": 15
 			},
 			{
-				"x": 26,
+				"x": 16,
 				"y": 21
 			}
 		],

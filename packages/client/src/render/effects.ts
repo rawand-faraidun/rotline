@@ -22,7 +22,7 @@ export const SHOT_LOOKS: Record<string, ShotLook> = {
 	chemical: { color: 0x9fe04a, width: 1, life: 0.06, flash: 0.6 }
 }
 const DEFAULT_LOOK = SHOT_LOOKS.rifle as ShotLook
-const DECALS = 256
+const DECALS = 800
 const BURSTS = 8
 const POOLS = 16
 const FLAMES = 96
@@ -45,6 +45,9 @@ function blob(r: number, g: number, b: number, soft: number): THREE.CanvasTextur
 /** Pooled visual effects: nothing here allocates per shot. */
 /** Spent cases in the world at once, and how long they lie there. */
 const CASINGS = 96
+/** chunks a zombie bursts into, and how long they lie on the ground (seconds) */
+const GIBS = 320
+const GIB_SECONDS = 30
 const CASING_SECONDS = 8
 /** Sparks where shots hit walls. */
 const SPARKS = 24
@@ -55,6 +58,12 @@ export class Effects {
 	private readonly casingState = new Float32Array(CASINGS * 6)
 	private readonly casingBorn = new Float32Array(CASINGS).fill(-1)
 	private casingHead = 0
+	private readonly gibs: THREE.InstancedMesh
+	/** x, y, z, vx, vy, vz, spin, size per gib */
+	private readonly gibState = new Float32Array(GIBS * 8)
+	private readonly gibBorn = new Float32Array(GIBS).fill(-1)
+	private gibHead = 0
+	private lastGibUpdate = 0
 	private lastCasingUpdate = 0
 	private readonly sparks: THREE.Sprite[] = []
 	private readonly sparkBorn = new Float32Array(SPARKS).fill(-1)
@@ -173,6 +182,25 @@ export class Effects {
 		for (let i = 0; i < CASINGS; i++) this.casings.setMatrixAt(i, this.hidden)
 		this.casings.frustumCulled = false
 		scene.add(this.casings)
+
+		// lumps of flesh and bone: irregular, wet, from dark red to pale
+		this.gibs = new THREE.InstancedMesh(
+			new THREE.IcosahedronGeometry(0.085, 0),
+			new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.38, metalness: 0 }),
+			GIBS
+		)
+		const gibColour = new THREE.Color()
+		for (let i = 0; i < GIBS; i++) {
+			this.gibs.setMatrixAt(i, this.hidden)
+			const pale = Math.random() < 0.18
+			this.gibs.setColorAt(
+				i,
+				pale ? gibColour.setRGB(0.55, 0.45, 0.38) : gibColour.setRGB(0.32 + Math.random() * 0.2, 0.03, 0.025)
+			)
+		}
+		this.gibs.frustumCulled = false
+		this.gibs.castShadow = true
+		if (gore) scene.add(this.gibs)
 		const sparkMaterial = new THREE.SpriteMaterial({
 			map: blob(255, 230, 160, 0.2),
 			blending: THREE.AdditiveBlending,
@@ -359,6 +387,86 @@ export class Effects {
 		this.pools.instanceMatrix.needsUpdate = true
 	}
 
+	/** A body bursting apart: `count` lumps thrown out and up from (x, y), and the blood around it. */
+	burstBody(x: number, y: number, count: number, size = 1): void {
+		if (!this.gore) return
+		for (let n = 0; n < count; n++) {
+			const i = this.gibHead
+			this.gibHead = (i + 1) % GIBS
+			const o = i * 8
+			const angle = Math.random() * Math.PI * 2
+			const speed = (1.5 + Math.random() * 3.5) * size
+			const state = this.gibState
+			state[o] = x
+			state[o + 1] = 0.6 * size
+			state[o + 2] = y
+			state[o + 3] = Math.cos(angle) * speed
+			state[o + 4] = 1.5 + Math.random() * 3.5
+			state[o + 5] = Math.sin(angle) * speed
+			state[o + 6] = (Math.random() - 0.5) * 20
+			state[o + 7] = (0.6 + Math.random() * 1.1) * size
+			this.gibBorn[i] = this.lastGibUpdate
+		}
+		this.splat(x, y, (1.1 + Math.random() * 0.7) * size)
+		for (let n = 0; n < 3; n++) {
+			const angle = Math.random() * Math.PI * 2
+			const reach = (0.8 + Math.random() * 1.4) * size
+			this.splat(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach, (0.25 + Math.random() * 0.35) * size)
+		}
+	}
+
+	private updateGibs(now: number): void {
+		const dt = Math.min(0.05, now - this.lastGibUpdate)
+		this.lastGibUpdate = now
+		if (!this.gore) return
+		const state = this.gibState
+		let changed = false
+		for (let i = 0; i < GIBS; i++) {
+			const born = this.gibBorn[i] as number
+			if (born < 0) continue
+			changed = true
+			const age = now - born
+			if (age > GIB_SECONDS) {
+				this.gibs.setMatrixAt(i, this.hidden)
+				this.gibBorn[i] = -1
+				continue
+			}
+			const o = i * 8
+			const size = state[o + 7] as number
+			const floor = 0.05 * size
+			if ((state[o + 1] as number) > floor || (state[o + 4] as number) > 0) {
+				// thrown, falling, bouncing once with a wet skid, then lying where it landed
+				state[o + 4] = (state[o + 4] as number) - 9.8 * dt
+				state[o] = (state[o] as number) + (state[o + 3] as number) * dt
+				state[o + 1] = (state[o + 1] as number) + (state[o + 4] as number) * dt
+				state[o + 2] = (state[o + 2] as number) + (state[o + 5] as number) * dt
+				if ((state[o + 1] as number) <= floor) {
+					state[o + 1] = floor
+					const bounce = -(state[o + 4] as number) * 0.25
+					state[o + 4] = bounce > 0.5 ? bounce : 0
+					state[o + 3] = (state[o + 3] as number) * 0.3
+					state[o + 5] = (state[o + 5] as number) * 0.3
+					state[o + 6] = (state[o + 6] as number) * 0.3
+				}
+			}
+			// the last few seconds they sink away
+			const fade = Math.min(1, (GIB_SECONDS - age) / 3)
+			this.quaternion.setFromAxisAngle(
+				this.spinAxis.set(1, 0.6, 0.3).normalize(),
+				born * 13 + age * (state[o + 6] as number)
+			)
+			this.matrix.compose(
+				this.position.set(state[o] as number, (state[o + 1] as number) - (1 - fade) * 0.1, state[o + 2] as number),
+				this.quaternion,
+				this.scale.set(size, size * 0.7, size * 1.2)
+			)
+			this.gibs.setMatrixAt(i, this.matrix)
+		}
+		if (changed) this.gibs.instanceMatrix.needsUpdate = true
+	}
+
+	private readonly spinAxis = new THREE.Vector3()
+
 	private updateCasings(now: number): void {
 		const dt = Math.min(0.05, now - this.lastCasingUpdate)
 		this.lastCasingUpdate = now
@@ -401,6 +509,7 @@ export class Effects {
 
 	update(now: number): void {
 		this.updateCasings(now)
+		this.updateGibs(now)
 		for (let i = 0; i < SPARKS; i++) {
 			const born = this.sparkBorn[i] as number
 			if (born >= 0 && now - born > SPARK_SECONDS) {
