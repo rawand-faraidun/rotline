@@ -275,7 +275,8 @@ export function startGame(options: GameOptions): GameHandle {
 					type: mission.objectives[0]?.type ?? 'kill',
 					progress: 0,
 					goal: 0,
-					complete: false
+					complete: false,
+					timeLeft: mission.timeLimitSeconds ?? null
 				}
 				hud.set({ mission: missionHud }, performance.now(), true)
 			}
@@ -340,7 +341,8 @@ export function startGame(options: GameOptions): GameHandle {
 								? Math.floor(progress.progress / TICK_RATE)
 								: progress.progress,
 					goal: timed ? Math.round(progress.goal / TICK_RATE) : progress.goal,
-					complete: progress.status === 2
+					complete: progress.status === 2,
+					timeLeft: progress.timeLeft
 				}
 				// the radio speaks when an objective starts (and again when it is restarted)
 				if (progress.status === 1 && progress.objective !== radioFor) {
@@ -360,7 +362,8 @@ export function startGame(options: GameOptions): GameHandle {
 					next.objective !== missionHud.objective ||
 					next.progress !== missionHud.progress ||
 					next.goal !== missionHud.goal ||
-					next.complete !== missionHud.complete
+					next.complete !== missionHud.complete ||
+					next.timeLeft !== missionHud.timeLeft
 				)
 					missionHud = next
 				markers?.update(progress.objective, progress.status === 1, progress.caches, receivedAt / 1000)
@@ -556,6 +559,10 @@ export function startGame(options: GameOptions): GameHandle {
 					case 'failed':
 						hud.set({ banner: { text: 'failed', wave: 0, at: performance.now() } }, performance.now(), true)
 						audio.sound('alarm', { bus: 'interface' })
+						break
+					case 'mission-failed':
+						audio.sound('stinger-high', { bus: 'interface' })
+						hud.set({ banner: { text: 'timeout', wave: 0, at: performance.now() } }, performance.now(), true)
 						break
 					case 'run-over':
 						hud.set({ banner: { text: 'run-over', wave: event.wave, at: performance.now() } }, performance.now(), true)

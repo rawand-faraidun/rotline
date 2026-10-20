@@ -498,6 +498,7 @@ export class Room {
 			} else if (event.type === 'threshold') this.paySalvage(event.player, economy.score.thresholdSalvage)
 			else if (event.type === 'mission-complete') this.complete(now)
 			else if (event.type === 'run-over') this.runOver(now, event.wave)
+			else if (event.type === 'mission-failed') this.failed(now)
 		}
 		// several payments in one tick (an optional and a step objective) all reach the same players
 		if (this.paidThisTick) {
@@ -690,6 +691,35 @@ export class Room {
 				salvage: member.earnings.reportedSalvage,
 				downs: 0,
 				items: [],
+				mastery: 0
+			})
+			member.resultsSent = false
+		}
+	}
+
+	/**
+	 * A timed mission's clock ran out: what everyone earned on the way is reported (no completion
+	 * reward, no result, no final item), and each player's results screen says the mission was lost.
+	 */
+	private failed(now: number): void {
+		const mission = this.world.mission
+		if (!mission || this.completedAt > 0) return
+		this.completedAt = now
+		this.settlePending()
+		const timeMs = ((mission.completedTick - mission.startTick) * DT * 1000) | 0
+		for (const member of this.members.values()) {
+			const state = this.world.players.get(member.slot)
+			this.report(member, true)
+			member.results = writeResults(this.writer, {
+				success: false,
+				rounds: 0,
+				timeMs,
+				score: Math.floor(state?.score ?? 0),
+				kills: member.earnings.totalKills,
+				xp: member.earnings.reportedXp,
+				salvage: member.earnings.reportedSalvage,
+				downs: mission.downs,
+				items: member.reportedItems,
 				mastery: 0
 			})
 			member.resultsSent = false

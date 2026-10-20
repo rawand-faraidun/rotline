@@ -20,7 +20,8 @@ import { ObjectKind, type World } from './world.ts'
 
 export type MissionSetup = { mission: MissionDef; difficulty: DifficultyId }
 
-export const MissionStatus = { none: 0, active: 1, complete: 2 } as const
+/** `failed`: the mission's clock ran out before the last step was done */
+export const MissionStatus = { none: 0, active: 1, complete: 2, failed: 3 } as const
 
 /** Where a mission stands: which objective, how far along, where the last checkpoint is. */
 export type MissionState = {
@@ -212,10 +213,25 @@ export function updateTargets(world: World): void {
 	}
 }
 
+/** Whole seconds left on a timed mission's clock, or null when the mission has no time limit. */
+export function timeLeft(world: World, mission: MissionState): number | null {
+	const limit = mission.def.timeLimitSeconds
+	if (!limit) return null
+	return Math.max(0, Math.ceil(limit - (world.tick - mission.startTick) / TICK_RATE))
+}
+
 /** Spawns, objective progress and checkpoints; called once a tick while a mission runs. */
 export function stepMission(world: World): void {
 	const mission = world.mission
 	if (!mission || mission.status !== MissionStatus.active) return
+	// a timed mission whose clock runs out is lost (what was earned on the way is kept)
+	if (timeLeft(world, mission) === 0) {
+		mission.status = MissionStatus.failed
+		mission.completedTick = world.tick
+		world.events.push({ type: 'mission-failed' })
+		world.finish()
+		return
+	}
 	const objective = currentObjective(mission)
 	if (!objective) return
 

@@ -589,6 +589,8 @@ export const missionSchema = z.object({
 	/** what the radio says when the squad gets out */
 	debrief: z.string().min(1).optional(),
 	parTimeSeconds: z.number().positive(),
+	/** a run against the clock: the mission is lost when this runs out (seconds from the start) */
+	timeLimitSeconds: z.number().int().positive().max(3600).optional(),
 	scoreTarget: z.number().int().positive(),
 	enemyLevel: z.number().int().min(1).max(60),
 	recommendedLevel: z.number().int().min(1).max(50),

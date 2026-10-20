@@ -12,7 +12,8 @@ export {
 	type MissionState,
 	MissionStatus,
 	objectiveGoal,
-	scoreThreshold
+	scoreThreshold,
+	timeLeft
 } from './mission.ts'
 export {
 	activeWeapon,

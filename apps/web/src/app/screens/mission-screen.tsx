@@ -247,6 +247,20 @@ function ObjectiveTracker({ hud }: { hud: HudState }) {
 				<span className="truncate font-display text-xl uppercase">{mission.name}</span>
 				<span className="text-muted text-xs uppercase tracking-wider">{mission.difficulty}</span>
 			</span>
+			{mission.timeLeft !== null && (
+				// a run against the clock: the time left, red in the last minute
+				<span className="flex items-baseline justify-between gap-3">
+					<span className="font-bold text-[10px] text-muted uppercase tracking-[0.25em]">{t.timeLeft}</span>
+					<span
+						className={cn(
+							'font-display text-2xl tabular-nums',
+							mission.timeLeft <= 60 ? 'animate-pulse text-alert' : 'text-bone'
+						)}
+					>
+						{clock(mission.timeLeft)}
+					</span>
+				</span>
+			)}
 			<span className="font-bold text-[10px] text-muted uppercase tracking-[0.25em]">
 				{format(t.objective, { index: String(Math.max(1, mission.step)), count: String(mission.count) })}
 			</span>
@@ -467,9 +481,17 @@ function PauseMenu({
 }
 
 /** The results screen: what the mission paid and found, and the mastery reached; or how long a Survival run lasted. */
-function ResultsPanel({ results, onDone }: { results: NonNullable<HudState['results']>; onDone: () => void }) {
+function ResultsPanel({
+	results,
+	mission,
+	onDone
+}: {
+	results: NonNullable<HudState['results']>
+	mission: boolean
+	onDone: () => void
+}) {
 	const r = t.results
-	const survival = !results.success
+	const survival = !mission
 	const rows: [string, string][] = [
 		...(survival ? [[r.rounds, String(results.rounds)] as [string, string]] : []),
 		[r.time, clock(results.timeMs / 1000)],
@@ -482,7 +504,7 @@ function ResultsPanel({ results, onDone }: { results: NonNullable<HudState['resu
 	return (
 		<div className="absolute inset-0 grid place-items-center bg-rot-black/85 p-4">
 			<Panel className="w-full max-w-lg [--frame-color:var(--color-rot-lime)]">
-				<PanelTitle>{survival ? r.runOver : r.title}</PanelTitle>
+				<PanelTitle>{survival ? r.runOver : results.success ? r.title : r.lost}</PanelTitle>
 				<dl className="grid grid-cols-2 gap-x-6 gap-y-2">
 					{rows.map(([label, value]) => (
 						<div key={label} className="flex items-baseline justify-between gap-3 border-surface-raised border-b pb-1">
@@ -710,7 +732,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						<p
 							className={cn(
 								'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
-								hud.banner.text === 'wipe'
+								hud.banner.text === 'wipe' || hud.banner.text === 'timeout'
 									? 'text-alert'
 									: hud.banner.text === 'wave'
 										? 'text-warning'
@@ -730,9 +752,11 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 											? t.checkpointBanner
 											: hud.banner.text === 'failed'
 												? t.failedBanner
-												: hud.banner.text === 'run-over'
-													? format(t.runOverBanner, { wave: String(hud.banner.wave) })
-													: t.completeBanner}
+												: hud.banner.text === 'timeout'
+													? t.timeoutBanner
+													: hud.banner.text === 'run-over'
+														? format(t.runOverBanner, { wave: String(hud.banner.wave) })
+														: t.completeBanner}
 						</p>
 					)}
 
@@ -817,7 +841,13 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 				/>
 			)}
 
-			{hud?.results && <ResultsPanel results={hud.results} onDone={() => void navigate({ to: '/play/lobby' })} />}
+			{hud?.results && (
+				<ResultsPanel
+					results={hud.results}
+					mission={hud.mission !== null}
+					onDone={() => void navigate({ to: '/play/lobby' })}
+				/>
+			)}
 
 			{ended && (
 				<div className="absolute inset-0 grid place-items-center bg-rot-black/80">

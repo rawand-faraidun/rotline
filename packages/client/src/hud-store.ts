@@ -31,7 +31,7 @@ export type HudState = {
 	}[]
 	/** short announcements: new wave, squad wiped, objective done, checkpoint, mission complete */
 	banner: {
-		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over' | 'failed'
+		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over' | 'failed' | 'timeout'
 		wave: number
 		at: number
 	} | null
@@ -96,6 +96,8 @@ export type MissionHud = {
 	progress: number
 	goal: number
 	complete: boolean
+	/** whole seconds left on a timed mission's clock; null without a time limit */
+	timeLeft: number | null
 }
 
 export type Toast = {

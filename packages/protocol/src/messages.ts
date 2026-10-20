@@ -12,12 +12,17 @@ import {
 	REVIVE_COMPLETE,
 	type SimEvent,
 	TICK_RATE,
+	timeLeft,
 	type World,
 	type WorldObject
 } from '@rotline/sim'
 import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 
-export const PROTOCOL_VERSION = 8
+/** a mission clock's "no time limit" */
+const NO_LIMIT = 0xffff
+const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
+
+export const PROTOCOL_VERSION = 9
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
@@ -321,6 +326,8 @@ export type MissionFrame = {
 	chainLeft: number
 	/** bit n: this player has opened cache n */
 	caches: number
+	/** whole seconds left on a timed mission's clock; null without a time limit */
+	timeLeft: number | null
 }
 
 export type OtherPlayer = {
@@ -502,6 +509,8 @@ export class SnapshotEncoder {
 			let caches = 0
 			if (self) for (const index of self.openedCaches) if (index < 16) caches |= 1 << index
 			w.u16(caches)
+			const left = mission ? timeLeft(world, mission) : null
+			w.u16(left === null ? NO_LIMIT : Math.min(NO_LIMIT - 1, left))
 		}
 
 		// everyone else, quantised
@@ -750,7 +759,8 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		score: r.u32(),
 		chain: r.u16(),
 		chainLeft: r.u8() / 255,
-		caches: r.u16()
+		caches: r.u16(),
+		timeLeft: nullableSeconds(r.u16())
 	}
 	const others: OtherPlayer[] = []
 	const otherCount = r.u8()
@@ -920,6 +930,7 @@ const EventType = {
 	objective: 16,
 	checkpoint: 17,
 	'mission-complete': 18,
+	'mission-failed': 27,
 	'item-found': 19,
 	cache: 20,
 	buff: 21,
@@ -1005,6 +1016,7 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				w.i16(event.index)
 				break
 			case 'mission-complete':
+			case 'mission-failed':
 				break
 			case 'item-found':
 				w.u8(event.player).u8(event.item)
@@ -1116,6 +1128,9 @@ export function readEvents(r: Reader): SimEvent[] {
 				break
 			case EventType['mission-complete']:
 				events.push({ type: 'mission-complete' })
+				break
+			case EventType['mission-failed']:
+				events.push({ type: 'mission-failed' })
 				break
 			case EventType['item-found']:
 				events.push({ type: 'item-found', player: r.u8(), item: r.u8() })

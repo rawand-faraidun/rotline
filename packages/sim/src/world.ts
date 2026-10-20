@@ -90,6 +90,7 @@ export type SimEvent =
 	| { type: 'run-over'; wave: number }
 	| { type: 'checkpoint'; index: number }
 	| { type: 'mission-complete' }
+	| { type: 'mission-failed' }
 	/** an item (index into game-data items) found by one player; drops are per player */
 	| { type: 'item-found'; player: number; item: number }
 	| { type: 'cache'; player: number; index: number }

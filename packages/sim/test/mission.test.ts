@@ -9,6 +9,7 @@ import {
 	ObjectKind,
 	scoreThreshold,
 	TICK_RATE,
+	timeLeft,
 	World
 } from '../src/index.ts'
 import { input, steps, yard } from './helpers.ts'
@@ -383,5 +384,28 @@ describe('survival', () => {
 		expect(world.finished).toBe(true)
 		steps(world, 10 * TICK_RATE)
 		expect(state.alive).toBe(false)
+	})
+})
+
+describe('mission clock', () => {
+	it('loses a timed mission when its clock runs out, and the world finishes', () => {
+		const world = missionWorld({ timeLimitSeconds: 2 })
+		world.addPlayer(1)
+		world.step(new Map())
+		expect(timeLeft(world, world.mission as NonNullable<typeof world.mission>)).toBe(2)
+		let ticks = 0
+		while (world.mission?.status === MissionStatus.active && ticks++ < 3 * TICK_RATE) world.step(new Map())
+		expect(ticks).toBeGreaterThan(TICK_RATE)
+		expect(world.mission?.status).toBe(MissionStatus.failed)
+		expect(world.events.some(event => event.type === 'mission-failed')).toBe(true)
+		expect(world.finished).toBe(true)
+	})
+
+	it('has no clock without a time limit', () => {
+		const world = missionWorld()
+		world.addPlayer(1)
+		steps(world, 3 * TICK_RATE)
+		expect(timeLeft(world, world.mission as NonNullable<typeof world.mission>)).toBeNull()
+		expect(world.mission?.status).toBe(MissionStatus.active)
 	})
 })

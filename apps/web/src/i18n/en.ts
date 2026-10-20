@@ -560,6 +560,8 @@ export const en = {
 			progressCarry: 'Bring it there',
 			progressLeft: '{progress} s left',
 			failedBanner: 'Objective failed — back to the checkpoint',
+			timeoutBanner: 'Out of time',
+			timeLeft: 'Time left',
 			interact: {
 				open: 'E — open the door',
 				close: 'E — close the door (hold to weld)',
@@ -581,6 +583,7 @@ export const en = {
 			threshold: 'Score bonus: +{salvage} Salvage and health',
 			results: {
 				title: 'Mission complete',
+				lost: 'Mission lost: out of time',
 				runOver: 'Run over',
 				rounds: 'Rounds survived',
 				time: 'Time',

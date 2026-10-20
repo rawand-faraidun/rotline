@@ -492,7 +492,8 @@ describe('missions in snapshots', () => {
 			instakillSeconds: 0,
 			score: 30,
 			chain: 3,
-			caches: 2
+			caches: 2,
+			timeLeft: null
 		})
 		expect(frame.mission.chainLeft).toBeGreaterThan(0.9)
 		expect(frame.objects.find(object => object.kind === ObjectKind.buff)?.variant).toBe(5)
