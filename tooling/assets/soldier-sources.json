@@ -58,7 +58,7 @@
 			{
 				"material": "^hands",
 				"id": "skin-hands",
-				"stiffFingers": true,
+				"stiffFingers": false,
 				"triangles": 6000
 			},
 			{

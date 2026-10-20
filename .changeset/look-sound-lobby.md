@@ -47,3 +47,5 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - The firing range's targets and zombies come in where you can see them.
 - Landfall is a 12-minute run against the clock through four areas that close behind you: carry the flight recorder out of a burning wreck, fight up a high street of wrecked cars (a pharmacy behind a door holds supplies), restart the checkpoint's gate generator and hold while it opens, burn the nests in the square and put down the Brute, then hold the helipad until the bird lands. Run out of time and the mission is lost.
 - Maps can have scenery: wrecked and burning cars, barriers, lamps, crates, fences and fires, solid where they look solid.
+- Soldiers hold their guns like soldiers: rifles shouldered and aimed with both hands on the gun, pistols out in front in a two-handed grip, fingers closed round the grip, a kick when they fire and the gun brought down to change the magazine.
+- The mission picker keeps its Done button in view.

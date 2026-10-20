@@ -358,7 +358,7 @@ for (const person of people) {
 	const merged = mergeDocuments(document, source)
 	for (const source of kept) {
 		const node = merged.get(source) as Node
-		bindMesh(document, node, personSkin, personPosed, { kind: 'transfer', stiffFingers: true })
+		bindMesh(document, node, personSkin, personPosed, { kind: 'transfer', stiffFingers: false })
 		node.getParentNode()?.removeChild(node)
 		for (const sceneOf of root.listScenes()) sceneOf.removeChild(node)
 		scene.addChild(node)

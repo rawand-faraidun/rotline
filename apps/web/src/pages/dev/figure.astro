@@ -1,0 +1,22 @@
+---
+// Development only: the soldier bench (how guns are held), at /dev/figure?weapon=k-71&aim=0
+---
+
+<html lang="en">
+	<body style="margin: 0; background: #222">
+		{import.meta.env.DEV && <canvas id="lab" width="1500" height="500" style="display: block"></canvas>}
+		<script>
+			if (import.meta.env.DEV) {
+				const params = new URLSearchParams(location.search)
+				const { mountLab } = await import('@rotline/client/lab')
+				const canvas = document.getElementById('lab') as HTMLCanvasElement
+				mountLab(canvas, {
+					weapon: params.get('weapon') ?? 'k-71',
+					pistol: params.get('pistol') === '1',
+					classId: params.get('class') ?? 'assault',
+					aim: Number(params.get('aim') ?? '0')
+				})
+			}
+		</script>
+	</body>
+</html>

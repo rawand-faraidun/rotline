@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+import { findArm, holdGun, type Rig } from './hold.ts'
 import { outfitFor, wear } from './outfits.ts'
 
 const SLOT_COLOURS = [0xb8f23c, 0x4fb3ff, 0xffc02e, 0xff7ad9]
@@ -17,7 +18,7 @@ type Clips = {
 	upper: Map<string, THREE.AnimationClip>
 	full: Map<string, THREE.AnimationClip>
 }
-export type Soldier = { scene: THREE.Object3D; clips: Clips; aimOffset: number }
+export type Soldier = { scene: THREE.Object3D; clips: Clips }
 
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 let soldier: Promise<Soldier | null> | null = null
@@ -47,21 +48,7 @@ export function loadSoldier(url: string): Promise<Soldier | null> {
 			gltf.scene.traverse(object => {
 				if ((object as THREE.Mesh).isMesh) object.castShadow = true
 			})
-			// in the aiming pose the shooter stands half turned: find where the hands point, so the
-			// figure can be turned to put the gun on the aim
-			const probe = cloneSkinned(gltf.scene)
-			const mixer = new THREE.AnimationMixer(probe)
-			const aim = clips.full.get('Pistol_Aim_Neutral')
-			let aimOffset = 0
-			if (aim) {
-				mixer.clipAction(aim).play()
-				mixer.update(0)
-				probe.updateMatrixWorld(true)
-				const hand = probe.getObjectByName('hand_r')?.getWorldPosition(new THREE.Vector3())
-				const chest = probe.getObjectByName('spine_03')?.getWorldPosition(new THREE.Vector3())
-				if (hand && chest) aimOffset = Math.atan2(hand.x - chest.x, hand.z - chest.z)
-			}
-			return { scene: gltf.scene, clips, aimOffset }
+			return { scene: gltf.scene, clips }
 		})
 		.catch(() => null)
 	return soldier
@@ -101,7 +88,6 @@ export class PlayerFigure {
 	private model: THREE.Object3D | null = null
 	private mixer: THREE.AnimationMixer | null = null
 	private clips: Clips | null = null
-	private aimOffset = 0
 	private legs: THREE.AnimationAction | null = null
 	private arms: THREE.AnimationAction | null = null
 	private pose: THREE.AnimationAction | null = null
@@ -111,11 +97,15 @@ export class PlayerFigure {
 	private weapon: THREE.Object3D | null = null
 	private weaponId = ''
 	private weaponLength = 0
-	private weaponShift = 0
-	/** long guns are held in both hands, stock at the shoulder; pistols in the aiming pose */
+	/** long guns are held at the shoulder in both hands; pistols out in front in both hands */
 	private longGun = false
 	private arms2: { upper: THREE.Object3D; lower: THREE.Object3D; hand: THREE.Object3D; shoulder: THREE.Object3D }[] = []
 	private hand: THREE.Object3D | null = null
+	private rig: Rig | null = null
+	/** 1 just after a shot, decaying; the current reload's time left and length (seconds, counted by frames) */
+	private kick = 0
+	private reloadLeft = 0
+	private reloadTotal = 1
 	private lastX = Number.NaN
 	private lastY = 0
 	private speed = 0
@@ -185,7 +175,6 @@ export class PlayerFigure {
 			wear(model, outfitFor(classId, armour))
 			this.model = model
 			this.clips = loaded.clips
-			this.aimOffset = loaded.aimOffset
 			this.hand = model.getObjectByName('hand_r') ?? null
 			this.arms2 = (['r', 'l'] as const).flatMap(side => {
 				const upper = model.getObjectByName(`upperarm_${side}`)
@@ -197,6 +186,12 @@ export class PlayerFigure {
 			this.spine = ['spine_01', 'spine_02', 'spine_03']
 				.map(name => model.getObjectByName(name))
 				.filter((bone): bone is THREE.Object3D => bone !== undefined)
+			const rightArm = findArm(model, 'r')
+			const leftArm = findArm(model, 'l')
+			this.rig =
+				rightArm && leftArm
+					? { spine: this.spine, head: model.getObjectByName('Head') ?? null, right: rightArm, left: leftArm }
+					: null
 			this.mixer = new THREE.AnimationMixer(model)
 			this.legs = this.arms = this.pose = null
 			this.legsClip = this.armsClip = ''
@@ -215,8 +210,6 @@ export class PlayerFigure {
 			const weapon = loaded.clone()
 			const box = new THREE.Box3().setFromObject(weapon)
 			this.weaponLength = box.max.x - box.min.x
-			// the hand holds a pistol by its grip near the back, a long gun further forward of its stock
-			this.weaponShift = this.weaponLength * (pistol ? 0.12 : 0.22)
 			this.longGun = !pistol
 			this.weapon = weapon
 			this.group.add(weapon)
@@ -230,13 +223,13 @@ export class PlayerFigure {
 
 	/** The weapon just fired: a short recoil in the arms. */
 	fired(): void {
-		this.playArms('Pistol_Shoot', 0.05, 0.22)
+		this.kick = 1
 	}
 
 	/** A reload began and lasts `seconds`. */
 	reloading(seconds: number): void {
-		const clip = this.clips?.upper.get('Pistol_Reload')
-		if (clip) this.playArms('Pistol_Reload', 0.15, seconds, clip.duration / Math.max(0.3, seconds))
+		this.reloadTotal = Math.max(0.1, seconds)
+		this.reloadLeft = this.reloadTotal
 	}
 
 	/** `revive` is 0..1 progress while a teammate revives this player. */
@@ -286,7 +279,7 @@ export class PlayerFigure {
 		// the legs run the way the player moves (backwards when that is more than ~110° from the aim)
 		// and the torso twists toward the aim; standing, the legs come round under the torso
 		let backwards = false
-		let legsTarget = facing - this.aimOffset
+		let legsTarget = facing
 		if (this.speed >= 0.4 && !downed) {
 			const heading = Math.atan2(this.moveX, this.moveY)
 			backwards = Math.abs(wrap(heading - facing)) > TWIST_LIMIT
@@ -303,19 +296,9 @@ export class PlayerFigure {
 			if (this.speed < 0.4) this.playLegs('Idle_Loop', 1)
 			else if (this.speed < 2.6) this.playLegs('Walk_Loop', (this.speed / WALK_SPEED) * (backwards ? -1 : 1))
 			else this.playLegs('Jog_Fwd_Loop', (this.speed / JOG_SPEED) * (backwards ? -1 : 1))
-			if (now > this.armsUntil) this.playArms('Pistol_Aim_Neutral', 0.2, 0)
+			if (now > this.armsUntil) this.playArms('Idle_Loop', 0.2, 0)
 		}
 		this.mixer.update(dt)
-		// turn the torso until the hands point along the aim (measured, so every clip lines up)
-		if (!downed && !this.relaxed) {
-			let turned = 0
-			// the hands are not on the spine's axis, so a second, smaller pass corrects the first
-			for (let pass = 0; pass < 2; pass++) {
-				const turn = clamp(turned + wrap(facing - this.handYaw()), TWIST_LIMIT) - turned
-				this.twist(turn)
-				turned += turn
-			}
-		}
 		if (this.weapon && this.hand) {
 			// at ease a long gun is held low across the body; a pistol is put away
 			this.weapon.visible = !downed && (!this.relaxed || this.longGun)
@@ -350,81 +333,17 @@ export class PlayerFigure {
 					.addScaledVector(UP, -0.03)
 				const leftShoulder = left.upper.getWorldPosition(ikG)
 				reach(left, fore, ikJ.copy(leftShoulder).addScaledVector(side, -0.3).addScaledVector(UP, -0.45))
-			} else if (this.longGun && right && left && this.weapon.visible) {
-				// a long gun: stock in the right shoulder, pointing along the aim, both hands on it
-				const yaw = aimAngle
-				const ax = Math.cos(yaw)
-				const ay = 0
-				const az = Math.sin(yaw)
-				const shoulder = right.upper.getWorldPosition(ikA)
-				const half = this.weaponLength / 2
-				// the gun's middle, ahead of the shoulder and a little in toward the chest and down
-				const centre = ikB.set(
-					shoulder.x + ax * (half - 0.06) + Math.sin(yaw) * 0.06,
-					shoulder.y + ay * (half - 0.06) - 0.06,
-					shoulder.z + az * (half - 0.06) - Math.cos(yaw) * 0.06
-				)
-				const local = this.group.worldToLocal(ikC.copy(centre))
-				this.weapon.position.copy(local)
-				this.weapon.rotation.set(0, -yaw, 0)
-				// the grip a third of the way from the stock, the fore grip a little ahead of the middle
-				const grip = ikD.set(centre.x - ax * half * 0.4, centre.y - ay * half * 0.4 - 0.05, centre.z - az * half * 0.4)
-				const fore = ikE.set(
-					centre.x + ax * half * 0.35,
-					centre.y + ay * half * 0.35 - 0.04,
-					centre.z + az * half * 0.35
-				)
-				// elbows hang down and out to their own side
-				reach(
-					right,
-					grip,
-					ikF.set(shoulder.x + Math.sin(yaw) * 0.35, shoulder.y - 0.5, shoulder.z - Math.cos(yaw) * 0.35)
-				)
-				const leftShoulder = left.upper.getWorldPosition(ikG)
-				reach(
-					left,
-					fore,
-					ikF.set(leftShoulder.x - Math.sin(yaw) * 0.3, leftShoulder.y - 0.6, leftShoulder.z + Math.cos(yaw) * 0.3)
-				)
-			} else {
-				// a pistol sits in the right hand of the aiming pose, pointing exactly where the shots go
-				const at = this.hand.getWorldPosition(scratch)
-				this.group.worldToLocal(at)
-				this.weapon.position.set(
-					at.x + Math.cos(aimAngle) * this.weaponShift,
-					at.y,
-					at.z + Math.sin(aimAngle) * this.weaponShift
-				)
-				this.weapon.rotation.set(0, -aimAngle, 0)
+			} else if (this.weapon.visible && this.rig) {
+				// aiming: the torso turns to the aim and both hands hold the gun (a rifle at the
+				// shoulder, a pistol out in front)
+				this.kick = Math.max(0, this.kick - dt * 9)
+				this.reloadLeft = Math.max(0, this.reloadLeft - dt)
+				const reload = this.reloadLeft > 0 ? 1 - this.reloadLeft / this.reloadTotal : 0
+				holdGun(this.rig, this.weapon, this.weaponLength, aimAngle, this.longGun ? 'rifle' : 'pistol', {
+					kick: this.kick,
+					reload
+				})
 			}
-		}
-	}
-
-	/** Which way the hands point from the hips, as a yaw (radians). */
-	private handYaw(): number {
-		const hips = this.spine[0]
-		if (!this.model || !this.hand || !hips) return 0
-		this.model.updateMatrixWorld(true)
-		const hand = this.hand.getWorldPosition(scratch)
-		const x = hand.x
-		const z = hand.z
-		const from = hips.getWorldPosition(scratch)
-		return Math.atan2(x - from.x, z - from.z)
-	}
-
-	/** Turns the torso by `angle` (radians, about the vertical) on top of the clips, spread over the spine. */
-	private twist(angle: number): void {
-		if (!this.model || this.spine.length === 0 || Math.abs(angle) < 1e-3) return
-		this.model.updateMatrixWorld(true)
-		const turn = twistTurn.setFromAxisAngle(UP, angle / this.spine.length)
-		for (const bone of this.spine) {
-			const parent = bone.parent
-			if (!parent) continue
-			// a turn about the world's vertical, expressed in the bone's parent space
-			parent.getWorldQuaternion(twistParent)
-			twistLocal.copy(twistParent).invert().multiply(turn).multiply(twistParent)
-			bone.quaternion.premultiply(twistLocal)
-			bone.updateMatrixWorld(true)
 		}
 	}
 
@@ -490,7 +409,6 @@ export class PlayerFigure {
 	}
 }
 
-const scratch = new THREE.Vector3()
 const ikA = new THREE.Vector3()
 const ikB = new THREE.Vector3()
 const ikC = new THREE.Vector3()
@@ -544,15 +462,8 @@ function reach(
 }
 const UP = new THREE.Vector3(0, 1, 0)
 const X_AXIS = new THREE.Vector3(1, 0, 0)
-const twistTurn = new THREE.Quaternion()
-const twistParent = new THREE.Quaternion()
-const twistLocal = new THREE.Quaternion()
 /** the most the torso turns away from the legs; beyond it the legs run backwards */
 const TWIST_LIMIT = (110 * Math.PI) / 180
-
-function clamp(value: number, limit: number): number {
-	return Math.max(-limit, Math.min(limit, value))
-}
 
 /** An angle brought into -π..π. */
 function wrap(angle: number): number {

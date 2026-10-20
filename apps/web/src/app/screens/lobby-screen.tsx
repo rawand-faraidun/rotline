@@ -356,11 +356,14 @@ function MissionPicker({ view, onClose }: { view: PartyView; onClose: () => void
 			ref={dialog}
 			aria-label={en.app.missions.title}
 			onClose={onClose}
-			className="no-scrollbar m-auto max-h-[92dvh] w-[min(64rem,96vw)] overflow-y-auto bg-transparent p-0 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+			className="m-auto h-[92dvh] w-[min(64rem,96vw)] overflow-hidden bg-transparent p-0 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
 		>
-			<div className="flex flex-col gap-3">
-				<MissionPanel view={view} />
-				<Button className="self-end" onClick={() => dialog.current?.close()}>
+			{/* the missions scroll; Done stays in view under them */}
+			<div className="flex h-full flex-col gap-3">
+				<div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
+					<MissionPanel view={view} />
+				</div>
+				<Button className="shrink-0 self-end" onClick={() => dialog.current?.close()}>
 					{t.done}
 				</Button>
 			</div>
