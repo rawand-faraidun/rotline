@@ -34,6 +34,9 @@ const qLocal = new THREE.Quaternion()
 const basisFrom = new THREE.Matrix4()
 const basisTo = new THREE.Matrix4()
 
+/** each finger joint's open pose, kept from the first frame it is seen */
+const restPose = new WeakMap<THREE.Object3D, THREE.Quaternion>()
+
 /** The arm of a skeleton (UE-style bone names, `_r` or `_l`). */
 export function findArm(root: THREE.Object3D, side: 'r' | 'l'): Arm | null {
 	const get = (name: string) => root.getObjectByName(`${name}_${side}`) ?? null
@@ -64,6 +67,14 @@ function swing(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3): vo
 	turnWorld(bone, q)
 }
 
+/** How far an arm reaches from its shoulder to its wrist, straight. */
+function reachOf(arm: Arm): number {
+	const a = arm.upper.getWorldPosition(v[0] as THREE.Vector3)
+	const b = arm.lower.getWorldPosition(v[1] as THREE.Vector3)
+	const c = arm.hand.getWorldPosition(v[2] as THREE.Vector3)
+	return a.distanceTo(b) + b.distanceTo(c)
+}
+
 /** Two-bone IK: the hand reaches `target`, the elbow bends toward `pole`. */
 function reach(arm: Arm, target: THREE.Vector3, pole: THREE.Vector3): void {
 	shrug(arm, target)
@@ -87,6 +98,9 @@ function reach(arm: Arm, target: THREE.Vector3, pole: THREE.Vector3): void {
 	swing(arm.lower, (v[7] as THREE.Vector3).subVectors(cNow, bNow), (v[8] as THREE.Vector3).subVectors(target, bNow))
 }
 
+/** how far the collarbone may turn to bring the shoulder forward (radians) */
+const MAX_SHRUG = 0.2
+
 /**
  * When the hand cannot reach `target` with the arm alone, the shoulder comes forward to it (the
  * collarbone turns toward it, as far as a real shoulder goes).
@@ -108,9 +122,9 @@ function shrug(arm: Arm, target: THREE.Vector3): void {
 		.sub(base)
 	const from = (v[5] as THREE.Vector3).subVectors(shoulder, base)
 	q.setFromUnitVectors(from.normalize(), wanted.normalize())
-	// no more than about 30 degrees
+	// a little: more pulls the shoulder out of shape
 	const angle = 2 * Math.acos(Math.min(1, Math.abs(q.w)))
-	if (angle > 0.52) q.slerp(new THREE.Quaternion(), 1 - 0.52 / angle)
+	if (angle > MAX_SHRUG) q.slerp(new THREE.Quaternion(), 1 - MAX_SHRUG / angle)
 	turnWorld(arm.clavicle, q)
 }
 
@@ -147,6 +161,13 @@ function grip(arm: Arm, amount: number, sideSign: number): void {
 	const index = arm.fingers[0]?.[0]
 	const pinky = arm.fingers[3]?.[0]
 	if (!index || !pinky) return
+	// no clip moves the fingers, so they start each frame from the open hand (else the curl adds up)
+	for (const joint of [...arm.fingers.flat(), ...arm.thumb]) {
+		const rest = restPose.get(joint)
+		if (rest) joint.quaternion.copy(rest)
+		else restPose.set(joint, joint.quaternion.clone())
+	}
+	arm.hand.updateMatrixWorld(true)
 	// the curl turns about the knuckle line; which way round depends on the hand
 	const axis = (v[9] as THREE.Vector3)
 		.subVectors(index.getWorldPosition(v[1] as THREE.Vector3), pinky.getWorldPosition(v[2] as THREE.Vector3))
@@ -195,7 +216,7 @@ const HOLD_POINTS: Record<string, { grip: [number, number]; fore: [number, numbe
 	arclight: { grip: [5, -1.5], fore: [7.6, -1.8] },
 	viper: { grip: [3, -1.6], fore: [6, 0] },
 	// too heavy to shoulder: carried at the hip
-	minigun: { grip: [0.7, 0.2], fore: [4.3, 2.5], hip: true }
+	minigun: { grip: [0.7, 0.2], fore: [3.4, 2.5], hip: true }
 }
 const DEFAULT_POINTS: { grip: [number, number]; fore: [number, number]; hip?: boolean } = {
 	grip: [3, -1.2],
@@ -229,20 +250,20 @@ export function holdGun(
 	const right = (v[11] as THREE.Vector3).set(-d.z, 0, d.x)
 	const points = HOLD_POINTS[motion.weaponId ?? ''] ?? DEFAULT_POINTS
 	const pistol = hold === 'pistol'
-	// the chest: square at ease and with a pistol, bladed for a long gun
-	// (turned to the right of the aim, so the left shoulder comes forward toward the handguard)
-	faceChest(rig, hold === 'rifle' ? d.clone().applyAxisAngle(UP, -0.5) : d)
+	// the chest: square at ease and with a pistol, a little bladed for a long gun (turned to the right
+	// of the aim, so the left shoulder comes forward toward the handguard)
+	faceChest(rig, hold === 'rifle' ? d.clone().applyAxisAngle(UP, -0.3) : d)
 	const shoulderR = rig.right.upper.getWorldPosition(new THREE.Vector3())
 	const shoulderL = rig.left.upper.getWorldPosition(new THREE.Vector3())
 	const chest = new THREE.Vector3().addVectors(shoulderR, shoulderL).multiplyScalar(0.5)
 	// the gun's axis and its up
 	let g: THREE.Vector3
+	// at ease the gun hangs across the body: the support hand low by the left hip, the butt at the right
+	// of the chest, so both hands reach it without stretching
+	const lowFore = shoulderL.clone().addScaledVector(d, 0.2).addScaledVector(right, 0.1).addScaledVector(UP, -0.4)
 	if (hold === 'low') {
-		g = new THREE.Vector3()
-			.addScaledVector(d, 0.62)
-			.addScaledVector(right, -0.42)
-			.addScaledVector(UP, -0.66)
-			.normalize()
+		const lowButt = shoulderR.clone().addScaledVector(d, 0.08).addScaledVector(right, -0.08).addScaledVector(UP, -0.16)
+		g = lowFore.clone().sub(lowButt).normalize()
 	} else {
 		const pitch = kick * 0.08 - tip * 0.45
 		g = d.clone().multiplyScalar(Math.cos(pitch)).addScaledVector(UP, Math.sin(pitch))
@@ -260,12 +281,12 @@ export function holdGun(
 	} else {
 		const butt =
 			hold === 'rifle' && points.hip
-				? shoulderR.clone().addScaledVector(d, 0.12).addScaledVector(UP, -0.42).addScaledVector(right, -0.02)
-				: hold === 'low'
-					? shoulderR.clone().addScaledVector(d, 0.12).addScaledVector(UP, -0.14).addScaledVector(right, -0.05)
-					: shoulderR.clone().addScaledVector(d, 0.04).addScaledVector(right, -0.07).addScaledVector(UP, -0.02)
+				? shoulderR.clone().addScaledVector(d, -0.02).addScaledVector(UP, -0.42).addScaledVector(right, -0.04)
+				: shoulderR.clone().addScaledVector(d, 0.04).addScaledVector(right, -0.07).addScaledVector(UP, -0.02)
 		origin = butt.addScaledVector(g, length / 2)
 	}
+	// at ease the gun hangs from the support hand's place
+	if (hold === 'low') origin = lowFore.clone().addScaledVector(g, -foreAlong).addScaledVector(gunUp, -foreUp)
 	// firing pushes it all back a little; a reload brings it down off the shoulder
 	origin.addScaledVector(d, -kick * 0.05).addScaledVector(UP, -tip * 0.16)
 	weapon.position.copy(weapon.parent ? weapon.parent.worldToLocal(origin.clone()) : origin)
@@ -275,6 +296,14 @@ export function holdGun(
 	let foreAt = pistol
 		? gripAt.clone().addScaledVector(side, -0.035).addScaledVector(gunUp, -0.015)
 		: on(foreAlong, foreUp)
+	// a support hand that cannot reach its place slides back along the gun until it can (short arms,
+	// long guns): it stays on the gun instead of hanging in the air short of it
+	if (!pistol) {
+		const armLength = reachOf(rig.left) + 0.05
+		let along = foreAlong
+		while (along > gripAlong + length * 0.12 && on(along, foreUp).distanceTo(shoulderL) > armLength) along -= 0.01
+		foreAt = on(along, foreUp)
+	}
 	// during a reload the support hand goes to the magazine, just ahead of the grip and below
 	if (tip > 0 && !pistol) foreAt = on(gripAlong + length * 0.12, gripUp - length * 0.04 * tip)
 	// how each hand wraps: the right round the grip (fingers across to the left, knuckles up the grip);

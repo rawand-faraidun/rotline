@@ -1,4 +1,4 @@
 {
 	"extends": "@rotline/tsconfig/node",
-	"include": ["src", "test", "*.config.ts"]
+	"include": ["src", "test", "scripts", "*.config.ts"]
 }

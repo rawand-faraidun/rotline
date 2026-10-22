@@ -98,8 +98,8 @@ export function SkillsScreen() {
 					{left === 1 ? t.pointLeft : format(t.pointsLeft, { points: String(left) })}
 				</span>
 				<span className="text-muted text-sm">
-					{format(p.level, { level: String(entry.level) })} · {pointsAtLevel(entry.level)} /{' '}
-					{pointsAtLevel(classes.progression.maxLevel)}
+					{format(p.level, { level: String(entry.level) })} · {entry.points} /{' '}
+					{Math.max(entry.points, pointsAtLevel(classes.progression.maxLevel))}
 				</span>
 				<span className="flex-1" />
 				{confirmRespec ? (
@@ -159,7 +159,8 @@ export function SkillsScreen() {
 													.filter(node => node.tier === tier)
 													.map(node => {
 														const rank = entry.skills[node.id] ?? 0
-														const open = allocationProblem(cls, entry.skills, entry.level, node.id) === null
+														const open =
+															allocationProblem(cls, entry.skills, entry.level, node.id, entry.points) === null
 														return (
 															<button
 																key={node.id}
@@ -243,7 +244,9 @@ export function SkillsScreen() {
 									})}
 								</p>
 								<Button
-									disabled={pending || allocationProblem(cls, entry.skills, entry.level, selectedNode.id) !== null}
+									disabled={
+										pending || allocationProblem(cls, entry.skills, entry.level, selectedNode.id, entry.points) !== null
+									}
 									onClick={() => void act(progressActions.learn(selectedNode.id))}
 								>
 									{t.learn}

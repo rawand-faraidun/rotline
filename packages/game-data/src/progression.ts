@@ -31,6 +31,14 @@ export function abilitySlotsAtLevel(level: number): number {
 	return slots
 }
 
+/** Every rank of every skill in a class's tree: what an unrestricted test account may spend. */
+export function allSkillPoints(classId: ClassId): number {
+	return skillTrees[classId].branches.reduce(
+		(sum, branch) => sum + branch.nodes.reduce((total, node) => total + node.maxRank, 0),
+		0
+	)
+}
+
 export type Skills = Readonly<Record<string, number>>
 
 export const spentPoints = (skills: Skills): number => Object.values(skills).reduce((sum, rank) => sum + rank, 0)
@@ -39,16 +47,22 @@ export type SkillProblem = 'unknown-node' | 'wrong-class' | 'rank' | 'points' | 
 
 /**
  * Checks a whole allocation against the rules: nodes of this class, ranks within limits, no more
- * points than the level gives, and each tier opened by enough points in the branch's earlier tiers.
+ * points than the level gives (or `points`, for an unrestricted test account), and each tier opened by enough points in
+ * the branch's earlier tiers.
  */
-export function validateSkills(classId: ClassId, skills: Skills, level: number): SkillProblem | null {
+export function validateSkills(
+	classId: ClassId,
+	skills: Skills,
+	level: number,
+	points = pointsAtLevel(level)
+): SkillProblem | null {
 	for (const [id, rank] of Object.entries(skills)) {
 		const entry = skillNodes.get(id)
 		if (!entry) return 'unknown-node'
 		if (entry.class !== classId) return 'wrong-class'
 		if (!Number.isInteger(rank) || rank < 1 || rank > entry.node.maxRank) return 'rank'
 	}
-	if (spentPoints(skills) > pointsAtLevel(level)) return 'points'
+	if (spentPoints(skills) > points) return 'points'
 	for (const branch of skillTrees[classId].branches) {
 		for (const node of branch.nodes) {
 			if (!skills[node.id] || node.tier === 1) continue
@@ -66,9 +80,10 @@ export function allocationProblem(
 	classId: ClassId,
 	skills: Skills,
 	level: number,
-	nodeId: string
+	nodeId: string,
+	points = pointsAtLevel(level)
 ): SkillProblem | null {
-	return validateSkills(classId, { ...skills, [nodeId]: (skills[nodeId] ?? 0) + 1 }, level)
+	return validateSkills(classId, { ...skills, [nodeId]: (skills[nodeId] ?? 0) + 1 }, level, points)
 }
 
 /** Active abilities unlocked by the allocation. */

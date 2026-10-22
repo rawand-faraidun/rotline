@@ -61,7 +61,7 @@ export function CharacterStage({ className }: { className?: string }) {
 					drag.current = { x: event.clientX, turn }
 				}}
 				onPointerMove={event => {
-					if (drag.current) setTurn(drag.current.turn + (event.clientX - drag.current.x) / 120)
+					if (drag.current) setTurn(drag.current.turn - (event.clientX - drag.current.x) / 120)
 				}}
 				onPointerUp={() => {
 					drag.current = null

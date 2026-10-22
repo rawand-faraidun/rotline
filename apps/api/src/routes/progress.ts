@@ -2,6 +2,7 @@ import { type Database, ItemSource, LedgerReason, PlayerClass, Prisma } from '@r
 import {
 	abilitySlotsAtLevel,
 	allocationProblem,
+	allSkillPoints,
 	type ClassId,
 	classId,
 	discardValue,
@@ -67,7 +68,8 @@ export async function progressView(db: Database, playerId: string, inMission: bo
 					level,
 					into,
 					next,
-					points: pointsAtLevel(level),
+					// a test account may take every skill in the tree
+					points: player.unrestricted ? allSkillPoints(cls) : pointsAtLevel(level),
 					spent: spentPoints(skills),
 					skills,
 					abilities: player.abilities
@@ -228,7 +230,18 @@ export function progressRoutes(services: Services) {
 				})
 				const rows = await tx.skillAllocation.findMany({ where: { playerId: user.id, class: cls } })
 				const skills = Object.fromEntries(rows.map(row => [row.nodeId, row.rank]))
-				const problem = allocationProblem(cls, skills, levelFromXp(Number(progress.xp)).level, nodeId)
+				const level = levelFromXp(Number(progress.xp)).level
+				const { unrestricted } = await tx.player.findUniqueOrThrow({
+					where: { userId: user.id },
+					select: { unrestricted: true }
+				})
+				const problem = allocationProblem(
+					cls,
+					skills,
+					level,
+					nodeId,
+					unrestricted ? allSkillPoints(cls) : pointsAtLevel(level)
+				)
 				if (problem) throw new Refused(problem)
 				await tx.skillAllocation.upsert({
 					where: { playerId_class_nodeId: { playerId: user.id, class: cls, nodeId } },

@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
 	abilitySlotsAtLevel,
 	allocationProblem,
+	allSkillPoints,
 	discardValue,
 	levelFromXp,
 	perkLevelsReached,
 	perkOptions,
 	pointsAtLevel,
+	skillTrees,
 	unlockedAbilities,
 	upgradeCost,
 	upgradeTotal,
@@ -53,6 +55,14 @@ describe('skill allocation', () => {
 	it('needs the points from levels', () => {
 		expect(validateSkills('assault', tierOne, 4)).toBe('points')
 		expect(validateSkills('assault', tierOne, 5)).toBeNull()
+	})
+
+	it('lets an unrestricted test account hold the whole tree at any level', () => {
+		const everything = Object.fromEntries(
+			skillTrees.assault.branches.flatMap(branch => branch.nodes.map(node => [node.id, node.maxRank]))
+		)
+		expect(validateSkills('assault', everything, 50)).toBe('points')
+		expect(validateSkills('assault', everything, 1, allSkillPoints('assault'))).toBeNull()
 	})
 
 	it('opens tier 2 after five points in tier 1', () => {

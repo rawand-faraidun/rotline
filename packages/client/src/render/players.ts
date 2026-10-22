@@ -5,6 +5,9 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { findArm, holdGun, type Rig } from './hold.ts'
 import { outfitFor, wear } from './outfits.ts'
 
+/** how big the guns are drawn against the soldier (whose arms are a little short for full-size guns) */
+const WEAPON_SCALE = 0.88
+
 const SLOT_COLOURS = [0xb8f23c, 0x4fb3ff, 0xffc02e, 0xff7ad9]
 
 /** bones the legs' clips drive; the rest (spine, arms, head) follows the gun */
@@ -200,6 +203,8 @@ export class PlayerFigure {
 			if (!loaded || this.weaponId !== weaponId) return
 			this.weapon?.removeFromParent()
 			const weapon = loaded.clone()
+			// the guns are modelled at full size, the soldier a little short: brought to his scale
+			weapon.scale.setScalar(WEAPON_SCALE)
 			const box = new THREE.Box3().setFromObject(weapon)
 			this.weaponLength = box.max.x - box.min.x
 			this.longGun = !pistol
@@ -365,7 +370,7 @@ export class PlayerFigure {
 
 	/** World position of the muzzle, for flashes and tracers. */
 	muzzle(out: THREE.Vector3): THREE.Vector3 {
-		if (this.weapon?.visible) return this.weapon.localToWorld(out.set(this.weaponLength / 2, 0, 0))
+		if (this.weapon?.visible) return this.weapon.localToWorld(out.set(this.weaponLength / WEAPON_SCALE / 2, 0, 0))
 		return this.gun.getWorldPosition(out)
 	}
 

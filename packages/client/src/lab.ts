@@ -16,6 +16,8 @@ export function mountLab(
 		relaxed?: boolean
 		/** how far the front and side cameras stand (metres) */
 		distance?: number
+		/** the game camera's field of view (degrees; smaller is closer) */
+		zoom?: number
 	}
 ) {
 	const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true })
@@ -75,7 +77,7 @@ export function mountLab(
 			camera.updateProjectionMatrix()
 			if (camera === top) {
 				// the game camera, zoomed on the figure
-				camera.fov = 9
+				camera.fov = options.zoom ?? 9
 				camera.updateProjectionMatrix()
 			}
 			renderer.render(scene, camera)

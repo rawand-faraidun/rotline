@@ -9,6 +9,7 @@
 	"scripts": {
 		"dev": "node --env-file-if-exists=../../.env --watch src/index.ts",
 		"build": "node scripts/build.ts",
+		"unlock": "node --env-file-if-exists=../../.env scripts/unlock-all.ts",
 		"start": "node --env-file-if-exists=../../.env --enable-source-maps dist/index.js",
 		"typecheck": "tsc",
 		"test": "vitest run",

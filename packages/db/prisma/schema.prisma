@@ -86,18 +86,20 @@ enum PlayerClass {
 }
 
 model Player {
-  userId      String      @id @map("user_id") @db.Uuid
-  name        String
+  userId       String      @id @map("user_id") @db.Uuid
+  name         String
   // lower-cased name, so "Rot" and "rot" cannot both exist
-  nameKey     String      @unique @map("name_key")
-  avatarStyle String      @map("avatar_style")
-  avatarSeed  String      @map("avatar_seed")
-  activeClass PlayerClass @default(assault) @map("active_class")
-  salvage     BigInt      @default(0)
-  isAdmin     Boolean     @default(false) @map("is_admin")
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nameKey      String      @unique @map("name_key")
+  avatarStyle  String      @map("avatar_style")
+  avatarSeed   String      @map("avatar_seed")
+  activeClass  PlayerClass @default(assault) @map("active_class")
+  salvage      BigInt      @default(0)
+  isAdmin      Boolean     @default(false) @map("is_admin")
+  /// a test account: may hold every skill in a tree, whatever its level
+  unrestricted Boolean     @default(false)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   friendshipsA   Friendship[]   @relation("friendship_a")
   friendshipsB   Friendship[]   @relation("friendship_b")
@@ -202,19 +204,19 @@ model ItemDuplicate {
 
 /// What the player takes into a mission; shared by all classes. Points at owned items.
 model Loadout {
-  playerId String  @id @map("player_id") @db.Uuid
-  main1    String  @map("main_1")
-  main2    String  @map("main_2")
-  pistol   String
+  playerId    String  @id @map("player_id") @db.Uuid
+  main1       String  @map("main_1")
+  main2       String  @map("main_2")
+  pistol      String
   // the five armour pieces, each worn in its own place
   armourHead  String? @map("armour_head")
   armourTorso String? @map("armour_torso")
   armourVest  String? @map("armour_vest")
   armourLegs  String? @map("armour_legs")
   armourFeet  String? @map("armour_feet")
-  utility1 String? @map("utility_1")
-  utility2 String? @map("utility_2")
-  player   Player  @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+  utility1    String? @map("utility_1")
+  utility2    String? @map("utility_2")
+  player      Player  @relation(fields: [playerId], references: [userId], onDelete: Cascade)
 
   main1Item    InventoryItem  @relation("loadout_main_1", fields: [playerId, main1], references: [playerId, itemId], onDelete: Restrict)
   main2Item    InventoryItem  @relation("loadout_main_2", fields: [playerId, main2], references: [playerId, itemId], onDelete: Restrict)

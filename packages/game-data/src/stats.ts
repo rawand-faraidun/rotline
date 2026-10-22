@@ -1,6 +1,6 @@
 import { classDef, classes, combat, economy, gear, skillNodes, upgrades, weaponIndex, weapons } from './data.ts'
 import { itemById, perkOptions } from './items.ts'
-import { validateAbilities, validateSkills } from './progression.ts'
+import { allSkillPoints, pointsAtLevel, validateAbilities, validateSkills } from './progression.ts'
 import type {
 	Build,
 	ClassId,
@@ -291,9 +291,13 @@ export function starterBuild(classId: ClassId = 'assault'): Build {
 
 export type BuildProblem = 'skills' | 'abilities' | 'item' | 'slot' | 'level' | 'perk' | 'duplicate'
 
-/** Checks a build against the rules before it is signed into a ticket. */
-export function buildProblem(build: Build): BuildProblem | null {
-	if (validateSkills(build.class, build.skills, build.level)) return 'skills'
+/**
+ * Checks a build against the rules before it is signed into a ticket; an unrestricted test account
+ * (`unlimited`) may hold every skill regardless of level.
+ */
+export function buildProblem(build: Build, options: { unlimited?: boolean } = {}): BuildProblem | null {
+	const points = options.unlimited ? allSkillPoints(build.class) : pointsAtLevel(build.level)
+	if (validateSkills(build.class, build.skills, build.level, points)) return 'skills'
 	if (!validateAbilities(build.skills, build.level, build.abilities)) return 'abilities'
 	const { main, pistol, armour, utility } = build.loadout
 	const slots: [ItemRef | null, string][] = [

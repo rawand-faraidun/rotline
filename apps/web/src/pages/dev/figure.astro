@@ -17,6 +17,7 @@
 					aim: Number(params.get('aim') ?? '0'),
 					relaxed: params.get('relaxed') === '1',
 					distance: Number(params.get('distance') ?? '3.2'),
+					zoom: Number(params.get('zoom') ?? '9'),
 					...(params.get('only') ? { only: params.get('only') as string } : {})
 				})
 			}

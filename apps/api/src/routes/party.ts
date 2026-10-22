@@ -322,7 +322,10 @@ export function partyRoutes(services: Services) {
 			.post('/game/ticket', async c => {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-				const player = await db.player.findUnique({ where: { userId: user.id }, select: { name: true } })
+				const player = await db.player.findUnique({
+					where: { userId: user.id },
+					select: { name: true, unrestricted: true }
+				})
 				if (!player) return c.json({ error: 'no-player' as const }, 404)
 				const party = await settle(await parties.current(user.id))
 				if (party.state !== 'mission') return c.json({ error: 'no-mission' as const }, 409)
@@ -332,8 +335,9 @@ export function partyRoutes(services: Services) {
 				if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
 				await ensureStarterKit(db, user.id)
 				const build = await loadBuild(db, user.id)
-				if (!build || buildProblem(build)) {
-					log.error({ userId: user.id, problem: build && buildProblem(build) }, 'invalid build')
+				const rules = { unlimited: player.unrestricted }
+				if (!build || buildProblem(build, rules)) {
+					log.error({ userId: user.id, problem: build && buildProblem(build, rules) }, 'invalid build')
 					return c.json({ error: 'invalid-build' as const }, 409)
 				}
 				// the mission is fixed once the party has started (the leader can change it only in the lobby);
@@ -357,7 +361,10 @@ export function partyRoutes(services: Services) {
 			.post('/game/range', async c => {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-				const player = await db.player.findUnique({ where: { userId: user.id }, select: { name: true } })
+				const player = await db.player.findUnique({
+					where: { userId: user.id },
+					select: { name: true, unrestricted: true }
+				})
 				if (!player) return c.json({ error: 'no-player' as const }, 404)
 				if ((await seats.status(user.id)).state !== 'admitted') return c.json({ error: 'no-seat' as const }, 403)
 				if ((await settle(await parties.current(user.id))).state === 'mission') {
@@ -365,7 +372,8 @@ export function partyRoutes(services: Services) {
 				}
 				await ensureStarterKit(db, user.id)
 				const build = await loadBuild(db, user.id)
-				if (!build || buildProblem(build)) return c.json({ error: 'invalid-build' as const }, 409)
+				if (!build || buildProblem(build, { unlimited: player.unrestricted }))
+					return c.json({ error: 'invalid-build' as const }, 409)
 				const { ticket, payload } = signTicket(key, {
 					sub: user.id,
 					name: player.name,
