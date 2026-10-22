@@ -7,7 +7,7 @@ import { PlayerFigure } from './render/players.ts'
  */
 export function mountLab(
 	canvas: HTMLCanvasElement,
-	options: { weapon: string; pistol: boolean; classId: string; aim: number; only?: string }
+	options: { weapon: string; pistol: boolean; classId: string; aim: number; only?: string; relaxed?: boolean }
 ) {
 	const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true })
 	renderer.setPixelRatio(1)
@@ -24,6 +24,7 @@ export function mountLab(
 	const figure = new PlayerFigure(1, true, '/assets')
 	figure.setClass(options.classId)
 	figure.setWeapon(options.weapon, options.pistol)
+	figure.setRelaxed(options.relaxed ?? false)
 	scene.add(figure.group)
 	;(window as unknown as { labScene: THREE.Scene }).labScene = scene
 	const top = new THREE.PerspectiveCamera(38, 1, 0.5, 100)

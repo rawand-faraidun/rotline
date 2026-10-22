@@ -1,5 +1,6 @@
 import type { PoolState } from '@rotline/protocol'
 import * as THREE from 'three'
+import { EFFECTS_LAYER } from './post.ts'
 
 const TRACERS = 96
 const TRACER_SECONDS = 0.07
@@ -152,6 +153,7 @@ export class Effects {
 			const ring = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 40), burstMaterial.clone())
 			ring.rotation.x = -Math.PI / 2
 			ring.visible = false
+			ring.layers.set(EFFECTS_LAYER)
 			this.bursts.push(ring)
 			scene.add(ring)
 		}
@@ -172,6 +174,7 @@ export class Effects {
 		)
 		this.flashSprite.visible = false
 		scene.add(this.tracers, this.decals, this.pools, this.flash, this.flashSprite)
+		for (const glow of [this.tracers, this.decals, this.pools, this.flashSprite]) glow.layers.set(EFFECTS_LAYER)
 
 		// spent cases: small brass boxes thrown out to the right, bouncing once, lying a while
 		this.casings = new THREE.InstancedMesh(
@@ -210,6 +213,7 @@ export class Effects {
 		for (let i = 0; i < SPARKS; i++) {
 			const sprite = new THREE.Sprite(sparkMaterial)
 			sprite.visible = false
+			sprite.layers.set(EFFECTS_LAYER)
 			scene.add(sprite)
 			this.sparks.push(sprite)
 		}
@@ -229,6 +233,7 @@ export class Effects {
 		for (let i = 0; i < FLAMES; i++) {
 			const sprite = new THREE.Sprite(this.fireMaterial)
 			sprite.visible = false
+			sprite.layers.set(EFFECTS_LAYER)
 			this.flames.push(sprite)
 			scene.add(sprite)
 		}

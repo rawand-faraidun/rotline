@@ -9,6 +9,7 @@
 		"migrate:dev": "prisma migrate dev",
 		"migrate:deploy": "prisma migrate deploy",
 		"migrate:status": "prisma migrate status",
+		"grant": "node --env-file-if-exists=../../.env scripts/grant-salvage.ts",
 		"typecheck": "tsc"
 	},
 	"dependencies": {

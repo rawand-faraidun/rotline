@@ -169,7 +169,43 @@ export function holdGun(
 	const tip = reloading > 0 ? Math.sin(Math.min(1, reloading) * Math.PI) : 0
 	const d = (v[10] as THREE.Vector3).set(Math.cos(aim), 0, Math.sin(aim))
 	const right = (v[11] as THREE.Vector3).set(-d.z, 0, d.x)
-	if (hold === 'low') return
+	if (hold === 'low') {
+		// at ease (low ready): square to the front, stock at the right of the chest, the muzzle down and
+		// across the body to the front left, both hands on the gun
+		faceChest(rig, d)
+		const shoulderR = rig.right.upper.getWorldPosition(new THREE.Vector3())
+		const shoulderL = rig.left.upper.getWorldPosition(new THREE.Vector3())
+		const g = new THREE.Vector3()
+			.addScaledVector(d, 0.62)
+			.addScaledVector(right, -0.42)
+			.addScaledVector(UP, -0.66)
+			.normalize()
+		const gunUp = UP.clone().addScaledVector(g, -UP.dot(g)).normalize()
+		const side = new THREE.Vector3().crossVectors(g, gunUp)
+		const stock = shoulderR.clone().addScaledVector(d, 0.12).addScaledVector(UP, -0.12).addScaledVector(right, -0.05)
+		const centre = stock.clone().addScaledVector(g, length / 2)
+		weapon.position.copy(weapon.parent ? weapon.parent.worldToLocal(centre) : centre)
+		weapon.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(g, gunUp, side))
+		const gripAt = stock
+			.clone()
+			.addScaledVector(g, length * 0.3)
+			.addScaledVector(gunUp, -0.06)
+		const foreAt = stock
+			.clone()
+			.addScaledVector(g, Math.min(0.6, length * 0.62))
+			.addScaledVector(gunUp, -0.04)
+		reach(rig.right, gripAt, shoulderR.clone().addScaledVector(right, 0.45).addScaledVector(UP, -0.6))
+		reach(
+			rig.left,
+			foreAt,
+			shoulderL.clone().addScaledVector(right, -0.25).addScaledVector(UP, -0.7).addScaledVector(d, 0.1)
+		)
+		orientHand(rig.right, new THREE.Vector3().addScaledVector(side, -0.75).addScaledVector(g, 0.55), gunUp)
+		orientHand(rig.left, new THREE.Vector3().addScaledVector(side, 0.8).addScaledVector(gunUp, 0.35), g)
+		grip(rig.right, 0.95, 1)
+		grip(rig.left, 0.85, -1)
+		return
+	}
 	// bladed for a rifle (left shoulder toward the target), square for a pistol
 	const blade = hold === 'rifle' ? 0.45 : 0.1
 	const chestTo = new THREE.Vector3().copy(d).applyAxisAngle(UP, blade)

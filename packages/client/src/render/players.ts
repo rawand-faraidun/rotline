@@ -99,7 +99,6 @@ export class PlayerFigure {
 	private weaponLength = 0
 	/** long guns are held at the shoulder in both hands; pistols out in front in both hands */
 	private longGun = false
-	private arms2: { upper: THREE.Object3D; lower: THREE.Object3D; hand: THREE.Object3D; shoulder: THREE.Object3D }[] = []
 	private hand: THREE.Object3D | null = null
 	private rig: Rig | null = null
 	/** 1 just after a shot, decaying; the current reload's time left and length (seconds, counted by frames) */
@@ -176,13 +175,6 @@ export class PlayerFigure {
 			this.model = model
 			this.clips = loaded.clips
 			this.hand = model.getObjectByName('hand_r') ?? null
-			this.arms2 = (['r', 'l'] as const).flatMap(side => {
-				const upper = model.getObjectByName(`upperarm_${side}`)
-				const lower = model.getObjectByName(`lowerarm_${side}`)
-				const hand = model.getObjectByName(`hand_${side}`)
-				const shoulder = model.getObjectByName(`clavicle_${side}`)
-				return upper && lower && hand && shoulder ? [{ upper, lower, hand, shoulder }] : []
-			})
 			this.spine = ['spine_01', 'spine_02', 'spine_03']
 				.map(name => model.getObjectByName(name))
 				.filter((bone): bone is THREE.Object3D => bone !== undefined)
@@ -303,36 +295,9 @@ export class PlayerFigure {
 			// at ease a long gun is held low across the body; a pistol is put away
 			this.weapon.visible = !downed && (!this.relaxed || this.longGun)
 			this.model.updateMatrixWorld(true)
-			const right = this.arms2[0]
-			const left = this.arms2[1]
-			if (this.longGun && right && left && this.weapon.visible && this.relaxed) {
-				// at ease (low ready): stock against the right of the chest, the gun across the body,
-				// muzzle forward, down and to the left, one hand on the grip and one on the fore grip
-				const forward = ikA.set(Math.cos(aimAngle), 0, Math.sin(aimAngle))
-				const side = ikB.set(-forward.z, 0, forward.x)
-				const along = ikC.copy(forward).multiplyScalar(0.3).addScaledVector(side, -0.8)
-				along.y = -0.55
-				along.normalize()
-				const stock = right.upper
-					.getWorldPosition(ikD)
-					.addScaledVector(UP, -0.16)
-					.addScaledVector(forward, 0.2)
-					.addScaledVector(side, -0.04)
-				const length = this.weaponLength
-				const centre = ikE.copy(stock).addScaledVector(along, length / 2)
-				this.weapon.position.copy(this.group.worldToLocal(ikF.copy(centre)))
-				this.weapon.quaternion.setFromUnitVectors(X_AXIS, along)
-				const grip = ikF
-					.copy(stock)
-					.addScaledVector(along, length * 0.28)
-					.addScaledVector(UP, -0.05)
-				reach(right, grip, ikG.copy(stock).addScaledVector(side, 0.35).addScaledVector(UP, -0.35))
-				const fore = ikF
-					.copy(stock)
-					.addScaledVector(along, length * 0.62)
-					.addScaledVector(UP, -0.03)
-				const leftShoulder = left.upper.getWorldPosition(ikG)
-				reach(left, fore, ikJ.copy(leftShoulder).addScaledVector(side, -0.3).addScaledVector(UP, -0.45))
+			if (this.longGun && this.weapon.visible && this.relaxed && this.rig) {
+				// at ease: the low ready, both hands on the gun
+				holdGun(this.rig, this.weapon, this.weaponLength, aimAngle, 'low')
 			} else if (this.weapon.visible && this.rig) {
 				// aiming: the torso turns to the aim and both hands hold the gun (a rifle at the
 				// shoulder, a pistol out in front)
@@ -409,59 +374,6 @@ export class PlayerFigure {
 	}
 }
 
-const ikA = new THREE.Vector3()
-const ikB = new THREE.Vector3()
-const ikC = new THREE.Vector3()
-const ikD = new THREE.Vector3()
-const ikE = new THREE.Vector3()
-const ikF = new THREE.Vector3()
-const ikG = new THREE.Vector3()
-const ikH = new THREE.Vector3()
-const ikI = new THREE.Vector3()
-const ikJ = new THREE.Vector3()
-const ikTurn = new THREE.Quaternion()
-const ikParent = new THREE.Quaternion()
-
-/** Turns `bone` (in the world) so the direction `from` becomes `to`. */
-function aimBone(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3): void {
-	if (from.lengthSq() < 1e-8 || to.lengthSq() < 1e-8) return
-	ikTurn.setFromUnitVectors(from.normalize(), to.normalize())
-	bone.parent?.getWorldQuaternion(ikParent)
-	// world turn into the parent's frame: parent⁻¹ · turn · parent
-	const local = ikParent.clone().invert().multiply(ikTurn).multiply(ikParent)
-	bone.quaternion.premultiply(local)
-	bone.updateMatrixWorld(true)
-}
-
-/**
- * Two-bone arm IK: bends upper and lower arm so the hand reaches `target`, the elbow toward `pole`.
- * Lengths stay; an out-of-reach target is reached for as far as the arm goes.
- */
-function reach(
-	arm: { upper: THREE.Object3D; lower: THREE.Object3D; hand: THREE.Object3D },
-	target: THREE.Vector3,
-	pole: THREE.Vector3
-): void {
-	const a = arm.upper.getWorldPosition(new THREE.Vector3())
-	const b = arm.lower.getWorldPosition(new THREE.Vector3())
-	const c = arm.hand.getWorldPosition(new THREE.Vector3())
-	const upper = a.distanceTo(b)
-	const lower = b.distanceTo(c)
-	const toTarget = ikH.subVectors(target, a)
-	const distance = Math.min(Math.max(toTarget.length(), Math.abs(upper - lower) + 1e-3), upper + lower - 1e-3)
-	const dir = toTarget.normalize()
-	// the elbow's place: in the plane of shoulder, target and pole, at the triangle's angle
-	const toPole = ikI.subVectors(pole, a)
-	const normal = new THREE.Vector3().crossVectors(dir, toPole).normalize()
-	const angle = Math.acos(Math.min(1, Math.max(-1, (upper ** 2 + distance ** 2 - lower ** 2) / (2 * upper * distance))))
-	const elbow = dir.clone().applyAxisAngle(normal, angle).multiplyScalar(upper).add(a)
-	aimBone(arm.upper, new THREE.Vector3().subVectors(b, a), new THREE.Vector3().subVectors(elbow, a))
-	const bNow = arm.lower.getWorldPosition(new THREE.Vector3())
-	const cNow = arm.hand.getWorldPosition(new THREE.Vector3())
-	aimBone(arm.lower, cNow.sub(bNow), new THREE.Vector3().subVectors(target, bNow))
-}
-const UP = new THREE.Vector3(0, 1, 0)
-const X_AXIS = new THREE.Vector3(1, 0, 0)
 /** the most the torso turns away from the legs; beyond it the legs run backwards */
 const TWIST_LIMIT = (110 * Math.PI) / 180
 

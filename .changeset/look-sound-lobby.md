@@ -53,3 +53,7 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - New soldier for every class: a fully kitted operator (helmet, balaclava, glasses, gloves, plate carrier with pouches) that moves cleanly, with no stretched clothing; classes differ by their kit.
 - The lobby is a hub like the games it takes after: kit tiles (weapons, armour, equipment, skills, shop, profile) down the left, the mission, Survival and the firing range in the middle over your player card, and the squad with Deploy on the right; tiles open the armory and shop on the right tab.
 - Maps look like places: walls show their brick, stone and metal (they were drawn almost black) under gravel rooftops and stand taller, the ground has cracks, oil stains, puddles and litter, rubbish lies along the walls, and a light goes with your soldier so the fight reads even at dusk.
+- Gunshots are recordings of the real guns: a Glock 19X, a Colt 1911 and HK USP45, a .50 AE Desert Eagle, an Uzi and a Colt SMG, a Colt M4A1 and an AR-15, a Saiga, a Remington 870 and a Mossberg 500, an M240 for the machine guns and a Barrett and a .308 for the sniper rifle, each with its full tail.
+- The lobby hub has no scene behind it any more: a dark field with a faint grid and the Rotline mark, like the games it takes after.
+- At ease, soldiers carry a long gun at the low ready with both hands on it.
+- No more black box around the muzzle flash on high graphics.

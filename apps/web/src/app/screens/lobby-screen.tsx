@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { LobbyMember } from '@rotline/client/lobby'
 import type { AvatarStyle } from '@rotline/constants'
 import { difficulties, missionById, SURVIVAL } from '@rotline/game-data'
 import { AvatarFrame, Badge, Button, cn, Input, Label, Panel } from '@rotline/ui'
@@ -16,15 +15,12 @@ import { itemPicture } from './character-stage.tsx'
 import { glass } from './class-panel.tsx'
 import { FriendsPanel } from './friends-panel.tsx'
 import { GameShell } from './game-shell.tsx'
+import { HubBackdrop } from './hub-backdrop.tsx'
 import { pane, panes } from './layout.ts'
-import { LobbyBackdrop } from './lobby-backdrop.tsx'
 import { MissionPanel } from './mission-panel.tsx'
 import { StableLabel } from './stable-label.tsx'
 
 const t = en.app.lobby
-
-/** what other squad members hold in the scene (their loadout is theirs to know) */
-const CLASS_WEAPON: Record<string, string> = { assault: 'k-71', medic: 'vex-9', heavy: 'mower' }
 
 const pictureOf = (id: string | null | undefined) => (id ? itemPicture(id) : null)
 
@@ -279,21 +275,8 @@ export function LobbyScreen() {
 		</div>
 	)
 
-	// the soldiers standing in the scene: you with your own gun, the others with their class's usual one
-	const members: LobbyMember[] = (view?.members ?? []).map((member, index) => {
-		const you = member.id === view?.you
-		const weaponId = (you ? progress.data?.loadout.main1 : null) ?? CLASS_WEAPON[member.activeClass] ?? 'k-71'
-		const loadout = progress.data?.loadout
-		// your own soldier wears what you equipped; the others wear their class's usual kit
-		const armour =
-			you && loadout
-				? [loadout.armourHead, loadout.armourTorso, loadout.armourVest, loadout.armourLegs, loadout.armourFeet]
-				: undefined
-		return { slot: index + 1, classId: member.activeClass, weaponId, pistol: false, you, ...(armour ? { armour } : {}) }
-	})
-
 	return (
-		<GameShell backdrop={<LobbyBackdrop members={members} />}>
+		<GameShell backdrop={<HubBackdrop />}>
 			<h1 className="sr-only">{t.title}</h1>
 			{/* the hub, as in the games it takes after: kit on the left, where to go in the middle with
 			    the player's card under it, the squad and the way out on the right */}

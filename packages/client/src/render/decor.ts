@@ -2,6 +2,7 @@ import type { MapDef } from '@rotline/game-data'
 import * as THREE from 'three'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { EFFECTS_LAYER } from './post.ts'
 
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 /** fires that get a real flickering light; the rest only glow (lights are costly) */
@@ -41,6 +42,7 @@ class Fire {
 			geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * 3), 3))
 			const mesh = new THREE.Points(geometry, material)
 			mesh.frustumCulled = false
+			mesh.layers.set(EFFECTS_LAYER)
 			this.group.add(mesh)
 			return mesh
 		}

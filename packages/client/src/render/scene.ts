@@ -1,6 +1,6 @@
 import type { MapDef } from '@rotline/game-data'
 import * as THREE from 'three'
-import { PostProcessing } from './post.ts'
+import { EFFECTS_LAYER, PostProcessing } from './post.ts'
 import { pixelRatioFor, probeQuality, type Quality } from './quality.ts'
 
 /**
@@ -302,6 +302,7 @@ export class Stage {
 		this.scene.fog = new THREE.Fog(light.fog, 50, 90)
 
 		this.camera = new THREE.PerspectiveCamera(38, 1, 1, 200)
+		this.camera.layers.enable(EFFECTS_LAYER)
 
 		this.scene.add(new THREE.HemisphereLight(light.sky, light.ground, light.fill))
 		this.sun = new THREE.DirectionalLight(light.sun, light.strength)

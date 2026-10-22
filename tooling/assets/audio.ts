@@ -104,13 +104,18 @@ for (const cut of cuts) {
 	if (!base) throw new Error(`unknown source ${cut.source}`)
 	const input = cut.file ? join(base, cut.file) : base
 	const group = cut.out.replace(/-\d+$/, '')
-	const fade = cut.loop ? 0.05 : Math.min(0.25, cut.duration / 3)
+	// gunshots keep their whole tail and fade over its last part; other cuts fade quickly
+	const fade = cut.loop
+		? 0.05
+		: /^(pistol|smg|rifle|shotgun|sniper)/.test(group)
+			? cut.duration * 0.45
+			: Math.min(0.25, cut.duration / 3)
 	const filters = [
 		`atrim=start=${cut.start}:duration=${cut.duration}`,
 		'asetpts=PTS-STARTPTS',
 		`aformat=channel_layouts=${cut.stereo ? 'stereo' : 'mono'}`,
 		// rumble below what speakers play goes, except where the low end is the point
-		`highpass=f=${/^(explosion|thump|thud|stinger)/.test(group) ? 25 : 50}`,
+		`highpass=f=${/^(explosion|thump|thud|stinger|pistol|smg|rifle|shotgun|mg|sniper)/.test(group) ? 25 : 50}`,
 		// the field recordings carry steady background noise
 		...(cut.denoise === false ? [] : ['afftdn=nf=-28']),
 		'afade=t=in:d=0.004',

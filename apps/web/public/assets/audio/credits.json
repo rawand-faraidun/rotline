@@ -19,78 +19,6 @@
 			"licence": "CC0 1.0"
 		},
 		{
-			"name": "Gamemaster Audio -  Gun Sound Pack",
-			"author": "Gamemaster Audio",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Audiobeast - The London Warehouse Firearms Library",
-			"author": "Audiobeast",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Coll Anderson - Guns",
-			"author": "Coll Anderson",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Gamemaster Audio -  Gun Sound Pack",
-			"author": "Gamemaster Audio",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Watson Wu - Battle Rifles & Pistols",
-			"author": "Watson Wu",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Audiobeast - The London Warehouse Firearms Library",
-			"author": "Audiobeast",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Coll Anderson - Guns",
-			"author": "Coll Anderson",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Fascinated Sound - The Gun Locker SFX Pack",
-			"author": "Fascinated Sound",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "TS Sound - 12 Gauge Shotgun",
-			"author": "TS Sound",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Audiobeast - The London Warehouse Firearms Library",
-			"author": "Audiobeast",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Gamemaster Audio -  Gun Sound Pack",
-			"author": "Gamemaster Audio",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
-			"name": "Fascinated Sound - The Gun Locker SFX Pack",
-			"author": "Fascinated Sound",
-			"page": "https://sonniss.com/gameaudiogdc",
-			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
-		},
-		{
 			"name": "Gamemaster Audio - Guns, Bullets and Explosions",
 			"author": "Gamemaster Audio",
 			"page": "https://sonniss.com/gameaudiogdc",
@@ -467,6 +395,96 @@
 			"author": "The Sound Keeper",
 			"page": "https://sonniss.com/gameaudiogdc",
 			"licence": "Sonniss GDC Game Audio Bundle licence (royalty-free; no attribution required)"
+		},
+		{
+			"name": "Glock 19X",
+			"author": "areniporgen",
+			"page": "https://freesound.org/people/areniporgen/sounds/828786/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Desert Eagle .50AE shot",
+			"author": "vabadus",
+			"page": "https://freesound.org/people/vabadus/sounds/151071/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Colt 1911",
+			"author": "areniporgen",
+			"page": "https://freesound.org/people/areniporgen/sounds/740897/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Heckler & Koch USP45",
+			"author": "areniporgen",
+			"page": "https://freesound.org/people/areniporgen/sounds/734062/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Uzi single shots",
+			"author": "ermfilm",
+			"page": "https://freesound.org/people/ermfilm/sounds/162435/",
+			"licence": "CC BY 4.0"
+		},
+		{
+			"name": "Colt SMG - Firing, Handling",
+			"author": "hyperix6",
+			"page": "https://freesound.org/people/hyperix6/sounds/676588/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Colt M4A1 SOCOM",
+			"author": "areniporgen",
+			"page": "https://freesound.org/people/areniporgen/sounds/737569/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "AR15 rifle shot",
+			"author": "michorvath",
+			"page": "https://freesound.org/people/michorvath/sounds/427596/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Izhmash Saiga MK Ver. 030",
+			"author": "areniporgen",
+			"page": "https://freesound.org/people/areniporgen/sounds/698984/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Remington 870",
+			"author": "areniporgen",
+			"page": "https://freesound.org/people/areniporgen/sounds/702672/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Mossberg 500A - 1 shot and pump",
+			"author": "AnthonyChan0",
+			"page": "https://freesound.org/people/AnthonyChan0/sounds/159710/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Shotgun Shot/Blast (Outdoors/Close)",
+			"author": "EvanBoyerman",
+			"page": "https://freesound.org/people/EvanBoyerman/sounds/416280/",
+			"licence": "CC BY-NC 3.0"
+		},
+		{
+			"name": "m240",
+			"author": "Matt_G",
+			"page": "https://freesound.org/people/Matt_G/sounds/30749/",
+			"licence": "CC Sampling+"
+		},
+		{
+			"name": "barrett_fire",
+			"author": "db465",
+			"page": "https://freesound.org/people/db465/sounds/865990/",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "308_rifle_02",
+			"author": "gezortenplotz",
+			"page": "https://freesound.org/people/gezortenplotz/sounds/43756/",
+			"licence": "CC BY 3.0"
 		}
 	]
 }

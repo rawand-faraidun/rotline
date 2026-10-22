@@ -15,6 +15,7 @@
 					pistol: params.get('pistol') === '1',
 					classId: params.get('class') ?? 'assault',
 					aim: Number(params.get('aim') ?? '0'),
+					relaxed: params.get('relaxed') === '1',
 					...(params.get('only') ? { only: params.get('only') as string } : {})
 				})
 			}

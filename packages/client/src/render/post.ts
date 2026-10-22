@@ -48,17 +48,29 @@ const GRADE = {
 	`
 }
 
+/**
+ * Glows, sprites and other see-through effects live on this layer: the main camera draws them, but
+ * the ambient-occlusion pass does not (it would draw each sprite's square into its depth and normals
+ * and shade a dark box around every muzzle flash).
+ */
+export const EFFECTS_LAYER = 1
+
 export class PostProcessing {
 	private readonly composer: EffectComposer
 	private readonly ao: GTAOPass
 	private readonly bloom: UnrealBloomPass
 	private readonly grade: ShaderPass
+	private readonly camera: THREE.Camera
+	private readonly aoCamera: THREE.Camera
 
 	constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
 		const size = renderer.getSize(new THREE.Vector2())
 		this.composer = new EffectComposer(renderer)
+		this.camera = camera
+		camera.layers.enable(EFFECTS_LAYER)
+		this.aoCamera = camera.clone()
 		this.composer.addPass(new RenderPass(scene, camera))
-		this.ao = new GTAOPass(scene, camera, size.x, size.y)
+		this.ao = new GTAOPass(scene, this.aoCamera, size.x, size.y)
 		this.ao.blendIntensity = 0.85
 		this.ao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.4, thickness: 1.2, scale: 1, samples: 12 })
 		this.composer.addPass(this.ao)
@@ -76,6 +88,9 @@ export class PostProcessing {
 
 	render(timeSeconds: number): void {
 		;(this.grade.uniforms.time as { value: number }).value = timeSeconds % 100
+		// the occlusion camera follows the main one but leaves the effects out
+		this.aoCamera.copy(this.camera as THREE.PerspectiveCamera)
+		this.aoCamera.layers.disable(EFFECTS_LAYER)
 		this.composer.render()
 	}
 

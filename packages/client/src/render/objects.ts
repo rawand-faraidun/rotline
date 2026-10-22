@@ -2,6 +2,7 @@ import { buffs } from '@rotline/game-data'
 import type { ObjectState } from '@rotline/protocol'
 import { ObjectKind } from '@rotline/sim'
 import * as THREE from 'three'
+import { EFFECTS_LAYER } from './post.ts'
 
 type Drawn = { root: THREE.Object3D; kind: number; pulse: THREE.Mesh | null }
 
@@ -195,6 +196,7 @@ export class DamageNumbers {
 			canvas.height = 40
 			const texture = new THREE.CanvasTexture(canvas)
 			const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }))
+			sprite.layers.set(EFFECTS_LAYER)
 			sprite.scale.set(1.6, 0.66, 1)
 			sprite.visible = false
 			scene.add(sprite)
