@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ARMOUR_PIECES, items, weapons } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearch } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
 import { salvage } from '../../lib/describe.ts'
 import { itemStatRows } from '../../lib/item-stats.ts'
@@ -21,7 +22,8 @@ export function ShopScreen() {
 	const queryClient = useQueryClient()
 	const [confirming, setConfirming] = useState<string | null>(null)
 	const [problem, setProblem] = useState<ProgressProblem | null>(null)
-	const [tab, setTab] = useState<Tab>('weapons')
+	const opened = useSearch({ strict: false }) as { tab?: Tab }
+	const [tab, setTab] = useState<Tab>(opened.tab ?? 'weapons')
 	const view = progress.data
 	if (!view) return <GameShell>{null}</GameShell>
 	const owned = new Set(view.inventory.map(entry => entry.itemId))

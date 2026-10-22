@@ -4,14 +4,16 @@ import type { AvatarStyle } from '@rotline/constants'
 import { difficulties, missionById, SURVIVAL } from '@rotline/game-data'
 import { AvatarFrame, Badge, Button, cn, Input, Label, Panel } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
 import { useAvatar } from '../../lib/avatar.ts'
+import { salvage } from '../../lib/describe.ts'
 import { type PartyMember, type PartyProblem, type PartyView, partyActions, partyQuery } from '../../lib/party.ts'
 import { progressQuery } from '../../lib/progress.ts'
 import { meQuery } from '../app.tsx'
 import { AdminPanel } from './admin-panel.tsx'
-import { glass, LoadoutSummary } from './class-panel.tsx'
+import { itemPicture } from './character-stage.tsx'
+import { glass } from './class-panel.tsx'
 import { FriendsPanel } from './friends-panel.tsx'
 import { GameShell } from './game-shell.tsx'
 import { pane, panes } from './layout.ts'
@@ -23,6 +25,97 @@ const t = en.app.lobby
 
 /** what other squad members hold in the scene (their loadout is theirs to know) */
 const CLASS_WEAPON: Record<string, string> = { assault: 'k-71', medic: 'vex-9', heavy: 'mower' }
+
+const pictureOf = (id: string | null | undefined) => (id ? itemPicture(id) : null)
+
+/** Simple line drawings for the hub tiles that have no item to show. */
+const GLYPHS = {
+	grenade: 'M9 3h6v3H9zM8 6h8l1 3a7 7 0 1 1-10 0z M12 11v6 M9 14h6',
+	skills: 'M12 2l2.6 6.5L21 9l-5 4.4L17.4 20 12 16.6 6.6 20 8 13.4 3 9l6.4-.5z',
+	shop: 'M4 7h16l-1.5 12h-13zM9 7a3 3 0 0 1 6 0',
+	profile: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0'
+} as const
+
+/** A hub tile: a picture of the thing (or a glyph) over its name, leading to its screen. */
+function HubTile({
+	to,
+	tab,
+	label,
+	picture,
+	glyph
+}: {
+	to: '/play/armory' | '/play/skills' | '/play/shop' | '/play/profile'
+	tab?: 'weapons' | 'armour' | 'equipment'
+	label: string
+	picture?: string | null
+	glyph?: keyof typeof GLYPHS
+}) {
+	return (
+		<li className="flex">
+			<Link
+				to={to}
+				search={tab ? { tab } : {}}
+				className={cn(
+					'frame cut group flex aspect-square w-full flex-col items-center justify-center gap-2 p-3 hover:[--frame-color:var(--color-rot-lime)]',
+					glass
+				)}
+			>
+				{picture ? (
+					<img src={picture} alt="" width={160} height={90} className="h-16 w-full object-contain" />
+				) : glyph ? (
+					<svg
+						viewBox="0 0 24 24"
+						className="size-12 text-bone/80 group-hover:text-rot-lime"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth={1.5}
+						strokeLinejoin="round"
+						aria-hidden="true"
+					>
+						<path d={GLYPHS[glyph]} />
+					</svg>
+				) : null}
+				<span className="font-bold text-sm uppercase tracking-[0.18em] group-hover:text-rot-lime">{label}</span>
+			</Link>
+		</li>
+	)
+}
+
+/** The player's card: who they are, the class they go out as and how far into its next level, and Salvage. */
+function PlayerCard() {
+	const { data: me } = useSuspenseQuery(meQuery)
+	const progress = useQuery(progressQuery)
+	const player = me.status === 'signed-in' ? me.player : null
+	const avatar = useAvatar((player?.avatarStyle ?? 'pixel-art') as AvatarStyle, player?.avatarSeed ?? '')
+	const view = progress.data
+	if (!player || !view) return null
+	const cls = view.classes[view.activeClass]
+	const share = cls.next ? cls.into / cls.next : 1
+	return (
+		<section
+			aria-label={player.name}
+			className={cn(
+				'frame cut flex w-full max-w-lg items-center gap-4 p-3 [--frame-color:var(--color-rot-lime)]',
+				glass
+			)}
+		>
+			<AvatarFrame src={avatar} alt="" size={64} />
+			<span className="flex min-w-0 flex-1 flex-col gap-1">
+				<span className="truncate font-display text-2xl uppercase">{player.name}</span>
+				<span className="flex items-baseline justify-between gap-2 text-sm">
+					<span className="font-bold text-rot-lime uppercase tracking-[0.12em]">
+						{en.app.progression.classes[view.activeClass].name} ·{' '}
+						{format(en.app.progression.level, { level: String(cls.level) })}
+					</span>
+					<span className="text-muted tabular-nums">{salvage(view.salvage)}</span>
+				</span>
+				<span className="h-1.5 w-full bg-rot-black" aria-hidden="true">
+					<span className="block h-full bg-rot-lime" style={{ width: `${Math.round(share * 100)}%` }} />
+				</span>
+			</span>
+		</section>
+	)
+}
 
 function MemberRow({
 	member,
@@ -202,13 +295,90 @@ export function LobbyScreen() {
 	return (
 		<GameShell backdrop={<LobbyBackdrop members={members} />}>
 			<h1 className="sr-only">{t.title}</h1>
+			{/* the hub, as in the games it takes after: kit on the left, where to go in the middle with
+			    the player's card under it, the squad and the way out on the right */}
 			<div
 				className={cn(
 					panes,
-					'lg:grid-cols-[minmax(17rem,21rem)_minmax(0,1fr)_minmax(20rem,25rem)] lg:grid-rows-[minmax(0,1fr)]'
+					'lg:grid-cols-[minmax(15rem,19rem)_minmax(0,1fr)_minmax(19rem,23rem)] lg:grid-rows-[minmax(0,1fr)]'
 				)}
 			>
-				{/* left: the squad and the way in for others, or friends */}
+				{/* left: the kit */}
+				<nav aria-label={t.kitTitle} className={cn(pane, 'justify-center')}>
+					<ul className="grid grid-cols-2 gap-2">
+						<HubTile
+							to="/play/armory"
+							tab="weapons"
+							label={t.tiles.weapons}
+							picture={pictureOf(progress.data?.loadout.main1)}
+						/>
+						<HubTile
+							to="/play/armory"
+							tab="armour"
+							label={t.tiles.armour}
+							picture={pictureOf(progress.data?.loadout.armourVest ?? progress.data?.loadout.armourHead)}
+						/>
+						<HubTile to="/play/armory" tab="equipment" label={t.tiles.equipment} glyph="grenade" />
+						<HubTile to="/play/skills" label={t.tiles.skills} glyph="skills" />
+						<HubTile to="/play/shop" label={t.tiles.shop} glyph="shop" />
+						<HubTile to="/play/profile" label={t.tiles.profile} glyph="profile" />
+					</ul>
+				</nav>
+
+				{/* middle: where to go, then the player's card */}
+				<div className="no-scrollbar flex min-h-0 flex-col items-center justify-between gap-4 lg:overflow-y-auto">
+					<div className="flex w-full max-w-lg flex-col gap-3 pt-2">
+						{view && (
+							// the campaign: what the squad is about to play; it opens the mission picker
+							<button
+								type="button"
+								onClick={() => setPicking(true)}
+								className={cn(
+									'frame cut flex shrink-0 flex-col gap-1 p-5 text-left [--frame-color:var(--color-rot-lime)] hover:[--frame-color:var(--color-bone)]',
+									glass
+								)}
+							>
+								<span className="flex items-center justify-between gap-2">
+									<span className="text-muted text-xs uppercase tracking-[0.2em]">{en.app.missions.title}</span>
+									<span className="font-bold text-rot-lime text-xs uppercase tracking-[0.2em]">
+										{isLeader && view.state === 'lobby' ? t.changeMission : t.seeMission}
+									</span>
+								</span>
+								<span className="font-display text-4xl uppercase">{missionName}</span>
+								<span className="text-muted text-sm">
+									{view.mission.id === SURVIVAL
+										? en.app.missions.endless
+										: `${difficultyName} · ${missionById(view.mission.id)?.description ?? ''}`}
+								</span>
+							</button>
+						)}
+						<div className="grid grid-cols-2 gap-3">
+							<button
+								type="button"
+								disabled={!view || !isLeader || view.state !== 'lobby' || view.mission.id === SURVIVAL}
+								onClick={() => void act(() => partyActions.mission(SURVIVAL, view?.mission.difficulty ?? 'veteran'))}
+								className={cn(
+									'frame cut flex flex-col gap-1 p-4 text-left disabled:cursor-default hover:[--frame-color:var(--color-bone)]',
+									glass,
+									view?.mission.id === SURVIVAL && '[--frame-color:var(--color-rot-lime)]'
+								)}
+							>
+								<span className="font-display text-2xl uppercase">{en.app.missions.survival}</span>
+								<span className="text-muted text-xs">{t.survivalHint}</span>
+							</button>
+							<Link
+								to="/play/range"
+								className={cn('frame cut flex flex-col gap-1 p-4 hover:[--frame-color:var(--color-bone)]', glass)}
+							>
+								<span className="font-display text-2xl uppercase">{en.app.range.title}</span>
+								<span className="text-muted text-xs">{t.rangeHint}</span>
+							</Link>
+						</div>
+					</div>
+					<PlayerCard />
+				</div>
+
+				{/* right: the squad and the way in for others, or friends */}
 				<div className={pane}>
 					<div className="flex shrink-0 gap-1" role="tablist" aria-label={t.sideTabs}>
 						{(['squad', 'friends'] as const).map(tab => (
@@ -303,40 +473,7 @@ export function LobbyScreen() {
 						<FriendsPanel squad={view?.members.map(member => member.id) ?? []} />
 					)}
 					{player.isAdmin && <AdminPanel />}
-				</div>
-
-				{/* middle: the squad stands in the scene; the class and kit sit at their feet (changed in the armory) */}
-				<div className="flex min-h-0 flex-col justify-end gap-3 max-lg:min-h-[60dvh]">
-					<LoadoutSummary />
-				</div>
-
-				{/* right: where to go, and going */}
-				<div className={cn(pane, 'lg:overflow-hidden')}>
 					<div className="flex-1" />
-					{view && (
-						// the mode card: what the squad is about to play; it opens the mission picker
-						<button
-							type="button"
-							onClick={() => setPicking(true)}
-							className={cn(
-								'frame cut flex shrink-0 flex-col gap-1 p-4 text-left hover:[--frame-color:var(--color-bone)]',
-								glass
-							)}
-						>
-							<span className="flex items-center justify-between gap-2">
-								<span className="text-muted text-xs uppercase tracking-[0.2em]">{en.app.missions.title}</span>
-								<span className="font-bold text-rot-lime text-xs uppercase tracking-[0.2em]">
-									{isLeader && view.state === 'lobby' ? t.changeMission : t.seeMission}
-								</span>
-							</span>
-							<span className="font-display text-3xl uppercase">{missionName}</span>
-							<span className="text-muted text-sm">
-								{view.mission.id === SURVIVAL
-									? en.app.missions.endless
-									: `${difficultyName} · ${missionById(view.mission.id)?.description ?? ''}`}
-							</span>
-						</button>
-					)}
 					{deployBar}
 				</div>
 			</div>

@@ -13,6 +13,7 @@ import {
 } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearch } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
 import { salvage } from '../../lib/describe.ts'
 import { itemStatRows } from '../../lib/item-stats.ts'
@@ -272,7 +273,8 @@ export function ArmoryScreen() {
 	const progress = useQuery(progressQuery)
 	const ledger = useQuery({ ...ledgerQuery, enabled: progress.isSuccess })
 	const queryClient = useQueryClient()
-	const [tab, setTab] = useState<Tab>('weapons')
+	const opened = useSearch({ strict: false }) as { tab?: Tab }
+	const [tab, setTab] = useState<Tab>(opened.tab ?? 'weapons')
 	const [selected, setSelected] = useState<string | null>(null)
 	const [problem, setProblem] = useState<Refusal | null>(null)
 	const view = progress.data

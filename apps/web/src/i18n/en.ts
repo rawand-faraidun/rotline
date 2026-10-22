@@ -460,6 +460,17 @@ export const en = {
 		},
 		lobby: {
 			title: 'Lobby',
+			kitTitle: 'Your kit',
+			tiles: {
+				weapons: 'Weapons',
+				armour: 'Armour',
+				equipment: 'Equipment',
+				skills: 'Skills',
+				shop: 'Shop',
+				profile: 'Profile'
+			},
+			survivalHint: 'Endless rounds. How long can you last?',
+			rangeHint: 'Try your guns on targets and zombies.',
 			squad: 'Squad',
 			class: 'Class',
 			salvage: 'Salvage',

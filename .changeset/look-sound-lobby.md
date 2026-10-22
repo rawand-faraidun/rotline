@@ -51,3 +51,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - The mission picker keeps its Done button in view.
 - A generator you start shows it running up: an amber light and a bar filling over it, then green and a hum when it is on; Landfall's checkpoint hold is shorter.
 - New soldier for every class: a fully kitted operator (helmet, balaclava, glasses, gloves, plate carrier with pouches) that moves cleanly, with no stretched clothing; classes differ by their kit.
+- The lobby is a hub like the games it takes after: kit tiles (weapons, armour, equipment, skills, shop, profile) down the left, the mission, Survival and the firing range in the middle over your player card, and the squad with Deploy on the right; tiles open the armory and shop on the right tab.
