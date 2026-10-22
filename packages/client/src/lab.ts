@@ -7,7 +7,16 @@ import { PlayerFigure } from './render/players.ts'
  */
 export function mountLab(
 	canvas: HTMLCanvasElement,
-	options: { weapon: string; pistol: boolean; classId: string; aim: number; only?: string; relaxed?: boolean }
+	options: {
+		weapon: string
+		pistol: boolean
+		classId: string
+		aim: number
+		only?: string
+		relaxed?: boolean
+		/** how far the front and side cameras stand (metres) */
+		distance?: number
+	}
 ) {
 	const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true })
 	renderer.setPixelRatio(1)
@@ -26,7 +35,8 @@ export function mountLab(
 	figure.setWeapon(options.weapon, options.pistol)
 	figure.setRelaxed(options.relaxed ?? false)
 	scene.add(figure.group)
-	;(window as unknown as { labScene: THREE.Scene }).labScene = scene
+	;(window as unknown as { labScene: THREE.Scene; labFigure: PlayerFigure }).labScene = scene
+	;(window as unknown as { labFigure: PlayerFigure }).labFigure = figure
 	const top = new THREE.PerspectiveCamera(38, 1, 0.5, 100)
 	top.position.set(0, 19, 6)
 	top.lookAt(0, 0, 0)
@@ -46,10 +56,12 @@ export function mountLab(
 		// the front camera stands where the gun points, the side camera off the right shoulder
 		const dx = Math.cos(options.aim)
 		const dz = Math.sin(options.aim)
-		front.position.set(dx * 3.2, 1.3, dz * 3.2)
-		front.lookAt(0, 1.1, 0)
-		side.position.set(-dz * 3.2, 1.4, dx * 3.2)
-		side.lookAt(0, 1.1, 0)
+		const distance = options.distance ?? 3.2
+		const height = distance < 2 ? 1.3 : 1.1
+		front.position.set(dx * distance, height + 0.2, dz * distance)
+		front.lookAt(dx * 0.3, height, dz * 0.3)
+		side.position.set(-dz * distance, height + 0.3, dx * distance)
+		side.lookAt(dx * 0.3, height, dz * 0.3)
 		const width = canvas.width / 3
 		const views: [THREE.PerspectiveCamera, number][] = [
 			[top, 0],

@@ -1,5 +1,5 @@
 import { ARMOUR_PIECES, type ArmourPiece, gear } from '@rotline/game-data'
-import type * as THREE from 'three'
+import * as THREE from 'three'
 
 /** One worn piece: which model in soldier.glb, and the colour its paint is multiplied by. */
 export type Piece = { id: string; tint?: number }
@@ -27,10 +27,10 @@ const CLOTHES: readonly ArmourPiece[] = ['torso', 'legs', 'feet']
 /** what shows where nothing is worn: plain clothes (a soldier is never drawn bare) */
 const UNDERNEATH: Record<ArmourPiece, Piece | null> = {
 	head: null,
-	torso: { id: 'body-ubacs', tint: 0xb8b4a8 },
+	torso: { id: 'body-ubacs', tint: 0x6e6a60 },
 	vest: null,
-	legs: { id: 'legs-combat', tint: 0xb0b0a8 },
-	feet: { id: 'feet-boots', tint: 0x9a9690 }
+	legs: { id: 'legs-combat', tint: 0x55534c },
+	feet: { id: 'feet-boots', tint: 0x3a3632 }
 }
 
 /** the pack each class carries (survivors carry nothing) */
@@ -104,7 +104,52 @@ export function wear(model: THREE.Object3D, outfit: Outfit): void {
 			}
 			const paint = original.clone()
 			paint.color.setHex(piece.tint)
+			// the kit's own paint is dark olive, which hides any colour put over it: dye a pale copy instead
+			if (original.map) paint.map = undyed(original.map)
 			mesh.material = paint
 		})
 	})
+}
+
+const pale = new WeakMap<THREE.Texture, THREE.Texture>()
+
+/**
+ * A grey copy of a cloth texture, brightened to a mid tone, so a tint gives the cloth that colour
+ * while the folds, seams and wear stay (made once per texture).
+ */
+function undyed(texture: THREE.Texture): THREE.Texture {
+	const known = pale.get(texture)
+	if (known) return known
+	const image = texture.image as CanvasImageSource & { width: number; height: number }
+	if (!image?.width) return texture
+	const canvas = document.createElement('canvas')
+	canvas.width = image.width
+	canvas.height = image.height
+	const ctx = canvas.getContext('2d', { willReadFrequently: true })
+	if (!ctx) return texture
+	ctx.drawImage(image, 0, 0)
+	const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height)
+	const data = pixels.data
+	let sum = 0
+	for (let i = 0; i < data.length; i += 4)
+		sum += 0.3 * (data[i] as number) + 0.59 * (data[i + 1] as number) + 0.11 * (data[i + 2] as number)
+	// the average brought up to a light grey, the contrast kept
+	const gain = 175 / Math.max(1, sum / (data.length / 4))
+	for (let i = 0; i < data.length; i += 4) {
+		const grey = Math.min(
+			255,
+			(0.3 * (data[i] as number) + 0.59 * (data[i + 1] as number) + 0.11 * (data[i + 2] as number)) * gain
+		)
+		data[i] = data[i + 1] = data[i + 2] = grey
+	}
+	ctx.putImageData(pixels, 0, 0)
+	const copy = new THREE.CanvasTexture(canvas)
+	copy.colorSpace = texture.colorSpace
+	copy.flipY = texture.flipY
+	copy.wrapS = texture.wrapS
+	copy.wrapT = texture.wrapT
+	copy.channel = texture.channel
+	copy.anisotropy = texture.anisotropy
+	pale.set(texture, copy)
+	return copy
 }

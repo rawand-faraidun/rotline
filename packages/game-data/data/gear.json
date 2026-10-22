@@ -83,7 +83,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "body-ubacs",
-				"tint": "#c8b48e"
+				"tint": "#b39467"
 			}
 		},
 		{
@@ -101,7 +101,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "body-ubacs",
-				"tint": "#f4e070"
+				"tint": "#e2c02c"
 			}
 		},
 		{
@@ -184,7 +184,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "legs-combat",
-				"tint": "#b4b4ae"
+				"tint": "#a39577"
 			}
 		},
 		{
@@ -198,7 +198,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "legs-combat",
-				"tint": "#8c8c94"
+				"tint": "#5f6878"
 			}
 		},
 		{
@@ -225,7 +225,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "feet-boots",
-				"tint": "#d2b896"
+				"tint": "#9c7f58"
 			}
 		},
 		{
@@ -241,7 +241,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "feet-boots",
-				"tint": "#8a8a8a"
+				"tint": "#353535"
 			}
 		}
 	],

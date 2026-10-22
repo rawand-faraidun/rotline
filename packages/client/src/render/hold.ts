@@ -66,6 +66,7 @@ function swing(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3): vo
 
 /** Two-bone IK: the hand reaches `target`, the elbow bends toward `pole`. */
 function reach(arm: Arm, target: THREE.Vector3, pole: THREE.Vector3): void {
+	shrug(arm, target)
 	const a = arm.upper.getWorldPosition(v[0] as THREE.Vector3)
 	const b = arm.lower.getWorldPosition(v[1] as THREE.Vector3)
 	const c = arm.hand.getWorldPosition(v[2] as THREE.Vector3)
@@ -84,6 +85,33 @@ function reach(arm: Arm, target: THREE.Vector3, pole: THREE.Vector3): void {
 	const bNow = arm.lower.getWorldPosition(v[1] as THREE.Vector3)
 	const cNow = arm.hand.getWorldPosition(v[2] as THREE.Vector3)
 	swing(arm.lower, (v[7] as THREE.Vector3).subVectors(cNow, bNow), (v[8] as THREE.Vector3).subVectors(target, bNow))
+}
+
+/**
+ * When the hand cannot reach `target` with the arm alone, the shoulder comes forward to it (the
+ * collarbone turns toward it, as far as a real shoulder goes).
+ */
+function shrug(arm: Arm, target: THREE.Vector3): void {
+	const base = arm.clavicle.getWorldPosition(v[0] as THREE.Vector3)
+	const shoulder = arm.upper.getWorldPosition(v[1] as THREE.Vector3)
+	const length =
+		shoulder.distanceTo(arm.lower.getWorldPosition(v[2] as THREE.Vector3)) +
+		arm.lower.getWorldPosition(v[2] as THREE.Vector3).distanceTo(arm.hand.getWorldPosition(v[3] as THREE.Vector3))
+	const short = shoulder.distanceTo(target) - length * 0.97
+	if (short <= 0) return
+	const collar = shoulder.distanceTo(base)
+	// the shoulder moved toward the target by what is missing, kept on the collarbone's circle
+	const wanted = (v[4] as THREE.Vector3)
+		.subVectors(target, shoulder)
+		.setLength(Math.min(short, collar * 0.6))
+		.add(shoulder)
+		.sub(base)
+	const from = (v[5] as THREE.Vector3).subVectors(shoulder, base)
+	q.setFromUnitVectors(from.normalize(), wanted.normalize())
+	// no more than about 30 degrees
+	const angle = 2 * Math.acos(Math.min(1, Math.abs(q.w)))
+	if (angle > 0.52) q.slerp(new THREE.Quaternion(), 1 - 0.52 / angle)
+	turnWorld(arm.clavicle, q)
 }
 
 /**
@@ -150,9 +178,39 @@ function faceChest(rig: Rig, direction: THREE.Vector3): void {
 }
 
 /**
+ * Where each gun is held, read off its side view: the right hand's grip and the left hand's place,
+ * as [along, up]: tenths of the gun's length from its rear, and twentieths of its length above the
+ * middle of its height (the model is centred on its bounding box).
+ */
+const HOLD_POINTS: Record<string, { grip: [number, number]; fore: [number, number]; hip?: boolean }> = {
+	'p9-service': { grip: [2.5, -2], fore: [2.5, -2] },
+	'halcyon-45': { grip: [2, -2], fore: [2, -2] },
+	'vex-9': { grip: [4, -1], fore: [8.3, -1.6] },
+	'k-71': { grip: [3, -1.3], fore: [5.8, 0.2] },
+	'breacher-12': { grip: [2.7, -1.3], fore: [5.5, 0] },
+	mower: { grip: [2.6, -1.6], fore: [5.2, -0.4] },
+	longstride: { grip: [2.3, -0.5], fore: [5, -0.4] },
+	kiln: { grip: [3.4, -2], fore: [5.5, 0] },
+	thumper: { grip: [4.9, -2], fore: [8.3, -1.5] },
+	arclight: { grip: [5, -1.5], fore: [7.6, -1.8] },
+	viper: { grip: [3, -1.6], fore: [6, 0] },
+	// too heavy to shoulder: carried at the hip
+	minigun: { grip: [0.7, 0.2], fore: [4.3, 2.5], hip: true }
+}
+const DEFAULT_POINTS: { grip: [number, number]; fore: [number, number]; hip?: boolean } = {
+	grip: [3, -1.2],
+	fore: [6, -0.2]
+}
+/** A hold point in the gun's own frame (metres from its centre: along the barrel, up). */
+function holdPoint(point: [number, number], length: number): [number, number] {
+	return [(point[0] / 10 - 0.5) * length, (point[1] * length) / 20]
+}
+
+/**
  * Puts the gun (its length along local +X, centred) and both hands where they belong for `hold`,
- * aiming along `aim` (world angle: x = cos, z = sin). Returns nothing; the weapon's position and
- * rotation are written in its parent's frame.
+ * aiming along `aim` (world angle: x = cos, z = sin): the gun is placed first, then each hand is
+ * brought to its place on that gun (the wrist a little back from the palm), turned to wrap it, and
+ * the fingers closed. The weapon's position and rotation are written in its parent's frame.
  */
 export function holdGun(
 	rig: Rig,
@@ -161,7 +219,7 @@ export function holdGun(
 	aim: number,
 	hold: Hold,
 	/** 0..1: the gun just fired (pushed back, muzzle up); 0..1: how far into a reload (gun tipped, hand at the magazine) */
-	motion: { kick?: number; reload?: number } = {}
+	motion: { kick?: number; reload?: number; weaponId?: string } = {}
 ): void {
 	const kick = motion.kick ?? 0
 	const reloading = motion.reload ?? 0
@@ -169,113 +227,82 @@ export function holdGun(
 	const tip = reloading > 0 ? Math.sin(Math.min(1, reloading) * Math.PI) : 0
 	const d = (v[10] as THREE.Vector3).set(Math.cos(aim), 0, Math.sin(aim))
 	const right = (v[11] as THREE.Vector3).set(-d.z, 0, d.x)
+	const points = HOLD_POINTS[motion.weaponId ?? ''] ?? DEFAULT_POINTS
+	const pistol = hold === 'pistol'
+	// the chest: square at ease and with a pistol, bladed for a long gun
+	// (turned to the right of the aim, so the left shoulder comes forward toward the handguard)
+	faceChest(rig, hold === 'rifle' ? d.clone().applyAxisAngle(UP, -0.5) : d)
+	const shoulderR = rig.right.upper.getWorldPosition(new THREE.Vector3())
+	const shoulderL = rig.left.upper.getWorldPosition(new THREE.Vector3())
+	const chest = new THREE.Vector3().addVectors(shoulderR, shoulderL).multiplyScalar(0.5)
+	// the gun's axis and its up
+	let g: THREE.Vector3
 	if (hold === 'low') {
-		// at ease (low ready): square to the front, stock at the right of the chest, the muzzle down and
-		// across the body to the front left, both hands on the gun
-		faceChest(rig, d)
-		const shoulderR = rig.right.upper.getWorldPosition(new THREE.Vector3())
-		const shoulderL = rig.left.upper.getWorldPosition(new THREE.Vector3())
-		const g = new THREE.Vector3()
+		g = new THREE.Vector3()
 			.addScaledVector(d, 0.62)
 			.addScaledVector(right, -0.42)
 			.addScaledVector(UP, -0.66)
 			.normalize()
-		const gunUp = UP.clone().addScaledVector(g, -UP.dot(g)).normalize()
-		const side = new THREE.Vector3().crossVectors(g, gunUp)
-		const stock = shoulderR.clone().addScaledVector(d, 0.12).addScaledVector(UP, -0.12).addScaledVector(right, -0.05)
-		const centre = stock.clone().addScaledVector(g, length / 2)
-		weapon.position.copy(weapon.parent ? weapon.parent.worldToLocal(centre) : centre)
-		weapon.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(g, gunUp, side))
-		const gripAt = stock
-			.clone()
-			.addScaledVector(g, length * 0.3)
-			.addScaledVector(gunUp, -0.06)
-		const foreAt = stock
-			.clone()
-			.addScaledVector(g, Math.min(0.6, length * 0.62))
-			.addScaledVector(gunUp, -0.04)
-		reach(rig.right, gripAt, shoulderR.clone().addScaledVector(right, 0.45).addScaledVector(UP, -0.6))
-		reach(
-			rig.left,
-			foreAt,
-			shoulderL.clone().addScaledVector(right, -0.25).addScaledVector(UP, -0.7).addScaledVector(d, 0.1)
-		)
-		orientHand(rig.right, new THREE.Vector3().addScaledVector(side, -0.75).addScaledVector(g, 0.55), gunUp)
-		orientHand(rig.left, new THREE.Vector3().addScaledVector(side, 0.8).addScaledVector(gunUp, 0.35), g)
-		grip(rig.right, 0.95, 1)
-		grip(rig.left, 0.85, -1)
-		return
-	}
-	// bladed for a rifle (left shoulder toward the target), square for a pistol
-	const blade = hold === 'rifle' ? 0.45 : 0.1
-	const chestTo = new THREE.Vector3().copy(d).applyAxisAngle(UP, blade)
-	faceChest(rig, chestTo)
-	const shoulderR = rig.right.upper.getWorldPosition(new THREE.Vector3())
-	const shoulderL = rig.left.upper.getWorldPosition(new THREE.Vector3())
-	const chest = new THREE.Vector3().addVectors(shoulderR, shoulderL).multiplyScalar(0.5)
-	let stock: THREE.Vector3
-	let gripAt: THREE.Vector3
-	let foreAt: THREE.Vector3
-	if (hold === 'rifle') {
-		// stock in the pocket of the right shoulder, the gun level along the aim at cheek height
-		stock = shoulderR.clone().addScaledVector(d, 0.04).addScaledVector(right, -0.06).addScaledVector(UP, 0.04)
-		gripAt = stock
-			.clone()
-			.addScaledVector(d, length * 0.3)
-			.addScaledVector(UP, -0.07)
-		foreAt = stock
-			.clone()
-			.addScaledVector(d, Math.min(0.62, length * 0.62))
-			.addScaledVector(UP, -0.05)
 	} else {
-		// both arms out, the pistol in front of the face
-		stock = chest.clone().addScaledVector(d, 0.42).addScaledVector(UP, 0.02)
-		gripAt = stock.clone().addScaledVector(UP, -0.05)
-		foreAt = gripAt.clone().addScaledVector(right, -0.04).addScaledVector(UP, -0.02).addScaledVector(d, -0.02)
+		const pitch = kick * 0.08 - tip * 0.45
+		g = d.clone().multiplyScalar(Math.cos(pitch)).addScaledVector(UP, Math.sin(pitch))
 	}
-	// firing pushes everything back a little; a reload brings the gun down off the shoulder
-	stock.addScaledVector(d, -kick * 0.05).addScaledVector(UP, -tip * 0.16)
-	gripAt.addScaledVector(d, -kick * 0.05).addScaledVector(UP, -tip * 0.16)
-	foreAt.addScaledVector(d, -kick * 0.05).addScaledVector(UP, -tip * 0.16)
-	const pitch = kick * 0.08 - tip * 0.45
-	if (tip > 0) {
-		// the support hand goes to the magazine, under the middle of the gun
-		foreAt
-			.copy(stock)
-			.addScaledVector(d, length * 0.4 * Math.cos(tip * 0.45))
-			.addScaledVector(UP, -0.14 - length * 0.15 * tip)
+	const gunUp = UP.clone().addScaledVector(g, -UP.dot(g)).normalize()
+	const side = new THREE.Vector3().crossVectors(g, gunUp)
+	// which point of the gun sits where: a long gun's butt in the shoulder (or at the chest at ease),
+	// a pistol's grip out in front of the face
+	const [gripAlong, gripUp] = holdPoint(points.grip, length)
+	const [foreAlong, foreUp] = holdPoint(points.fore, length)
+	let origin: THREE.Vector3
+	if (pistol) {
+		const hand = chest.clone().addScaledVector(d, 0.44).addScaledVector(UP, -0.02)
+		origin = hand.addScaledVector(g, -gripAlong).addScaledVector(gunUp, -gripUp)
+	} else {
+		const butt =
+			hold === 'rifle' && points.hip
+				? shoulderR.clone().addScaledVector(d, 0.12).addScaledVector(UP, -0.42).addScaledVector(right, -0.02)
+				: hold === 'low'
+					? shoulderR.clone().addScaledVector(d, 0.12).addScaledVector(UP, -0.14).addScaledVector(right, -0.05)
+					: shoulderR.clone().addScaledVector(d, 0.04).addScaledVector(right, -0.07).addScaledVector(UP, -0.02)
+		origin = butt.addScaledVector(g, length / 2)
 	}
-	// the gun: along the aim (pitched by the kick or the reload), its rear at the stock point
-	const reach0 = hold === 'rifle' ? length / 2 : length * 0.35
-	const centre = stock
-		.clone()
-		.addScaledVector(d, reach0 * Math.cos(pitch))
-		.addScaledVector(UP, reach0 * Math.sin(pitch))
-	weapon.position.copy(weapon.parent ? weapon.parent.worldToLocal(centre) : centre)
-	weapon.rotation.set(0, -aim, pitch)
-	// elbows: the right one out and down, the left one under the gun
+	// firing pushes it all back a little; a reload brings it down off the shoulder
+	origin.addScaledVector(d, -kick * 0.05).addScaledVector(UP, -tip * 0.16)
+	weapon.position.copy(weapon.parent ? weapon.parent.worldToLocal(origin.clone()) : origin)
+	weapon.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(g, gunUp, side))
+	const on = (along: number, up: number) => origin.clone().addScaledVector(g, along).addScaledVector(gunUp, up)
+	const gripAt = on(gripAlong, gripUp)
+	let foreAt = pistol
+		? gripAt.clone().addScaledVector(side, -0.035).addScaledVector(gunUp, -0.015)
+		: on(foreAlong, foreUp)
+	// during a reload the support hand goes to the magazine, just ahead of the grip and below
+	if (tip > 0 && !pistol) foreAt = on(gripAlong + length * 0.12, gripUp - length * 0.04 * tip)
+	// how each hand wraps: the right round the grip (fingers across to the left, knuckles up the grip);
+	// the left under the handguard (fingers round its far side, knuckles along it), or cupping the right
+	const rightFingers = new THREE.Vector3().addScaledVector(side, -0.75).addScaledVector(g, 0.45).normalize()
+	const leftFingers = pistol
+		? new THREE.Vector3().addScaledVector(side, 0.85).addScaledVector(g, 0.3).normalize()
+		: new THREE.Vector3().addScaledVector(side, 0.8).addScaledVector(gunUp, 0.4).normalize()
+	// the wrist sits behind the palm: back from the point the hand closes on
+	const rightWrist = gripAt.clone().addScaledVector(rightFingers, -0.055).addScaledVector(side, 0.02)
+	const leftWrist = pistol
+		? foreAt.clone().addScaledVector(leftFingers, -0.05)
+		: foreAt.clone().addScaledVector(leftFingers, -0.05).addScaledVector(gunUp, -0.03)
 	reach(
 		rig.right,
-		gripAt,
+		rightWrist,
 		shoulderR.clone().addScaledVector(right, 0.5).addScaledVector(UP, -0.55).addScaledVector(d, -0.1)
 	)
 	reach(
 		rig.left,
-		foreAt,
+		leftWrist,
 		shoulderL
 			.clone()
-			.addScaledVector(right, hold === 'rifle' ? 0.05 : -0.45)
+			.addScaledVector(right, pistol ? -0.45 : 0.05)
 			.addScaledVector(UP, -0.7)
 	)
-	// the right hand wraps the grip: knuckles up the grip, fingers round its front
-	orientHand(rig.right, new THREE.Vector3().addScaledVector(right, -0.75).addScaledVector(d, 0.55), UP)
-	if (hold === 'rifle') {
-		// the left hand under the handguard, palm up, fingers round its far side
-		orientHand(rig.left, new THREE.Vector3().addScaledVector(right, 0.8).addScaledVector(UP, 0.35), d)
-	} else {
-		// the left hand cups the right
-		orientHand(rig.left, new THREE.Vector3().addScaledVector(right, 0.85).addScaledVector(d, 0.3), UP)
-	}
+	orientHand(rig.right, rightFingers, gunUp)
+	orientHand(rig.left, leftFingers, pistol ? gunUp : g)
 	grip(rig.right, 0.95, 1)
 	grip(rig.left, 0.85, -1)
 }

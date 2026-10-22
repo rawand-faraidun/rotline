@@ -9,7 +9,8 @@
 		"./viewer": "./src/viewer.ts",
 		"./audio": "./src/audio.ts",
 		"./lobby": "./src/lobby.ts",
-		"./lab": "./src/lab.ts"
+		"./lab": "./src/lab.ts",
+		"./fx-lab": "./src/fx-lab.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc",

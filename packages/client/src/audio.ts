@@ -352,6 +352,7 @@ export class AudioEngine {
 			source.buffer = buffer
 			source.playbackRate.value = this.rate(options)
 			source.connect(destination)
+			source.start()
 			return source
 		})
 	}

@@ -53,6 +53,9 @@ test('friends: request, accept, see presence, invite into the squad', async ({ b
 
 test('a full game queues new players and lets them in when a seat frees', async ({ browser }) => {
 	test.skip(!process.env.VALKEY_URL, 'needs VALKEY_URL to set the capacity')
+	// it shrinks the game's capacity for a moment: anyone playing on the same stack would be queued,
+	// so it runs only where asked (CI), never against a local stack someone is playing on
+	test.skip(!process.env.E2E_QUEUE, 'set E2E_QUEUE=1 to run the queue test (it changes the capacity)')
 	const valkey = createValkey(process.env.VALKEY_URL as string, 'rotline-e2e')
 	const seats = new Seats(valkey)
 	const before = await seats.capacity()

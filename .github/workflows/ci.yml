@@ -178,6 +178,7 @@ jobs:
           E2E_STATIC: '1'
           CI: 'true'
           VALKEY_URL: redis://localhost:6379
+          E2E_QUEUE: '1'
       - if: failure()
         run: docker logs api; docker logs queue; docker logs game; docker logs web
       - if: failure()

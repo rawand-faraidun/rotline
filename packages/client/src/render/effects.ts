@@ -1,5 +1,6 @@
 import type { PoolState } from '@rotline/protocol'
 import * as THREE from 'three'
+import { Explosions } from './explosions.ts'
 import { EFFECTS_LAYER } from './post.ts'
 
 const TRACERS = 96
@@ -82,6 +83,9 @@ export class Effects {
 	private readonly flash: THREE.PointLight
 	private readonly flashSprite: THREE.Sprite
 	private flashUntil = 0
+	private flashAt = 0
+	private flashPeak = 0
+	private readonly explosions: Explosions
 	private readonly matrix = new THREE.Matrix4()
 	private readonly quaternion = new THREE.Quaternion()
 	private readonly position = new THREE.Vector3()
@@ -110,6 +114,7 @@ export class Effects {
 
 	constructor(scene: THREE.Scene, gore = true) {
 		this.gore = gore
+		this.explosions = new Explosions(scene)
 		this.tracers = new THREE.InstancedMesh(
 			new THREE.BoxGeometry(0.035, 0.035, 1).translate(0, 0, 0.5),
 			new THREE.MeshBasicMaterial({
@@ -238,8 +243,8 @@ export class Effects {
 			scene.add(sprite)
 		}
 		const shell = new THREE.Mesh(
-			new THREE.SphereGeometry(0.14, 10, 8),
-			new THREE.MeshBasicMaterial({ color: 0xffd36a })
+			new THREE.SphereGeometry(0.1, 10, 8),
+			new THREE.MeshStandardMaterial({ color: 0x3d4232, roughness: 0.6, metalness: 0.3 })
 		)
 		for (let i = 0; i < PROJECTILES; i++) {
 			const mesh = shell.clone()
@@ -285,10 +290,19 @@ export class Effects {
 				;(this.projectiles[slot] as THREE.Mesh).visible = false
 			}
 		}
-		this.burst(x, y, radius, now, 0xffa040)
-		this.flash.position.set(x, 1.5, y)
-		this.flash.intensity = 40
-		this.flashUntil = now + 0.08
+		if (radius <= 0) return
+		this.explosions.blast(x, y, radius, now)
+		// the light of the fireball, dying away with it
+		this.flash.position.set(x, 2, y)
+		this.flash.distance = Math.max(9, radius * 5)
+		this.flashAt = now
+		this.flashPeak = 22 + radius * 6
+		this.flashUntil = now + 0.6
+	}
+
+	/** A cloud of gas bursting out (a bloated zombie popping). */
+	gas(x: number, y: number, radius: number, now: number): void {
+		this.explosions.blast(x, y, radius, now, true)
 	}
 
 	tracer(
@@ -320,11 +334,15 @@ export class Effects {
 	muzzleFlash(x: number, y: number, angle: number, now: number, size = 1): void {
 		const fx = x + Math.cos(angle) * 0.9
 		const fy = y + Math.sin(angle) * 0.9
-		this.flash.position.set(fx, 1.3, fy)
-		this.flash.intensity = 14 * size
 		this.flashSprite.position.set(fx, 1.1, fy)
 		this.flashSprite.scale.setScalar((0.9 + Math.random() * 0.5) * size)
 		this.flashSprite.visible = true
+		// the light stays with an explosion while it burns
+		if (this.flashPeak > 0 && now < this.flashUntil) return
+		this.flashPeak = 0
+		this.flash.distance = 9
+		this.flash.position.set(fx, 1.3, fy)
+		this.flash.intensity = 14 * size
 		this.flashUntil = now + 0.05
 	}
 
@@ -532,9 +550,12 @@ export class Effects {
 			}
 		}
 		if (changed) this.tracers.instanceMatrix.needsUpdate = true
+		this.explosions.update(now)
 		if (now > this.flashUntil) {
 			this.flash.intensity = 0
 			this.flashSprite.visible = false
+		} else if (this.flashPeak > 0) {
+			this.flash.intensity = this.flashPeak * (1 - (now - this.flashAt) / (this.flashUntil - this.flashAt)) ** 2
 		}
 		for (let i = 0; i < FLAMES; i++) {
 			const born = this.flameBorn[i] as number

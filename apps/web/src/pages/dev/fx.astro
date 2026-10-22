@@ -1,0 +1,16 @@
+---
+// Development only: the effects bench (explosions, gas, falling bodies), at /dev/fx
+---
+
+<html lang="en">
+	<body style="margin: 0; background: #222; overflow: hidden">
+		{import.meta.env.DEV && <canvas id="fx" style="display: block; width: 100vw; height: 100vh"></canvas>}
+		<script>
+			if (import.meta.env.DEV) {
+				const params = new URLSearchParams(location.search)
+				const { mountFxLab } = await import('@rotline/client/fx-lab')
+				mountFxLab(document.getElementById('fx') as HTMLCanvasElement, params.get('map') ?? 'yard')
+			}
+		</script>
+	</body>
+</html>

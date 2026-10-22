@@ -47,6 +47,32 @@
 				scene.remove(model)
 				return data
 			}
+			const pale = new Map()
+			function undyed(texture) {
+				if (pale.has(texture)) return pale.get(texture)
+				const image = texture.image
+				const canvas = document.createElement('canvas')
+				canvas.width = image.width
+				canvas.height = image.height
+				const ctx = canvas.getContext('2d')
+				ctx.drawImage(image, 0, 0)
+				const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height)
+				const data = pixels.data
+				let sum = 0
+				for (let i = 0; i < data.length; i += 4) sum += 0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2]
+				const gain = 175 / Math.max(1, sum / (data.length / 4))
+				for (let i = 0; i < data.length; i += 4)
+					data[i] = data[i + 1] = data[i + 2] = Math.min(255, (0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2]) * gain)
+				ctx.putImageData(pixels, 0, 0)
+				const copy = new THREE.CanvasTexture(canvas)
+				copy.colorSpace = texture.colorSpace
+				copy.flipY = texture.flipY
+				copy.wrapS = texture.wrapS
+				copy.wrapT = texture.wrapT
+				copy.channel = texture.channel
+				pale.set(texture, copy)
+				return copy
+			}
 			// an armour piece: the soldier with every other piece hidden, turned a little toward the light
 			let soldier = null
 			window.renderPiece = async (url, piece, tint) => {
@@ -65,7 +91,11 @@
 					if (!object.visible) return
 					if (!object.userData.paint) object.userData.paint = object.material
 					object.material = object.userData.paint.clone()
-					if (tint) object.material.color.setHex(tint)
+					if (tint) {
+						object.material.color.setHex(tint)
+						// as in the game: the dark cloth texture is greyed and lightened so the dye shows
+						if (object.material.map) object.material.map = undyed(object.material.map)
+					}
 					box.expandByObject(object, true)
 				})
 				const size = box.getSize(new THREE.Vector3())

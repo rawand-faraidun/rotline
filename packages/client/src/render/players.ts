@@ -297,7 +297,7 @@ export class PlayerFigure {
 			this.model.updateMatrixWorld(true)
 			if (this.longGun && this.weapon.visible && this.relaxed && this.rig) {
 				// at ease: the low ready, both hands on the gun
-				holdGun(this.rig, this.weapon, this.weaponLength, aimAngle, 'low')
+				holdGun(this.rig, this.weapon, this.weaponLength, aimAngle, 'low', { weaponId: this.weaponId })
 			} else if (this.weapon.visible && this.rig) {
 				// aiming: the torso turns to the aim and both hands hold the gun (a rifle at the
 				// shoulder, a pistol out in front)
@@ -306,7 +306,8 @@ export class PlayerFigure {
 				const reload = this.reloadLeft > 0 ? 1 - this.reloadLeft / this.reloadTotal : 0
 				holdGun(this.rig, this.weapon, this.weaponLength, aimAngle, this.longGun ? 'rifle' : 'pistol', {
 					kick: this.kick,
-					reload
+					reload,
+					weaponId: this.weaponId
 				})
 			}
 		}

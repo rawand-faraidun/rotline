@@ -176,6 +176,11 @@
 				"pack": "animations2",
 				"clip": "Zombie_Idle_Loop",
 				"as": "Zombie_Idle"
+			},
+			{
+				"pack": "animations",
+				"clip": "Death01",
+				"as": "Zombie_Death"
 			}
 		]
 	}

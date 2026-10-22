@@ -250,7 +250,7 @@ export function startGame(options: GameOptions): GameHandle {
 		if (stopped) return
 		zombies = renderer
 		renderer.setSpawnHoles(map.zombieSpawns)
-		stage.scene.add(renderer.mesh)
+		stage.scene.add(renderer.mesh, renderer.corpses)
 		modelReady = true
 		checkReady()
 	})
@@ -498,16 +498,19 @@ export function startGame(options: GameOptions): GameHandle {
 					case 'kill':
 						{
 							const scale = zombieDefs[event.zombieType]?.scale ?? 1
-							// the body comes apart: lumps thrown out, blood spread around
-							effects.burstBody(event.x, event.y, Math.round(5 + Math.random() * 4 * scale), scale)
+							// the body drops where it stood and bleeds out around it
+							zombies?.fall(event.zombie, event.zombieType, event.x, event.y)
+							effects.burstBody(event.x, event.y, 0, scale)
 							if (Math.random() < 0.6)
 								audio.sound('zombie-death', { x: event.x, y: event.y, rate: 0.95 / scale, volume: 0.65 })
-							if (Math.random() < 0.5) audio.sound('bodyfall', { x: event.x, y: event.y, rate: 1 / scale, volume: 0.5 })
-							// the wet burst of a body coming apart, and the splash it leaves
-							if (now - lastGoreAt > 0.08) {
+							// the body hitting the ground, and now and then the wet slap of what it leaves
+							window.setTimeout(
+								() => audio.sound('bodyfall', { x: event.x, y: event.y, rate: 1 / scale, volume: 0.6 }),
+								420 + Math.random() * 120
+							)
+							if (now - lastGoreAt > 0.15 && Math.random() < 0.35) {
 								lastGoreAt = now
-								audio.sound('gore', { x: event.x, y: event.y, volume: 0.55 })
-								window.setTimeout(() => audio.sound('splat', { x: event.x, y: event.y, volume: 0.5 }), 120)
+								audio.sound('splat', { x: event.x, y: event.y, volume: 0.4 })
 							}
 						}
 						break
@@ -516,7 +519,7 @@ export function startGame(options: GameOptions): GameHandle {
 						audio.sound('zombie-roar', { x: event.x, y: event.y, rate: 1.3, volume: 0.6 })
 						break
 					case 'burst':
-						effects.burst(event.x, event.y, event.radius, now, 0x9fe04a, true)
+						effects.gas(event.x, event.y, event.radius, now)
 						audio.sound('thump', { x: event.x, y: event.y, rate: 0.6 })
 						break
 					case 'player-down':
