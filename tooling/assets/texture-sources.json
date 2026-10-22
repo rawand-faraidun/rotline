@@ -53,6 +53,14 @@
 			"source": "Concrete034",
 			"name": "Concrete 034",
 			"size": 512
+		},
+		{
+			"id": "roof",
+			"source": "Gravel040",
+			"name": "Gravel 040",
+			"size": 512,
+			"saturation": 0.5,
+			"brightness": 0.85
 		}
 	]
 }

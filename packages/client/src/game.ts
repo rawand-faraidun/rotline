@@ -47,6 +47,7 @@ import { Interpolator } from './interpolate.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
 import { Decor } from './render/decor.ts'
+import { autoDecor, groundMarks } from './render/dressing.ts'
 import { Effects, SHOT_LOOKS } from './render/effects.ts'
 import { MissionMarkers } from './render/mission.ts'
 import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
@@ -109,7 +110,14 @@ export function startGame(options: GameOptions): GameHandle {
 	const objectRenderer = new ObjectRenderer(stage.scene)
 	const propRenderer = new PropRenderer(stage.scene, props, options.assets, stage.quality === 'high')
 	// the map's scenery: wrecks, cars, barriers, lamps, fires
-	const decor = new Decor(stage.scene, map, options.assets, stage.quality === 'high')
+	const decor = new Decor(
+		stage.scene,
+		// the map's own scenery, and litter scattered along its walls (models only on capable devices)
+		stage.quality === 'high' ? { ...map, decor: [...(map.decor ?? []), ...autoDecor(map)] } : map,
+		options.assets,
+		stage.quality === 'high'
+	)
+	stage.scene.add(groundMarks(map))
 	const showNumbers = options.damageNumbers ?? options.map === 'range'
 	const numbers = showNumbers ? new DamageNumbers(stage.scene) : null
 	const ownHits: { at: number; amount: number }[] = []

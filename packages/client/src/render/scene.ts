@@ -8,6 +8,8 @@ import { pixelRatioFor, probeQuality, type Quality } from './quality.ts'
  * read at a glance; leaning toward the aim shows the horde coming from that way.
  */
 const CAMERA_HEIGHT = 19
+/** walls stand this tall (metres): buildings and yard walls, not kerbs */
+const WALL_HEIGHT = 3.2
 const CAMERA_BACK = 6
 /** How far the camera leans toward where the player aims, in metres. */
 const AIM_LEAN = 3
@@ -107,7 +109,13 @@ function wallGeometry(walls: readonly { x: number; y: number; w: number; h: numb
 	const normals: number[] = []
 	const uvs: number[] = []
 	const indices: number[] = []
-	const quad = (corners: [number, number, number][], normal: [number, number, number], uv: [number, number][]) => {
+	const tops: number[] = []
+	const quad = (
+		corners: [number, number, number][],
+		normal: [number, number, number],
+		uv: [number, number][],
+		into: number[] = indices
+	) => {
 		const base = positions.length / 3
 		for (const [i, corner] of corners.entries()) {
 			positions.push(...corner)
@@ -115,7 +123,7 @@ function wallGeometry(walls: readonly { x: number; y: number; w: number; h: numb
 			const [u, v] = uv[i] as [number, number]
 			uvs.push(u / tile, v / tile)
 		}
-		indices.push(base, base + 1, base + 2, base, base + 2, base + 3)
+		into.push(base, base + 1, base + 2, base, base + 2, base + 3)
 	}
 	for (const wall of walls) {
 		const [x0, x1, z0, z1] = [wall.x, wall.x + wall.w, wall.y, wall.y + wall.h]
@@ -144,11 +152,12 @@ function wallGeometry(walls: readonly { x: number; y: number; w: number; h: numb
 				[x1, h, z0]
 			],
 			[0, 0, -1],
+			// u runs left to right as seen from outside the face, or the normal map turns inward
 			[
-				[x1, 0],
-				[x0, 0],
-				[x0, h],
-				[x1, h]
+				[-x1, 0],
+				[-x0, 0],
+				[-x0, h],
+				[-x1, h]
 			]
 		)
 		quad(
@@ -160,10 +169,10 @@ function wallGeometry(walls: readonly { x: number; y: number; w: number; h: numb
 			],
 			[1, 0, 0],
 			[
-				[z1, 0],
-				[z0, 0],
-				[z0, h],
-				[z1, h]
+				[-z1, 0],
+				[-z0, 0],
+				[-z0, h],
+				[-z1, h]
 			]
 		)
 		quad(
@@ -194,14 +203,18 @@ function wallGeometry(walls: readonly { x: number; y: number; w: number; h: numb
 				[x1, z1],
 				[x1, z0],
 				[x0, z0]
-			]
+			],
+			tops
 		)
 	}
 	const geometry = new THREE.BufferGeometry()
 	geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
 	geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3))
 	geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
-	geometry.setIndex(indices)
+	// two groups: the sides (material 0) and the roofs (material 1)
+	geometry.setIndex([...indices, ...tops])
+	geometry.addGroup(0, indices.length, 0)
+	geometry.addGroup(indices.length, tops.length, 1)
 	return geometry
 }
 
@@ -266,6 +279,7 @@ export class Stage {
 		typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 	private readonly canvas: HTMLCanvasElement
 	private post: PostProcessing | null = null
+	private readonly playerLight: THREE.PointLight
 
 	constructor(canvas: HTMLCanvasElement, map: MapDef, assets = '/assets') {
 		const look = map.look ?? { ground: 'concrete', walls: 'wall-concrete', light: 'overcast' }
@@ -282,6 +296,8 @@ export class Stage {
 		this.renderer.shadowMap.enabled = high
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
 		this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+		// a little brighter than neutral: the fight on the ground has to read, even at dusk
+		this.renderer.toneMappingExposure = 1.35
 		this.scene.background = new THREE.Color(light.fog)
 		this.scene.fog = new THREE.Fog(light.fog, 50, 90)
 
@@ -295,6 +311,14 @@ export class Stage {
 		Object.assign(this.sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 90 })
 		this.sun.shadow.bias = -0.0006
 		this.scene.add(this.sun, this.sun.target)
+		// a soft light from the camera's side, so the faces of walls toward the player read (no shadows)
+		const face = new THREE.DirectionalLight(light.sky, light.fill * 0.9)
+		face.position.set(0, 0.8, 1)
+		this.scene.add(face)
+		// a soft light carried with the player (a weapon light, glow of the screen in SAS-like games):
+		// the soldier and what is close always read, whatever the hour
+		this.playerLight = new THREE.PointLight(0xfff0dc, look.light === 'overcast' ? 14 : 28, 12, 1.4)
+		this.scene.add(this.playerLight)
 
 		// the plain ground shows at once; the real material replaces it when it has loaded
 		const texture = groundTexture()
@@ -311,9 +335,13 @@ export class Stage {
 		this.scene.add(this.ground)
 
 		const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
-		// walls a little darker than their photos: the eye should go to the fight on the ground
-		dress(wallMaterial, `${assets}/textures/${look.walls}`, null, 0x8c8c86, high)
-		const walls = new THREE.Mesh(wallGeometry(map.walls, 2.4, 2), wallMaterial)
+		// the photos as they are (a tint multiplies in linear light: a grey one turns them near black)
+		dress(wallMaterial, `${assets}/textures/${look.walls}`, null, 0xe8e8e2, high)
+		// the tops of walls and blocks read as rooftops from above: dark gravel, not more brick
+		const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3c38, roughness: 0.95 })
+		dress(roofMaterial, `${assets}/textures/roof`, null, 0xc8c8c2, high)
+		const walls = new THREE.Mesh(wallGeometry(map.walls, WALL_HEIGHT, 2), [wallMaterial, roofMaterial])
+		walls.name = 'walls'
 		walls.castShadow = walls.receiveShadow = true
 		this.scene.add(walls)
 		if (high) this.post = new PostProcessing(this.renderer, this.scene, this.camera)
@@ -347,6 +375,7 @@ export class Stage {
 
 	/** Follows the player, leaning toward the aim point. */
 	follow(x: number, y: number, aimX: number, aimY: number, dtSeconds: number): void {
+		this.playerLight.position.set(x, 3.2, y)
 		const lean = Math.min(1, Math.hypot(aimX - x, aimY - y) / 12)
 		const angle = Math.atan2(aimY - y, aimX - x)
 		const tx = x + Math.cos(angle) * AIM_LEAN * lean
