@@ -7,7 +7,7 @@ import { PlayerFigure } from './render/players.ts'
  */
 export function mountLab(
 	canvas: HTMLCanvasElement,
-	options: { weapon: string; pistol: boolean; classId: string; aim: number }
+	options: { weapon: string; pistol: boolean; classId: string; aim: number; only?: string }
 ) {
 	const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true })
 	renderer.setPixelRatio(1)
@@ -25,6 +25,7 @@ export function mountLab(
 	figure.setClass(options.classId)
 	figure.setWeapon(options.weapon, options.pistol)
 	scene.add(figure.group)
+	;(window as unknown as { labScene: THREE.Scene }).labScene = scene
 	const top = new THREE.PerspectiveCamera(38, 1, 0.5, 100)
 	top.position.set(0, 19, 6)
 	top.lookAt(0, 0, 0)
@@ -33,6 +34,14 @@ export function mountLab(
 	const loop = () => {
 		requestAnimationFrame(loop)
 		figure.set(0, 0, options.aim, true, false, 0)
+		// only these pieces (a name pattern), to see one at a time
+		if (options.only) {
+			const only = new RegExp(options.only)
+			figure.group.traverse(object => {
+				if ((object as THREE.Mesh).isMesh && /^(head|vest|body|legs|feet|pack|skin)-/.test(object.name))
+					object.visible = only.test(object.name)
+			})
+		}
 		// the front camera stands where the gun points, the side camera off the right shoulder
 		const dx = Math.cos(options.aim)
 		const dz = Math.sin(options.aim)

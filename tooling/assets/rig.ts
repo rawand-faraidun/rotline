@@ -160,6 +160,15 @@ export function poseBody(primitive: Primitive, skin: Skin, bind: readonly mat4[]
 	return { positions, joints: outJoints, weights: outWeights, count }
 }
 
+/** Distance from point `p` to the segment a–b. */
+function segmentDistance(p: Vec3, a: Vec3, b: Vec3): number {
+	const ab: Vec3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
+	const ap: Vec3 = [p[0] - a[0], p[1] - a[1], p[2] - a[2]]
+	const length = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2] || 1
+	const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / length))
+	return Math.hypot(ap[0] - ab[0] * t, ap[1] - ab[1] * t, ap[2] - ab[2] * t)
+}
+
 /** A grid of points for nearest-neighbour lookups. */
 class PointGrid {
 	private readonly cells = new Map<string, number[]>()
@@ -212,6 +221,8 @@ export type Binding =
 	| { kind: 'transfer'; stiffFingers?: boolean }
 	/** follow one bone rigidly (helmets, plates, eyes) */
 	| { kind: 'rigid'; joint: string }
+	/** keep the mesh's own JOINTS_0/WEIGHTS_0, already given as indices into this skin's joints */
+	| { kind: 'own' }
 
 /**
  * Binds a static mesh node to the skin: its vertices are moved into world space (the node's
@@ -236,9 +247,34 @@ export function bindMesh(
 	})
 	if (binding.kind === 'rigid' && rigid < 0) throw new Error(`no joint ${binding.joint}`)
 	const lookup = grid ?? new PointGrid(body.positions, body.count, 0.03)
+	// the bones as segments in the bind pose: clothing nearer the spine than an arm takes nothing from
+	// that arm (arms hanging close to the body would otherwise drag the sides of a jacket with them)
+	const jointAt = (name: string) => {
+		const joint = skin.listJoints()[names.indexOf(name)]
+		return joint ? jointPosition(joint) : null
+	}
+	const chain = (bones: string[]) =>
+		bones
+			.map(jointAt)
+			.filter((p): p is Vec3 => p !== null)
+			.flatMap((p, i, all) => (i === 0 ? [] : [[all[i - 1] as Vec3, p] as [Vec3, Vec3]]))
+	const spine = chain(['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01'])
+	const armChains = (['l', 'r'] as const).map(side => ({
+		bones: new Set(
+			names
+				.map((name, index) => ({ name, index }))
+				.filter(({ name }) => new RegExp(`_${side}$`).test(name) && !/^(thigh|calf|foot|ball)/.test(name))
+				.map(({ index }) => index)
+		),
+		segments: chain([`upperarm_${side}`, `lowerarm_${side}`, `hand_${side}`])
+	}))
 	for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
 		const position = primitive.getAttribute('POSITION') as Accessor
 		const normal = primitive.getAttribute('NORMAL')
+		const ownJoints = binding.kind === 'own' ? primitive.getAttribute('JOINTS_0') : null
+		const ownWeights = binding.kind === 'own' ? primitive.getAttribute('WEIGHTS_0') : null
+		if (binding.kind === 'own' && (!ownJoints || !ownWeights))
+			throw new Error(`${node.getName()}: no weights of its own`)
 		const count = position.getCount()
 		const positions = new Float32Array(count * 3)
 		const normals = normal ? new Float32Array(count * 3) : null
@@ -258,6 +294,13 @@ export function bindMesh(
 				weights[v * 4] = 1
 				continue
 			}
+			if (ownJoints && ownWeights) {
+				ownJoints.getElement(v, p)
+				for (let k = 0; k < 4; k++) joints[v * 4 + k] = p[k] as number
+				ownWeights.getElement(v, p)
+				for (let k = 0; k < 4; k++) weights[v * 4 + k] = p[k] as number
+				continue
+			}
 			// blend the weights of the nearest few body vertices, nearer ones counting more
 			const near = lookup.nearest(at[0], at[1], at[2], 6)
 			const total = new Map<number, number>()
@@ -270,6 +313,14 @@ export function bindMesh(
 					total.set(joint, (total.get(joint) ?? 0) + weight * share)
 				}
 			}
+			// an arm keeps only what is nearer to it than to the spine
+			for (const arm of armChains) {
+				if (![...total.keys()].some(joint => arm.bones.has(joint))) continue
+				const toArm = Math.min(...arm.segments.map(([a, b]) => segmentDistance(at, a, b)))
+				const toSpine = Math.min(...spine.map(([a, b]) => segmentDistance(at, a, b)))
+				if (toSpine < toArm * 0.85) for (const joint of [...total.keys()]) if (arm.bones.has(joint)) total.delete(joint)
+			}
+			if (total.size === 0) total.set(names.indexOf('spine_03'), 1)
 			const best = [...total.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4)
 			const sum = best.reduce((s, [, w]) => s + w, 0) || 1
 			for (const [k, [joint, weight]] of best.entries()) {
@@ -302,3 +353,69 @@ export function bindMesh(
 }
 
 export { PointGrid }
+
+/**
+ * Bakes a mesh node into world space at rest: a skinned mesh is posed by its own skeleton as it
+ * stands (joint world matrices × inverse binds), a plain one by its node transforms. The node is
+ * left with identity transforms, no skin and no joint attributes, ready to move under a scene root.
+ */
+export function bakeToWorld(document: Document, node: Node, keepWeights = false): void {
+	const skin = node.getSkin()
+	const world = node.getWorldMatrix()
+	const skinning = skin
+		? skin
+				.listJoints()
+				.map((joint, index) =>
+					multiply(
+						joint.getWorldMatrix(),
+						Array.from((skin.getInverseBindMatrices() as Accessor).getElement(index, [])) as unknown as mat4
+					)
+				)
+		: null
+	for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
+		const position = primitive.getAttribute('POSITION') as Accessor
+		const normal = primitive.getAttribute('NORMAL')
+		const jointsOf = primitive.getAttribute('JOINTS_0')
+		const weightsOf = primitive.getAttribute('WEIGHTS_0')
+		const count = position.getCount()
+		const positions = new Float32Array(count * 3)
+		const normals = normal ? new Float32Array(count * 3) : null
+		const p: number[] = []
+		const n: number[] = []
+		const j: number[] = []
+		const w: number[] = []
+		for (let v = 0; v < count; v++) {
+			position.getElement(v, p)
+			if (normal) normal.getElement(v, n)
+			let matrix = world
+			if (skinning && jointsOf && weightsOf) {
+				jointsOf.getElement(v, j)
+				weightsOf.getElement(v, w)
+				// the weighted sum of the joints' matrices for this vertex
+				const blended = new Array(16).fill(0) as number[]
+				for (let k = 0; k < 4; k++) {
+					const weight = w[k] as number
+					if (!weight) continue
+					const m = skinning[j[k] as number] as unknown as number[]
+					for (let e = 0; e < 16; e++) blended[e] = (blended[e] as number) + (m[e] as number) * weight
+				}
+				matrix = blended as unknown as mat4
+			}
+			positions.set(transformPoint(matrix, p), v * 3)
+			if (normals) normals.set(transformDirection(matrix, n), v * 3)
+		}
+		primitive.setAttribute(
+			'POSITION',
+			document.createAccessor().setType('VEC3').setArray(positions).setBuffer(position.getBuffer())
+		)
+		if (normal && normals)
+			primitive.setAttribute(
+				'NORMAL',
+				document.createAccessor().setType('VEC3').setArray(normals).setBuffer(normal.getBuffer())
+			)
+		if (!keepWeights) primitive.setAttribute('JOINTS_0', null).setAttribute('WEIGHTS_0', null)
+		primitive.setAttribute('TANGENT', null)
+	}
+	node.setSkin(null)
+	node.setMatrix([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] as unknown as mat4)
+}

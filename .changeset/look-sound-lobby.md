@@ -50,3 +50,4 @@ Characters, weapon models, a new soundscape and a tidier lobby:
 - Soldiers hold their guns like soldiers: rifles shouldered and aimed with both hands on the gun, pistols out in front in a two-handed grip, fingers closed round the grip, a kick when they fire and the gun brought down to change the magazine.
 - The mission picker keeps its Done button in view.
 - A generator you start shows it running up: an amber light and a bar filling over it, then green and a hum when it is on; Landfall's checkpoint hold is shorter.
+- New soldier for every class: a fully kitted operator (helmet, balaclava, glasses, gloves, plate carrier with pouches) that moves cleanly, with no stretched clothing; classes differ by their kit.

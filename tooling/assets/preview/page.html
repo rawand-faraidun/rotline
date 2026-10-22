@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+	<body style="margin: 0; background: #3a3f44">
+		<canvas id="view" width="1200" height="900"></canvas>
+		<script type="importmap">
+			{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }
+		</script>
+		<script type="module">
+			import * as THREE from 'three'
+			import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
+			import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+
+			const canvas = document.getElementById('view')
+			const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true })
+			renderer.toneMapping = THREE.ACESFilmicToneMapping
+			renderer.outputColorSpace = THREE.SRGBColorSpace
+			renderer.setClearColor(0x3a3f44)
+			const scene = new THREE.Scene()
+			scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture
+			const key = new THREE.DirectionalLight(0xffffff, 2.5)
+			key.position.set(1, 2, 3)
+			scene.add(key)
+			const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+			// one or more views of a model: each yaw (radians) is a camera around it, orthographic
+			window.render = async (url, views, focus) => {
+				const gltf = await loader.loadAsync(url)
+				const model = gltf.scene
+				model.traverse(o => {
+					if (o.isMesh) o.frustumCulled = false
+					if (focus && o.isMesh) o.visible = new RegExp(focus).test(`${o.name} ${o.material?.name ?? ''}`)
+				})
+				scene.add(model)
+				model.updateMatrixWorld(true)
+				const box = new THREE.Box3().setFromObject(model)
+				const size = box.getSize(new THREE.Vector3())
+				const centre = box.getCenter(new THREE.Vector3())
+				const out = []
+				for (const yaw of views) {
+					const h = Math.max(size.x, size.y, size.z) * 0.6
+					const camera = new THREE.OrthographicCamera(-h * (4 / 3), h * (4 / 3), h, -h, -1000, 1000)
+					camera.position.set(centre.x + Math.sin(yaw) * 50, centre.y, centre.z + Math.cos(yaw) * 50)
+					camera.lookAt(centre)
+					renderer.render(scene, camera)
+					out.push(canvas.toDataURL('image/png'))
+				}
+				scene.remove(model)
+				return out
+			}
+			window.ready = true
+		</script>
+	</body>
+</html>

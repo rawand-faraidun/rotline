@@ -11,17 +11,15 @@ export type Outfit = Record<ArmourPiece, Piece | null> & { pack: Piece | null; p
 const PIECE = /^(head|vest|body|legs|feet|pack|skin|person)-/
 
 /** the operator: face, eyes and hands, dressed by the torso, legs and feet places */
-const OPERATOR: Piece[] = [{ id: 'skin-face' }, { id: 'skin-eyes' }, { id: 'skin-hands' }]
+const OPERATOR: Piece[] = [{ id: 'skin-face' }, { id: 'skin-eyes' }, { id: 'skin-glasses' }, { id: 'skin-hands' }]
 
 /**
- * Who each class is. The Medic and the Heavy are whole figures in their own clothes, so their
- * torso, legs and feet armour counts but does not change how they look; helmets, vests and packs
- * still go on top.
+ * Who each class is: the same kitted soldier (masked, gloved, glasses), told apart by what they wear.
  */
 const PEOPLE: Record<string, Piece[]> = {
 	assault: OPERATOR,
-	medic: [{ id: 'person-medic' }],
-	heavy: [{ id: 'person-heavy' }],
+	medic: OPERATOR,
+	heavy: OPERATOR,
 	survivor: OPERATOR
 }
 const CLOTHES: readonly ArmourPiece[] = ['torso', 'legs', 'feet']
@@ -29,10 +27,10 @@ const CLOTHES: readonly ArmourPiece[] = ['torso', 'legs', 'feet']
 /** what shows where nothing is worn: plain clothes (a soldier is never drawn bare) */
 const UNDERNEATH: Record<ArmourPiece, Piece | null> = {
 	head: null,
-	torso: { id: 'body-ubacs', tint: 0x6e6a5e },
+	torso: { id: 'body-ubacs', tint: 0xb8b4a8 },
 	vest: null,
-	legs: { id: 'legs-combat', tint: 0x55584e },
-	feet: { id: 'feet-boots', tint: 0x2e2a26 }
+	legs: { id: 'legs-combat', tint: 0xb0b0a8 },
+	feet: { id: 'feet-boots', tint: 0x9a9690 }
 }
 
 /** the pack each class carries (survivors carry nothing) */
@@ -90,7 +88,8 @@ export function wear(model: THREE.Object3D, outfit: Outfit): void {
 		if (piece) worn.set(piece.id, piece)
 	model.traverse(object => {
 		if (!PIECE.test(object.name)) return
-		const piece = worn.get(object.name)
+		// a piece made of several meshes arrives as `name`, `name_1`, `name_2`… (three.js keeps names unique)
+		const piece = worn.get(object.name.replace(/_\d+$/, ''))
 		object.visible = piece !== undefined
 		if (!piece) return
 		object.traverse(node => {

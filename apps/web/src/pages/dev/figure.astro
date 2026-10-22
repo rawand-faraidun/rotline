@@ -14,7 +14,8 @@
 					weapon: params.get('weapon') ?? 'k-71',
 					pistol: params.get('pistol') === '1',
 					classId: params.get('class') ?? 'assault',
-					aim: Number(params.get('aim') ?? '0')
+					aim: Number(params.get('aim') ?? '0'),
+					...(params.get('only') ? { only: params.get('only') as string } : {})
 				})
 			}
 		</script>

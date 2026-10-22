@@ -67,8 +67,7 @@
 			"resist": {},
 			"utilityCharges": 0,
 			"look": {
-				"model": "body-ubacs",
-				"tint": "#8f9a72"
+				"model": "body-ubacs"
 			}
 		},
 		{
@@ -84,7 +83,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "body-ubacs",
-				"tint": "#5e5a4c"
+				"tint": "#c8b48e"
 			}
 		},
 		{
@@ -102,7 +101,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "body-ubacs",
-				"tint": "#b8a640"
+				"tint": "#f4e070"
 			}
 		},
 		{
@@ -115,8 +114,7 @@
 			"resist": {},
 			"utilityCharges": 0,
 			"look": {
-				"model": "vest-carrier",
-				"tint": "#a4a890"
+				"model": "vest-carrier"
 			}
 		},
 		{
@@ -172,8 +170,7 @@
 			"resist": {},
 			"utilityCharges": 0,
 			"look": {
-				"model": "legs-combat",
-				"tint": "#7c8664"
+				"model": "legs-combat"
 			}
 		},
 		{
@@ -187,7 +184,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "legs-combat",
-				"tint": "#4a4e44"
+				"tint": "#b4b4ae"
 			}
 		},
 		{
@@ -201,7 +198,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "legs-combat",
-				"tint": "#3a3e40"
+				"tint": "#8c8c94"
 			}
 		},
 		{
@@ -214,8 +211,7 @@
 			"resist": {},
 			"utilityCharges": 0,
 			"look": {
-				"model": "feet-boots",
-				"tint": "#2e2a26"
+				"model": "feet-boots"
 			}
 		},
 		{
@@ -229,7 +225,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "feet-boots",
-				"tint": "#4a3e32"
+				"tint": "#d2b896"
 			}
 		},
 		{
@@ -245,7 +241,7 @@
 			"utilityCharges": 0,
 			"look": {
 				"model": "feet-boots",
-				"tint": "#1e1e20"
+				"tint": "#8a8a8a"
 			}
 		}
 	],

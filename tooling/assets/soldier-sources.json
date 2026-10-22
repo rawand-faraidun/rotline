@@ -35,78 +35,62 @@
 			"Interact"
 		]
 	},
-	"operator": {
-		"uid": "4ee9799e9182453d8d5046ae824c7f53",
-		"name": "Devgru_2 (CC0)",
-		"author": "britdawgmasterfunk",
-		"parts": [
-			{
-				"material": "^characterface",
-				"id": "skin-face",
-				"triangles": 9000
-			},
-			{
-				"material": "^blue_eye",
-				"id": "skin-eyes",
-				"joint": "Head",
-				"triangles": 600
-			},
-			{
-				"material": "^eye_transparency",
-				"id": "drop"
-			},
-			{
-				"material": "^hands",
-				"id": "skin-hands",
-				"stiffFingers": false,
-				"triangles": 6000
-			},
-			{
-				"material": "^ubacshirt",
-				"id": "body-ubacs",
-				"triangles": 10000
-			},
-			{
-				"material": "^combattrousers",
-				"id": "legs-combat",
-				"triangles": 11500
-			},
-			{
-				"material": "^sneakers",
-				"id": "feet-boots",
-				"triangles": 3000
-			},
-			{
-				"material": "^Material\\.001$",
-				"id": "vest-carrier",
-				"triangles": 1850
-			},
-			{
-				"material": "^Material$",
-				"id": "head-ops",
-				"joint": "Head",
-				"triangles": 4000
-			}
-		]
-	},
-	"people": [
+	"figures": [
 		{
-			"id": "medic",
-			"uid": "367a37bf5c0b48e688195d915c5496a2",
-			"name": "female specops",
-			"author": "bumstrum",
+			"id": "soldier",
+			"uid": "850593a8c7114c188395ba1849a66eb9",
+			"name": "Soldier Full Tactical Gear (LowPolyGameReady)",
+			"author": "1799danly",
 			"licence": "CC BY 4.0",
-			"material": "^olga$",
-			"triangles": 24000
-		},
-		{
-			"id": "heavy",
-			"uid": "2439a285a35c4a28bb0778adb4310b40",
-			"name": "SF Operator (CC0)",
-			"author": "britdawgmasterfunk",
-			"licence": "CC0 1.0",
-			"material": "^Material\\.002$",
-			"triangles": 24000
+			"parts": [
+				{
+					"material": "^Mark_HeadMasked$",
+					"id": "skin-face",
+					"triangles": 5000
+				},
+				{
+					"material": "^Mark_Eye$",
+					"id": "skin-eyes",
+					"joint": "Head"
+				},
+				{
+					"material": "^Mark_SunGlusses",
+					"id": "skin-glasses",
+					"joint": "Head"
+				},
+				{
+					"material": "^Mark_Gloves_1$",
+					"id": "skin-hands",
+					"triangles": 6200
+				},
+				{
+					"material": "^Mark_Helmet1$",
+					"id": "head-ops",
+					"joint": "Head",
+					"triangles": 9000
+				},
+				{
+					"material": "^Mark_Plate_1$",
+					"id": "vest-carrier"
+				},
+				{
+					"material": "^Mark_Pouches_1$",
+					"id": "vest-carrier"
+				},
+				{
+					"material": "^Mark_Kitel_1$",
+					"id": "body-ubacs"
+				},
+				{
+					"material": "^Mark_Pants_1$",
+					"id": "legs-combat"
+				},
+				{
+					"material": "^Mark_Boots_2$",
+					"id": "feet-boots"
+				}
+			],
+			"ownSkin": "character-creator"
 		}
 	],
 	"gear": {
