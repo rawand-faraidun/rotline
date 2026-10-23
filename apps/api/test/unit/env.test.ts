@@ -27,6 +27,14 @@ describe('readEnv', () => {
 		)
 	})
 
+	it('takes a direct game address only as a WebSocket URL', () => {
+		expect(readEnv(base).GAME_DIRECT_URL).toBeUndefined()
+		expect(readEnv({ ...base, GAME_DIRECT_URL: 'wss://play.example.com/game' }).GAME_DIRECT_URL).toBe(
+			'wss://play.example.com/game'
+		)
+		expect(() => readEnv({ ...base, GAME_DIRECT_URL: 'https://play.example.com/game' })).toThrow(/GAME_DIRECT_URL/)
+	})
+
 	it('refuses the test sign-in provider in production', () => {
 		expect(() =>
 			readEnv({ ...base, NODE_ENV: 'production', AUTH_TEST_PROVIDER_ISSUER: 'http://localhost:8090/rotline' })

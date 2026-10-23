@@ -105,6 +105,8 @@ const seenMission = z.object({ mission: z.string().max(64), difficulty: difficul
 export function partyRoutes(services: Services) {
 	const { db, env, log, parties, seats, valkey, events } = services
 	const key = loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY)
+	// a direct address for the game connection, tried before the one through the site's proxy
+	const direct = env.GAME_DIRECT_URL ?? null
 
 	/**
 	 * The game server holding a player's firing range: the same one each time while it is alive, so
@@ -354,7 +356,14 @@ export function partyRoutes(services: Services) {
 					build
 				})
 				return c.json(
-					{ ticket, room: payload.room, path: GAME_PATH, expiresAt: payload.exp, mission: payload.mission ?? null },
+					{
+						ticket,
+						room: payload.room,
+						path: GAME_PATH,
+						direct,
+						expiresAt: payload.exp,
+						mission: payload.mission ?? null
+					},
 					200
 				)
 			})
@@ -383,7 +392,7 @@ export function partyRoutes(services: Services) {
 					mode: 'range',
 					build
 				})
-				return c.json({ ticket, room: payload.room, path: GAME_PATH, expiresAt: payload.exp }, 200)
+				return c.json({ ticket, room: payload.room, path: GAME_PATH, direct, expiresAt: payload.exp }, 200)
 			})
 			.get('/events', async c => {
 				const user = c.get('user')

@@ -26,6 +26,8 @@ const schema = z.object({
 	GAME_REWARD_PUBLIC_KEY: z.string().min(40),
 	/** the game-server instance new rooms are placed on (one instance until the room registry exists) */
 	GAME_INSTANCE_ID: z.string().min(1).default('local-1'),
+	/** a direct address for game connections (e.g. wss://play.example.com/game), tried before the site's own */
+	GAME_DIRECT_URL: z.url({ protocol: /^wss?$/ }).optional(),
 	LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')
 })
 

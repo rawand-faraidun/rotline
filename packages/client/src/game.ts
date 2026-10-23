@@ -70,8 +70,8 @@ const TICK_MS = 1000 / TICK_RATE
 
 export type GameOptions = {
 	canvas: HTMLCanvasElement
-	/** ws:// or wss:// URL of the game endpoint */
-	url: string
+	/** ws:// or wss:// URL of the game endpoint, or several to try in order */
+	url: string | readonly string[]
 	ticket: string
 	/** where the game's models live, e.g. "/assets" */
 	assets: string

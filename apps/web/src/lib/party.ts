@@ -100,7 +100,13 @@ export const missionsQuery = queryOptions({
 	}
 })
 
-export type Ticket = { ticket: string; path: string; mission: { id: string; difficulty: DifficultyId } | null }
+export type Ticket = {
+	ticket: string
+	path: string
+	/** a direct address for the game connection, tried before `path` on the site itself */
+	direct?: string | null
+	mission: { id: string; difficulty: DifficultyId } | null
+}
 
 export async function fetchTicket(): Promise<Ticket | null> {
 	const response = await fetch('/api/game/ticket', {
@@ -120,7 +126,7 @@ export async function fetchRangeTicket(): Promise<Ticket | null> {
 		body: '{}'
 	})
 	if (response.status !== 200) return null
-	return { ...((await response.json()) as { ticket: string; path: string }), mission: null }
+	return { ...((await response.json()) as Omit<Ticket, 'mission'>), mission: null }
 }
 
 export const partyActions = {
