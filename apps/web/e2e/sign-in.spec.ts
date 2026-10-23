@@ -25,7 +25,11 @@ test('landing page loads without game code and links to play', async ({ page }) 
 	await expect(page.getByRole('img', { name: /hold the line against the rot/i })).toBeVisible()
 	// against the built site the landing page ships no JavaScript at all (the dev server injects its own)
 	if (process.env.E2E_STATIC) expect(scripts).toEqual([])
-	await page.getByRole('link', { name: /play now/i }).click()
+	await expect(page.getByRole('link', { name: /source on github/i }).first()).toHaveAttribute('href', /github\.com/)
+	await page
+		.getByRole('link', { name: /play now/i })
+		.first()
+		.click()
 	await expect(page).toHaveURL(/\/play$/)
 })
 

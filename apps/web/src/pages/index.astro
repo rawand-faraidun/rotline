@@ -1,64 +1,332 @@
 ---
-import { buttonVariants, Panel } from '@rotline/ui'
+import { campaign, classes, missionById, weapons } from '@rotline/game-data'
+import { buttonVariants } from '@rotline/ui'
 import pkg from '../../package.json'
-import { en } from '../i18n/en.ts'
+import { en, format } from '../i18n/en.ts'
 import Base from '../layouts/base.astro'
+import { SOURCE_URL } from '../lib/site.ts'
 
 const t = en.landing
+const zones = campaign.zones.map(zone => ({
+	...zone,
+	missions: zone.missions.flatMap(id => missionById(id) ?? [])
+}))
+let missionNumber = 0
+const zoneArt = ['/landing/landfall.webp', '/landing/airlift.webp']
+const modeArt = ['/landing/survival.webp', '/landing/railyard.webp', '/landing/holdouts.webp']
+const gallery = [
+	['survival', t.gallery.survival],
+	['airlift', t.gallery.airlift],
+	['holdouts', t.gallery.holdouts],
+	['blackout', t.gallery.blackout]
+] as const
+const classArt = ['k-71', 'viper', 'minigun']
+// the GitHub mark, drawn inline so it needs no icon set
+const githubPath =
+	'M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.27 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z'
 ---
 
 <Base>
-	<div class="hazard h-2 w-full opacity-80" aria-hidden="true"></div>
-	<header class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-		<img src="/brand/svg/rotline-logo-horizontal.svg" alt="Rotline" width="148" height="32" class="h-8 w-auto" />
-		<a href="/play" class={buttonVariants({ variant: 'secondary', size: 'sm' })}>{en.nav.play}</a>
+	<div class="hazard h-1.5 w-full opacity-80" aria-hidden="true"></div>
+
+	<!-- the bar: logo, the page's sections, the code and the way in -->
+	<header class="sticky top-0 z-30 border-line/60 border-b bg-rot-black/80 backdrop-blur-md">
+		<div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 sm:px-6">
+			<a href="/" class="shrink-0">
+				<img src="/brand/svg/rotline-logo-horizontal.svg" alt={en.nav.home} width="148" height="32" class="h-7 w-auto sm:h-8" />
+			</a>
+			<nav class="hidden items-center gap-7 font-bold text-muted text-xs uppercase tracking-[0.2em] md:flex">
+				<a class="hover:text-rot-lime" href="#missions">{t.nav.missions}</a>
+				<a class="hover:text-rot-lime" href="#modes">{t.nav.modes}</a>
+				<a class="hover:text-rot-lime" href="#squad">{t.nav.squad}</a>
+				<a class="hover:text-rot-lime" href="#source">{t.nav.source}</a>
+			</nav>
+			<div class="flex items-center gap-3">
+				<a
+					href={SOURCE_URL}
+					class="flex size-9 items-center justify-center text-muted hover:text-rot-lime"
+					aria-label={t.source}
+					rel="noopener"
+				>
+					<svg viewBox="0 0 24 24" class="size-6" fill="currentColor" aria-hidden="true"><path d={githubPath} /></svg>
+				</a>
+				<a href="/play" class={buttonVariants({ size: 'sm' })}>{en.nav.play}</a>
+			</div>
+		</div>
 	</header>
 
 	<main>
-		<section class="relative overflow-hidden">
+		<!-- the hero: a real moment from the game behind the logo -->
+		<section class="relative isolate flex min-h-[calc(100dvh-4rem)] items-center overflow-hidden">
+			<img
+				src="/landing/hero.webp"
+				alt={t.heroAlt}
+				width="1920"
+				height="1080"
+				class="-z-20 absolute inset-y-0 right-0 h-full w-full object-cover object-[55%_50%] lg:w-[78%]"
+				fetchpriority="high"
+			/>
 			<div
-				class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_120%,rgb(184_242_60/0.12),transparent_60%),radial-gradient(ellipse_at_10%_0%,rgb(236_232_220/0.06),transparent_50%)]"
+				class="-z-10 absolute inset-0 bg-[linear-gradient(90deg,var(--color-rot-black)_0%,var(--color-rot-black)_22%,rgb(13_16_14/0.8)_42%,rgb(13_16_14/0.25)_75%,rgb(13_16_14/0.1)_100%)]"
 				aria-hidden="true"
 			>
 			</div>
-			<div class="relative mx-auto flex max-w-6xl flex-col items-start gap-8 px-6 pt-16 pb-24 md:pt-28 md:pb-36">
-				<p class="cut cut-sm bg-surface px-3 py-1 font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">{t.kicker}</p>
-				<h1>
+			<div
+				class="-z-10 absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-rot-black to-transparent"
+				aria-hidden="true"
+			>
+			</div>
+			<div class="mx-auto flex w-full max-w-7xl flex-col items-start gap-7 px-4 py-20 sm:px-6">
+				<p class="cut-sm bg-rot-lime px-3 py-1 font-bold text-rot-black text-xs uppercase tracking-[0.3em]">{t.kicker}</p>
+				<h1 class="w-full max-w-2xl">
 					<img
 						src="/brand/svg/rotline-logo-horizontal-slogan.svg"
 						alt="Rotline — Hold the line against the rot."
 						width="720"
 						height="220"
-						class="h-auto w-full max-w-2xl"
-						fetchpriority="high"
+						class="h-auto w-full"
 					/>
 				</h1>
-				<p class="max-w-xl text-bone/85 text-lg leading-relaxed">{t.lead}</p>
-				<div class="flex flex-col items-start gap-3">
+				<p class="max-w-xl text-bone/90 text-lg leading-relaxed">{t.lead}</p>
+				<div class="flex flex-wrap items-center gap-3">
 					<a href="/play" class={buttonVariants({ size: 'lg' })}>{t.cta}</a>
-					<p class="text-muted text-sm">{t.ctaHint}</p>
+					<a
+						href={SOURCE_URL}
+						rel="noopener"
+						class:list={[buttonVariants({ variant: 'secondary', size: 'lg' }), 'gap-3']}
+					>
+						<svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true"><path d={githubPath} /></svg>
+						{t.source}
+					</a>
 				</div>
+				<p class="text-muted text-sm">{t.ctaHint}</p>
+				<dl class="mt-6 grid w-full max-w-2xl grid-cols-2 gap-px bg-line/60 sm:grid-cols-4">
+					{
+						t.facts.map(fact => (
+							<div class="flex flex-col gap-1 bg-rot-black/85 px-4 py-3">
+								<dt class="order-2 text-muted text-xs uppercase tracking-[0.18em]">{fact.label}</dt>
+								<dd class="order-1 font-display text-3xl text-rot-lime">{fact.value}</dd>
+							</div>
+						))
+					}
+				</dl>
 			</div>
-			<div class="relative h-px w-full bg-gradient-to-r from-transparent via-rot-lime/60 to-transparent" aria-hidden="true"></div>
 		</section>
 
-		<section class="mx-auto grid max-w-6xl gap-6 px-6 py-20 md:grid-cols-3">
-			{
-				t.features.map((feature, index) => (
-					<Panel>
-						<span class="font-display text-4xl text-rot-lime/80">0{index + 1}</span>
-						<h2 class="font-bold text-bone text-xl uppercase tracking-wide">{feature.title}</h2>
-						<p class="text-muted leading-relaxed">{feature.body}</p>
-					</Panel>
-				))
-			}
+		<!-- how it plays -->
+		<section class="mx-auto max-w-7xl px-4 py-24 sm:px-6">
+			<p class="font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">{t.pillarsKicker}</p>
+			<h2 class="mt-3 font-display text-4xl uppercase sm:text-5xl">{t.pillarsTitle}</h2>
+			<div class="mt-12 grid gap-px bg-line/60 md:grid-cols-3">
+				{
+					t.pillars.map((pillar, index) => (
+						<article class="flex flex-col gap-4 bg-rot-black p-7">
+							<span class="font-display text-5xl text-rot-lime/70">0{index + 1}</span>
+							<h3 class="font-bold text-xl uppercase tracking-wide">{pillar.title}</h3>
+							<p class="text-muted leading-relaxed">{pillar.body}</p>
+						</article>
+					))
+				}
+			</div>
+		</section>
+
+		<!-- the campaign, straight from the game's data -->
+		<section id="missions" class="scroll-mt-20 border-line/60 border-y bg-surface/40">
+			<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6">
+				<div class="flex max-w-3xl flex-col gap-3">
+					<p class="font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">{t.campaignKicker}</p>
+					<h2 class="font-display text-4xl uppercase sm:text-5xl">{t.campaignTitle}</h2>
+					<p class="text-muted text-lg leading-relaxed">{t.campaignLead}</p>
+				</div>
+				<div class="mt-14 flex flex-col gap-16">
+					{
+						zones.map((zone, zoneIndex) => (
+							<div class="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+								<div class="flex flex-col gap-4">
+									<div class="frame cut relative aspect-video overflow-hidden [--frame-color:var(--color-line)]">
+										<img
+											src={zoneArt[zoneIndex] ?? zoneArt[0]}
+											alt=""
+											width="1280"
+											height="720"
+											loading="lazy"
+											class="absolute inset-0 size-full object-cover"
+										/>
+									</div>
+									<p class="font-bold text-muted text-xs uppercase tracking-[0.3em]">
+										{format(t.zoneLabel, { number: String(zoneIndex + 1) })}
+									</p>
+									<h3 class="font-display text-5xl uppercase">{zone.name}</h3>
+									<p class="text-muted leading-relaxed">{zone.description}</p>
+								</div>
+								<ol class="flex flex-col gap-px bg-line/60">
+									{zone.missions.map(mission => {
+										missionNumber++
+										return (
+											<li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 bg-rot-black/90 p-5">
+												<span class="font-display text-3xl text-rot-lime/70">{String(missionNumber).padStart(2, '0')}</span>
+												<div class="flex flex-col gap-1">
+													<span class="flex flex-wrap items-baseline justify-between gap-x-4">
+														<span class="font-display text-2xl uppercase">{mission.name}</span>
+														{mission.timeLimitSeconds ? (
+															<span class="font-bold text-warning text-xs uppercase tracking-[0.2em]">
+																{Math.round(mission.timeLimitSeconds / 60)} min
+															</span>
+														) : null}
+													</span>
+													<span class="text-muted text-sm leading-relaxed">{mission.description}</span>
+												</div>
+											</li>
+										)
+									})}
+								</ol>
+							</div>
+						))
+					}
+				</div>
+			</div>
+		</section>
+
+		<!-- the game modes beside the campaign -->
+		<section id="modes" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-24 sm:px-6">
+			<p class="font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">{t.modesKicker}</p>
+			<h2 class="mt-3 font-display text-4xl uppercase sm:text-5xl">{t.modesTitle}</h2>
+			<div class="mt-12 grid gap-6 md:grid-cols-3">
+				{
+					t.modes.map((mode, index) => (
+						<article class="frame cut group flex flex-col overflow-hidden [--frame-color:var(--color-line)] hover:[--frame-color:var(--color-rot-lime)]">
+							<div class="relative aspect-16/10 overflow-hidden">
+								<img
+									src={modeArt[index]}
+									alt=""
+									width="1280"
+									height="720"
+									loading="lazy"
+									class="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
+								/>
+								<span class="absolute top-3 left-3 bg-rot-black/85 px-2 py-1 font-bold text-rot-lime text-xs uppercase tracking-[0.2em]">
+									{mode.tag}
+								</span>
+							</div>
+							<div class="flex flex-col gap-3 p-6">
+								<h3 class="font-display text-3xl uppercase">{mode.title}</h3>
+								<p class="text-muted leading-relaxed">{mode.body}</p>
+							</div>
+						</article>
+					))
+				}
+			</div>
+		</section>
+
+		<!-- the squad and the arsenal -->
+		<section id="squad" class="scroll-mt-20 border-line/60 border-y bg-surface/40">
+			<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6">
+				<p class="font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">{t.squadKicker}</p>
+				<h2 class="mt-3 font-display text-4xl uppercase sm:text-5xl">{t.squadTitle}</h2>
+				<div class="mt-12 grid gap-6 md:grid-cols-3">
+					{
+						t.classes.map((entry, index) => (
+							<article class="frame cut flex flex-col gap-4 p-6 [--frame-color:var(--color-line)]">
+								<img
+									src={`/assets/models/weapons/${classArt[index]}.webp`}
+									alt=""
+									width="320"
+									height="180"
+									loading="lazy"
+									class="h-24 w-full object-contain"
+								/>
+								<h3 class="font-display text-3xl uppercase">{classes.classes[index]?.name ?? entry.name}</h3>
+								<p class="text-muted leading-relaxed">{entry.body}</p>
+							</article>
+						))
+					}
+				</div>
+				<p class="mt-14 max-w-3xl text-bone/85 text-lg leading-relaxed">{t.arsenal}</p>
+				<ul class="mt-8 grid grid-cols-3 gap-px bg-line/60 sm:grid-cols-4 lg:grid-cols-6">
+					{
+						weapons.map(weapon => (
+							<li class="flex flex-col items-center gap-2 bg-rot-black px-3 py-4">
+								<img
+									src={`/assets/models/weapons/${weapon.id}.webp`}
+									alt=""
+									width="320"
+									height="180"
+									loading="lazy"
+									class="h-14 w-full object-contain"
+								/>
+								<span class="font-bold text-xs uppercase tracking-[0.15em]">{weapon.name}</span>
+							</li>
+						))
+					}
+				</ul>
+			</div>
+		</section>
+
+		<!-- straight from the game -->
+		<section class="mx-auto max-w-7xl px-4 py-24 sm:px-6">
+			<p class="font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">{t.galleryKicker}</p>
+			<h2 class="mt-3 font-display text-4xl uppercase sm:text-5xl">{t.galleryTitle}</h2>
+			<div class="mt-12 grid gap-4 sm:grid-cols-2">
+				{
+					gallery.map(([file, caption]) => (
+						<figure class="frame cut relative aspect-video overflow-hidden [--frame-color:var(--color-line)]">
+							<img
+								src={`/landing/${file}.webp`}
+								alt={caption}
+								width="1280"
+								height="720"
+								loading="lazy"
+								class="absolute inset-0 size-full object-cover"
+							/>
+							<figcaption class="absolute inset-x-0 bottom-0 bg-linear-to-t from-rot-black/95 to-transparent px-4 pt-10 pb-3 font-bold text-sm uppercase tracking-[0.15em]">
+								{caption}
+							</figcaption>
+						</figure>
+					))
+				}
+			</div>
+		</section>
+
+		<!-- the code is public -->
+		<section id="source" class="scroll-mt-20 border-line/60 border-y bg-surface/40">
+			<div class="mx-auto grid max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-[minmax(0,1fr)_auto]">
+				<div class="flex max-w-3xl flex-col gap-4">
+					<p class="font-bold text-rot-lime text-xs uppercase tracking-[0.3em]">{t.openKicker}</p>
+					<h2 class="font-display text-4xl uppercase sm:text-5xl">{t.openTitle}</h2>
+					<p class="text-muted text-lg leading-relaxed">{t.openBody}</p>
+					<p class="font-bold text-bone/70 text-xs uppercase tracking-[0.2em]">{t.openStack}</p>
+				</div>
+				<a href={SOURCE_URL} rel="noopener" class:list={[buttonVariants({ variant: 'secondary', size: 'lg' }), 'gap-3']}>
+					<svg viewBox="0 0 24 24" class="size-6" fill="currentColor" aria-hidden="true"><path d={githubPath} /></svg>
+					{t.openCta}
+				</a>
+			</div>
+		</section>
+
+		<!-- one more push -->
+		<section class="relative isolate overflow-hidden">
+			<img
+				src="/landing/survival.webp"
+				alt=""
+				width="1280"
+				height="720"
+				loading="lazy"
+				class="-z-20 absolute inset-0 size-full object-cover opacity-50"
+			/>
+			<div class="-z-10 absolute inset-0 bg-linear-to-b from-rot-black via-rot-black/70 to-rot-black" aria-hidden="true"></div>
+			<div class="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-28 text-center sm:px-6">
+				<h2 class="font-display text-5xl uppercase sm:text-7xl">{t.finalTitle}</h2>
+				<p class="max-w-xl text-bone/85 text-lg">{t.finalBody}</p>
+				<a href="/play" class={buttonVariants({ size: 'lg' })}>{t.cta}</a>
+			</div>
 		</section>
 	</main>
 
 	<footer class="border-line border-t border-dashed">
-		<div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-muted text-sm">
+		<div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-muted text-sm sm:px-6">
 			<p>{t.footer} <span class="text-muted/60">v{pkg.version}</span></p>
-			<nav class="flex gap-6 uppercase tracking-widest">
+			<nav class="flex flex-wrap gap-6 uppercase tracking-widest">
+				<a class="hover:text-rot-lime" href={SOURCE_URL} rel="noopener">{en.nav.github}</a>
 				<a class="hover:text-rot-lime" href="/privacy">{en.nav.privacy}</a>
 				<a class="hover:text-rot-lime" href="/terms">{en.nav.terms}</a>
 				<a class="hover:text-rot-lime" href="/credits">{en.nav.credits}</a>
