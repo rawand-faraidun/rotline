@@ -20,6 +20,7 @@ If a tick runs late, the server runs the missed ticks back to back (up to 3) ins
 ## Transport
 
 - **WebSocket** works everywhere and is always available.
+- **A direct address.** The site sits behind a CDN, and for some regions the route through it is far slower than the route to the game server itself (about 230 ms a round trip against 80 ms from Iraq). The API can name a direct address for the game connection with every ticket; the client tries it first and falls back to the game path on the site if it has not opened within 5 seconds. Only the game connection uses it; pages, sign-in and the API stay behind the CDN. The address serves nothing but the game connection and limits new connections per client address; the signed ticket is what actually lets a player in.
 - **WebTransport** is used when the browser supports it: snapshots and inputs travel as unreliable datagrams, everything else on a reliable stream. A lost datagram never delays the ones behind it, which keeps remote entities smooth on lossy connections; on WebSocket (TCP), one lost packet holds up everything behind it.
 - Inputs are sent redundantly and one-off events are reliable. On WebSocket each snapshot is a delta against the previous one sent on that connection; with datagrams, snapshots become deltas against the last snapshot the client acknowledged (every input already carries that acknowledgement).
 

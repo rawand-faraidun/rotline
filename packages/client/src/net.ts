@@ -27,19 +27,39 @@ export type ConnectionHandlers = {
 	closed(): void
 }
 
-/** The game's WebSocket: hello with the ticket, then binary inputs out and snapshots in. */
+/** How long a direct address gets to open before the next one is tried. */
+const OPEN_TIMEOUT_MS = 5000
+
+/**
+ * The game's WebSocket: hello with the ticket, then binary inputs out and snapshots in. Given more
+ * than one address, each is tried in turn until one opens (a direct address first, the one through
+ * the site's proxy as the fallback).
+ */
 export class GameConnection {
 	readonly table = new ZombieTable()
-	private readonly socket: WebSocket
+	private socket: WebSocket
 	private readonly writer = new Writer(256)
 	private lastSnapshotId = 0
 	private finished = false
 
-	constructor(url: string, ticket: string, handlers: ConnectionHandlers) {
-		this.socket = new WebSocket(url)
-		this.socket.binaryType = 'arraybuffer'
-		this.socket.addEventListener('open', () => this.socket.send(writeHello(this.writer, ticket)))
-		this.socket.addEventListener('message', event => {
+	constructor(url: string | readonly string[], ticket: string, handlers: ConnectionHandlers) {
+		const urls = typeof url === 'string' ? [url] : url
+		this.socket = this.open(urls, 0, ticket, handlers)
+	}
+
+	private open(urls: readonly string[], index: number, ticket: string, handlers: ConnectionHandlers): WebSocket {
+		const socket = new WebSocket(urls[index] as string)
+		const last = index >= urls.length - 1
+		let opened = false
+		// an address that never opens (blocked, unreachable) gives way to the next one
+		const giveUp = last ? 0 : window.setTimeout(() => !opened && socket.close(), OPEN_TIMEOUT_MS)
+		socket.binaryType = 'arraybuffer'
+		socket.addEventListener('open', () => {
+			opened = true
+			window.clearTimeout(giveUp)
+			socket.send(writeHello(this.writer, ticket))
+		})
+		socket.addEventListener('message', event => {
 			if (!(event.data instanceof ArrayBuffer)) return
 			try {
 				const reader = new Reader(new Uint8Array(event.data))
@@ -50,7 +70,7 @@ export class GameConnection {
 						if (message.dataVersion !== dataVersion) {
 							this.finished = true
 							handlers.outdated()
-							this.socket.close()
+							socket.close()
 							break
 						}
 						handlers.welcome(
@@ -72,7 +92,7 @@ export class GameConnection {
 						handlers.events(message.events)
 						break
 					case 'ping':
-						this.socket.send(writePong(this.writer, message.time))
+						socket.send(writePong(this.writer, message.time))
 						break
 					case 'roster':
 						handlers.roster(message.entries)
@@ -90,10 +110,16 @@ export class GameConnection {
 				this.close()
 			}
 		})
-		this.socket.addEventListener('close', () => {
+		socket.addEventListener('close', () => {
+			window.clearTimeout(giveUp)
+			if (!opened && !last && !this.finished) {
+				this.socket = this.open(urls, index + 1, ticket, handlers)
+				return
+			}
 			if (!this.finished) handlers.closed()
 			this.finished = true
 		})
+		return socket
 	}
 
 	send(bytes: Uint8Array<ArrayBuffer>): void {

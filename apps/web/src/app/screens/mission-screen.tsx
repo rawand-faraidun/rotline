@@ -605,7 +605,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					if (!cancelled) void navigate({ to: '/play/lobby' })
 					return
 				}
-				const { ticket, path } = issued
+				const { ticket, path, direct } = issued
 				const map = range ? 'range' : (missionById(issued.mission?.id ?? '')?.map ?? SURVIVAL_MAP)
 				// the engine and its assets load only now, never on the landing page or lobby
 				const { startGame } = await import('@rotline/client')
@@ -613,7 +613,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 				const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
 				game = startGame({
 					canvas: canvasRef.current,
-					url: `${protocol}//${location.host}${path}`,
+					// straight to the game server when it has its own address, else (or if that fails) through the site
+					url: [...(direct ? [direct] : []), `${protocol}//${location.host}${path}`],
 					ticket,
 					assets: '/assets',
 					map
