@@ -50,7 +50,7 @@ import {
 import * as THREE from 'three'
 import { AudioEngine, type AudioSettings, type LoopHandle } from './audio.ts'
 import { Controls } from './controls.ts'
-import { HudStore, type InteractAction, type MissionHud, type Toast } from './hud-store.ts'
+import { HudStore, type InteractAction, type InteractHint, type MissionHud, type Toast } from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
@@ -62,6 +62,7 @@ import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
 import { PlayerFigure } from './render/players.ts'
 import { PropRenderer } from './render/props.ts'
 import { Stage, spawnHoles } from './render/scene.ts'
+import { surroundings } from './render/surroundings.ts'
 import { ZombieRenderer } from './render/zombies.ts'
 import { objectiveTarget, screenWaypoint } from './waypoint.ts'
 
@@ -121,7 +122,9 @@ export function startGame(options: GameOptions): GameHandle {
 	const decor = new Decor(
 		stage.scene,
 		// the map's own scenery, and litter scattered along its walls (models only on capable devices)
-		stage.quality === 'high' ? { ...map, decor: [...(map.decor ?? []), ...autoDecor(map)] } : map,
+		stage.quality === 'high'
+			? { ...map, decor: [...(map.decor ?? []), ...autoDecor(map), ...surroundings(map).decor] }
+			: map,
 		options.assets,
 		stage.quality === 'high'
 	)
@@ -206,6 +209,8 @@ export function startGame(options: GameOptions): GameHandle {
 	let mission: MissionDef | null = null
 	const waypointVector = new THREE.Vector3()
 	let openedCaches = 0
+	/** score this player can still spend at ammo stations (from the server) */
+	let spendable = 0
 	let rewardScale = 1
 	let menuOpen = false
 	let paused = false
@@ -340,6 +345,7 @@ export function startGame(options: GameOptions): GameHandle {
 			if (snapshot.rttMs > 0) pingMs = snapshot.rttMs
 			const self = snapshot.self
 			const progress = snapshot.mission
+			spendable = progress.spendable
 			if (mission && missionHud) {
 				const objective = mission.objectives[progress.objective]
 				const timed =
@@ -633,6 +639,11 @@ export function startGame(options: GameOptions): GameHandle {
 						if (event.player === you)
 							toast('threshold', String(Math.floor(economy.score.thresholdSalvage * rewardScale)))
 						break
+					case 'resupply':
+						audio.sound('pickup', { x: event.x, y: event.y, volume: 0.7 })
+						audio.sound('reload-rifle', { x: event.x, y: event.y, volume: 0.6 })
+						if (event.player === you) toast('resupply', String(ammoPrice))
+						break
 				}
 			}
 		},
@@ -797,19 +808,27 @@ export function startGame(options: GameOptions): GameHandle {
 	}
 
 	/** What interact would do where the player stands (the same rules the server applies). */
-	let lastHint: { action: InteractAction; progress: number } | null = null
-	function interactHint(state: PlayerState): { action: InteractAction; progress: number } | null {
-		let best: { action: InteractAction; progress: number } | null = null
+	let lastHint: InteractHint | null = null
+	// the firing range charges nothing for ammo (nobody scores there)
+	const ammoPrice = options.map === 'range' ? 0 : propsDef.ammo.price
+	function interactHint(state: PlayerState): InteractHint | null {
+		let best: InteractHint | null = null
 		if (state.alive && !state.downed) {
 			let nearest = propsDef.interactRange
 			const workable = workableIds()
 			for (const prop of props) {
-				const action = propAction(prop, state.carrying, predictorTick, workable)
+				const action =
+					prop.def.kind === 'ammo'
+						? ammoAction(state, spendable, ammoPrice)
+						: propAction(prop, state.carrying, predictorTick, workable)
 				if (!action) continue
 				const d = propReach(prop, state)
 				if (d > nearest || !propInSight(grid, prop, state)) continue
 				nearest = d
-				best = { action, progress: prop.progress }
+				best =
+					prop.def.kind === 'ammo'
+						? { action, progress: prop.progress, price: ammoPrice, have: spendable }
+						: { action, progress: prop.progress }
 			}
 			if (!best && mission) {
 				for (const [index, cache] of mission.caches.entries()) {
@@ -820,7 +839,13 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		}
 		// the same hint object while nothing changed, so the HUD does not re-render
-		if (best && lastHint && best.action === lastHint.action && Math.abs(best.progress - lastHint.progress) < 0.02)
+		if (
+			best &&
+			lastHint &&
+			best.action === lastHint.action &&
+			best.have === lastHint.have &&
+			Math.abs(best.progress - lastHint.progress) < 0.02
+		)
 			return lastHint
 		if (!best && !lastHint) return null
 		lastHint = best
@@ -1110,6 +1135,19 @@ function sameBuffs(
 	return (
 		a.length === b.length && a.every((buff, index) => buff.id === b[index]?.id && buff.seconds === b[index]?.seconds)
 	)
+}
+
+/**
+ * What interact does at an ammo station: refill when a gun is short and the price can be paid, show
+ * the price when it cannot yet, nothing when every gun is full (the server's rules).
+ */
+function ammoAction(state: PlayerState, spendable: number, price: number): InteractAction | null {
+	const short = ([0, 1, 2] as const).some(slot => {
+		const max = state.stats.weapons[slot].maxReserve
+		return max !== null && state.weapons[slot].reserve < max
+	})
+	if (!short) return null
+	return spendable >= price ? 'ammo' : 'ammo-short'
 }
 
 /** What interact does to a prop right now, or null if nothing (mirrors the server's rules). */

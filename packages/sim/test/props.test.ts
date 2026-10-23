@@ -47,6 +47,35 @@ const quiet = {
 const hold = (id = 1, buttons = Button.interact) => new Map<number, PlayerInput>([[id, input({ buttons })]])
 
 describe('props', () => {
+	it('sells a full reserve at an ammo station for score, never on credit', () => {
+		const world = new World({
+			seed: 1,
+			map: room([{ id: 'ammo', kind: 'ammo', x: 7, y: 10, w: 2, h: 1 }]),
+			waves: quiet
+		})
+		const player = world.addPlayer(1)
+		player.x = 6.4
+		player.y = 10.5
+		const rifle = player.weapons[1]
+		const max = player.stats.weapons[1].maxReserve as number
+		rifle.reserve = 3
+		const holdFor = (seconds: number) => steps(world, Math.ceil(seconds * TICK_RATE) + 1, () => hold())
+		// no score yet: holding does nothing (this room has no mission, where it would be free: pretend it scores)
+		Object.defineProperty(world, 'scoring', { get: () => true })
+		holdFor(propsDef.ammo.holdSeconds)
+		expect(rifle.reserve).toBe(3)
+		// enough score: one hold refills every gun and the price is spent, the score itself kept
+		player.score = propsDef.ammo.price + 100
+		holdFor(propsDef.ammo.holdSeconds)
+		expect(rifle.reserve).toBe(max)
+		expect(player.scoreSpent).toBe(propsDef.ammo.price)
+		expect(player.score).toBe(propsDef.ammo.price + 100)
+		// full again, and only 100 left to spend: nothing more to buy
+		rifle.reserve = 0
+		holdFor(propsDef.ammo.holdSeconds)
+		expect(rifle.reserve).toBe(0)
+	})
+
 	it('blocks with cover until it is shot apart, and barrels go off', () => {
 		const world = new World({
 			seed: 1,

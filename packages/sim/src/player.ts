@@ -93,6 +93,8 @@ export type PlayerState = {
 	// missions (server only)
 	/** score this mission (kills times the chain multiplier, objectives) and score thresholds passed */
 	score: number
+	/** score spent at ammo stations (it still counts for rewards; only what is left can be spent) */
+	scoreSpent: number
 	thresholds: number
 	/** items found and not yet reported, and how many were reported (drops are capped per mission) */
 	foundItems: string[]
@@ -182,6 +184,7 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 		chain: 0,
 		lastKillTick: -1000,
 		score: 0,
+		scoreSpent: 0,
 		thresholds: 0,
 		foundItems: [],
 		itemsReported: 0,

@@ -240,217 +240,102 @@
 	},
 	{
 		"id": "yard-sweep",
-		"name": "Yard Sweep",
+		"name": "Rail Yard",
 		"zone": "ashgate",
-		"map": "yard",
-		"description": "Clear the yard, secure the gate and hold it until the convoy is through.",
-		"parTimeSeconds": 660,
-		"scoreTarget": 42000,
-		"enemyLevel": 1,
-		"recommendedLevel": 1,
+		"map": "railyard",
+		"description": "The convoy needs the rail yard's points thrown to get through. Find the switch keys in the wrecked station, burn the nests in the container stacks, get the crane gate open, throw the points in the signal box and hold the road until the trucks arrive.",
+		"briefing": [
+			"A freight train jumped the rails at the edge of Ashgate and the yard behind it is crawling.",
+			"The convoy can only get through on the north road, and only if the points are thrown in the signal box. The stationmaster's switch keys are somewhere in the wreck of the station.",
+			"Move north section by section; the gates lock behind you. The convoy waits eleven minutes."
+		],
+		"debrief": "Points thrown, convoy through. That yard was the last way out of the east side.",
+		"parTimeSeconds": 480,
+		"timeLimitSeconds": 660,
+		"scoreTarget": 32000,
+		"enemyLevel": 3,
+		"recommendedLevel": 3,
 		"spawn": {
 			"perSecond": 1.6,
-			"maxAlive": 90,
+			"maxAlive": 80,
 			"composition": {
-				"drudge": 60,
-				"bolter": 20,
-				"swell": 8,
-				"crawler": 12
+				"drudge": 56,
+				"bolter": 18,
+				"crawler": 16,
+				"swell": 6,
+				"screamer": 4
 			}
 		},
 		"caches": [
 			{
-				"x": 4,
-				"y": 44
+				"x": 50.5,
+				"y": 104.5
 			},
 			{
-				"x": 60,
-				"y": 4
+				"x": 50.5,
+				"y": 89.5
+			},
+			{
+				"x": 44.5,
+				"y": 40.5
 			}
 		],
-		"objectives": [
-			{
-				"type": "kill",
-				"label": "Thin the horde",
-				"count": 40,
-				"radio": {
-					"speaker": "Sergeant",
-					"start": "The yard's crawling. Thin them out so the convoy has a chance."
+		"gates": {
+			"gate-platform": {
+				"openOn": 0,
+				"closeOn": 1,
+				"side": {
+					"x": 27.5,
+					"y": 95.5
 				}
 			},
-			{
-				"type": "destroy",
-				"label": "Burn the nests in the sheds",
-				"props": ["nest-sheds-west", "nest-sheds-east", "nest-centre"],
-				"ambush": {
-					"count": 10,
-					"composition": {
-						"crawler": 70,
-						"bolter": 30
-					}
-				},
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 32,
-					"y": 24
-				},
-				"radio": {
-					"speaker": "Sergeant",
-					"start": "Three nests down by the sheds. While they stand, this never ends.",
-					"done": "That's the last nest."
+			"gate-signals": {
+				"openOn": 3,
+				"closeOn": 4,
+				"side": {
+					"x": 27.5,
+					"y": 55.5
 				}
 			},
-			{
-				"type": "reach",
-				"label": "Reach the north gate",
-				"area": {
-					"x": 32,
-					"y": 4,
-					"radius": 4
-				},
-				"checkpoint": true,
-				"radio": {
-					"speaker": "Convoy",
-					"start": "Convoy here, we're at the north gate. Can't open it from out here!"
+			"gate-road": {
+				"openOn": 5,
+				"closeOn": 6,
+				"side": {
+					"x": 27.5,
+					"y": 24.5
 				}
-			},
-			{
-				"type": "hold",
-				"label": "Hold the gate",
-				"area": {
-					"x": 32,
-					"y": 4,
-					"radius": 5
-				},
-				"seconds": 45,
-				"spawnScale": 1.6,
-				"checkpoint": true,
-				"ambush": {
-					"count": 15,
-					"composition": {
-						"bolter": 60,
-						"drudge": 40
-					}
-				},
-				"radio": {
-					"speaker": "Sergeant",
-					"start": "Hold that gate while they cycle it. Here they come!",
-					"done": "Gate's up. First trucks rolling."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Stop the Brute before it reaches the trucks",
-				"count": 1,
-				"of": "brute",
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 32,
-						"y": 44
-					}
-				},
-				"spawnScale": 0.8,
-				"radio": {
-					"speaker": "Convoy",
-					"start": "Big one coming up from the south! It's heading straight for the trucks!",
-					"done": "It dropped. Keep them rolling."
-				}
-			},
-			{
-				"type": "survive",
-				"label": "Survive until the convoy is through",
-				"seconds": 40,
-				"spawnScale": 2,
-				"ambush": {
-					"count": 10,
-					"composition": {
-						"screamer": 20,
-						"drudge": 80
-					}
-				},
-				"radio": {
-					"speaker": "Convoy",
-					"start": "Last trucks moving. Forty seconds, give us forty seconds!"
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Optional: put down 150",
-				"count": 150,
-				"optional": true
-			}
-		],
-		"briefing": [
-			"A supply convoy is stuck outside the freight yard and the dead have found it.",
-			"Thin the horde, burn the nests in the sheds and get the north gate open. Then keep the yard clear until the last truck is through."
-		],
-		"debrief": "Last truck is through. The yard is yours, and the city eats tonight."
-	},
-	{
-		"id": "power-out",
-		"name": "Power Out",
-		"zone": "ashgate",
-		"map": "substation",
-		"description": "Ashgate's substation went dark. Restart the generators, keep the transformer alive while the grid comes back, then get out.",
-		"parTimeSeconds": 720,
-		"scoreTarget": 52000,
-		"enemyLevel": 2,
-		"recommendedLevel": 2,
-		"spawn": {
-			"perSecond": 1.8,
-			"maxAlive": 110,
-			"composition": {
-				"drudge": 55,
-				"bolter": 22,
-				"swell": 13,
-				"crawler": 10
 			}
 		},
-		"caches": [
-			{
-				"x": 6.5,
-				"y": 11.5
-			},
-			{
-				"x": 66.5,
-				"y": 5.5
-			}
-		],
 		"objectives": [
 			{
-				"type": "reach",
-				"label": "Get inside the substation",
+				"type": "retrieve",
+				"label": "Find the switch keys",
+				"item": "switch-keys",
 				"area": {
-					"x": 36,
-					"y": 30,
-					"radius": 5
+					"x": 27.5,
+					"y": 101.5,
+					"radius": 2.5
 				},
-				"spawnScale": 0.6,
-				"radio": {
-					"speaker": "Engineer",
-					"start": "Substation's dead and so is half the city. Get me inside the fence."
-				}
-			},
-			{
-				"type": "interact",
-				"label": "Restart the three generators",
-				"props": ["generator-west", "generator-east", "generator-south"],
+				"sections": [0],
+				"spawnScale": 0.5,
 				"checkpoint": true,
-				"checkpointAt": {
-					"x": 36,
-					"y": 30
-				},
 				"radio": {
-					"speaker": "Engineer",
-					"start": "Three generators: west, east and south. They take a while to catch, and they're loud.",
-					"done": "All three running. The turrets have power."
+					"speaker": "Convoy",
+					"start": "Rook, Convoy. The stationmaster kept the switch keys in his office, west side of the platform. Get them and bring them to the yard gate.",
+					"done": "Keys on the gate. It's open: into the stacks."
 				}
 			},
 			{
 				"type": "destroy",
-				"label": "Clear the nests by the fences",
-				"props": ["nest-southwest", "nest-southeast"],
+				"label": "Burn the nests in the stacks",
+				"props": ["nest-stacks-west", "nest-stacks-centre", "nest-stacks-east"],
+				"sections": [1],
+				"spawnScale": 0.9,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 27.5,
+					"y": 94.5
+				},
 				"ambush": {
 					"count": 12,
 					"composition": {
@@ -459,23 +344,291 @@
 					}
 				},
 				"radio": {
+					"speaker": "Convoy",
+					"start": "Three nests between the containers. Burn them or they'll fill the yard behind you.",
+					"done": "Nests are down. The north gate runs off the crane generator."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Start the crane generator",
+				"props": ["crane-generator"],
+				"sections": [1],
+				"spawnScale": 1.1,
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Generator's by the north gate. Start it up and keep them off it while it runs up."
+				}
+			},
+			{
+				"type": "hold",
+				"label": "Hold the gate while it grinds open",
+				"area": {
+					"x": 27.5,
+					"y": 62.5,
+					"radius": 5
+				},
+				"seconds": 25,
+				"sections": [1],
+				"spawnScale": 1.4,
+				"checkpoint": true,
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"drudge": 55,
+						"bolter": 30,
+						"screamer": 15
+					}
+				},
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Gate's moving. Hold the ground in front of it!",
+					"done": "Through! The signal box is on the east side."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Throw the points in the signal box",
+				"props": ["points-terminal"],
+				"sections": [2],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 27.5,
+					"y": 55.5
+				},
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Signal box, east side. Get the door open and throw the points from the panel.",
+					"done": "Points thrown. Something big just woke up in the turntable pit."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Brute",
+				"count": 1,
+				"of": "brute",
+				"sections": [2],
+				"spawnScale": 0.6,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 14.5,
+						"y": 43.5
+					}
+				},
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Brute coming out of the turntable! Keep moving and keep shooting.",
+					"done": "It's down. Road gate's open."
+				}
+			},
+			{
+				"type": "hold",
+				"label": "Hold the road until the convoy arrives",
+				"area": {
+					"x": 27.5,
+					"y": 12.5,
+					"radius": 6
+				},
+				"seconds": 35,
+				"sections": [3],
+				"spawnScale": 1.4,
+				"checkpoint": true,
+				"ambush": {
+					"count": 18,
+					"composition": {
+						"drudge": 55,
+						"bolter": 25,
+						"crawler": 20
+					}
+				},
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Thirty-five seconds out. Keep that road clear!"
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Get on the trucks",
+				"area": {
+					"x": 27.5,
+					"y": 8.5,
+					"radius": 4
+				},
+				"seconds": 40,
+				"sections": [3],
+				"spawnScale": 1.2,
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Trucks are here. Everybody on!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 150",
+				"count": 150,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "power-out",
+		"name": "Blackout",
+		"zone": "ashgate",
+		"map": "powerplant",
+		"description": "Ashgate's power plant went dark. Get through the fence on the backup generator, restart the three generators in the transformer yard and keep the transformer alive, reroute the grid from the control room, and get out past the cooling towers.",
+		"briefing": [
+			"The plant that keeps Ashgate's lights and pumps running has gone dark, and the dark is where they nest.",
+			"The fence gate runs off a backup generator. Inside, three generators feed the transformer and the yard's turrets: restart them, then keep the transformer standing while the grid comes back.",
+			"The grid is rerouted from the control room. The exit road is past the cooling towers. Thirteen minutes before the district's reserve runs out."
+		],
+		"debrief": "Grid's back. Half of Ashgate just got its lights on. Nice work.",
+		"parTimeSeconds": 600,
+		"timeLimitSeconds": 780,
+		"scoreTarget": 38000,
+		"enemyLevel": 5,
+		"recommendedLevel": 5,
+		"spawn": {
+			"perSecond": 1.8,
+			"maxAlive": 100,
+			"composition": {
+				"drudge": 52,
+				"bolter": 22,
+				"swell": 12,
+				"crawler": 10,
+				"screamer": 4
+			}
+		},
+		"caches": [
+			{
+				"x": 7.5,
+				"y": 110.5
+			},
+			{
+				"x": 12.5,
+				"y": 34.5
+			},
+			{
+				"x": 50.5,
+				"y": 13.5
+			}
+		],
+		"gates": {
+			"gate-fence": {
+				"openOn": 1,
+				"closeOn": 2,
+				"side": {
+					"x": 29.5,
+					"y": 100.5
+				}
+			},
+			"gate-control": {
+				"openOn": 4,
+				"closeOn": 5,
+				"side": {
+					"x": 29.5,
+					"y": 60.5
+				}
+			},
+			"gate-towers": {
+				"openOn": 6,
+				"closeOn": 7,
+				"side": {
+					"x": 29.5,
+					"y": 24.5
+				}
+			}
+		},
+		"objectives": [
+			{
+				"type": "reach",
+				"label": "Get to the plant fence",
+				"area": {
+					"x": 29.5,
+					"y": 108.5,
+					"radius": 4
+				},
+				"sections": [0],
+				"spawnScale": 0.6,
+				"radio": {
 					"speaker": "Engineer",
-					"start": "Nests in the south corners. They'll swamp the transformer if you leave them."
+					"start": "Plant's dead and so is half the city. Get me to the fence."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Start the backup generator",
+				"props": ["backup-generator"],
+				"sections": [0],
+				"spawnScale": 1.2,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 29.5,
+					"y": 108.5
+				},
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"drudge": 70,
+						"crawler": 30
+					}
+				},
+				"radio": {
+					"speaker": "Engineer",
+					"start": "The gate runs off the backup generator, west of it. Start it and hold them off while it runs up.",
+					"done": "Gate's open. Into the yard."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Restart the three generators",
+				"props": ["generator-west", "generator-east", "generator-north"],
+				"sections": [1],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 29.5,
+					"y": 100.5
+				},
+				"radio": {
+					"speaker": "Engineer",
+					"start": "Three generators: west, east and north. Each one wakes a turret.",
+					"done": "All three running. The transformer's coming up."
+				}
+			},
+			{
+				"type": "destroy",
+				"label": "Burn the nests in the yard",
+				"props": ["nest-yard-west", "nest-yard-east"],
+				"sections": [1],
+				"spawnScale": 0.8,
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"crawler": 60,
+						"drudge": 40
+					}
+				},
+				"radio": {
+					"speaker": "Engineer",
+					"start": "Two nests in the corners. Burn them before we bring the transformer up."
 				}
 			},
 			{
 				"type": "defend",
 				"label": "Keep the transformer running",
 				"prop": "transformer",
-				"seconds": 90,
-				"spawnScale": 1.6,
+				"seconds": 70,
+				"sections": [1],
+				"spawnScale": 1.7,
 				"checkpoint": true,
 				"checkpointAt": {
-					"x": 36,
-					"y": 30
+					"x": 29.5,
+					"y": 90.5
 				},
 				"ambush": {
-					"count": 18,
+					"count": 20,
 					"composition": {
 						"screamer": 15,
 						"bolter": 35,
@@ -484,40 +637,69 @@
 				},
 				"radio": {
 					"speaker": "Engineer",
-					"start": "Transformer's spinning up. Ninety seconds. Don't let them touch it!",
-					"done": "It's holding. We have power."
+					"start": "Seventy seconds while it charges. Everything in the yard is coming for it!",
+					"done": "Transformer's live. The control building is open."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Reroute the grid from the control room",
+				"props": ["grid-terminal"],
+				"sections": [2],
+				"spawnScale": 1.1,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 29.5,
+					"y": 60.5
+				},
+				"radio": {
+					"speaker": "Engineer",
+					"start": "Control room, north-east corner of the building. Open the door and work the panel.",
+					"done": "Grid rerouted. Something's moving in the turbine hall."
 				}
 			},
 			{
 				"type": "kill",
-				"label": "Put down the Brute at the gate",
+				"label": "Put down the Brute in the turbine hall",
 				"count": 1,
 				"of": "brute",
+				"sections": [2],
+				"spawnScale": 0.6,
 				"boss": {
 					"type": "brute",
 					"at": {
-						"x": 36,
-						"y": 6
+						"x": 29.5,
+						"y": 42.5
 					}
 				},
 				"radio": {
 					"speaker": "Scout",
-					"start": "A Brute is sitting on the north road. That's your way out."
+					"start": "Brute in the turbine hall, between you and the north door!",
+					"done": "It's down. The tower gate is open."
 				}
 			},
 			{
 				"type": "extract",
-				"label": "Out through the north road",
+				"label": "Out past the cooling towers",
 				"area": {
-					"x": 36,
-					"y": 3,
+					"x": 29.5,
+					"y": 6.5,
 					"radius": 4
 				},
-				"seconds": 90,
-				"spawnScale": 1.4,
+				"seconds": 75,
+				"sections": [3],
+				"spawnScale": 1.5,
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"drudge": 55,
+						"bolter": 30,
+						"crawler": 15
+					}
+				},
 				"radio": {
 					"speaker": "Command",
-					"start": "Road's clear. Get out before the whole district wakes up."
+					"start": "Road's clear past the towers. Everyone out before the whole district wakes up."
 				}
 			},
 			{
@@ -526,23 +708,18 @@
 				"count": 180,
 				"optional": true
 			}
-		],
-		"briefing": [
-			"The substation that feeds the east side has gone dark. Without it the shelters lose their lights and their fences.",
-			"Restart its three generators, clear the nests around the yard and keep the transformer alive while it spins up. The noise will bring everything for a mile."
-		],
-		"debrief": "Power is back on the east side. Fences are live. Get home."
+		]
 	},
 	{
 		"id": "survivors",
-		"name": "Survivors",
+		"name": "Holdouts",
 		"zone": "ashgate",
 		"map": "depot",
-		"description": "Two depot workers are holed up inside. Break in, find them, walk them to the truck. The doors lock behind you.",
-		"parTimeSeconds": 840,
+		"description": "Two depot workers are holed up in the food depot. Break in, find them on the cameras, burn the nests, and walk them to the truck on the dock before the horde closes the roads.",
+		"parTimeSeconds": 660,
 		"scoreTarget": 64000,
-		"enemyLevel": 3,
-		"recommendedLevel": 4,
+		"enemyLevel": 6,
+		"recommendedLevel": 6,
 		"spawn": {
 			"perSecond": 2.0,
 			"maxAlive": 120,
@@ -601,7 +778,7 @@
 				},
 				"radio": {
 					"speaker": "Command",
-					"start": "The depot's front lot is full of them. Clear it and get the west gate open."
+					"start": "The truck lot's full of them. Clear it and get the west gate open."
 				}
 			},
 			{
@@ -636,7 +813,8 @@
 					"speaker": "Scout",
 					"start": "Two nests between you and them. Burn them or you'll never get them out.",
 					"done": "Nests are gone. Go get them."
-				}
+				},
+				"spawnScale": 0.9
 			},
 			{
 				"type": "rescue",
@@ -704,21 +882,23 @@
 			}
 		],
 		"briefing": [
-			"A family has been holed up in the old food depot for nine days. Their radio went quiet this morning.",
-			"Break in, find them on the office cameras, burn the nests in the warehouse and walk them to the truck on the far dock. Nobody gets left behind."
+			"Two workers have been holed up in the old food depot for nine days. Their radio went quiet this morning.",
+			"Break in from the truck lot, find them on the office cameras, burn the nests in the warehouse and walk them to the truck on the far dock.",
+			"The roads out close in fifteen minutes. Nobody gets left behind."
 		],
-		"debrief": "Truck's rolling with everyone on it. Nine days. They made it."
+		"debrief": "Truck's rolling with everyone on it. Nine days. They made it.",
+		"timeLimitSeconds": 900
 	},
 	{
 		"id": "yard-stand",
-		"name": "Last Stand",
+		"name": "Breakout",
 		"zone": "ashgate",
-		"map": "yard",
-		"description": "Hold the centre of the yard against a growing horde, then break out before it closes in.",
-		"parTimeSeconds": 660,
+		"map": "motorpool",
+		"description": "Hold the motor pool while the last evacuation column loads up, wake its turrets, break the waves and the Brutes, then break out through the north gate.",
+		"parTimeSeconds": 600,
 		"scoreTarget": 60000,
-		"enemyLevel": 2,
-		"recommendedLevel": 3,
+		"enemyLevel": 7,
+		"recommendedLevel": 7,
 		"spawn": {
 			"perSecond": 2.2,
 			"maxAlive": 140,
@@ -731,8 +911,16 @@
 		},
 		"caches": [
 			{
-				"x": 4,
-				"y": 4
+				"x": 14.5,
+				"y": 24.5
+			},
+			{
+				"x": 58.5,
+				"y": 66.5
+			},
+			{
+				"x": 5.5,
+				"y": 15.5
 			}
 		],
 		"objectives": [
@@ -741,28 +929,47 @@
 				"label": "Hold the centre",
 				"area": {
 					"x": 32,
-					"y": 24,
+					"y": 49,
 					"radius": 6
 				},
 				"seconds": 60,
+				"sections": [0],
 				"checkpoint": true,
 				"ambush": {
 					"count": 12
 				},
 				"radio": {
 					"speaker": "Sergeant",
-					"start": "Column's moving. Hold the centre of the yard and draw them onto us."
+					"start": "Column's loading. Hold the centre of the yard and draw them onto us."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Start the generators for the turrets",
+				"props": ["generator-west", "generator-east"],
+				"sections": [0],
+				"spawnScale": 1.1,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 32,
+					"y": 49
+				},
+				"radio": {
+					"speaker": "Sergeant",
+					"start": "Generators west and east. Get them running and the turrets wake up.",
+					"done": "Turrets are up. Here comes the next lot."
 				}
 			},
 			{
 				"type": "kill",
 				"label": "Break the second wave",
 				"count": 80,
+				"sections": [0],
 				"spawnScale": 1.4,
 				"checkpoint": true,
 				"checkpointAt": {
 					"x": 32,
-					"y": 24
+					"y": 49
 				},
 				"ambush": {
 					"count": 16,
@@ -782,11 +989,12 @@
 				"label": "Put down the Brutes",
 				"count": 2,
 				"of": "brute",
+				"sections": [0],
 				"boss": {
 					"type": "brute",
 					"at": {
 						"x": 32,
-						"y": 44
+						"y": 79
 					}
 				},
 				"ambush": {
@@ -806,30 +1014,41 @@
 				"label": "Hold the centre again",
 				"area": {
 					"x": 32,
-					"y": 24,
+					"y": 49,
 					"radius": 6
 				},
 				"seconds": 90,
+				"sections": [0],
 				"spawnScale": 1.8,
 				"checkpoint": true,
 				"radio": {
 					"speaker": "Sergeant",
-					"start": "Last of the column. Ninety more seconds!"
+					"start": "Last trucks are loading. Ninety more seconds!",
+					"done": "Column's out. North gate's open!"
 				}
 			},
 			{
 				"type": "extract",
-				"label": "Get to the north gate",
+				"label": "Out through the north gate",
 				"area": {
 					"x": 32,
-					"y": 4,
+					"y": 5,
 					"radius": 4
 				},
 				"seconds": 90,
+				"sections": [1],
 				"spawnScale": 1.5,
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"drudge": 50,
+						"bolter": 35,
+						"crawler": 15
+					}
+				},
 				"radio": {
 					"speaker": "Command",
-					"start": "Column's clear. North gate, all of you, now!"
+					"start": "Road north is yours. Everyone out, now!"
 				}
 			},
 			{
@@ -840,9 +1059,20 @@
 			}
 		],
 		"briefing": [
-			"The evacuation column is pulling out of the freight yard and the horde is following the noise.",
-			"Hold the centre of the yard as long as the column needs. Brutes have been seen in the area. When the last vehicle is gone, get to the north gate."
+			"The last evacuation column is loading up in the army motor pool, and the noise is pulling in everything for miles.",
+			"Hold the centre while they load. Two generators can wake the yard's turrets. Brutes have been seen in the area.",
+			"When the last truck is gone the north gate opens. Fourteen minutes, then the roads are theirs."
 		],
-		"debrief": "Column's clear and the yard's quiet. That was the hardest stand yet."
+		"debrief": "Column's clear and the motor pool is theirs now. That was the hardest stand yet.",
+		"timeLimitSeconds": 840,
+		"gates": {
+			"gate-north": {
+				"openOn": 4,
+				"side": {
+					"x": 31.5,
+					"y": 15.5
+				}
+			}
+		}
 	}
 ]

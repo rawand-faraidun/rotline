@@ -17,7 +17,8 @@ export const PropKind: Record<PropKindId, number> = {
 	survivor: 10,
 	carry: 11,
 	defend: 12,
-	nest: 13
+	nest: 13,
+	ammo: 14
 }
 
 /** What a prop is doing. Not every state applies to every kind. */
@@ -91,7 +92,8 @@ const CELL_KINDS = new Set<PropKindId>([
 	'terminal',
 	'turret',
 	'defend',
-	'nest'
+	'nest',
+	'ammo'
 ])
 
 function startState(def: MapProp): number {
@@ -211,6 +213,8 @@ export function holdSeconds(prop: Prop): number {
 			return propsDef.survivor.freeSeconds
 		case 'carry':
 			return propsDef.carry.pickupSeconds
+		case 'ammo':
+			return propsDef.ammo.holdSeconds
 		default:
 			return 0
 	}

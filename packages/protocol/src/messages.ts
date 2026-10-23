@@ -22,7 +22,7 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 9
+export const PROTOCOL_VERSION = 10
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
@@ -298,6 +298,7 @@ export type SelfState = Omit<
 	| 'chain'
 	| 'lastKillTick'
 	| 'score'
+	| 'scoreSpent'
 	| 'thresholds'
 	| 'foundItems'
 	| 'itemsReported'
@@ -321,6 +322,8 @@ export type MissionFrame = {
 	doubleXpSeconds: number
 	instakillSeconds: number
 	score: number
+	/** score this player can still spend (at ammo stations) */
+	spendable: number
 	chain: number
 	/** 0..1 of the chain timer left */
 	chainLeft: number
@@ -504,6 +507,7 @@ export class SnapshotEncoder {
 			// a chain whose timer ran out is gone, even before the server notices on the next kill
 			const chainLeft = self && self.chain > 0 ? Math.max(0, CHAIN_TICKS - (world.tick - self.lastKillTick)) : 0
 			w.u32(Math.min(0xffffffff, Math.floor(self?.score ?? 0)))
+				.u32(Math.min(0xffffffff, Math.max(0, Math.floor((self?.score ?? 0) - (self?.scoreSpent ?? 0)))))
 				.u16(chainLeft > 0 ? Math.min(0xffff, self?.chain ?? 0) : 0)
 				.u8(Math.round((chainLeft / CHAIN_TICKS) * 255))
 			let caches = 0
@@ -757,6 +761,7 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		doubleXpSeconds: r.u8(),
 		instakillSeconds: r.u8(),
 		score: r.u32(),
+		spendable: r.u32(),
 		chain: r.u16(),
 		chainLeft: r.u8() / 255,
 		caches: r.u16(),
@@ -939,7 +944,8 @@ const EventType = {
 	'run-over': 23,
 	prop: 24,
 	failed: 25,
-	scream: 26
+	scream: 26,
+	resupply: 27
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -1021,6 +1027,9 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'item-found':
 				w.u8(event.player).u8(event.item)
+				break
+			case 'resupply':
+				w.u8(event.player).u16(q(event.x)).u16(q(event.y))
 				break
 			case 'cache':
 			case 'threshold':
@@ -1141,6 +1150,9 @@ export function readEvents(r: Reader): SimEvent[] {
 				break
 			case EventType.buff:
 				events.push({ type: 'buff', player: r.u8(), buff: r.u8() })
+				break
+			case EventType.resupply:
+				events.push({ type: 'resupply', player: r.u8(), x: dq(r.u16()), y: dq(r.u16()) })
 				break
 			case EventType.threshold:
 				events.push({ type: 'threshold', player: r.u8(), index: r.u8() })

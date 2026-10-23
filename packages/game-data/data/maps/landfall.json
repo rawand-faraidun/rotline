@@ -250,6 +250,38 @@
 			"kind": "floodlight",
 			"x": 38,
 			"y": 4
+		},
+		{
+			"id": "ammo-1",
+			"kind": "ammo",
+			"x": 8,
+			"y": 136,
+			"w": 2,
+			"h": 1
+		},
+		{
+			"id": "ammo-2",
+			"kind": "ammo",
+			"x": 30,
+			"y": 107,
+			"w": 2,
+			"h": 1
+		},
+		{
+			"id": "ammo-3",
+			"kind": "ammo",
+			"x": 24,
+			"y": 59,
+			"w": 2,
+			"h": 1
+		},
+		{
+			"id": "ammo-4",
+			"kind": "ammo",
+			"x": 36,
+			"y": 22,
+			"w": 2,
+			"h": 1
 		}
 	],
 	"decor": [
@@ -312,7 +344,7 @@
 		},
 		{
 			"model": "scene-cardboard",
-			"x": 36.0,
+			"x": 36,
 			"y": 98.4,
 			"rotation": [0, 50, 0]
 		},
@@ -330,7 +362,7 @@
 		},
 		{
 			"model": "scene-car",
-			"x": 27.0,
+			"x": 27,
 			"y": 95.5,
 			"rotation": [0, 22, 0]
 		},
@@ -349,7 +381,7 @@
 		},
 		{
 			"model": "scene-barrier",
-			"x": 15.0,
+			"x": 15,
 			"y": 92.4
 		},
 		{
@@ -359,7 +391,7 @@
 		},
 		{
 			"model": "scene-barrier",
-			"x": 24.0,
+			"x": 24,
 			"y": 112.4
 		},
 		{
@@ -412,14 +444,14 @@
 		},
 		{
 			"model": "scene-bin",
-			"x": 14.0,
+			"x": 14,
 			"y": 103.5,
 			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-trash",
 			"x": 31.8,
-			"y": 89.0
+			"y": 89
 		},
 		{
 			"model": "scene-trash",
@@ -430,12 +462,12 @@
 		{
 			"model": "scene-utility",
 			"x": 31.6,
-			"y": 107.0
+			"y": 107
 		},
 		{
 			"model": "scene-tyre",
 			"x": 25.5,
-			"y": 89.0,
+			"y": 89,
 			"rotation": [75, 20, 0]
 		},
 		{
@@ -471,17 +503,17 @@
 		},
 		{
 			"model": "scene-barrier2",
-			"x": 16.0,
+			"x": 16,
 			"y": 40.4
 		},
 		{
 			"model": "scene-barrier",
-			"x": 29.0,
+			"x": 29,
 			"y": 54.4
 		},
 		{
 			"model": "scene-military-crate",
-			"x": 9.0,
+			"x": 9,
 			"y": 20.5,
 			"rotation": [0, 10, 0]
 		},

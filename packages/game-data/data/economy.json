@@ -1,22 +1,22 @@
 {
 	"tierPrices": {
-		"0": 1500,
-		"1": 6000,
-		"2": 14000,
-		"3": 28000
+		"0": 1350,
+		"1": 5400,
+		"2": 12600,
+		"3": 25200
 	},
 	"upgrade": {
 		"maxLevel": 10,
 		"tierBase": {
-			"0": 600,
-			"1": 800,
-			"2": 1400,
-			"3": 2200
+			"0": 540,
+			"1": 720,
+			"2": 1260,
+			"3": 1980
 		},
 		"growth": 1.4,
 		"roundTo": 10,
 		"perkLevels": [5, 10],
-		"perkSwitchPrice": 500
+		"perkSwitchPrice": 450
 	},
 	"discard": {
 		"0": 300,
@@ -24,7 +24,7 @@
 		"2": 1200,
 		"3": 2400
 	},
-	"respecPrice": 2500,
+	"respecPrice": 2250,
 	"rewards": {
 		"waveClear": {
 			"xp": 40,

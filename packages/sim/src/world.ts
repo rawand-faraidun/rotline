@@ -98,6 +98,8 @@ export type SimEvent =
 	| { type: 'buff'; player: number; buff: number }
 	/** a player's score passed a threshold (Salvage and a heal) */
 	| { type: 'threshold'; player: number; index: number }
+	/** a player refilled their ammo at a station */
+	| { type: 'resupply'; player: number; x: number; y: number }
 	/** a map prop changed state (index into the map's props) */
 	| { type: 'prop'; index: number; state: number }
 	/** the current objective failed (a survivor or defend target lost, time ran out): back to the checkpoint */

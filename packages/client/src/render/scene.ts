@@ -2,6 +2,7 @@ import type { MapDef } from '@rotline/game-data'
 import * as THREE from 'three'
 import { EFFECTS_LAYER, PostProcessing } from './post.ts'
 import { pixelRatioFor, probeQuality, type Quality } from './quality.ts'
+import { type Building, OUTSIDE, surroundings } from './surroundings.ts'
 
 /**
  * Camera height and tilt: close over the soldier and almost straight down, so soldiers and zombies
@@ -324,10 +325,12 @@ export class Stage {
 		// the plain ground shows at once; the real material replaces it when it has loaded
 		const texture = groundTexture()
 		const groundMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.95 })
-		// 1k textures cover 4 m of ground each
-		const groundGeometry = new THREE.PlaneGeometry(map.width, map.height)
+		// 1k textures cover 4 m of ground each; the ground runs on past the map under the town round it
+		const groundWidth = map.width + OUTSIDE * 2
+		const groundDepth = map.height + OUTSIDE * 2
+		const groundGeometry = new THREE.PlaneGeometry(groundWidth, groundDepth)
 		const uv = groundGeometry.getAttribute('uv') as THREE.BufferAttribute
-		for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * map.width) / 4, (uv.getY(i) * map.height) / 4)
+		for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * groundWidth) / 4, (uv.getY(i) * groundDepth) / 4)
 		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4, high)
 		this.ground = new THREE.Mesh(groundGeometry, groundMaterial)
 		this.ground.rotation.x = -Math.PI / 2
@@ -345,6 +348,22 @@ export class Stage {
 		walls.name = 'walls'
 		walls.castShadow = walls.receiveShadow = true
 		this.scene.add(walls)
+		// the town beyond the border: buildings of a few heights, in the map's wall material and another
+		const other = look.walls === 'brick' ? 'wall-concrete' : 'brick'
+		const otherMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
+		dress(otherMaterial, `${assets}/textures/${other}`, null, 0xe0e0da, high)
+		const byHeight = new Map<number, Building[]>()
+		for (const building of surroundings(map).buildings)
+			byHeight.set(building.height, [...(byHeight.get(building.height) ?? []), building])
+		for (const [height, group] of byHeight) {
+			const mesh = new THREE.Mesh(wallGeometry(group, height, 2), [
+				height > 8 ? otherMaterial : wallMaterial,
+				roofMaterial
+			])
+			mesh.name = 'outside'
+			mesh.castShadow = mesh.receiveShadow = high
+			this.scene.add(mesh)
+		}
 		if (high) this.post = new PostProcessing(this.renderer, this.scene, this.camera)
 		this.resize()
 	}

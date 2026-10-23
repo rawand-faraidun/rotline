@@ -461,12 +461,16 @@ describe('snapshots', () => {
 
 describe('missions in snapshots', () => {
 	it('carries the objective, team buffs, the own score and chain, and buffs on the ground', () => {
-		const mission = missionById('yard-sweep') as MissionDef
-		const world = new World({
-			seed: 2,
-			map: yard,
-			mission: { mission: { ...mission, spawn: { ...mission.spawn, perSecond: 0 } }, difficulty: 'nightmare' }
-		})
+		const base = missionById('yard-sweep') as MissionDef
+		// an untimed kill run on the yard
+		const mission: MissionDef = {
+			...base,
+			timeLimitSeconds: undefined,
+			gates: undefined,
+			spawn: { ...base.spawn, perSecond: 0 },
+			objectives: [{ type: 'kill', label: 'Kill 40', count: 40 }]
+		}
+		const world = new World({ seed: 2, map: yard, mission: { mission, difficulty: 'nightmare' } })
 		const me = world.addPlayer(1)
 		world.addPlayer(2)
 		for (let n = 0; n < 3; n++) world.damageZombie(world.spawnZombie(zombieIndex('drudge'), { x: 5, y: 5 }), 1e9, 1)
@@ -516,7 +520,7 @@ describe('missions in snapshots', () => {
 
 describe('props in snapshots', () => {
 	it('sends every prop once, then only the ones that change, and the carrying flag', () => {
-		const map = maps.substation as NonNullable<typeof maps.substation>
+		const map = maps.powerplant as NonNullable<typeof maps.powerplant>
 		const world = new World({ seed: 3, map })
 		const me = world.addPlayer(1)
 		const encoder = new SnapshotEncoder(1)
@@ -525,7 +529,7 @@ describe('props in snapshots', () => {
 		expect(first.props).toHaveLength(world.props.length)
 		const second = decode(encoder.write(new Writer(), world), table)
 		expect(second.props).toHaveLength(0)
-		const door = world.propById.get('door-west')
+		const door = world.propById.get('control-door')
 		if (!door) throw new Error()
 		setPropState(world.grid, door, PropState.closed)
 		door.progress = 0.5

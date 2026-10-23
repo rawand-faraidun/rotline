@@ -2,9 +2,12 @@ import { buffs, maps } from '@rotline/game-data'
 import type { ObjectState } from '@rotline/protocol'
 import { ObjectKind } from '@rotline/sim'
 import { Interpolator } from './interpolate.ts'
+import { Decor } from './render/decor.ts'
+import { autoDecor } from './render/dressing.ts'
 import { Effects } from './render/effects.ts'
 import { ObjectRenderer } from './render/objects.ts'
 import { Stage } from './render/scene.ts'
+import { surroundings } from './render/surroundings.ts'
 import { ZombieRenderer } from './render/zombies.ts'
 
 /**
@@ -16,6 +19,12 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 	const stage = new Stage(canvas, map, '/assets')
 	stage.resize()
 	const effects = new Effects(stage.scene, true)
+	const decor = new Decor(
+		stage.scene,
+		{ ...map, decor: [...(map.decor ?? []), ...autoDecor(map), ...surroundings(map).decor] },
+		'/assets',
+		true
+	)
 	const view = new Interpolator().view
 	const objectRenderer = new ObjectRenderer(stage.scene, '/assets')
 	// what lies on the ground: every pickup in a row, and a sentry, a claymore, a decoy, sandbags
@@ -57,6 +66,11 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		gas: (x: number, y: number, radius: number) => effects.gas(x, y, radius, now()),
 		fall: (x: number, y: number, type = 0) => zombies?.fall(9999, type, x, y),
 		ready: () => zombies !== null,
+		/** moves the camera to look at (x, y) */
+		goto: (x: number, y: number) => {
+			at.x = x
+			at.y = y
+		},
 		jet: (x: number, y: number, angle: number, toxic = false) => effects.flame(x, y, angle, 7, 0.26, toxic, now()),
 		burn: (x: number, y: number) => fires.push({ x, y }),
 		shot: (x: number, y: number, angle: number) => effects.tracer(x, y, angle, 6, now(), 1.05, 0xff3a2a),
@@ -88,6 +102,7 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		stage.follow(at.x, at.y, at.x + 1, at.y, time - last)
 		last = time
 		effects.update(time)
+		decor.update(time)
 		if (frozen === null) for (const fire of fires) effects.burning(fire.x, fire.y, 1, time, 1 / 60)
 		zombies?.update(view, time)
 		objectRenderer.update(showObjects ? objects : [], time)

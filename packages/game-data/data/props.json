@@ -54,6 +54,10 @@
 	"defend": {
 		"health": 1500
 	},
+	"ammo": {
+		"holdSeconds": 1,
+		"price": 500
+	},
 	"nest": {
 		"health": 900,
 		"spawnEverySeconds": 4,

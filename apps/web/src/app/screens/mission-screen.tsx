@@ -358,6 +358,13 @@ function Toasts({ hud }: { hud: HudState }) {
 					{toast.kind === 'threshold' && (
 						<span className="font-bold text-warning">{format(t.threshold, { salvage: toast.text })}</span>
 					)}
+					{toast.kind === 'resupply' && (
+						<span className="font-bold text-rot-lime uppercase tracking-wide">
+							{toast.text === '0'
+								? t.resupply
+								: format(t.resupplyPaid, { price: Number(toast.text).toLocaleString('en') })}
+						</span>
+					)}
 				</li>
 			))}
 		</ul>
@@ -734,7 +741,14 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 
 					{!hud.reviveHint && hud.interactHint && hud.status === 'playing' && (
 						<p className="pointer-events-none absolute top-[58%] left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 bg-rot-black/80 px-3 py-1 font-bold text-rot-lime uppercase tracking-widest">
-							<span>{t.interact[hud.interactHint.action]}</span>
+							<span>
+								{hud.interactHint.action === 'ammo' && hud.interactHint.price === 0
+									? t.ammoFree
+									: format(t.interact[hud.interactHint.action], {
+											price: (hud.interactHint.price ?? 0).toLocaleString('en'),
+											have: (hud.interactHint.have ?? 0).toLocaleString('en')
+										})}
+							</span>
 							{hud.interactHint.progress > 0 && (
 								<span className="h-1 w-40 bg-surface-raised" aria-hidden="true">
 									<span className="block h-full bg-rot-lime" style={{ width: `${hud.interactHint.progress * 100}%` }} />

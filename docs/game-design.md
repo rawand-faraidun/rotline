@@ -22,7 +22,7 @@ Target session shapes: one campaign mission takes 10–15 minutes; a zone (5 mis
 ### Choosing what to play
 
 - The squad leader picks, in the lobby, either a mission and its difficulty or Survival. Changing the choice clears everyone's ready mark; a ready mark or a start counts only for the choice the player saw, so nobody deploys into something they did not agree to.
-- The campaign so far is zone 1, **Ashgate**, with five missions in order: **Landfall**, **Yard Sweep**, **Power Out**, **Survivors**, **Last Stand** (section 7). Its boss is not in the game yet.
+- The campaign so far is zone 1, **Ashgate**, with five missions in order: **Landfall**, **Rail Yard**, **Blackout**, **Holdouts**, **Breakout** (section 7), each a run against the clock. Its boss is not in the game yet.
 - Missions open in order: the first is always open, and each one opens when the player has completed the one before it at any difficulty (the next zone's first mission opens when the previous zone's last one is done). Locked missions are shown but cannot be chosen; the server checks when the leader chooses and again at the start, so a new leader who has not opened the squad's mission cannot start it.
 - Survival is a mode of its own, always open and played on the yard, not a mission.
 - Survival: rounds come one after another, each with more zombies. Each round cleared pays every player who played it. A squad wipe ends the run, and the results screen shows the rounds survived. Players who bled out come back at the start of the next round, but only if someone finishes the round.
@@ -55,7 +55,7 @@ One profile per player; class is switched in the lobby only. Per class: level, X
 
 **Levels:** 1–50 per class. XP to reach level *n* = `round(1000 × 1.12^(n−2))` (level 2 costs 1,000 XP, level 10 about 2,500, level 30 about 24,000). Each level grants 1 skill point; levels 10, 20, 30, 40, 50 grant 2. Total 55 points, against about 70 points of nodes per tree, so builds are real choices.
 
-**Respec:** 2,500 Salvage per class (about 35 minutes of play at Veteran), refunding all points.
+**Respec:** 2,250 Salvage per class (about 32 minutes of play at Veteran), refunding all points.
 
 **Tier rule:** a tier opens after 5 points in the branch's earlier tiers (tier 5 needs 20). Each branch has 22 nodes and 24 ranks; most nodes have one rank, a few two. Node ids, effects and ranks are in `packages/game-data/data/skills/`.
 
@@ -110,24 +110,24 @@ Pistols have **unlimited reserve ammunition**; their only limits are magazine si
 | Weapon | Kind | Damage type | Damage | Fire rate (rpm) | Magazine | Max reserve | Reload (s) | Price |
 |---|---|---|---|---|---|---|---|---|
 | **G19** | Pistol | Ballistic | 22 | 300 | 12 | unlimited | 1.2 | starter |
-| **Desert Eagle** | Pistol | Ballistic | 38 | 180 | 8 | unlimited | 1.4 | 4,000 |
+| **Desert Eagle** | Pistol | Ballistic | 38 | 180 | 8 | unlimited | 1.4 | 3,600 |
 | **Vector** | SMG | Ballistic | 14 | 900 | 32 | 256 | 1.8 | starter |
 | **HK416** | Assault rifle | Ballistic | 24 | 600 | 30 | 210 | 2.2 | starter |
-| **M4 Super 90** | Shotgun | Ballistic | 10 × 8 pellets | 75 | 6 | 48 | 0.5 per shell | 6,000 |
-| **M249** | LMG | Ballistic | 26 | 750 | 100 | 300 | 4.5 | 28,000 |
-| **AWP** | Sniper rifle | Ballistic, pierces 3 | 180 | 45 | 5 | 40 | 3.0 | 14,000 |
-| **Kiln** | Flamethrower | Fire, 7 m cone | 160 per second | continuous | 100 fuel | 300 | 3.5 | 14,000 |
-| **GL-06** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 28,000 |
-| **AUG** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 14,000 |
-| **Viper** | Chemical sprayer | Chemical, slows | 90 per second | continuous | 80 | 240 | 3.0 | 14,000 |
+| **M4 Super 90** | Shotgun | Ballistic | 10 × 8 pellets | 75 | 6 | 48 | 0.5 per shell | 5,400 |
+| **M249** | LMG | Ballistic | 26 | 750 | 100 | 300 | 4.5 | 25,200 |
+| **AWP** | Sniper rifle | Ballistic, pierces 3 | 180 | 45 | 5 | 40 | 3.0 | 12,600 |
+| **Kiln** | Flamethrower | Fire, 7 m cone | 160 per second | continuous | 100 fuel | 300 | 3.5 | 12,600 |
+| **GL-06** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 25,200 |
+| **AUG** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 12,600 |
+| **Viper** | Chemical sprayer | Chemical, slows | 90 per second | continuous | 80 | 240 | 3.0 | 12,600 |
 
-Weapon tiers for pricing: tier 1 = 6,000, tier 2 = 14,000, tier 3 = 28,000.
+Weapon tiers for pricing: tier 1 = 5,400, tier 2 = 12,600, tier 3 = 25,200.
 
 ### Upgrades
 
-- 10 levels per item. Cost of level *n* = `tierBase × 1.4^(n−1)`, rounded to 10: starter items base 600 (all ten levels: 41,890), tier 1 base 800 (55,850), tier 2 base 1,400 (97,740), tier 3 base 2,200 (153,580). Starter items can be bought again for 1,500 if discarded.
+- 10 levels per item. Cost of level *n* = `tierBase × 1.4^(n−1)`, rounded to 10: starter items base 540 (all ten levels: 37,700), tier 1 base 720 (50,280), tier 2 base 1,260 (87,960), tier 3 base 1,980 (138,230). Starter items can be bought again for 1,350 if discarded.
 - Each level raises the item's stats along its own curve, for example: damage +6 %, fire rate +2 %, reload speed +3 %, magazine +5 %, accuracy +3 %, **max carried ammunition +8 %** (main weapons only). The max ammo buff fills a weapon to its *upgraded* maximum.
-- **Perk choices at levels 5 and 10**: pick one of two (the first choice is free), switchable later for a small fee (500). Example (K-71): level 5 "Extended mag (+25 % magazine)" or "Hollow points (+15 % damage to unarmoured)"; level 10 "Incendiary rounds (20 % of damage as fire)" or "Rapid chamber (+15 % fire rate)".
+- **Perk choices at levels 5 and 10**: pick one of two (the first choice is free), switchable later for a small fee (450). Example (K-71): level 5 "Extended mag (+25 % magazine)" or "Hollow points (+15 % damage to unarmoured)"; level 10 "Incendiary rounds (20 % of damage as fire)" or "Rapid chamber (+15 % fire rate)".
 
 ### Gear
 
@@ -187,14 +187,14 @@ Hours of play per purchase (at 4,200/hour, no contracts):
 
 | Purchase | Price | Hours |
 |---|---|---|
-| Tier 1 weapon | 6,000 | 1.4 |
-| Tier 2 weapon | 14,000 | 3.3 |
-| Tier 3 weapon | 28,000 | 6.7 |
-| Mid armour | 12,000 | 2.9 |
-| Respec one class | 2,500 | 0.6 |
-| Tier 1 item, levels 1–10 | 55,850 | 13.3 |
-| Tier 2 item, levels 1–10 | 97,740 | 23.3 |
-| Tier 3 item, levels 1–10 | 153,580 | 36.6 |
+| Tier 1 weapon | 5,400 | 1.3 |
+| Tier 2 weapon | 12,600 | 3.0 |
+| Tier 3 weapon | 25,200 | 6.0 |
+| Mid armour | 10,800 | 2.6 |
+| Respec one class | 2,250 | 0.5 |
+| Tier 1 item, levels 1–10 | 50,280 | 12.0 |
+| Tier 2 item, levels 1–10 | 87,960 | 20.9 |
+| Tier 3 item, levels 1–10 | 138,230 | 32.9 |
 
 A player who plays 1 hour a day and completes dailies (+1,500) earns about 5,700 a day: a new tier 2 weapon every 2–3 days, a fully upgraded tier 3 weapon in about a month. The spreadsheet lives with the game data (`packages/game-data/economy.csv`) and is regenerated by a script from the same files the game uses, so it cannot drift.
 
@@ -209,10 +209,10 @@ An objective is a data record (type, parameters, triggers, rewards) plus one sma
 | # | Mission | Map | Steps | Optional |
 |---|---|---|---|---|
 | 1 | **Landfall** | Landfall (46 × 150 m, four areas closed behind the squad) | a 12-minute run: carry the flight recorder from the burning wreck to the street gate; fight up the high street (a pharmacy behind a door holds a cache); restart the checkpoint generator; hold while the gate opens (25 s); burn three nests in the square; kill the Brute; hold the helipad 40 s; get on the bird (40 s) | kill 150 |
-| 2 | **Yard Sweep** | Yard (64 × 48 m) | kill 40; burn three nests; reach the north gate; hold it 45 s; kill the Brute; survive 40 s | kill 150 |
-| 3 | **Power Out** | Substation (72 × 56 m) | get inside; restart three generators; burn two nests; defend the transformer 90 s; kill the Brute at the gate; extract (90 s) | kill 180 |
-| 4 | **Survivors** | Depot (96 × 64 m, three sections behind gates) | kill 25; work the office terminal; burn two nests; rescue two survivors; kill the Brute on the dock; extract (90 s) | crack the armoury safe (a terminal) |
-| 5 | **Last Stand** | Yard | hold the centre 60 s; kill 80; kill two Brutes; hold the centre 90 s; extract (90 s) | kill 250 |
+| 2 | **Rail Yard** | Rail Yard (56 × 128 m, four areas closed behind the squad) | an 11-minute run: carry the switch keys from the stationmaster's office to the platform gate; burn three nests in the container stacks; start the crane generator; hold while the gate grinds open (25 s); throw the points in the signal box; kill the Brute in the turntable pit; hold the convoy road 35 s; get on the trucks (40 s) | kill 150 |
+| 3 | **Blackout** | Power Plant (60 × 136 m, four areas closed behind the squad) | a 13-minute run: reach the plant fence; start the backup generator that opens it; restart three generators in the transformer yard (each wakes a turret); burn two nests; defend the transformer 70 s; reroute the grid from the control room; kill the Brute in the turbine hall; get out past the cooling towers (75 s) | kill 180 |
+| 4 | **Holdouts** | Food Depot (96 × 64 m, three sections behind gates) | a 15-minute run: clear the truck lot (kill 25); find the survivors on the office cameras; burn two nests in the warehouse; walk both survivors to the dock; kill the Brute on the dock; get on the truck (90 s) | crack the armoury safe (a terminal) behind a crate-stacked doorway |
+| 5 | **Breakout** | Motor Pool (64 × 84 m, the road north behind a gate) | a 14-minute run: hold the sandbagged centre 60 s; start two generators that wake its turrets; kill 80; kill two Brutes; hold the centre 90 s; out through the north gate (90 s) | kill 250 |
 
 Every mission has a briefing (shown while it loads), a radio line from the squad's handler or a survivor when each step starts and ends, and a debrief on the results screen.
 
@@ -252,12 +252,12 @@ Optional objectives can be kill or interact objectives.
 
 | Objective | Rules |
 |---|---|
-| **Restore power** (interact) | Hold interact on a generator for 5 s to start it; it then runs up for 20 s with 400 HP, and zombies go for it. Broken while running up, it stops at full health and must be started again. Power Out has three generators, worked in any order; each also powers the turrets and floodlights wired to it |
+| **Restore power** (interact) | Hold interact on a generator for 5 s to start it; it then runs up for 20 s with 400 HP, and zombies go for it. Broken while running up, it stops at full health and must be started again. Blackout has three generators in the transformer yard, worked in any order; each also powers the turrets and floodlights wired to it |
 | Terminal (interact) | Hold interact for 6 s |
-| **Defend** | The target's health comes from the map (1,500 by default) and is restored to full when the defend step starts. Players repair it by holding interact (50 HP a second). Power Out: 90 s |
+| **Defend** | The target's health comes from the map (1,500 by default) and is restored to full when the defend step starts. Players repair it by holding interact (50 HP a second). Blackout: 70 s |
 | **Rescue** | Survivors (150 HP) wait where the map puts them; holding interact for 2 s frees one. A freed survivor follows the player who freed them (or the nearest standing player once that one is down or gone), keeping 2.2 m back at up to 4.2 m/s; a survivor stuck for 3 s catches up beside them. Only zombies hurt survivors |
 | **Retrieve** | Holding interact for 1 s picks the object up; a player carries one at a time and moves at 80 % speed. The object drops where its carrier goes down or leaves the mission, and stays there until someone picks it up |
-| **Timed extraction** (extract) | 90 s in every mission now |
+| **Timed extraction** (extract) | Everyone standing gets into the area before its clock runs out: 40 to 90 s, set per mission |
 | **Destroy nests** | A nest (2 × 2 m, 900 HP) sends out a zombie (Drudge 70 %, Crawler 30 %) every 4 s near the closest player while one is within 22 m, until it is destroyed. Only shots and explosions hurt it. A squad wipe or failed objective brings the step's nests back. Nests a mission does not use are not on the map |
 | Hold terminal (planned) | Stand in a 5 m zone while a 120 s upload runs; the timer pauses when the zone is empty |
 | Escort vehicle (planned) | A slow APC (2 m/s, 3,000 HP) that stops when no player is within 10 m |
@@ -277,11 +277,12 @@ Interact (E) works the nearest usable prop within 1.6 m of its edge with a clear
 | Turret | 22 ballistic damage, 8 shots a second at the nearest zombie in sight within 16 m. On while its generator runs, always on when it has none; it cannot be destroyed |
 | Floodlight | Lights its area while powered (by its generator, or always when it has none) |
 | Trap | Press to set it off: 120 shock damage a second to zombies within 3 m for 5 s, then 30 s to recharge. It never hurts players |
+| Ammo station | Hold for 1 s to refill the reserve of every gun to its maximum for 500 score (free in the firing range). The price comes out of the score a player has earned and not yet spent there; their score for rewards and thresholds is untouched. It does nothing while every gun is full, and the HUD shows the price when the player cannot pay yet |
 | Terminal, survivor, carried object, defend target | See the objective rules above |
 
 ### Maps
 
-Maps are drawn as text in the game data, one character per metre: walls, blockers (solid like walls but not drawn: they sit under scenery such as wrecks, cars and barriers), floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Scenery models are placed beside the drawing (position, rotation, size), some of them burning. Every zombie spawn is a hole in the ground the zombies climb out of; zombies come in off screen when a spawn point allows, and never closer than 8 m to a player. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets, nests) are listed beside the drawing. The maps now are the Yard (64 × 48 m), Landfall (40 × 32 m), the Substation (72 × 56 m) and the Depot (96 × 64 m).
+Maps are drawn as text in the game data, one character per metre: walls, blockers (solid like walls but not drawn: they sit under scenery such as wrecks, cars and barriers), floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Scenery models are placed beside the drawing (position, rotation, size), some of them burning. Every zombie spawn is a hole in the ground the zombies climb out of; zombies come in off screen when a spawn point allows, and never closer than 8 m to a player. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets, nests) are listed beside the drawing. The maps now are Landfall (46 × 150 m), the Rail Yard (56 × 128 m), the Power Plant (60 × 136 m), the Food Depot (96 × 64 m), the Motor Pool (64 × 84 m), the Yard (64 × 48 m, Survival) and the firing range. Beyond every map's border wall the town goes on (drawing only): a street round the map, a ring of buildings of different heights with alleys, and parked and burnt-out cars, lamps and rubbish, so a map's edge is a wall in a town rather than the end of the world.
 
 The data checks refuse a map or mission where:
 

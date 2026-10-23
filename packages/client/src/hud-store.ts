@@ -18,7 +18,7 @@ export type HudState = {
 	/** name of the downed teammate you can revive right now */
 	reviveHint: string | null
 	/** what holding or pressing interact would do right now, and how far a hold has got (0..1) */
-	interactHint: { action: InteractAction; progress: number } | null
+	interactHint: InteractHint | null
 	teammates: {
 		slot: number
 		name: string
@@ -80,6 +80,12 @@ export type InteractAction =
 	| 'pickup'
 	| 'trap'
 	| 'cache'
+	/** an ammo station: refill (the player can pay) or its price (they cannot yet) */
+	| 'ammo'
+	| 'ammo-short'
+
+/** What interact does where the player stands; ammo stations add their price and the score to spend. */
+export type InteractHint = { action: InteractAction; progress: number; price?: number; have?: number }
 
 export type MissionHud = {
 	id: string
@@ -102,7 +108,7 @@ export type MissionHud = {
 
 export type Toast = {
 	id: number
-	kind: 'item' | 'buff' | 'threshold'
+	kind: 'item' | 'buff' | 'threshold' | 'resupply'
 	/** the item or buff name, or the Salvage paid for a threshold */
 	text: string
 	/** who picked a buff up (teammates' pickups help everyone) */

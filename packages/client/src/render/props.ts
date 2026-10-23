@@ -8,7 +8,7 @@ import { outfitFor, wear } from './outfits.ts'
 import { loadSoldier } from './players.ts'
 
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
-const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door'])
+const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 const models = new Map<string, Promise<THREE.Object3D | null>>()
 
@@ -231,6 +231,20 @@ export class PropRenderer {
 				ring.position.y = 0.04
 				root.add(ring)
 				this.dressUp(prop, root, [body], [0.62, 0.42, 0.34], null)
+				break
+			}
+			case 'ammo': {
+				// a supply case: olive, with a green light so it reads as a place to stop at
+				const body = add(new THREE.Mesh(this.box, this.material(0x4a5a36)), 0.35)
+				body.scale.set(w * 0.9, 0.7, h * 0.9)
+				const ring = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: 0xb8f23c, transparent: true, opacity: 0.6, depthWrite: false })
+				)
+				ring.scale.setScalar(Math.max(w, h) * 0.75 + 0.3)
+				ring.position.y = 0.04
+				root.add(ring)
+				this.dressUp(prop, root, [body], [w * 0.92, 0.62, h * 0.85], null)
 				break
 			}
 			case 'nest': {

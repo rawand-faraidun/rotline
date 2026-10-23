@@ -38,10 +38,23 @@ import {
 import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer'
 import sharp from 'sharp'
 import { mergeClips } from './clips.ts'
-import { bakeToWorld, bindMesh, invert, jointPosition, multiply, PointGrid, poseBody, turnJoint } from './rig.ts'
+import {
+	bakeToWorld,
+	bindMesh,
+	invert,
+	jointPosition,
+	multiply,
+	PointGrid,
+	poseBody,
+	transformPoint,
+	turnJoint,
+	type Vec3
+} from './rig.ts'
 import { itchDownload, plainMaterials, publicAssets, sketchfabModel } from './sources.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
+/** how far from its main body a piece fixed to a bone may reach (metres) */
+const RIGID_REACH = 0.22
 const out = join(publicAssets, 'models', 'characters')
 mkdirSync(out, { recursive: true })
 
@@ -470,6 +483,12 @@ for (const figure of config.figures) {
 			.setBuffer(root.listBuffers()[0] ?? null)
 	)
 	const merged = mergeDocuments(document, source)
+	// a part fixed to one bone keeps only its main body: the same material often paints patches
+	// elsewhere on the figure (a flag on the chest), which would hang off the head otherwise
+	for (const part of figure.parts.filter(entry => entry.joint)) {
+		const nodes = kept.filter(node => partOf(node) === part).map(node => merged.get(node) as Node)
+		if (nodes.length > 0) dropFarPieces(nodes, RIGID_REACH)
+	}
 	for (const sourceNode of kept) {
 		const part = partOf(sourceNode) as Part
 		const node = merged.get(sourceNode) as Node
@@ -511,6 +530,94 @@ for (const [index, arm] of arms.entries())
 // the base body was only the source of the weights
 for (const node of root.listNodes()) if (node.getMesh() && node.getSkin() === baseSkin) node.dispose()
 baseSkin.dispose()
+
+/**
+ * Removes the separate pieces (connected triangles) of a mesh whose middle lies farther than `reach`
+ * from the middle of the biggest piece of all of `nodes` (one part, world space).
+ */
+function dropFarPieces(nodes: Node[], reach: number): void {
+	type Piece = { sum: [number, number, number]; count: number }
+	const found: { node: Node; primitive: Primitive; find: (i: number) => number; pieces: Map<number, Piece> }[] = []
+	for (const node of nodes)
+		for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
+			const world = node.getWorldMatrix()
+			const position = primitive.getAttribute('POSITION')
+			const indices = primitive.getIndices()
+			if (!position || !indices) continue
+			const count = position.getCount()
+			const parent = Int32Array.from({ length: count }, (_, i) => i)
+			const find = (i: number): number => {
+				while (parent[i] !== i) {
+					parent[i] = parent[parent[i] as number] as number
+					i = parent[i] as number
+				}
+				return i
+			}
+			// vertices at the same place are one (seams split them in the file)
+			const at = new Map<string, number>()
+			const p: number[] = []
+			const points: Vec3[] = []
+			for (let v = 0; v < count; v++) {
+				position.getElement(v, p)
+				const w = transformPoint(world, p)
+				points.push(w)
+				const key = w.map(c => Math.round(c * 1e4)).join(',')
+				const first = at.get(key)
+				if (first === undefined) at.set(key, v)
+				else parent[find(v)] = find(first)
+			}
+			const list = indices.getArray() as ArrayLike<number>
+			for (let t = 0; t < list.length; t += 3) {
+				const a = find(list[t] as number)
+				parent[find(list[t + 1] as number)] = a
+				parent[find(list[t + 2] as number)] = a
+			}
+			const pieces = new Map<number, Piece>()
+			for (let v = 0; v < count; v++) {
+				const root = find(v)
+				const piece = pieces.get(root) ?? { sum: [0, 0, 0], count: 0 }
+				const w = points[v] as Vec3
+				piece.sum[0] += w[0]
+				piece.sum[1] += w[1]
+				piece.sum[2] += w[2]
+				piece.count++
+				pieces.set(root, piece)
+			}
+			found.push({ node, primitive, find, pieces })
+		}
+	const all = found.flatMap(entry => [...entry.pieces.values()])
+	const biggest = all.reduce<Piece | null>((best, piece) => (!best || piece.count > best.count ? piece : best), null)
+	if (!biggest) return
+	const centre = biggest.sum.map(c => c / biggest.count) as Vec3
+	for (const { node, primitive, find, pieces } of found) {
+		const far = new Set<number>()
+		for (const [root, piece] of pieces) {
+			const middle = piece.sum.map(c => c / piece.count)
+			if (
+				Math.hypot(
+					(middle[0] as number) - centre[0],
+					(middle[1] as number) - centre[1],
+					(middle[2] as number) - centre[2]
+				) > reach
+			)
+				far.add(root)
+		}
+		if (far.size === 0) continue
+		const indices = primitive.getIndices() as Accessor
+		const list = indices.getArray() as ArrayLike<number>
+		const keep: number[] = []
+		for (let t = 0; t < list.length; t += 3)
+			if (!far.has(find(list[t] as number))) keep.push(list[t] as number, list[t + 1] as number, list[t + 2] as number)
+		if (keep.length === 0) {
+			// nothing of it is left: the whole primitive goes
+			primitive.dispose()
+		} else
+			indices.setArray(
+				(primitive.getAttribute('POSITION')?.getCount() ?? 0) > 65535 ? new Uint32Array(keep) : new Uint16Array(keep)
+			)
+		process.stdout.write(`${node.getName()}: dropped ${far.size} piece(s) away from its main body\n`)
+	}
+}
 
 // ---- gear from Sketchfab, fixed to bones ----
 

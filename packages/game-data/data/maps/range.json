@@ -108,5 +108,15 @@
 		"resetSeconds": 3,
 		"maxZombies": 60,
 		"spawnPerCommand": 5
-	}
+	},
+	"props": [
+		{
+			"id": "ammo-1",
+			"kind": "ammo",
+			"x": 8,
+			"y": 12,
+			"w": 2,
+			"h": 1
+		}
+	]
 }

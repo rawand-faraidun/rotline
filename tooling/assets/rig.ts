@@ -8,7 +8,7 @@
 import type { Accessor, Document, mat4, Node, Primitive, Skin } from '@gltf-transform/core'
 import { MathUtils } from '@gltf-transform/core'
 
-type Vec3 = [number, number, number]
+export type Vec3 = [number, number, number]
 type Quat = [number, number, number, number]
 
 export function multiply(a: mat4, b: mat4): mat4 {
@@ -57,7 +57,7 @@ export function invert(m: mat4): mat4 {
 	] as unknown as mat4
 }
 
-function transformPoint(m: mat4, p: ArrayLike<number>): Vec3 {
+export function transformPoint(m: mat4, p: ArrayLike<number>): Vec3 {
 	const [x, y, z] = [p[0] as number, p[1] as number, p[2] as number]
 	return [
 		(m[0] as number) * x + (m[4] as number) * y + (m[8] as number) * z + (m[12] as number),
