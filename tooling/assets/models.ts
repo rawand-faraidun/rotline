@@ -33,6 +33,8 @@ type Weapon = {
 	length: number
 	flip?: boolean
 	upsideDown?: boolean
+	/** degrees the model is turned about Z after that (a model made with its barrel tilted; down is negative) */
+	pitch?: number
 	/** parts left out (node names matching this: loose bullets, display stands) */
 	drop?: string
 	/** loose pieces lying wholly in this bottom share of the height are left out (a display base) */
@@ -50,7 +52,7 @@ mkdirSync(out, { recursive: true })
  * Turns and scales the whole scene: the longest axis becomes +X (the barrel), the model is centred
  * on its grip height, and it is `length` metres long. `flip` turns it end for end.
  */
-function normalise(document: Document, length: number, flip: boolean, upsideDown = false): void {
+function normalise(document: Document, length: number, flip: boolean, upsideDown = false, pitch = 0): void {
 	const scene = document.getRoot().getDefaultScene() ?? document.getRoot().listScenes()[0]
 	if (!scene) return
 	const { min, max } = getBounds(scene)
@@ -81,6 +83,10 @@ function normalise(document: Document, length: number, flip: boolean, upsideDown
 	// `flip` turns it end for end (a half turn about +Y), `upsideDown` rights it (a half turn about +X)
 	let turned = flip ? multiply([0, 1, 0, 0], rotation) : rotation
 	if (upsideDown) turned = multiply([1, 0, 0, 0], turned)
+	if (pitch) {
+		const half = (pitch * Math.PI) / 360
+		turned = multiply([0, 0, Math.sin(half), Math.cos(half)], turned)
+	}
 	wrapper.setRotation(turned)
 	wrapper.setScale([scale, scale, scale])
 	// move the centre to the origin (applied before rotation and scale, so through a child)
@@ -195,7 +201,7 @@ for (const weapon of weapons) {
 	// older files describe colour as specular-glossiness: turn that into the usual metal-roughness
 	await document.transform(metalRough())
 	plainMaterials(document)
-	normalise(document, weapon.length, weapon.flip ?? false, weapon.upsideDown ?? false)
+	normalise(document, weapon.length, weapon.flip ?? false, weapon.upsideDown ?? false, weapon.pitch ?? 0)
 	await document.transform(dedup(), flatten(), weld(), prune())
 	if (weapon.dropBottom) dropBottom(document, weapon.dropBottom)
 	const limit = weapon.triangles ?? 16000

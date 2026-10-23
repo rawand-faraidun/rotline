@@ -276,13 +276,20 @@ export function ArmoryScreen() {
 	const opened = useSearch({ strict: false }) as { tab?: Tab }
 	const [tab, setTab] = useState<Tab>(opened.tab ?? 'weapons')
 	const [selected, setSelected] = useState<string | null>(null)
+	/** the loadout slot picked: the owned list shows only what fits it */
+	const [slot, setSlot] = useState<keyof Loadout | null>(null)
 	const [problem, setProblem] = useState<Refusal | null>(null)
 	const view = progress.data
 	if (!view) return <GameShell>{null}</GameShell>
 
 	const shown = TABS[tab]
 	const equipped = new Set(Object.values(view.loadout).filter(Boolean))
-	const owned = view.inventory.filter(entry => shown.slots.includes(item(entry.itemId).slot))
+	const fitting = fields.find(entry => entry.field === slot)
+	const owned = view.inventory.filter(entry => {
+		const def = item(entry.itemId)
+		if (!shown.slots.includes(def.slot)) return false
+		return !fitting || (def.slot === fitting.slot && (!fitting.piece || def.piece === fitting.piece))
+	})
 	// something of this tab is always shown in detail: the pick, else what is in its first slot
 	const chosen =
 		selected && owned.some(entry => entry.itemId === selected)
@@ -317,6 +324,7 @@ export function ArmoryScreen() {
 								onClick={() => {
 									setTab(key)
 									setSelected(null)
+									setSlot(null)
 								}}
 								className={cn(
 									'frame cut-sm flex-1 px-3 py-2.5 font-bold text-xs uppercase tracking-[0.2em]',
@@ -335,21 +343,29 @@ export function ArmoryScreen() {
 						<PanelHeader>
 							<PanelTitle className="text-xl">{p.loadoutTitle}</PanelTitle>
 						</PanelHeader>
-						<ul className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2">
+						{/* every slot of the tab side by side; picking one shows only what fits it below */}
+						<ul
+							className="grid gap-2"
+							style={{ gridTemplateColumns: `repeat(${shown.fields.length}, minmax(0, 1fr))` }}
+						>
 							{shown.fields.map(field => {
 								const id = view.loadout[field]
 								const picture = id ? itemPicture(id) : null
 								return (
-									<li key={field} className="flex">
+									<li key={field} className="flex min-w-0">
 										<button
 											type="button"
-											disabled={!id}
-											onClick={() => id && setSelected(id)}
+											aria-pressed={slot === field}
+											onClick={() => {
+												const picking = slot !== field
+												setSlot(picking ? field : null)
+												if (picking && id) setSelected(id)
+											}}
 											className={cn(
-												'frame cut-sm flex w-full cursor-pointer flex-col gap-1 p-2 text-left disabled:cursor-default',
-												id && chosen === id
+												'frame cut-sm flex w-full min-w-0 cursor-pointer flex-col gap-1 p-2 text-left',
+												slot === field
 													? '[--frame-color:var(--color-rot-lime)]'
-													: '[--frame-fill:var(--color-rot-black)]'
+													: '[--frame-fill:var(--color-rot-black)] hover:[--frame-color:var(--color-bone)]'
 											)}
 										>
 											<span className="font-bold text-[0.65rem] text-muted uppercase tracking-[0.2em]">
@@ -364,7 +380,7 @@ export function ArmoryScreen() {
 													className="aspect-[16/9] w-full object-contain"
 												/>
 											)}
-											<span className={cn('font-bold', !id && 'text-muted')}>
+											<span className={cn('truncate font-bold text-sm', !id && 'text-muted')}>
 												{id ? itemById.get(id)?.name : t.emptySlot}
 											</span>
 										</button>
@@ -376,8 +392,15 @@ export function ArmoryScreen() {
 
 					{/* everything owned that fits this tab */}
 					<Panel>
-						<PanelHeader>
-							<PanelTitle className="text-xl">{t.owned}</PanelTitle>
+						<PanelHeader className="flex items-center justify-between gap-3">
+							<PanelTitle className="text-xl">
+								{slot ? format(t.ownedFor, { slot: t.slots[slot] }) : t.owned}
+							</PanelTitle>
+							{slot && (
+								<Button size="sm" variant="secondary" onClick={() => setSlot(null)}>
+									{t.showAll}
+								</Button>
+							)}
 						</PanelHeader>
 						<ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
 							{owned.map(entry => {
