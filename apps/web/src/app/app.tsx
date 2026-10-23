@@ -17,6 +17,7 @@ import { ProfileScreen } from './screens/profile-screen.tsx'
 import { ShopScreen } from './screens/shop-screen.tsx'
 import { SignInScreen } from './screens/sign-in-screen.tsx'
 import { SkillsScreen } from './screens/skills-screen.tsx'
+import { TouchNotice } from './screens/touch-notice.tsx'
 import { WelcomeScreen } from './screens/welcome-screen.tsx'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } })
@@ -30,9 +31,12 @@ export const providersQuery = queryOptions({
 
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	component: () => (
-		<div className="flex min-h-dvh flex-col">
-			<Outlet />
-		</div>
+		<>
+			<div className="flex touch-only:hidden min-h-dvh flex-col">
+				<Outlet />
+			</div>
+			<TouchNotice />
+		</>
 	),
 	errorComponent: ErrorScreen
 })

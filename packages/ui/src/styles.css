@@ -1,6 +1,9 @@
 /* Rotline interface theme. Imported after `tailwindcss` by every app. */
 @source "./";
 
+/* devices with no mouse or trackpad (phones, tablets): the game needs a keyboard and mouse */
+@custom-variant touch-only (@media not (any-pointer: fine));
+
 @theme {
 	--color-rot-black: #0d100e;
 	--color-surface: #1b211c;

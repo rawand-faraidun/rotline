@@ -13,6 +13,13 @@ export const en = {
 		github: 'GitHub',
 		home: 'Home'
 	},
+	touchOnly: {
+		kicker: 'Desktop only',
+		title: 'Rotline needs a keyboard and mouse',
+		body: 'You move with WASD and aim and shoot with the mouse, so Rotline can’t be played on a phone or tablet. Open rotline.win on a computer to sign in and play.',
+		home: 'Back to the home page',
+		computer: 'Come back on a computer to play.'
+	},
 	landing: {
 		nav: { missions: 'Missions', modes: 'Modes', squad: 'Squad', source: 'Source' },
 		kicker: 'Top-down co-op zombie shooter',

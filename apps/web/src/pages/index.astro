@@ -7,6 +7,7 @@ import Base from '../layouts/base.astro'
 import { SOURCE_URL } from '../lib/site.ts'
 
 const t = en.landing
+const touch = en.touchOnly
 const zones = campaign.zones.map(zone => ({
 	...zone,
 	missions: zone.missions.flatMap(id => missionById(id) ?? [])
@@ -50,7 +51,7 @@ const githubPath =
 				>
 					<svg viewBox="0 0 24 24" class="size-6" fill="currentColor" aria-hidden="true"><path d={githubPath} /></svg>
 				</a>
-				<a href="/play" class={buttonVariants({ size: 'sm' })}>{en.nav.play}</a>
+				<a href="/play" class:list={[buttonVariants({ size: 'sm' }), 'touch-only:hidden']}>{en.nav.play}</a>
 			</div>
 		</div>
 	</header>
@@ -88,8 +89,14 @@ const githubPath =
 					/>
 				</h1>
 				<p class="max-w-xl text-bone/90 text-lg leading-relaxed">{t.lead}</p>
+				<!-- on a phone or tablet: say so before anyone signs in for nothing -->
+				<div class="frame cut hidden max-w-xl flex-col gap-2 p-5 [--frame-color:var(--color-warning)] touch-only:flex">
+					<p class="font-bold text-warning text-xs uppercase tracking-[0.3em]">{touch.kicker}</p>
+					<p class="font-display text-2xl uppercase">{touch.title}</p>
+					<p class="text-bone/85 leading-relaxed">{touch.body}</p>
+				</div>
 				<div class="flex flex-wrap items-center gap-3">
-					<a href="/play" class={buttonVariants({ size: 'lg' })}>{t.cta}</a>
+					<a href="/play" class:list={[buttonVariants({ size: 'lg' }), 'touch-only:hidden']}>{t.cta}</a>
 					<a
 						href={SOURCE_URL}
 						rel="noopener"
@@ -99,7 +106,7 @@ const githubPath =
 						{t.source}
 					</a>
 				</div>
-				<p class="text-muted text-sm">{t.ctaHint}</p>
+				<p class="text-muted text-sm touch-only:hidden">{t.ctaHint}</p>
 				<dl class="mt-6 grid w-full max-w-2xl grid-cols-2 gap-px bg-line/60 sm:grid-cols-4">
 					{
 						t.facts.map(fact => (
@@ -316,8 +323,9 @@ const githubPath =
 			<div class="-z-10 absolute inset-0 bg-linear-to-b from-rot-black via-rot-black/70 to-rot-black" aria-hidden="true"></div>
 			<div class="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-28 text-center sm:px-6">
 				<h2 class="font-display text-5xl uppercase sm:text-7xl">{t.finalTitle}</h2>
-				<p class="max-w-xl text-bone/85 text-lg">{t.finalBody}</p>
-				<a href="/play" class={buttonVariants({ size: 'lg' })}>{t.cta}</a>
+				<p class="max-w-xl text-bone/85 text-lg touch-only:hidden">{t.finalBody}</p>
+				<a href="/play" class:list={[buttonVariants({ size: 'lg' }), 'touch-only:hidden']}>{t.cta}</a>
+				<p class="hidden max-w-xl text-warning text-lg touch-only:block">{touch.title}. {touch.computer}</p>
 			</div>
 		</section>
 	</main>
