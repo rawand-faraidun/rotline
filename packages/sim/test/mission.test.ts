@@ -1,4 +1,4 @@
-import { buffs, economy, items, type MissionDef, missionById, zombieIndex, zombies } from '@rotline/game-data'
+import { buffs, economy, items, type MissionDef, zombieIndex, zombies } from '@rotline/game-data'
 import { describe, expect, it } from 'vitest'
 import {
 	applyBuff,
@@ -12,9 +12,7 @@ import {
 	timeLeft,
 	World
 } from '../src/index.ts'
-import { input, steps, yard } from './helpers.ts'
-
-const sweep = missionById('yard-sweep') as MissionDef
+import { input, steps, sweep, yard } from './helpers.ts'
 
 /** A mission with no spawning unless a test asks for it. */
 function missionWorld(def: Partial<MissionDef> = {}, difficulty: 'recruit' | 'veteran' | 'nightmare' = 'veteran') {

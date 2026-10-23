@@ -22,7 +22,7 @@ Target session shapes: one campaign mission takes 10–15 minutes; a zone (5 mis
 ### Choosing what to play
 
 - The squad leader picks, in the lobby, either a mission and its difficulty or Survival. Changing the choice clears everyone's ready mark; a ready mark or a start counts only for the choice the player saw, so nobody deploys into something they did not agree to.
-- The campaign so far is zone 1, **Ashgate**, with five missions in order: **Landfall**, **Yard Sweep**, **Power Out**, **Survivors**, **Last Stand** (section 7). Its boss is not in the game yet.
+- The campaign so far is zone 1, **Ashgate**, with five missions in order: **Landfall**, **Rail Yard**, **Blackout**, **Holdouts**, **Breakout** (section 7), each a run against the clock. Its boss is not in the game yet.
 - Missions open in order: the first is always open, and each one opens when the player has completed the one before it at any difficulty (the next zone's first mission opens when the previous zone's last one is done). Locked missions are shown but cannot be chosen; the server checks when the leader chooses and again at the start, so a new leader who has not opened the squad's mission cannot start it.
 - Survival is a mode of its own, always open and played on the yard, not a mission.
 - Survival: rounds come one after another, each with more zombies. Each round cleared pays every player who played it. A squad wipe ends the run, and the results screen shows the rounds survived. Players who bled out come back at the start of the next round, but only if someone finishes the round.
@@ -209,10 +209,10 @@ An objective is a data record (type, parameters, triggers, rewards) plus one sma
 | # | Mission | Map | Steps | Optional |
 |---|---|---|---|---|
 | 1 | **Landfall** | Landfall (46 × 150 m, four areas closed behind the squad) | a 12-minute run: carry the flight recorder from the burning wreck to the street gate; fight up the high street (a pharmacy behind a door holds a cache); restart the checkpoint generator; hold while the gate opens (25 s); burn three nests in the square; kill the Brute; hold the helipad 40 s; get on the bird (40 s) | kill 150 |
-| 2 | **Yard Sweep** | Yard (64 × 48 m) | kill 40; burn three nests; reach the north gate; hold it 45 s; kill the Brute; survive 40 s | kill 150 |
-| 3 | **Power Out** | Substation (72 × 56 m) | get inside; restart three generators; burn two nests; defend the transformer 90 s; kill the Brute at the gate; extract (90 s) | kill 180 |
-| 4 | **Survivors** | Depot (96 × 64 m, three sections behind gates) | kill 25; work the office terminal; burn two nests; rescue two survivors; kill the Brute on the dock; extract (90 s) | crack the armoury safe (a terminal) |
-| 5 | **Last Stand** | Yard | hold the centre 60 s; kill 80; kill two Brutes; hold the centre 90 s; extract (90 s) | kill 250 |
+| 2 | **Rail Yard** | Rail Yard (56 × 128 m, four areas closed behind the squad) | an 11-minute run: carry the switch keys from the stationmaster's office to the platform gate; burn three nests in the container stacks; start the crane generator; hold while the gate grinds open (25 s); throw the points in the signal box; kill the Brute in the turntable pit; hold the convoy road 35 s; get on the trucks (40 s) | kill 150 |
+| 3 | **Blackout** | Power Plant (60 × 136 m, four areas closed behind the squad) | a 13-minute run: reach the plant fence; start the backup generator that opens it; restart three generators in the transformer yard (each wakes a turret); burn two nests; defend the transformer 70 s; reroute the grid from the control room; kill the Brute in the turbine hall; get out past the cooling towers (75 s) | kill 180 |
+| 4 | **Holdouts** | Food Depot (96 × 64 m, three sections behind gates) | a 15-minute run: clear the truck lot (kill 25); find the survivors on the office cameras; burn two nests in the warehouse; walk both survivors to the dock; kill the Brute on the dock; get on the truck (90 s) | crack the armoury safe (a terminal) behind a crate-stacked doorway |
+| 5 | **Breakout** | Motor Pool (64 × 84 m, the road north behind a gate) | a 14-minute run: hold the sandbagged centre 60 s; start two generators that wake its turrets; kill 80; kill two Brutes; hold the centre 90 s; out through the north gate (90 s) | kill 250 |
 
 Every mission has a briefing (shown while it loads), a radio line from the squad's handler or a survivor when each step starts and ends, and a debrief on the results screen.
 
@@ -252,12 +252,12 @@ Optional objectives can be kill or interact objectives.
 
 | Objective | Rules |
 |---|---|
-| **Restore power** (interact) | Hold interact on a generator for 5 s to start it; it then runs up for 20 s with 400 HP, and zombies go for it. Broken while running up, it stops at full health and must be started again. Power Out has three generators, worked in any order; each also powers the turrets and floodlights wired to it |
+| **Restore power** (interact) | Hold interact on a generator for 5 s to start it; it then runs up for 20 s with 400 HP, and zombies go for it. Broken while running up, it stops at full health and must be started again. Blackout has three generators in the transformer yard, worked in any order; each also powers the turrets and floodlights wired to it |
 | Terminal (interact) | Hold interact for 6 s |
-| **Defend** | The target's health comes from the map (1,500 by default) and is restored to full when the defend step starts. Players repair it by holding interact (50 HP a second). Power Out: 90 s |
+| **Defend** | The target's health comes from the map (1,500 by default) and is restored to full when the defend step starts. Players repair it by holding interact (50 HP a second). Blackout: 70 s |
 | **Rescue** | Survivors (150 HP) wait where the map puts them; holding interact for 2 s frees one. A freed survivor follows the player who freed them (or the nearest standing player once that one is down or gone), keeping 2.2 m back at up to 4.2 m/s; a survivor stuck for 3 s catches up beside them. Only zombies hurt survivors |
 | **Retrieve** | Holding interact for 1 s picks the object up; a player carries one at a time and moves at 80 % speed. The object drops where its carrier goes down or leaves the mission, and stays there until someone picks it up |
-| **Timed extraction** (extract) | 90 s in every mission now |
+| **Timed extraction** (extract) | Everyone standing gets into the area before its clock runs out: 40 to 90 s, set per mission |
 | **Destroy nests** | A nest (2 × 2 m, 900 HP) sends out a zombie (Drudge 70 %, Crawler 30 %) every 4 s near the closest player while one is within 22 m, until it is destroyed. Only shots and explosions hurt it. A squad wipe or failed objective brings the step's nests back. Nests a mission does not use are not on the map |
 | Hold terminal (planned) | Stand in a 5 m zone while a 120 s upload runs; the timer pauses when the zone is empty |
 | Escort vehicle (planned) | A slow APC (2 m/s, 3,000 HP) that stops when no player is within 10 m |
@@ -282,7 +282,7 @@ Interact (E) works the nearest usable prop within 1.6 m of its edge with a clear
 
 ### Maps
 
-Maps are drawn as text in the game data, one character per metre: walls, blockers (solid like walls but not drawn: they sit under scenery such as wrecks, cars and barriers), floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Scenery models are placed beside the drawing (position, rotation, size), some of them burning. Every zombie spawn is a hole in the ground the zombies climb out of; zombies come in off screen when a spawn point allows, and never closer than 8 m to a player. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets, nests) are listed beside the drawing. The maps now are the Yard (64 × 48 m), Landfall (40 × 32 m), the Substation (72 × 56 m) and the Depot (96 × 64 m).
+Maps are drawn as text in the game data, one character per metre: walls, blockers (solid like walls but not drawn: they sit under scenery such as wrecks, cars and barriers), floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Scenery models are placed beside the drawing (position, rotation, size), some of them burning. Every zombie spawn is a hole in the ground the zombies climb out of; zombies come in off screen when a spawn point allows, and never closer than 8 m to a player. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets, nests) are listed beside the drawing. The maps now are Landfall (46 × 150 m), the Rail Yard (56 × 128 m), the Power Plant (60 × 136 m), the Food Depot (96 × 64 m), the Motor Pool (64 × 84 m), the Yard (64 × 48 m, Survival) and the firing range. Beyond every map's border wall the town goes on (drawing only): a street round the map, a ring of buildings of different heights with alleys, and parked and burnt-out cars, lamps and rubbish, so a map's edge is a wall in a town rather than the end of the world.
 
 The data checks refuse a map or mission where:
 

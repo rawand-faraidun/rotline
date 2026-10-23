@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Mastery, type MissionDef, masteryFor, minimumSeconds, missionById, missions } from '../src/index.ts'
 
 const full = missionById('yard-sweep') as MissionDef
-/** Yard Sweep without its optional objective */
+/** Rail Yard without its optional objective */
 const sweep: MissionDef = { ...full, objectives: full.objectives.filter(objective => !objective.optional) }
 const par = sweep.parTimeSeconds * 1000
 const result = {
@@ -41,7 +41,7 @@ describe('mission mastery', () => {
 	})
 
 	it('knows the fastest possible time of every mission', () => {
-		expect(minimumSeconds(sweep)).toBe(85)
+		expect(minimumSeconds(sweep)).toBe(71)
 		for (const mission of missions) expect(minimumSeconds(mission)).toBeLessThan(mission.parTimeSeconds)
 	})
 })

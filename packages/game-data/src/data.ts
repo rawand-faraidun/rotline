@@ -8,8 +8,10 @@ import economyData from '../data/economy.json' with { type: 'json' }
 import gearData from '../data/gear.json' with { type: 'json' }
 import depotData from '../data/maps/depot.json' with { type: 'json' }
 import landfallData from '../data/maps/landfall.json' with { type: 'json' }
+import motorpoolData from '../data/maps/motorpool.json' with { type: 'json' }
+import powerplantData from '../data/maps/powerplant.json' with { type: 'json' }
+import railyardData from '../data/maps/railyard.json' with { type: 'json' }
 import rangeData from '../data/maps/range.json' with { type: 'json' }
-import substationData from '../data/maps/substation.json' with { type: 'json' }
 import yardData from '../data/maps/yard.json' with { type: 'json' }
 import missionsData from '../data/missions.json' with { type: 'json' }
 import playerData from '../data/player.json' with { type: 'json' }
@@ -82,7 +84,9 @@ export const maps: Record<string, MapDef> = {
 	yard: loadMap('yard', yardData),
 	range: loadMap('range', rangeData),
 	landfall: loadMap('landfall', landfallData),
-	substation: loadMap('substation', substationData),
+	railyard: loadMap('railyard', railyardData),
+	powerplant: loadMap('powerplant', powerplantData),
+	motorpool: loadMap('motorpool', motorpoolData),
 	depot: loadMap('depot', depotData)
 }
 export const propsDef = parse('props', propsDataSchema, propsData)

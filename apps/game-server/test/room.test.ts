@@ -168,29 +168,34 @@ describe('mission rooms', () => {
 		const mission = room.world.mission
 		const a = room.world.players.get(1)
 		if (!mission || !a) throw new Error('no mission')
-		expect(room.world.map.id).toBe('yard')
+		expect(room.world.map.id).toBe('railyard')
 		a.foundItems.push(tierOne)
-		mission.progress = 40
+		// the switch keys reach the gate: a checkpoint, which reports everything including the item
+		const keys = room.world.propById.get('switch-keys')
+		if (keys) keys.state = PropState.delivered
 		play(room, 2)
 		expect(mission.index).toBe(1)
-		expect(reports).toHaveLength(0)
-		// the nests burnt out: a checkpoint, which reports everything including the item
-		for (const id of ['nest-sheds-west', 'nest-sheds-east', 'nest-centre']) {
+		expect(mission.checkpointIndex).toBe(1)
+		const forA = reports.filter(report => report.userId === 'user-a')
+		expect(forA).toHaveLength(1)
+		expect(forA[0]?.items).toEqual([tierOne])
+		const scale = difficultyDef('nightmare').rewards
+		// one objective, plus the Salvage its score is worth
+		const a2 = room.world.players.get(1)
+		expect(forA[0]?.salvage).toBe(
+			Math.floor((economy.rewards.objective.salvage + (a2?.score ?? 0) / economy.rewards.scorePerSalvage) * scale)
+		)
+		expect(forA[0]?.xp).toBeGreaterThanOrEqual(Math.floor(economy.rewards.objective.xp * scale))
+		// the nests burn out: the next checkpoint reports only what came since
+		for (const id of ['nest-stacks-west', 'nest-stacks-centre', 'nest-stacks-east']) {
 			const nest = room.world.propById.get(id)
 			if (nest) nest.state = PropState.destroyed
 		}
 		play(room, 2)
 		expect(mission.checkpointIndex).toBe(2)
-		const forA = reports.filter(report => report.userId === 'user-a')
-		expect(forA).toHaveLength(1)
-		expect(forA[0]?.items).toEqual([tierOne])
-		const scale = difficultyDef('nightmare').rewards
-		// two objectives, plus the Salvage their score is worth
-		const a2 = room.world.players.get(1)
-		expect(forA[0]?.salvage).toBe(
-			Math.floor((economy.rewards.objective.salvage * 2 + (a2?.score ?? 0) / economy.rewards.scorePerSalvage) * scale)
-		)
-		expect(forA[0]?.xp).toBeGreaterThanOrEqual(Math.floor(economy.rewards.objective.xp * scale * 2))
+		const later = reports.filter(report => report.userId === 'user-a')
+		expect(later).toHaveLength(2)
+		expect(later[1]?.items ?? []).toEqual([])
 		expect(a.itemsReported).toBe(1)
 		// b never played: no objective pay (only the objective score turned into XP)
 		const forB = reports.filter(report => report.userId === 'user-b')
