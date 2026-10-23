@@ -1,0 +1,130 @@
+# @rotline/web
+
+## 0.1.0
+
+### Minor Changes
+
+- 54a901c: Abilities and the firing range:
+  
+  - All 18 class abilities work in missions: slot them in the skill tree and use them with F, C and V (Adrenaline Burst, Slide Dash, Cluster Grenade, Breaching Charge, Mark Target, Overwatch, Medkit Drop, Healing Field, Toxin Grenade, Antidote Shot, Stim, Defibrillator, Deploy Barricade, Taunt, Aerial Bombardment, Mortar Shot, Shock Pulse, Minigun Spin-up).
+  - Utilities on G and T: frag, incendiary and shock grenades, sticky mines, decoy beacons and the mini-sentry. Charges refill every wave.
+  - The capstones (Momentum, Shrapnel, Executioner, Second Wind, Contagion, Last Rites, Aftershock, Suppression) do what they say.
+  - Zombies can be stunned, slowed, marked, poisoned and taunted, and show it.
+  - The firing range: target dummies, spawn any zombie type, damage numbers and a damage meter; no cooldowns, nothing counts.
+- 9693103: The Ashgate campaign:
+  
+  - Missions now come in order and open one after another: Landfall, Yard Sweep, Power Out, Survivors and Last Stand. Survival is always open.
+  - Three new maps of different sizes: Landfall (small), the Substation and the Depot (large, in sections behind gates that lock behind you).
+  - Things to use in the world: explosive barrels, crates and sandbags you can shoot apart, doors you open, close and weld shut (zombies break them down), generators that power turrets and floodlights, traps, terminals, survivors to free and walk to safety, objects to carry, and targets to defend.
+  - New objectives: restore power, defend, rescue, carry, and timed extractions. Optional objectives pay extra and count toward mastery.
+  - The game tells you what holding or pressing E will do, with a progress bar for longer jobs.
+- b2004ea: First playable build:
+  
+  - Sign in with GitHub or Google, pick a player name and a generated avatar, and wait in the lobby.
+  - Deploy into a solo mission on The Yard: move, aim and shoot with the Vex-9, K-71 and the P9 pistol (unlimited reserve), reload and switch weapons.
+  - Waves of Drudges, Bolters and Swells find their way around walls; Swells burst and leave acid pools.
+  - The server decides every hit and kill; your own movement and shooting respond instantly through prediction.
+- 2acf2a5: Characters, weapon models, a new soundscape and a tidier lobby:
+  
+  - Every class is its own soldier: Assault in a tactical helmet and plate carrier, Medic with a chest rig, medical backpack and armband, Heavy in a visored helmet, heavy vest and pack. Soldiers walk, jog, aim, shoot and reload, sit when downed, and hold the model of the gun they use. Running sideways or backwards moves the legs that way while the upper body keeps aiming.
+  - Every weapon has a 3D model: turn it in the armory, inspect it in the shop, and see a still of it on every card. The lobby shows your class's soldier.
+  - The game sounds like a zombie game: real gun recordings with weight under every shot, zombie growls, pain, deaths, bites and body falls, an ambience bed per map with the horde murmuring, and music that rises as zombies close in. Music and ambience have their own volume settings. The screens around the game click and confirm.
+  - The lobby keeps the next mission and the deploy or ready button in reach, with smaller squad cards and an invite link in an open slot. A player away from the game for three minutes leaves their squad, and an empty squad closes.
+  - A credits page lists every model, sound and font with its author and licence.
+  - Maps look like places: real asphalt, concrete, dirt and grass underfoot, brick, stone, metal and concrete walls, and their own light (dusk, overcast or night).
+  - Barrels, crates, sandbags, generators, terminals, supply caches and carried boxes are real models.
+  - Zombies are new: rotting, torn and bloodied, hunched in a shambling walk, clawing when they reach you.
+  - A graphics setting in the pause menu: automatic, high or low. Automatic picks the light version on devices without a graphics card.
+  - Survivors are people in work clothes who walk with the squad when led out.
+  - The lobby is a scene: your squad stands ready in a floodlit yard, with the squad and friends down the left, the classes and kit at their feet, and the mission card and Deploy on the right. Missions are picked in their own window.
+  - Game screens use the whole window; nothing scrolls visibly, nothing can be selected by dragging, and the logo leads back to the lobby.
+  - Abilities are equipped from the ability itself ("Equip in slot 1 (F)").
+  - Armory: equip buttons come first, cards line up at the same height, and weapons show a picture instead of a 3D view (the shop too).
+  - Addresses with a trailing slash ("/play/") work.
+  - Soldiers are realistic now: a real face and hands, a combat shirt, trousers, boots, plate carrier and helmet, each class in its own colours and kit. Rifles and other long guns are held in both hands with the stock at the shoulder.
+  - On a graphics card the picture has a finish: ambient occlusion, a soft bloom on bright things, a colour grade, vignette and film grain. The camera sits a little closer.
+  - Real guns in full detail: a G19, Desert Eagle, Vector, HK416, Benelli M4 Super 90, M249, AWP, GL-06 grenade launcher, AUG and a handheld M134, plus two real flamethrowers for the Kiln and the Viper, all textured and sharp in the shop and armory.
+  - Every kind of gun draws its own shots: shotguns spray pellets, sniper rifles leave a long bright streak, machine guns fire orange tracers, each with its own muzzle flash.
+  - A profile screen (click your name): total level, missions won, gold masteries, classes and your campaign record.
+  - Armour is worn in five places: head, torso, vest, legs and feet, each piece its own item with its own stats, bought, upgraded and equipped on its own. Everything you equip shows on your soldier, in the lobby and in the game (your squad sees it too). Everyone gets the starter helmet, shirt, trousers and boots.
+  - The lobby is a better place: a wet yard at night with a street lamp, a covered car, barriers, tyres and bins, dust in the light, and the same picture finish as the game. Your soldier holds your main weapon at the low ready.
+  - Missions play like missions: a briefing while the mission loads, the handler or a survivor on the radio as each step starts and ends, a debrief at the end, and more to every mission: zombie nests to burn out (they keep spawning until destroyed), ambushes that hit as a step starts, and a Brute boss with its own health bar. Landfall now has eight steps.
+  - Two new zombies: the low, quick Crawler, and the Screamer, whose scream calls a pack in.
+  - The guns go by their real names: G19, Desert Eagle, Vector, HK416, M4 Super 90, M249, AWP, GL-06, AUG and M134.
+  - Every weapon picture is taken from the same side view.
+  - Each class is a different person in their own style: the Assault an operator in a combat shirt, the Medic a woman in a black tactical suit, the Heavy a shaven-headed man in a T-shirt and gloves. Helmets, vests and packs go on top of all three.
+  - In the lobby your soldier holds a long gun across the chest in both hands.
+  - Zombies no longer appear on top of you: they come in from off screen, never closer than 8 m, and nests send them out on their far side.
+  - Pausing a solo game freezes everything on screen: zombies, soldiers, effects and props stop where they are.
+  - New sound throughout, from professional game-audio libraries: punchy guns per weapon (with the shotgun's pump and the sniper's bolt after each shot, and brass hitting the ground), wet hits, bodies bursting apart, bites, zombie groans and screams, metal doors, generators, a boss sting, and a cleaner interface. Every kind of sound is levelled to sit right in the mix, and the made-up beeps are gone.
+  - Soldiers in full detail: faces, hands, clothes and gear keep far more of their shape and sharper textures.
+  - The armory is set out like a loadout screen: your soldier stands full size on the left, wearing exactly what you equip (drag to turn them), with the class chosen above them; Weapons, Armour and Equipment have their own tabs, each with what is equipped and what you own.
+  - The shop has the same tabs, and every armour piece has a picture in the shop and the armory.
+  - Classes are chosen in the armory; the lobby shows your class with your kit.
+  - The camera sits closer, so soldiers and zombies read at a glance.
+  - A marker shows where the current objective is, and an arrow at the screen's edge points the way when it is out of view, with the distance.
+  - Zombies climb out of holes in the ground instead of appearing from nowhere, and burst apart when killed: lumps thrown across the ground and blood that stays.
+  - The firing range's targets and zombies come in where you can see them.
+  - Landfall is a 12-minute run against the clock through four areas that close behind you: carry the flight recorder out of a burning wreck, fight up a high street of wrecked cars (a pharmacy behind a door holds supplies), restart the checkpoint's gate generator and hold while it opens, burn the nests in the square and put down the Brute, then hold the helipad until the bird lands. Run out of time and the mission is lost.
+  - Maps can have scenery: wrecked and burning cars, barriers, lamps, crates, fences and fires, solid where they look solid.
+  - Soldiers hold their guns like soldiers: rifles shouldered and aimed with both hands on the gun, pistols out in front in a two-handed grip, fingers closed round the grip, a kick when they fire and the gun brought down to change the magazine.
+  - The mission picker keeps its Done button in view.
+  - A generator you start shows it running up: an amber light and a bar filling over it, then green and a hum when it is on; Landfall's checkpoint hold is shorter.
+  - New soldier for every class: a fully kitted operator (helmet, balaclava, glasses, gloves, plate carrier with pouches) that moves cleanly, with no stretched clothing; classes differ by their kit.
+  - The lobby is a hub like the games it takes after: kit tiles (weapons, armour, equipment, skills, shop, profile) down the left, the mission, Survival and the firing range in the middle over your player card, and the squad with Deploy on the right; tiles open the armory and shop on the right tab.
+  - Maps look like places: walls show their brick, stone and metal (they were drawn almost black) under gravel rooftops and stand taller, the ground has cracks, oil stains, puddles and litter, rubbish lies along the walls, and a light goes with your soldier so the fight reads even at dusk.
+  - Gunshots are recordings of the real guns: a Glock 19X, a Colt 1911 and HK USP45, a .50 AE Desert Eagle, an Uzi and a Colt SMG, a Colt M4A1 and an AR-15, a Saiga, a Remington 870 and a Mossberg 500, an M240 for the machine guns and a Barrett and a .308 for the sniper rifle, each with its full tail.
+  - The lobby hub has no scene behind it any more: a dark field with a faint grid and the Rotline mark, like the games it takes after.
+  - At ease, soldiers carry a long gun at the low ready with both hands on it.
+  - No more black box around the muzzle flash on high graphics.
+- 5e97c53: Missions:
+  
+  - Squads can now play missions, next to Survival (endless rounds that get harder each round). The leader picks the mission (Yard Sweep, Last Stand) and the difficulty (Recruit, Veteran, Nightmare, Apocalypse) in the lobby; harder difficulties have tougher, more numerous zombies and pay more.
+  - Objectives: thin the horde, reach a place, hold an area, survive. Checkpoints bring everyone back at full health, including players who bled out; a squad wipe returns to the last checkpoint.
+  - Score multiplier: kills in quick succession build a chain worth ×1 to ×6. Score thresholds pay Salvage and heal you.
+  - Temporary buffs drop from kills: screen nuke, max ammo, double XP, minigun, instakill, speed boost, freeze pulse and a sentry.
+  - Items drop for each player on their own: from elites, from hidden caches (hold E next to one) and one guaranteed when the mission is complete. New items are unlocked at level 0; ones you already own become duplicates you can discard for Salvage.
+  - A results screen shows time, score, kills, XP, Salvage, items found and the mastery reached (bronze, silver, gold). Best times and mastery are shown on the mission select.
+  - Survival: a squad wipe ends the run, with a results screen showing the rounds survived. Players who bled out come back at the next round only if someone finishes the round.
+  - Esc opens a pause menu. Alone, the game really pauses; in a squad it goes on while you stand still. From the menu (or the lobby) you can go back and rejoin later, or abandon the mission.
+  - The lobby, skills, armory and shop fill the window; their columns scroll on their own instead of the whole page.
+  - The squad code has its own copy button, and buttons whose text changes (Copy → Copied, Ready → Not ready) no longer shift the layout.
+  - Local test sign-in works with just a username.
+- 077beab: Progression:
+  
+  - Three classes with their own levels and skill trees (three branches of 22 skills each); pick your class in the lobby, spend points, respec for Salvage.
+  - Kills and cleared waves now earn class XP and Salvage.
+  - The armory: your inventory and loadout, upgrades up to level 10 (damage, fire rate, reload, magazine, accuracy and carried ammunition), perk choices at levels 5 and 10, and safe discards.
+  - The shop sells every weapon, armour and utility at a fixed price.
+  - All eleven weapons work: shotgun, sniper rifle that pierces, flamethrower, chemical sprayer, grenade launcher and the chain-lightning shock rifle join the starter guns. Armour reduces damage.
+- 166e349: Friends (requests, presence, invites, join, block, recent players), a 24-player capacity with a queue page and admission passes, idle seat release, and an admin capacity setting.
+- b8e111a: Sound and gun feel:
+  
+  - The game has sound: recorded gunshots for pistols, rifles, the sniper rifle and the shotgun, reloads, and zombie voices; explosions, flames, lightning, doors, generators, traps, buff pickups, item finds, hits and an empty-magazine click. Sounds come from where they happen: you hear the fight around you, panned left and right.
+  - Sound settings in the pause menu: master, effects and interface volume, and mute. They are remembered in your browser.
+  - Guns feel heavier: the camera kicks back with each shot (more for shotguns and the sniper rifle), spent cases fly out and lie on the ground, sparks show where shots hit walls, and explosions and heavy hits shake the screen (not when your system asks for reduced motion).
+- a39ff99: Squads:
+  
+  - Form a squad of up to four in the lobby with a six-character code or an invite link; the leader deploys once everyone is ready, and everyone lands in the same mission.
+  - Going down in a squad leaves you crawling with your pistol while a teammate holds E next to you to revive you; bleed out and you are back with the next wave. If nobody is left standing, the wave restarts.
+  - Teammates' health, downed timers and revive progress show in the HUD, and you watch a teammate while you are out.
+  - Smoother play on poor connections: no more rubber-banding after a lag spike, and other players and zombies stay fluid at 2 % packet loss.
+
+### Patch Changes
+
+- d069fe7: Collisions: you can no longer walk through zombies, thrown grenades and other thrown things stop on the first zombie they hit, and your own shots are drawn stopping at the first zombie they hit (as they always did on the server) instead of passing through the line.
+- 351271f: Fixes from the milestone 4 reviews:
+  
+  - Reconnecting to a mission no longer leaves your character frozen.
+  - Kills made right after a lag spike now count, and the shots show for everyone.
+  - Slide Dash, Adrenaline Burst, Stim and the minigun stay smooth on bad connections, and holding an ability key uses it as soon as it is ready.
+  - Barricades match exactly between your screen and the server, and never trap a player or a zombie.
+  - Losing a wave no longer pays the wave-cleared reward again; players who left mid-wave are not paid for it.
+  - The Defibrillator works once per wave and gives its cooldown back if nobody is in reach. Going down ends your kill chain.
+  - The firing range has a one-second ability cooldown and limits on spawning.
+- Updated dependencies [b2004ea]
+- Updated dependencies [a39ff99]
+  - @rotline/client@0.1.0
+  - @rotline/game-data@0.1.0
+  - @rotline/constants@0.1.0
+  - @rotline/ui@0.1.0
