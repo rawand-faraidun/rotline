@@ -5,7 +5,6 @@
 > **Brand files:** in `/brand`. Read `/brand/README.md` before building any interface.
 > **Hosting:** one Cloud VPS 6 (6 shared vCPUs, 12 GB RAM, 100 GB NVMe, 300 Mbit/s, unlimited traffic), set up entirely by Ansible, everything in Docker, player limit 32. Details in section 8.
 > **Cloudflare:** used for the domain and DNS only, plus R2 for backup storage.
-> **Alert email:** `owner email removed`
 > **Where most players are:** `worldwide`
 
 ---

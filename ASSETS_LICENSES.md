@@ -1,6 +1,8 @@
 # Asset licences
 
-Every third-party asset shipped with Rotline (models, textures, animations, sounds, music, fonts, avatar styles) is listed here before it is committed. Code dependencies are covered by their package licences and checked by the `license-checker` agent.
+Every third-party asset shipped with Rotline (models, textures, animations, sounds, music, fonts, avatar styles) is listed here before it is committed.
+
+These assets are **not** covered by the MIT licence of the code: each keeps its own licence, listed below. Some are for non-commercial use only (marked CC BY-NC), and the sounds cut from the Sonniss GDC bundles may be used in games but not redistributed as a sound library. Reusing an asset outside Rotline means following its own licence. Code dependencies are covered by their package licences and checked by the `license-checker` agent.
 
 | Asset | Used for | Source | Author | Licence | Checked |
 |---|---|---|---|---|---|

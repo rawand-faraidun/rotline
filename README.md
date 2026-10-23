@@ -94,4 +94,4 @@ When CI passes on a push to `main`, the Version workflow applies the pending cha
 
 ## Licence
 
-Code: [MIT](LICENSE). Assets: see [ASSETS_LICENSES.md](ASSETS_LICENSES.md).
+Code: [MIT](LICENSE). Assets are not under MIT: each keeps its own licence, listed in [ASSETS_LICENSES.md](ASSETS_LICENSES.md) (some are non-commercial only).
