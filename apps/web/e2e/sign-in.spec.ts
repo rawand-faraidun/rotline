@@ -1,8 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
-import { releaseSeats } from './helpers.ts'
+import { releaseSeats, runTag } from './helpers.ts'
 
-// digits only: random letters can spell a word the name filter refuses
-const run = String(Math.floor(Math.random() * 1e6)).padStart(6, '0')
+const run = runTag()
 
 async function signInWithTestProvider(page: Page, username: string) {
 	await page.getByRole('button', { name: /test account/i }).click()
