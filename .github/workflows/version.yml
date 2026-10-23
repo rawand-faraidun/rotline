@@ -1,7 +1,10 @@
 name: Version
 
-# After CI passes on a push to main: apply pending changesets (bump the shared version, write the
-# changelogs) in a "Version packages" commit on main, tag vX.Y.Z and run the release.
+# After CI passes on a push to main, everything else happens here, ending in exactly one deploy:
+# - with pending changesets: bump the shared version and write the changelogs in a "Version packages"
+#   commit on main (merged back into dev), tag vX.Y.Z, publish the images and the GitHub release,
+#   deploy vX.Y.Z;
+# - without: publish the images of the tested commit and deploy them (sha-<commit>).
 # No pull request: main only receives work that is already known to be good.
 on:
   workflow_run:
@@ -27,6 +30,7 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
       created: ${{ steps.tag.outputs.created }}
+      current: ${{ steps.current.outputs.ok }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -55,6 +59,20 @@ jobs:
         id: tag
         if: steps.current.outputs.ok == 'true'
         run: pnpm --silent release:tag >> "$GITHUB_OUTPUT"
+      - name: Bring dev up to date with main
+        # the version commit (and anything else on main) goes back to dev, so the next push from dev
+        # to main is a plain fast-forward; a conflict leaves dev alone and says so
+        if: steps.current.outputs.ok == 'true'
+        run: |
+          main="$(git rev-parse HEAD)"
+          git fetch origin dev
+          git checkout -B dev origin/dev
+          if git merge --no-edit "$main"; then
+            git push origin dev
+          else
+            git merge --abort || true
+            echo "::warning::dev could not take main's changes automatically; merge main into dev by hand"
+          fi
 
   release:
     needs: version
@@ -62,4 +80,27 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       tag: ${{ needs.version.outputs.tag }}
+    secrets: inherit
+
+  deploy-release:
+    needs: [version, release]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      version: ${{ needs.version.outputs.tag }}
+    secrets: inherit
+
+  # no new version: the tested commit itself is published and deployed
+  images:
+    needs: version
+    if: needs.version.outputs.current == 'true' && needs.version.outputs.created != 'true'
+    uses: ./.github/workflows/images.yml
+    with:
+      ref: ${{ github.event.workflow_run.head_sha }}
+    secrets: inherit
+
+  deploy:
+    needs: images
+    uses: ./.github/workflows/deploy.yml
+    with:
+      version: sha-${{ github.event.workflow_run.head_sha }}
     secrets: inherit

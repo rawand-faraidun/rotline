@@ -72,11 +72,3 @@ jobs:
           tag_name: ${{ inputs.tag || github.ref_name }}
           name: Rotline ${{ inputs.tag || github.ref_name }}
           body_path: notes.md
-
-  deploy:
-    # Switched on when deployment starts; the deploy configuration lives outside this repository.
-    if: false
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "deploy ${{ github.ref_name }}"

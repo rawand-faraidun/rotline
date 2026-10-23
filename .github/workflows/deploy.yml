@@ -1,17 +1,18 @@
 name: Deploy
 
-# Once the images for a push to main are published, the server pulls and runs them (over SSH, with a
-# key that may only run the deploy command). Can also be run by hand with any published version,
-# for example to roll back: version `sha-<commit>`.
+# The server pulls and runs one published version (over SSH, with a key that may only run the deploy
+# command). Called by Version after every push to main; can also be run by hand with any published
+# version, for example to roll back: `v1.2.3` or `sha-<commit>`.
 on:
-  workflow_run:
-    workflows: [Images]
-    types: [completed]
-    branches: [main]
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       version:
-        description: Image tag to deploy (sha-<full commit> or main)
+        description: Image tag to deploy (v1.2.3, sha-<full commit> or main)
         required: true
         default: main
 
@@ -24,12 +25,6 @@ concurrency:
 
 jobs:
   deploy:
-    # a hand-started run, or Images having published images for a push to this repository's main
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -38,7 +33,7 @@ jobs:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           HOST: ${{ secrets.DEPLOY_HOST }}
-          VERSION: ${{ inputs.version || format('sha-{0}', github.event.workflow_run.head_sha) }}
+          VERSION: ${{ inputs.version }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
