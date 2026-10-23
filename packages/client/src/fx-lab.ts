@@ -59,6 +59,7 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		ready: () => zombies !== null,
 		jet: (x: number, y: number, angle: number, toxic = false) => effects.flame(x, y, angle, 7, 0.26, toxic, now()),
 		burn: (x: number, y: number) => fires.push({ x, y }),
+		shot: (x: number, y: number, angle: number) => effects.tracer(x, y, angle, 6, now(), 1.05, 0xff3a2a),
 		objects: (on = true) => {
 			showObjects = on
 		},

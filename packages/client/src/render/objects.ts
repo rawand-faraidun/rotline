@@ -127,8 +127,9 @@ export class ObjectRenderer {
 			}
 			drawn.root.position.set(object.x, 0, object.y)
 			if (object.kind === ObjectKind.barricade) drawn.root.rotation.y = Math.PI / 2 - object.angle
-			if (object.kind === ObjectKind.sentry || object.kind === ObjectKind.mine)
-				drawn.root.rotation.y = Math.PI / 2 - object.angle
+			// the turret's barrel runs along the model's +X; the claymore faces the model's +Z
+			if (object.kind === ObjectKind.sentry) drawn.root.rotation.y = -object.angle
+			if (object.kind === ObjectKind.mine) drawn.root.rotation.y = Math.PI / 2 - object.angle
 			if (object.kind === ObjectKind.buff && drawn.spin) {
 				// a pickup turns slowly where it lies, and blinks in its last seconds
 				drawn.spin.rotation.y = timeSeconds * 0.8
