@@ -277,6 +277,7 @@ Interact (E) works the nearest usable prop within 1.6 m of its edge with a clear
 | Turret | 22 ballistic damage, 8 shots a second at the nearest zombie in sight within 16 m. On while its generator runs, always on when it has none; it cannot be destroyed |
 | Floodlight | Lights its area while powered (by its generator, or always when it has none) |
 | Trap | Press to set it off: 120 shock damage a second to zombies within 3 m for 5 s, then 30 s to recharge. It never hurts players |
+| Ammo station | Hold for 1 s to refill the reserve of every gun to its maximum for 500 score (free in the firing range). The price comes out of the score a player has earned and not yet spent there; their score for rewards and thresholds is untouched. It does nothing while every gun is full, and the HUD shows the price when the player cannot pay yet |
 | Terminal, survivor, carried object, defend target | See the objective rules above |
 
 ### Maps

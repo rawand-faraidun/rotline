@@ -271,6 +271,13 @@
 			"author": "luddepubde",
 			"triangles": 3000,
 			"size": 0.5
+		},
+		{
+			"kind": "ammo",
+			"uid": "b658f15a9708442c956f5d0baa0ea665",
+			"name": "Military crate",
+			"author": "Noahouou",
+			"triangles": 2500
 		}
 	]
 }

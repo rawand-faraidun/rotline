@@ -1,6 +1,6 @@
 import { type Build, maps, starterBuild } from '@rotline/game-data'
 import { Reader, readServerHeader, readSnapshot, SnapshotEncoder, Writer, ZombieTable } from '@rotline/protocol'
-import { Button, Grid, type PlayerInput, World } from '@rotline/sim'
+import { Button, createProps, Grid, type PlayerInput, World } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
 import { Interpolator } from '../src/interpolate.ts'
 import { Predictor } from '../src/predict.ts'
@@ -34,7 +34,10 @@ function predictAgainstServer(build: Build | undefined, buttonsAt: (seq: number)
 	world.addPlayer(1, build)
 	const encoder = new SnapshotEncoder(1)
 	const table = new ZombieTable()
-	const predictor = new Predictor(new Grid(yard), 1, build)
+	// the client's grid holds the map's props, as the game sets it up
+	const grid = new Grid(yard)
+	createProps(yard, grid)
+	const predictor = new Predictor(grid, 1, build)
 	const first = snapshot(world, encoder, table)
 	predictor.reconcile(first.self, first.lastSeq, first.tick)
 
@@ -121,7 +124,10 @@ describe('prediction', () => {
 		world.addPlayer(1, build)
 		const encoder = new SnapshotEncoder(1)
 		const table = new ZombieTable()
-		const predictor = new Predictor(new Grid(yard), 1, build)
+		// the client's grid holds the map's props, as the game sets it up
+		const grid = new Grid(yard)
+		createProps(yard, grid)
+		const predictor = new Predictor(grid, 1, build)
 		const first = snapshot(world, encoder, table)
 		predictor.reconcile(first.self, first.lastSeq, first.tick)
 		const queue: PlayerInput[] = []

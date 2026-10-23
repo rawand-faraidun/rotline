@@ -253,9 +253,29 @@ function usable(world: World, prop: Prop, player: PlayerState): boolean {
 			return allowed && prop.state === PropState.idle && !player.carrying
 		case 'defend':
 			return prop.state !== PropState.destroyed && prop.health < prop.maxHealth
+		case 'ammo':
+			return wantsAmmo(player) && spendableScore(player) >= ammoPrice(world)
 		default:
 			return false
 	}
+}
+
+/** What a refill at an ammo station costs here: nothing where nobody scores (the firing range). */
+export function ammoPrice(world: World): number {
+	return world.scoring ? propsDef.ammo.price : 0
+}
+
+/** Score a player has earned and not spent at ammo stations. */
+export function spendableScore(player: PlayerState): number {
+	return Math.max(0, Math.floor(player.score - player.scoreSpent))
+}
+
+/** Is any of the player's guns short of a full reserve? (Pistols with endless ammo never are.) */
+export function wantsAmmo(player: PlayerState): boolean {
+	return ([0, 1, 2] as const).some(slot => {
+		const max = player.stats.weapons[slot].maxReserve
+		return max !== null && player.weapons[slot].reserve < max
+	})
 }
 
 function press(world: World, prop: Prop): void {
@@ -315,6 +335,16 @@ function hold(world: World, prop: Prop, player: PlayerState): void {
 			prop.with = player.id
 			player.carrying = true
 			break
+		case 'ammo':
+			// every gun's reserve full again; the price comes out of score earned, never out of rewards
+			player.scoreSpent += ammoPrice(world)
+			for (const slot of [0, 1, 2] as const) {
+				const max = player.stats.weapons[slot].maxReserve
+				if (max !== null) player.weapons[slot].reserve = max
+			}
+			prop.holder = 0
+			world.events.push({ type: 'resupply', player: player.id, x: prop.x, y: prop.y })
+			return
 	}
 	world.events.push({ type: 'prop', index: prop.index, state: prop.state })
 }

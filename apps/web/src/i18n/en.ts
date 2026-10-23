@@ -589,7 +589,9 @@ export const en = {
 				free: 'Hold E — free the survivor',
 				pickup: 'Hold E — pick it up',
 				trap: 'E — set off the trap',
-				cache: 'Hold E — search the cache'
+				cache: 'Hold E — search the cache',
+				ammo: 'Hold E — refill ammo ({price} score)',
+				'ammo-short': 'Ammo: {price} score (you have {have})'
 			},
 			multiplier: 'Multiplier',
 			round: 'Round',
@@ -598,6 +600,9 @@ export const en = {
 			buffPicked: '{name}',
 			buffBy: '{name} — from {by}',
 			threshold: 'Score bonus: +{salvage} Salvage and health',
+			resupply: 'Ammo refilled',
+			ammoFree: 'Hold E — refill ammo',
+			resupplyPaid: 'Ammo refilled (−{price} score)',
 			results: {
 				title: 'Mission complete',
 				lost: 'Mission lost: out of time',

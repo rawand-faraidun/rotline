@@ -403,7 +403,8 @@ export const propKindId = z.enum([
 	'survivor',
 	'carry',
 	'defend',
-	'nest'
+	'nest',
+	'ammo'
 ])
 
 /**
@@ -695,6 +696,8 @@ export const propsDataSchema = z.object({
 	}),
 	carry: z.object({ speedMultiplier: z.number().positive().max(1), pickupSeconds: z.number().positive() }),
 	defend: z.object({ health: z.number().positive() }),
+	/** an ammo station: a hold refills the reserve ammo of a player's guns for `price` score */
+	ammo: z.object({ holdSeconds: z.number().positive(), price: z.number().int().min(0) }),
 	/** a nest: shoot or blow it up; until then it sends zombies out while players are near */
 	nest: z.object({
 		health: z.number().positive(),
