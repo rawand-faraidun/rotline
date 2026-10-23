@@ -57,6 +57,8 @@ type Gear = {
 	size: number
 	triangles: number
 	tint?: [number, number, number]
+	/** stretched on each axis after scaling to `size` (a vest made deeper to clear the chest) */
+	stretch?: [number, number, number]
 }
 type Figure = {
 	id: string
@@ -581,7 +583,12 @@ for (const [id, gear] of Object.entries(config.gear)) {
 	]
 	// where the gear sits in the soldier's space, then the same relative to its joint
 	const placed = multiply(
-		MathUtils.compose(at, rotation, [scale, scale, scale], [] as unknown as mat4),
+		MathUtils.compose(
+			at,
+			rotation,
+			[0, 1, 2].map(axis => scale * (gear.stretch?.[axis] ?? 1)) as [number, number, number],
+			[] as unknown as mat4
+		),
 		MathUtils.compose([-centre[0], -centre[1], -centre[2]], [0, 0, 0, 1], [1, 1, 1], [] as unknown as mat4)
 	)
 	const local = multiply(invert(jointWorld), placed)

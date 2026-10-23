@@ -1,6 +1,9 @@
-import { maps } from '@rotline/game-data'
+import { buffs, maps } from '@rotline/game-data'
+import type { ObjectState } from '@rotline/protocol'
+import { ObjectKind } from '@rotline/sim'
 import { Interpolator } from './interpolate.ts'
 import { Effects } from './render/effects.ts'
+import { ObjectRenderer } from './render/objects.ts'
 import { Stage } from './render/scene.ts'
 import { ZombieRenderer } from './render/zombies.ts'
 
@@ -14,6 +17,33 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 	stage.resize()
 	const effects = new Effects(stage.scene, true)
 	const view = new Interpolator().view
+	const objectRenderer = new ObjectRenderer(stage.scene, '/assets')
+	// what lies on the ground: every pickup in a row, and a sentry, a claymore, a decoy, sandbags
+	const thing = (id: number, kind: number, x: number, y: number, extra: Partial<ObjectState> = {}): ObjectState => ({
+		id,
+		kind,
+		x,
+		y,
+		radius: 1,
+		angle: 0,
+		health: 1,
+		secondsLeft: 30,
+		variant: 0,
+		cells: [],
+		...extra
+	})
+	const objects: ObjectState[] = [
+		...buffs.buffs.map((_, index) =>
+			thing(index + 1, ObjectKind.buff, at.x - 6 + index * 1.7, at.y + 3.5, { variant: index })
+		),
+		thing(100, ObjectKind.sentry, at.x - 4, at.y - 3, { angle: 0.4 }),
+		thing(101, ObjectKind.mine, at.x - 1.5, at.y - 3, { angle: 0 }),
+		thing(102, ObjectKind.decoy, at.x + 1, at.y - 3),
+		thing(103, ObjectKind.barricade, at.x + 4.5, at.y - 3, { radius: 1.5 })
+	]
+	let showObjects = false
+	/** zombies-on-fire stand-ins: places that burn every frame */
+	const fires: { x: number; y: number }[] = []
 	let zombies: ZombieRenderer | null = null
 	void ZombieRenderer.load('/assets/models/characters/zombie.glb').then(renderer => {
 		zombies = renderer
@@ -27,6 +57,11 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		gas: (x: number, y: number, radius: number) => effects.gas(x, y, radius, now()),
 		fall: (x: number, y: number, type = 0) => zombies?.fall(9999, type, x, y),
 		ready: () => zombies !== null,
+		jet: (x: number, y: number, angle: number, toxic = false) => effects.flame(x, y, angle, 7, 0.26, toxic, now()),
+		burn: (x: number, y: number) => fires.push({ x, y }),
+		objects: (on = true) => {
+			showObjects = on
+		},
 		/** stops the clock at `seconds` after the last call to `freeze()` without an argument */
 		freeze: (seconds?: number) => {
 			if (seconds === undefined) {
@@ -38,6 +73,7 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 				while ((frozen as number) < target - 1e-6) {
 					frozen = Math.min(target, (frozen as number) + 1 / 60)
 					effects.update(frozen)
+					for (const fire of fires) effects.burning(fire.x, fire.y, 1, frozen, 1 / 60)
 					zombies?.update(view, frozen)
 				}
 			}
@@ -51,7 +87,9 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		stage.follow(at.x, at.y, at.x + 1, at.y, time - last)
 		last = time
 		effects.update(time)
+		if (frozen === null) for (const fire of fires) effects.burning(fire.x, fire.y, 1, time, 1 / 60)
 		zombies?.update(view, time)
+		objectRenderer.update(showObjects ? objects : [], time)
 		stage.render()
 	}
 	loop()

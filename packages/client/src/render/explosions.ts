@@ -8,8 +8,8 @@ import { EFFECTS_LAYER } from './post.ts'
  * glowing ones, one for the smoke), so a barrage costs no allocations.
  */
 
-const GLOW = 512
-const SMOKE = 512
+const GLOW = 1024
+const SMOKE = 768
 const SCORCHES = 32
 const SCORCH_SECONDS = 45
 
@@ -435,6 +435,119 @@ export class Explosions {
 		this.scorchBorn[i] = now
 		this.scorches.count = Math.max(this.scorches.count, i + 1)
 		this.scorches.instanceMatrix.needsUpdate = true
+	}
+
+	/**
+	 * A flamethrower's burst from (x, y) along `angle`: burning fuel thrown out in a cone, swelling and
+	 * slowing as it goes, smoke rolling off the end of the stream; or, `toxic`, a green spray.
+	 */
+	jet(x: number, y: number, angle: number, range: number, halfAngle: number, toxic: boolean, now: number): void {
+		const speed = range / 0.3
+		for (let n = 0; n < 12; n++) {
+			const a = angle + (Math.random() * 2 - 1) * halfAngle * 0.8
+			// the stream leaves the nozzle a little ahead of the player, some puffs already on their way
+			const start = 0.7 + Math.random() * range * 0.15
+			const vx = Math.cos(a) * speed * (0.75 + Math.random() * 0.35)
+			const vz = Math.sin(a) * speed * (0.75 + Math.random() * 0.35)
+			const px = x + Math.cos(angle) * start
+			const pz = y + Math.sin(angle) * start
+			if (toxic) {
+				this.smoke.emit(
+					'gas',
+					now,
+					px,
+					1,
+					pz,
+					vx,
+					0.2 + Math.random() * 0.4,
+					vz,
+					0.5 + Math.random() * 0.25,
+					0.25,
+					1.5,
+					0.55,
+					2.4
+				)
+			} else {
+				this.glow.emit(
+					'fire',
+					now,
+					px,
+					1,
+					pz,
+					vx,
+					0.3 + Math.random() * 0.8,
+					vz,
+					0.32 + Math.random() * 0.2,
+					0.2,
+					1.6,
+					1,
+					1.5
+				)
+			}
+		}
+		if (toxic) return
+		// a bright core at the nozzle, and smoke where the stream burns out
+		this.glow.emit(
+			'fire',
+			now,
+			x + Math.cos(angle) * 0.75,
+			1.02,
+			y + Math.sin(angle) * 0.75,
+			0,
+			0,
+			0,
+			0.06,
+			0.25,
+			0.35,
+			1,
+			0
+		)
+		for (let n = 0; n < 2; n++) {
+			const end = range * (0.6 + Math.random() * 0.4)
+			const a = angle + (Math.random() * 2 - 1) * halfAngle
+			this.smoke.emit(
+				'smoke',
+				now + 0.15,
+				x + Math.cos(a) * end,
+				1.2,
+				y + Math.sin(a) * end,
+				Math.cos(a) * 1.5,
+				1,
+				Math.sin(a) * 1.5,
+				1.2 + Math.random() * 0.8,
+				0.6,
+				1.8,
+				0.35,
+				0.8
+			)
+		}
+	}
+
+	/** Flames licking up a burning body of `size` at (x, y); call every frame, `dt` seconds apart. */
+	burn(x: number, y: number, size: number, now: number, dt: number): void {
+		// about forty tongues of flame a second, and some smoke
+		let tongues = dt * 40
+		while (tongues > 0) {
+			if (tongues < 1 && Math.random() > tongues) break
+			tongues--
+			this.glow.emit(
+				'fire',
+				now,
+				x + (Math.random() - 0.5) * 0.45 * size,
+				(0.3 + Math.random() * 1.1) * size,
+				y + (Math.random() - 0.5) * 0.45 * size,
+				(Math.random() - 0.5) * 0.4,
+				1.4 + Math.random(),
+				(Math.random() - 0.5) * 0.4,
+				0.35 + Math.random() * 0.25,
+				0.3 * size,
+				0.8 * size,
+				0.95,
+				1
+			)
+		}
+		if (Math.random() < dt * 4)
+			this.smoke.emit('smoke', now, x, 1.6 * size, y, 0, 1.2, 0, 1.4, 0.4 * size, 1.4 * size, 0.3, 0.5)
 	}
 
 	update(now: number): void {

@@ -18,6 +18,8 @@ export function mountLab(
 		distance?: number
 		/** the game camera's field of view (degrees; smaller is closer) */
 		zoom?: number
+		/** armour ids worn (head, torso, vest, legs, feet), instead of the class's usual kit */
+		armour?: (string | null)[]
 	}
 ) {
 	const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true })
@@ -33,7 +35,7 @@ export function mountLab(
 	ground.rotation.x = -Math.PI / 2
 	scene.add(ground)
 	const figure = new PlayerFigure(1, true, '/assets')
-	figure.setClass(options.classId)
+	figure.setClass(options.classId, options.armour)
 	figure.setWeapon(options.weapon, options.pistol)
 	figure.setRelaxed(options.relaxed ?? false)
 	scene.add(figure.group)

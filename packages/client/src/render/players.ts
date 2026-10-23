@@ -7,6 +7,8 @@ import { outfitFor, wear } from './outfits.ts'
 
 /** how big the guns are drawn against the soldier (whose arms are a little short for full-size guns) */
 const WEAPON_SCALE = 0.88
+/** how much longer the arm bones are drawn than the model has them */
+const ARM_STRETCH = 1.12
 
 const SLOT_COLOURS = [0xb8f23c, 0x4fb3ff, 0xffc02e, 0xff7ad9]
 
@@ -183,6 +185,11 @@ export class PlayerFigure {
 				.filter((bone): bone is THREE.Object3D => bone !== undefined)
 			const rightArm = findArm(model, 'r')
 			const leftArm = findArm(model, 'l')
+			// the model's arms are short for its height (and for a rifle): upper arm and forearm drawn longer
+			for (const arm of [rightArm, leftArm]) {
+				arm?.lower.position.multiplyScalar(ARM_STRETCH)
+				arm?.hand.position.multiplyScalar(ARM_STRETCH)
+			}
 			this.rig =
 				rightArm && leftArm
 					? { spine: this.spine, head: model.getObjectByName('Head') ?? null, right: rightArm, left: leftArm }

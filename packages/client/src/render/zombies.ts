@@ -165,6 +165,7 @@ const MARKED = new THREE.Color(0xff3a2a)
 const STUNNED = new THREE.Color(0x6fb8ff)
 const POISONED = new THREE.Color(0x9fe04a)
 const SLOWED = new THREE.Color(0x9fd8e8)
+const BURNING = new THREE.Color(0xff7a2a)
 
 export class ZombieRenderer {
 	readonly mesh: THREE.InstancedMesh
@@ -324,6 +325,8 @@ export class ZombieRenderer {
 			else if (status & ZombieStatus.stunned) this.color.lerp(STUNNED, 0.6)
 			else if (status & ZombieStatus.poisoned) this.color.lerp(POISONED, 0.45)
 			else if (status & ZombieStatus.slowed) this.color.lerp(SLOWED, 0.35)
+			// burning: scorched dark, lit orange by its own flames
+			if (status & ZombieStatus.burning) this.color.multiplyScalar(0.55).lerp(BURNING, 0.25)
 			this.mesh.setColorAt(n, this.color)
 		}
 		this.seen.set(this.seenNow)

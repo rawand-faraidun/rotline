@@ -130,21 +130,20 @@
 			"name": "Tactical Plate Carrier Vest",
 			"author": "txyrm70",
 			"joint": "spine_03",
-			"offset": [0, -0.05, 0],
-			"rotation": [0, 0, 0],
-			"size": 0.55,
+			"offset": [0, 0.03, 0.01],
+			"rotation": [0, -90, 0],
+			"size": 0.64,
 			"triangles": 6000
 		},
 		"vest-heavy": {
-			"uid": "7c41d35e505c4057abe60f89537408bd",
-			"name": "Vest Armor Holster LowPoly GameReady Pack",
-			"author": "00amza",
-			"nodes": ["Vest_1_T1"],
+			"uid": "abe8e567ae72431384ee7535845b6f45",
+			"name": "Modern Tactical Vest / Plate Carrier",
+			"author": "txyrm70",
 			"joint": "spine_03",
-			"offset": [0, -0.05, 0],
+			"offset": [0, -0.01, 0],
 			"rotation": [0, 0, 0],
-			"size": 0.6,
-			"triangles": 6000
+			"size": 0.63,
+			"triangles": 9000
 		},
 		"vest-rig": {
 			"uid": "7c41d35e505c4057abe60f89537408bd",
@@ -152,10 +151,11 @@
 			"author": "00amza",
 			"nodes": ["Vest_T0"],
 			"joint": "spine_03",
-			"offset": [0, -0.05, 0.02],
+			"offset": [0, -0.03, 0.03],
 			"rotation": [0, 0, 0],
-			"size": 0.45,
-			"triangles": 6000
+			"size": 0.5,
+			"triangles": 6000,
+			"stretch": [1.15, 1, 1.4]
 		},
 		"pack-medical": {
 			"uid": "2aedfbd7581f47f5abcf89d39de57b67",

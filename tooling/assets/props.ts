@@ -1,6 +1,8 @@
-// Builds the map props from Poly Haven (CC0): `pnpm assets:props`. Each model is downloaded once,
-// simplified, its textures shrunk to WebP, and it is fitted into a 1 m cube standing on the ground
-// (centred, base at 0) so the game can stretch it to each prop's footprint and height.
+// Builds the map props from Poly Haven (CC0), and the items players use or pick up from Sketchfab
+// (CC BY): `pnpm assets:props`. Each model is downloaded once, simplified, its textures shrunk to
+// WebP, and it is fitted into a 1 m cube standing on the ground (centred, base at 0) so the game can
+// stretch it to each prop's footprint and height. Scenery keeps its real size; items are brought to
+// a size that reads from the game's camera.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,14 +21,19 @@ import {
 } from '@gltf-transform/functions'
 import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer'
 import sharp from 'sharp'
-import { cacheRoot, plainMaterials, publicAssets } from './sources.ts'
+import { cacheRoot, plainMaterials, publicAssets, sketchfabModel } from './sources.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const out = join(publicAssets, 'models', 'props')
 const cache = join(cacheRoot, 'polyhaven')
 type PropSource = {
 	kind: string
-	source: string
+	/** a Poly Haven asset id */
+	source?: string
+	/** or a Sketchfab model (CC BY) */
+	uid?: string
+	/** items: the longest side in metres */
+	size?: number
 	name: string
 	author: string
 	triangles: number
@@ -64,7 +71,7 @@ async function fetchModel(id: string): Promise<string> {
 
 const credits: { name: string; author: string; page: string; licence: string }[] = []
 for (const prop of props) {
-	const document = await io.read(await fetchModel(prop.source))
+	const document = await io.read(prop.uid ? await sketchfabModel(prop.uid) : await fetchModel(prop.source ?? ''))
 	const root = document.getRoot()
 	plainMaterials(document)
 	if (prop.nodes) {
@@ -102,9 +109,16 @@ for (const prop of props) {
 	if (!scene) continue
 	const { min, max } = getBounds(scene)
 	const scenery = prop.kind.startsWith('scene-')
+	const longest = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2])
 	const fit = document
 		.createNode('prop')
-		.setScale(scenery ? [1, 1, 1] : [1 / (max[0] - min[0]), 1 / (max[1] - min[1]), 1 / (max[2] - min[2])])
+		.setScale(
+			prop.size
+				? [prop.size / longest, prop.size / longest, prop.size / longest]
+				: scenery
+					? [1, 1, 1]
+					: [1 / (max[0] - min[0]), 1 / (max[1] - min[1]), 1 / (max[2] - min[2])]
+		)
 	const offset = document.createNode('base').setTranslation([-(min[0] + max[0]) / 2, -min[1], -(min[2] + max[2]) / 2])
 	for (const child of scene.listChildren()) {
 		scene.removeChild(child)
@@ -125,8 +139,8 @@ for (const prop of props) {
 	credits.push({
 		name: prop.name,
 		author: prop.author,
-		page: `https://polyhaven.com/a/${prop.source}`,
-		licence: 'CC0 1.0'
+		page: prop.uid ? `https://sketchfab.com/3d-models/${prop.uid}` : `https://polyhaven.com/a/${prop.source}`,
+		licence: prop.uid ? 'CC BY 4.0' : 'CC0 1.0'
 	})
 	process.stdout.write(`${prop.kind}: ${(readFileSync(target).byteLength / 1024).toFixed(0)} KB\n`)
 }

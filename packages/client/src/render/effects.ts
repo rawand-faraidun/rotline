@@ -27,8 +27,6 @@ const DEFAULT_LOOK = SHOT_LOOKS.rifle as ShotLook
 const DECALS = 800
 const BURSTS = 8
 const POOLS = 16
-const FLAMES = 96
-const FLAME_SECONDS = 0.28
 const PROJECTILES = 16
 
 function blob(r: number, g: number, b: number, soft: number): THREE.CanvasTexture {
@@ -93,13 +91,6 @@ export class Effects {
 	private readonly up = new THREE.Vector3(0, 1, 0)
 	private readonly hidden = new THREE.Matrix4().makeScale(0, 0, 0)
 	private readonly gore: boolean
-	private readonly flames: THREE.Sprite[] = []
-	private readonly flameBorn = new Float32Array(FLAMES).fill(-1)
-	private readonly flameVelocity = new Float32Array(FLAMES * 2)
-	private readonly flameOrigin = new Float32Array(FLAMES * 2)
-	private flameHead = 0
-	private readonly fireMaterial: THREE.SpriteMaterial
-	private readonly toxinMaterial: THREE.SpriteMaterial
 	private readonly projectiles: THREE.Mesh[] = []
 	private readonly projectileState: {
 		id: number
@@ -223,25 +214,6 @@ export class Effects {
 			this.sparks.push(sprite)
 		}
 
-		this.fireMaterial = new THREE.SpriteMaterial({
-			map: blob(255, 150, 40, 0.3),
-			blending: THREE.AdditiveBlending,
-			depthWrite: false,
-			transparent: true
-		})
-		this.toxinMaterial = new THREE.SpriteMaterial({
-			map: blob(150, 230, 60, 0.3),
-			blending: THREE.AdditiveBlending,
-			depthWrite: false,
-			transparent: true
-		})
-		for (let i = 0; i < FLAMES; i++) {
-			const sprite = new THREE.Sprite(this.fireMaterial)
-			sprite.visible = false
-			sprite.layers.set(EFFECTS_LAYER)
-			this.flames.push(sprite)
-			scene.add(sprite)
-		}
 		const shell = new THREE.Mesh(
 			new THREE.SphereGeometry(0.1, 10, 8),
 			new THREE.MeshStandardMaterial({ color: 0x3d4232, roughness: 0.6, metalness: 0.3 })
@@ -255,23 +227,14 @@ export class Effects {
 		}
 	}
 
-	/** A puff of fire or toxin across a cone; the particles drift outward and fade. */
+	/** A burst from a flamethrower (or a toxin sprayer) across a cone. */
 	flame(x: number, y: number, angle: number, range: number, halfAngle: number, toxic: boolean, now: number): void {
-		for (let n = 0; n < 3; n++) {
-			const i = this.flameHead
-			this.flameHead = (i + 1) % FLAMES
-			const sprite = this.flames[i] as THREE.Sprite
-			const a = angle + (Math.random() * 2 - 1) * halfAngle
-			const speed = (range / FLAME_SECONDS) * (0.6 + Math.random() * 0.4)
-			sprite.material = toxic ? this.toxinMaterial : this.fireMaterial
-			this.flameOrigin[i * 2] = x + Math.cos(angle) * 0.7
-			this.flameOrigin[i * 2 + 1] = y + Math.sin(angle) * 0.7
-			sprite.position.set(this.flameOrigin[i * 2] as number, 1, this.flameOrigin[i * 2 + 1] as number)
-			sprite.visible = true
-			this.flameVelocity[i * 2] = Math.cos(a) * speed
-			this.flameVelocity[i * 2 + 1] = Math.sin(a) * speed
-			this.flameBorn[i] = now
-		}
+		this.explosions.jet(x, y, angle, range, halfAngle, toxic, now)
+	}
+
+	/** Flames licking up a burning body (call every frame it burns; `dt` seconds since the last). */
+	burning(x: number, y: number, size: number, now: number, dt: number): void {
+		this.explosions.burn(x, y, size, now, dt)
 	}
 
 	/** A grenade in flight, drawn locally from its launch until the server says it exploded. */
@@ -556,22 +519,6 @@ export class Effects {
 			this.flashSprite.visible = false
 		} else if (this.flashPeak > 0) {
 			this.flash.intensity = this.flashPeak * (1 - (now - this.flashAt) / (this.flashUntil - this.flashAt)) ** 2
-		}
-		for (let i = 0; i < FLAMES; i++) {
-			const born = this.flameBorn[i] as number
-			if (born < 0) continue
-			const sprite = this.flames[i] as THREE.Sprite
-			const t = (now - born) / FLAME_SECONDS
-			if (t >= 1) {
-				sprite.visible = false
-				this.flameBorn[i] = -1
-				continue
-			}
-			const age = now - born
-			sprite.position.x = (this.flameOrigin[i * 2] as number) + (this.flameVelocity[i * 2] as number) * age
-			sprite.position.z = (this.flameOrigin[i * 2 + 1] as number) + (this.flameVelocity[i * 2 + 1] as number) * age
-			sprite.scale.setScalar(0.5 + t * 1.6)
-			sprite.material.opacity = 0.9 * (1 - t)
 		}
 		for (const [slot, state] of this.projectileState.entries()) {
 			if (!state.alive) continue

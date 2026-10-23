@@ -90,6 +90,22 @@ describe('builds in the simulation', () => {
 		expect(world.alive[outside]).toBe(1)
 	})
 
+	it('sets what it burns alight: a tough zombie keeps burning after the flame stops', () => {
+		const { world, fire } = arena(withMain('kiln'))
+		const target = world.spawnZombie(swell, { x: 35, y: 24 })
+		world.health[target] = 5000
+		world.maxHealth[target] = 5000
+		world.step(fire)
+		expect(world.burnUntil[target]).toBeGreaterThan(world.tick)
+		const after = world.health[target] as number
+		steps(world, TICK_RATE)
+		expect(world.health[target]).toBeLessThan(after)
+		steps(world, 3 * TICK_RATE)
+		const out = world.health[target] as number
+		steps(world, TICK_RATE)
+		expect(world.health[target]).toBe(out)
+	})
+
 	it('launches a grenade that explodes on the first zombie and hurts its neighbours', () => {
 		const { world, fire } = arena(withMain('thumper'))
 		const target = world.spawnZombie(swell, { x: 42, y: 24 })

@@ -365,7 +365,7 @@ export type ObjectState = {
 }
 
 /** Zombie status bits, for drawing (stunned zombies sparkle, marked ones glow red, ...). */
-export const ZombieStatus = { stunned: 1, slowed: 2, marked: 4, poisoned: 8, taunted: 16 } as const
+export const ZombieStatus = { stunned: 1, slowed: 2, marked: 4, poisoned: 8, taunted: 16, burning: 32 } as const
 
 /** The decoded non-zombie part of a snapshot; zombies are applied straight into a ZombieTable. */
 export type SnapshotFrame = {
@@ -905,7 +905,8 @@ function zombieStatus(world: World, i: number): number {
 		((world.slowUntil[i] as number) > tick ? ZombieStatus.slowed : 0) |
 		((world.markUntil[i] as number) > tick ? ZombieStatus.marked : 0) |
 		((world.poisonUntil[i] as number) > tick ? ZombieStatus.poisoned : 0) |
-		((world.tauntUntil[i] as number) > tick ? ZombieStatus.taunted : 0)
+		((world.tauntUntil[i] as number) > tick ? ZombieStatus.taunted : 0) |
+		((world.burnUntil[i] as number) > tick ? ZombieStatus.burning : 0)
 	)
 }
 

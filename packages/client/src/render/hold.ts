@@ -258,12 +258,11 @@ export function holdGun(
 	const chest = new THREE.Vector3().addVectors(shoulderR, shoulderL).multiplyScalar(0.5)
 	// the gun's axis and its up
 	let g: THREE.Vector3
-	// at ease the gun hangs across the body: the support hand low by the left hip, the butt at the right
-	// of the chest, so both hands reach it without stretching
-	const lowFore = shoulderL.clone().addScaledVector(d, 0.2).addScaledVector(right, 0.1).addScaledVector(UP, -0.4)
+	// at ease (the low ready): the right hand on the grip in front of the belly, the muzzle down and
+	// forward across the body; the support hand finds the handguard where it can
+	const lowGrip = shoulderR.clone().addScaledVector(d, 0.2).addScaledVector(right, -0.1).addScaledVector(UP, -0.3)
 	if (hold === 'low') {
-		const lowButt = shoulderR.clone().addScaledVector(d, 0.08).addScaledVector(right, -0.08).addScaledVector(UP, -0.16)
-		g = lowFore.clone().sub(lowButt).normalize()
+		g = new THREE.Vector3().addScaledVector(d, 0.5).addScaledVector(right, -0.55).addScaledVector(UP, -0.67).normalize()
 	} else {
 		const pitch = kick * 0.08 - tip * 0.45
 		g = d.clone().multiplyScalar(Math.cos(pitch)).addScaledVector(UP, Math.sin(pitch))
@@ -285,8 +284,7 @@ export function holdGun(
 				: shoulderR.clone().addScaledVector(d, 0.04).addScaledVector(right, -0.07).addScaledVector(UP, -0.02)
 		origin = butt.addScaledVector(g, length / 2)
 	}
-	// at ease the gun hangs from the support hand's place
-	if (hold === 'low') origin = lowFore.clone().addScaledVector(g, -foreAlong).addScaledVector(gunUp, -foreUp)
+	if (hold === 'low') origin = lowGrip.clone().addScaledVector(g, -gripAlong).addScaledVector(gunUp, -gripUp)
 	// firing pushes it all back a little; a reload brings it down off the shoulder
 	origin.addScaledVector(d, -kick * 0.05).addScaledVector(UP, -tip * 0.16)
 	weapon.position.copy(weapon.parent ? weapon.parent.worldToLocal(origin.clone()) : origin)

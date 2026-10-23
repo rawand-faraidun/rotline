@@ -16,7 +16,15 @@ import {
 	weapons,
 	zombies as zombieDefs
 } from '@rotline/game-data'
-import { INPUT_REDUNDANCY, KickReason, RangeAction, Writer, writePause, writeRange } from '@rotline/protocol'
+import {
+	INPUT_REDUNDANCY,
+	KickReason,
+	RangeAction,
+	Writer,
+	writePause,
+	writeRange,
+	ZombieStatus
+} from '@rotline/protocol'
 import {
 	activeWeapon,
 	aimToAngle,
@@ -107,7 +115,7 @@ export function startGame(options: GameOptions): GameHandle {
 	// the holes the dead climb out of
 	stage.scene.add(spawnHoles(map.zombieSpawns))
 	const effects = new Effects(stage.scene, options.gore ?? true)
-	const objectRenderer = new ObjectRenderer(stage.scene)
+	const objectRenderer = new ObjectRenderer(stage.scene, options.assets)
 	const propRenderer = new PropRenderer(stage.scene, props, options.assets, stage.quality === 'high')
 	// the map's scenery: wrecks, cars, barriers, lamps, fires
 	const decor = new Decor(
@@ -131,6 +139,7 @@ export function startGame(options: GameOptions): GameHandle {
 	window.addEventListener('pointerdown', unlock)
 	window.addEventListener('keydown', unlock)
 	let lastReloadEnd = 0
+	let lastBurnAt = 0
 	let lastEmptyAt = 0
 	let lastHitSoundAt = 0
 	let nextGrowlAt = 0
@@ -955,6 +964,21 @@ export function startGame(options: GameOptions): GameHandle {
 		}
 		if (interpolator.sample(renderTick)) {
 			zombies?.update(interpolator.view, now / 1000)
+			// zombies on fire burn where they walk
+			{
+				const view = interpolator.view
+				const step = Math.min(0.1, now / 1000 - lastBurnAt)
+				lastBurnAt = now / 1000
+				for (let n = 0; n < view.count; n++)
+					if ((view.status[n] as number) & ZombieStatus.burning)
+						effects.burning(
+							view.x[n] as number,
+							view.y[n] as number,
+							zombieDefs[view.type[n] as number]?.scale ?? 1,
+							now / 1000,
+							step
+						)
+			}
 			// the toughest elite in sight gets a health bar at the top of the screen
 			{
 				const view = interpolator.view

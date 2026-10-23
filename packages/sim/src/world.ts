@@ -188,6 +188,9 @@ const LOB_SPEED = 16
 export const THROWN = 255
 /** extra zombies an Overwatch shot passes through */
 const OVERWATCH_PIERCE = abilityById.get('overwatch')?.params.pierce ?? 0
+/** a zombie set alight burns for this long after the flame, each second for this share of the flame's damage */
+const BURN_TICKS = 3 * TICK_RATE
+const BURN_SHARE = 0.5
 /** A kill within this many ticks of the last one extends the chain. */
 export const CHAIN_TICKS = combat.chainSeconds * TICK_RATE
 // capstone numbers, from the skill data
@@ -293,6 +296,10 @@ export class World {
 	readonly poisonUntil = new Uint32Array(MAX_ZOMBIES)
 	readonly poisonPerTick = new Float32Array(MAX_ZOMBIES)
 	readonly poisonBy = new Uint8Array(MAX_ZOMBIES)
+	/** set alight by a flamethrower: burning damage each tick until then */
+	readonly burnUntil = new Uint32Array(MAX_ZOMBIES)
+	readonly burnPerTick = new Float32Array(MAX_ZOMBIES)
+	readonly burnBy = new Uint8Array(MAX_ZOMBIES)
 	/** taunted toward a player (1..4) or, with 0, toward (tauntX, tauntY) */
 	readonly tauntUntil = new Uint32Array(MAX_ZOMBIES)
 	/** screamers: the tick of their next call */
@@ -929,7 +936,18 @@ export class World {
 			if (off > half + Math.atan2(radius, distance)) continue
 			if (this.grid.rayToWall(state.x, state.y, dx / distance, dy / distance, distance) < distance - radius) continue
 			this.damageZombie(i, weapon.damage, state.id, weapon.damageType)
+			// fire sticks: the zombie keeps burning a while after the flame has passed
+			if (weapon.damageType === 'fire' && this.alive[i] !== 0)
+				this.ignite(i, weapon.damage * BURN_SHARE, BURN_TICKS, state.id)
 		}
+	}
+
+	/** Sets a zombie alight (or keeps it burning): `perSecond` damage for `ticks`. */
+	ignite(index: number, perSecond: number, ticks: number, by: number): void {
+		const current = (this.burnUntil[index] as number) > this.tick ? (this.burnPerTick[index] as number) : 0
+		this.burnPerTick[index] = Math.max(perSecond * DT, current)
+		this.burnUntil[index] = Math.max(this.burnUntil[index] as number, this.tick + ticks)
+		this.burnBy[index] = by
 	}
 
 	/** Lightning jumps from the first zombie hit to the nearest unhit zombie, `chains` times. */
@@ -1156,6 +1174,9 @@ export class World {
 			if (this.alive[i] === 0) continue
 			if ((this.poisonUntil[i] as number) > this.tick) {
 				this.damageZombie(i, this.poisonPerTick[i] as number, this.poisonBy[i] as number, 'chemical', false)
+			}
+			if (this.alive[i] !== 0 && (this.burnUntil[i] as number) > this.tick) {
+				this.damageZombie(i, this.burnPerTick[i] as number, this.burnBy[i] as number, 'fire', false)
 			}
 			if (this.alive[i] === 0) continue
 			const def = zombieDefs[this.type[i] as number] as ZombieDef
@@ -1522,6 +1543,7 @@ export class World {
 		this.slowUntil[index] = 0
 		this.markUntil[index] = 0
 		this.poisonUntil[index] = 0
+		this.burnUntil[index] = 0
 		this.tauntUntil[index] = 0
 		this.callAt[index] = this.tick + Math.round((def.call?.everySeconds ?? 0) * TICK_RATE * 0.5)
 		this.lastHitTick[index] = this.tick

@@ -198,6 +198,79 @@
 			"name": "Medical Box",
 			"author": "Ulan Cabanilla",
 			"triangles": 1500
+		},
+		{
+			"kind": "item-ammo",
+			"uid": "280b2457431348768f19c61b74f26dbc",
+			"name": "Ammo Box",
+			"author": "HPrendering",
+			"triangles": 2000,
+			"size": 0.55
+		},
+		{
+			"kind": "item-c4",
+			"uid": "1136e57481274df78877d323cf7e730a",
+			"name": "C4, Explosive, Device",
+			"author": "Tnkii",
+			"triangles": 3000,
+			"size": 0.55
+		},
+		{
+			"kind": "item-tags",
+			"uid": "9879d4ab79944b4fb927cfa7ae827808",
+			"name": "Dog tags - Military",
+			"author": "nikladoukakis",
+			"triangles": 2000,
+			"size": 0.5
+		},
+		{
+			"kind": "item-syringe",
+			"uid": "cdcc401bf48d42e3895965d52eb2f3d8",
+			"name": "Syringe",
+			"author": "bumstrum",
+			"triangles": 1500,
+			"size": 0.6
+		},
+		{
+			"kind": "item-injector",
+			"uid": "e426b178833847919a1ba24381d0066b",
+			"name": "Autoinjector",
+			"author": "MilchFrische",
+			"triangles": 500,
+			"size": 0.55
+		},
+		{
+			"kind": "item-cryo",
+			"uid": "d671d93577b546b3bc8eda586ee75b31",
+			"name": "Gas Bottles Set",
+			"author": "step",
+			"triangles": 2500,
+			"size": 0.6,
+			"nodes": ["gas_bottle_clean_gas_bottle_clean_0"]
+		},
+		{
+			"kind": "item-sentry",
+			"uid": "17840b0ce9754d78b0610e525a7a7ef5",
+			"name": "Sentry Turret - 'Darwin' Auto Cannon",
+			"author": "seangorman",
+			"triangles": 5000,
+			"size": 1.1
+		},
+		{
+			"kind": "item-claymore",
+			"uid": "0e44b2adeb974830804c3ec68c0920f0",
+			"name": "Claymore m18",
+			"author": "Zhezhela",
+			"triangles": 1500,
+			"size": 0.35
+		},
+		{
+			"kind": "item-radio",
+			"uid": "1893f906c3e846468160bfeefb4bfca4",
+			"name": "Military Radio - Ra 801 MT",
+			"author": "luddepubde",
+			"triangles": 3000,
+			"size": 0.5
 		}
 	]
 }
