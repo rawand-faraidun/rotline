@@ -59,7 +59,7 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 		'aria-pressed',
 		'true'
 	)
-	await expect(page.getByRole('dialog').getByRole('button', { name: /yard sweep/i })).toBeDisabled()
+	await expect(page.getByRole('dialog').getByRole('button', { name: /rail yard/i })).toBeDisabled()
 	await page.getByRole('button', { name: /^done$/i }).click()
 
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition
