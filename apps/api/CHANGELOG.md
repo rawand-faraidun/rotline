@@ -1,5 +1,16 @@
 # @rotline/api
 
+## 0.4.1
+
+### Patch Changes
+
+- @rotline/auth@0.4.1
+  - @rotline/constants@0.4.1
+  - @rotline/db@0.4.1
+  - @rotline/game-data@0.4.1
+  - @rotline/state@0.4.1
+  - @rotline/ticket@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes

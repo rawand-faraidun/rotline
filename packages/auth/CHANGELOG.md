@@ -1,5 +1,11 @@
 # @rotline/auth
 
+## 0.4.1
+
+### Patch Changes
+
+- @rotline/db@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

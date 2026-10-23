@@ -1,5 +1,13 @@
 # @rotline/queue
 
+## 0.4.1
+
+### Patch Changes
+
+- @rotline/auth@0.4.1
+  - @rotline/db@0.4.1
+  - @rotline/state@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes
