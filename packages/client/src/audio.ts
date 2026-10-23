@@ -158,41 +158,52 @@ export class AudioEngine {
 		this.settings = settings
 	}
 
-	/** Browsers only allow sound after a click or key press: call this from one. */
+	/**
+	 * Builds the sound graph and starts fetching and decoding the sounds. Safe before any click: the
+	 * context may start suspended (decoding still works), and `unlock` lets it play.
+	 */
+	preload(): void {
+		if (typeof AudioContext === 'undefined' || this.context) return
+		this.context = new AudioContext()
+		const context = this.context
+		this.master = context.createGain()
+		// a gentle compressor glues gunfire and horde together and keeps peaks from clipping
+		const compressor = context.createDynamicsCompressor()
+		compressor.threshold.value = -16
+		compressor.knee.value = 12
+		compressor.ratio.value = 4
+		compressor.attack.value = 0.004
+		compressor.release.value = 0.2
+		this.master.connect(compressor)
+		compressor.connect(context.destination)
+		const bus = () => {
+			const gain = context.createGain()
+			gain.connect(this.master as GainNode)
+			return gain
+		}
+		this.buses = { effects: bus(), interface: bus(), music: bus(), ambience: bus() }
+		// effects get a little of a dark, open space around them
+		const reverb = context.createConvolver()
+		reverb.buffer = this.impulse(context, 1.8)
+		const send = context.createGain()
+		send.gain.value = 0.07
+		this.buses.effects.connect(send)
+		send.connect(reverb)
+		reverb.connect(this.master)
+		this.applySettings()
+		this.loading = this.load()
+	}
+
+	/**
+	 * Browsers only allow sound after a click or key press: call this from one (every one is fine).
+	 * It also wakes a context the browser suspended later on: a switched output device, a phone call,
+	 * the tab put away.
+	 */
 	unlock(): void {
 		if (typeof AudioContext === 'undefined') return
-		if (!this.context) {
-			this.context = new AudioContext()
-			const context = this.context
-			this.master = context.createGain()
-			// a gentle compressor glues gunfire and horde together and keeps peaks from clipping
-			const compressor = context.createDynamicsCompressor()
-			compressor.threshold.value = -16
-			compressor.knee.value = 12
-			compressor.ratio.value = 4
-			compressor.attack.value = 0.004
-			compressor.release.value = 0.2
-			this.master.connect(compressor)
-			compressor.connect(context.destination)
-			const bus = () => {
-				const gain = context.createGain()
-				gain.connect(this.master as GainNode)
-				return gain
-			}
-			this.buses = { effects: bus(), interface: bus(), music: bus(), ambience: bus() }
-			// effects get a little of a dark, open space around them
-			const reverb = context.createConvolver()
-			reverb.buffer = this.impulse(context, 1.8)
-			const send = context.createGain()
-			send.gain.value = 0.07
-			this.buses.effects.connect(send)
-			send.connect(reverb)
-			reverb.connect(this.master)
-			this.applySettings()
-			this.loading = this.load()
-			this.markUnlocked()
-		}
-		if (this.context.state === 'suspended') void this.context.resume()
+		this.preload()
+		this.markUnlocked()
+		if (this.context && this.context.state !== 'running') void this.context.resume().catch(() => {})
 	}
 
 	get ready(): Promise<void> {
@@ -208,17 +219,22 @@ export class AudioEngine {
 			await Promise.all(
 				Object.entries(manifest)
 					.filter(([group]) => !LAZY.test(group))
-					.map(async ([group, files]) => this.buffers.set(group, await this.decode(context, files)))
+					.map(async ([group, files]) => {
+						const buffers = await this.decode(context, files)
+						if (buffers.length > 0) this.buffers.set(group, buffers)
+					})
 			)
 		} catch {
 			// no sound files (offline, blocked): the made-up sounds still play
 		}
 	}
 
-	private decode(context: AudioContext, files: readonly string[]): Promise<AudioBuffer[]> {
-		return Promise.all(
+	/** A group's variants; one file that will not load or decode leaves the rest playing. */
+	private async decode(context: AudioContext, files: readonly string[]): Promise<AudioBuffer[]> {
+		const results = await Promise.allSettled(
 			files.map(async file => context.decodeAudioData(await (await fetch(`${this.base}/${file}`)).arrayBuffer()))
 		)
+		return results.flatMap(result => (result.status === 'fulfilled' ? [result.value] : []))
 	}
 
 	/** A long sound's buffers, fetched the first time they are asked for. */
@@ -557,4 +573,20 @@ export class AudioEngine {
 		void this.context?.close()
 		this.context = null
 	}
+}
+
+const shared = new Map<string, AudioEngine>()
+
+/**
+ * The page's one sound engine for these files: the lobby and every game played from it share it, so
+ * the sounds are fetched and decoded once (while the player is still in the lobby) instead of again at
+ * the start of each mission, when guns would stay silent until they had loaded.
+ */
+export function sharedAudio(base: string): AudioEngine {
+	let engine = shared.get(base)
+	if (!engine) {
+		engine = new AudioEngine(base)
+		shared.set(base, engine)
+	}
+	return engine
 }
