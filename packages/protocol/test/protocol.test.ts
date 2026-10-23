@@ -357,6 +357,10 @@ describe('snapshots', () => {
 		const zombie = world.spawnZombie(zombieIndex('drudge'), { x: me.x + 3, y: me.y })
 		world.stunUntil[zombie] = 1000
 		world.markUntil[zombie] = 1000
+		world.slowUntil[zombie] = 1000
+		world.poisonUntil[zombie] = 1000
+		world.tauntUntil[zombie] = 1000
+		world.burnUntil[zombie] = 1000
 		world.addObject({
 			kind: ObjectKind.barricade,
 			owner: 1,
@@ -394,7 +398,14 @@ describe('snapshots', () => {
 			cells: [41, 42]
 		})
 		expect(frame.objects[0]?.health).toBeCloseTo(0.5, 1)
-		expect(table.status[zombie]).toBe(ZombieStatus.stunned | ZombieStatus.marked)
+		expect(table.status[zombie]).toBe(
+			ZombieStatus.stunned |
+				ZombieStatus.slowed |
+				ZombieStatus.marked |
+				ZombieStatus.poisoned |
+				ZombieStatus.taunted |
+				ZombieStatus.burning
+		)
 	})
 
 	it('sends only changes, removes dead zombies and stays in sync over many ticks', () => {
