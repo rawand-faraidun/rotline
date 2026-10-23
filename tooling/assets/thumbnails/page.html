@@ -83,7 +83,10 @@
 				model.position.set(0, 0, 0)
 				model.updateMatrixWorld(true)
 				const shown = new Set()
-				model.getObjectByName(piece)?.traverse(object => shown.add(object))
+				// a piece made of several meshes arrives as name, name_1, name_2… (names are kept unique)
+				model.traverse(object => {
+					if (object.name.replace(/_\d+$/, '') === piece) object.traverse(part => shown.add(part))
+				})
 				const box = new THREE.Box3()
 				model.traverse(object => {
 					if (!object.isMesh) return

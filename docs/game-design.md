@@ -55,7 +55,7 @@ One profile per player; class is switched in the lobby only. Per class: level, X
 
 **Levels:** 1–50 per class. XP to reach level *n* = `round(1000 × 1.12^(n−2))` (level 2 costs 1,000 XP, level 10 about 2,500, level 30 about 24,000). Each level grants 1 skill point; levels 10, 20, 30, 40, 50 grant 2. Total 55 points, against about 70 points of nodes per tree, so builds are real choices.
 
-**Respec:** 2,500 Salvage per class (about 35 minutes of play at Veteran), refunding all points.
+**Respec:** 2,250 Salvage per class (about 32 minutes of play at Veteran), refunding all points.
 
 **Tier rule:** a tier opens after 5 points in the branch's earlier tiers (tier 5 needs 20). Each branch has 22 nodes and 24 ranks; most nodes have one rank, a few two. Node ids, effects and ranks are in `packages/game-data/data/skills/`.
 
@@ -110,24 +110,24 @@ Pistols have **unlimited reserve ammunition**; their only limits are magazine si
 | Weapon | Kind | Damage type | Damage | Fire rate (rpm) | Magazine | Max reserve | Reload (s) | Price |
 |---|---|---|---|---|---|---|---|---|
 | **G19** | Pistol | Ballistic | 22 | 300 | 12 | unlimited | 1.2 | starter |
-| **Desert Eagle** | Pistol | Ballistic | 38 | 180 | 8 | unlimited | 1.4 | 4,000 |
+| **Desert Eagle** | Pistol | Ballistic | 38 | 180 | 8 | unlimited | 1.4 | 3,600 |
 | **Vector** | SMG | Ballistic | 14 | 900 | 32 | 256 | 1.8 | starter |
 | **HK416** | Assault rifle | Ballistic | 24 | 600 | 30 | 210 | 2.2 | starter |
-| **M4 Super 90** | Shotgun | Ballistic | 10 × 8 pellets | 75 | 6 | 48 | 0.5 per shell | 6,000 |
-| **M249** | LMG | Ballistic | 26 | 750 | 100 | 300 | 4.5 | 28,000 |
-| **AWP** | Sniper rifle | Ballistic, pierces 3 | 180 | 45 | 5 | 40 | 3.0 | 14,000 |
-| **Kiln** | Flamethrower | Fire, 7 m cone | 160 per second | continuous | 100 fuel | 300 | 3.5 | 14,000 |
-| **GL-06** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 28,000 |
-| **AUG** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 14,000 |
-| **Viper** | Chemical sprayer | Chemical, slows | 90 per second | continuous | 80 | 240 | 3.0 | 14,000 |
+| **M4 Super 90** | Shotgun | Ballistic | 10 × 8 pellets | 75 | 6 | 48 | 0.5 per shell | 5,400 |
+| **M249** | LMG | Ballistic | 26 | 750 | 100 | 300 | 4.5 | 25,200 |
+| **AWP** | Sniper rifle | Ballistic, pierces 3 | 180 | 45 | 5 | 40 | 3.0 | 12,600 |
+| **Kiln** | Flamethrower | Fire, 7 m cone | 160 per second | continuous | 100 fuel | 300 | 3.5 | 12,600 |
+| **GL-06** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 25,200 |
+| **AUG** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 12,600 |
+| **Viper** | Chemical sprayer | Chemical, slows | 90 per second | continuous | 80 | 240 | 3.0 | 12,600 |
 
-Weapon tiers for pricing: tier 1 = 6,000, tier 2 = 14,000, tier 3 = 28,000.
+Weapon tiers for pricing: tier 1 = 5,400, tier 2 = 12,600, tier 3 = 25,200.
 
 ### Upgrades
 
-- 10 levels per item. Cost of level *n* = `tierBase × 1.4^(n−1)`, rounded to 10: starter items base 600 (all ten levels: 41,890), tier 1 base 800 (55,850), tier 2 base 1,400 (97,740), tier 3 base 2,200 (153,580). Starter items can be bought again for 1,500 if discarded.
+- 10 levels per item. Cost of level *n* = `tierBase × 1.4^(n−1)`, rounded to 10: starter items base 540 (all ten levels: 37,700), tier 1 base 720 (50,280), tier 2 base 1,260 (87,960), tier 3 base 1,980 (138,230). Starter items can be bought again for 1,350 if discarded.
 - Each level raises the item's stats along its own curve, for example: damage +6 %, fire rate +2 %, reload speed +3 %, magazine +5 %, accuracy +3 %, **max carried ammunition +8 %** (main weapons only). The max ammo buff fills a weapon to its *upgraded* maximum.
-- **Perk choices at levels 5 and 10**: pick one of two (the first choice is free), switchable later for a small fee (500). Example (K-71): level 5 "Extended mag (+25 % magazine)" or "Hollow points (+15 % damage to unarmoured)"; level 10 "Incendiary rounds (20 % of damage as fire)" or "Rapid chamber (+15 % fire rate)".
+- **Perk choices at levels 5 and 10**: pick one of two (the first choice is free), switchable later for a small fee (450). Example (K-71): level 5 "Extended mag (+25 % magazine)" or "Hollow points (+15 % damage to unarmoured)"; level 10 "Incendiary rounds (20 % of damage as fire)" or "Rapid chamber (+15 % fire rate)".
 
 ### Gear
 
@@ -187,14 +187,14 @@ Hours of play per purchase (at 4,200/hour, no contracts):
 
 | Purchase | Price | Hours |
 |---|---|---|
-| Tier 1 weapon | 6,000 | 1.4 |
-| Tier 2 weapon | 14,000 | 3.3 |
-| Tier 3 weapon | 28,000 | 6.7 |
-| Mid armour | 12,000 | 2.9 |
-| Respec one class | 2,500 | 0.6 |
-| Tier 1 item, levels 1–10 | 55,850 | 13.3 |
-| Tier 2 item, levels 1–10 | 97,740 | 23.3 |
-| Tier 3 item, levels 1–10 | 153,580 | 36.6 |
+| Tier 1 weapon | 5,400 | 1.3 |
+| Tier 2 weapon | 12,600 | 3.0 |
+| Tier 3 weapon | 25,200 | 6.0 |
+| Mid armour | 10,800 | 2.6 |
+| Respec one class | 2,250 | 0.5 |
+| Tier 1 item, levels 1–10 | 50,280 | 12.0 |
+| Tier 2 item, levels 1–10 | 87,960 | 20.9 |
+| Tier 3 item, levels 1–10 | 138,230 | 32.9 |
 
 A player who plays 1 hour a day and completes dailies (+1,500) earns about 5,700 a day: a new tier 2 weapon every 2–3 days, a fully upgraded tier 3 weapon in about a month. The spreadsheet lives with the game data (`packages/game-data/economy.csv`) and is regenerated by a script from the same files the game uses, so it cannot drift.
 

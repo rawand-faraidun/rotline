@@ -79,11 +79,11 @@ describe('skill allocation', () => {
 })
 
 describe('prices', () => {
-	it('prices upgrades by tier: ten levels cost 55,850, 97,740 and 153,580', () => {
-		expect(upgradeTotal('breacher-12', 10)).toBe(55850)
-		expect(upgradeTotal('longstride', 10)).toBe(97740)
-		expect(upgradeTotal('mower', 10)).toBe(153580)
-		expect(upgradeCost('mower', 1)).toBe(2200)
+	it('prices upgrades by tier: ten levels cost 50,280, 87,960 and 138,230', () => {
+		expect(upgradeTotal('breacher-12', 10)).toBe(50280)
+		expect(upgradeTotal('longstride', 10)).toBe(87960)
+		expect(upgradeTotal('mower', 10)).toBe(138230)
+		expect(upgradeCost('mower', 1)).toBe(1980)
 	})
 
 	it('pays a fixed amount for discards by tier', () => {

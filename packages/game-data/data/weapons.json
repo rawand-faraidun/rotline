@@ -83,7 +83,7 @@
 		"name": "Desert Eagle",
 		"kind": "pistol",
 		"tier": 1,
-		"price": 4000,
+		"price": 3600,
 		"damageType": "ballistic",
 		"damage": 38,
 		"pellets": 1,

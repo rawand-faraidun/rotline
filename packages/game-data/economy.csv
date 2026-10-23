@@ -1,75 +1,75 @@
 section,id,name,tier,salvage,hours of play
 assumption,salvage-per-hour,"Veteran, 4-player squad, before contracts (game-design.md section 6)",,4200,1.0
-buy,p9-service,G19,0,1500,0.4
-buy,halcyon-45,Desert Eagle,1,4000,1.0
-buy,vex-9,Vector,0,1500,0.4
-buy,k-71,HK416,0,1500,0.4
-buy,breacher-12,M4 Super 90,1,6000,1.4
-buy,mower,M249,3,28000,6.7
-buy,longstride,AWP,2,14000,3.3
-buy,kiln,Kiln,2,14000,3.3
-buy,thumper,GL-06,3,28000,6.7
-buy,arclight,AUG,2,14000,3.3
-buy,viper,Viper,2,14000,3.3
-buy,field-helmet,Field Helmet,0,1500,0.4
-buy,ridge-helmet,Ridge Helmet,2,14000,3.3
-buy,bastion-helmet,Bastion Helmet,3,28000,6.7
-buy,visor-helmet,Visor Helmet,2,14000,3.3
-buy,field-shirt,Field Shirt,0,1500,0.4
-buy,padded-jacket,Padded Jacket,1,6000,1.4
-buy,hazmat-suit,Hazmat Suit,2,12000,2.9
-buy,kevlar-vest,Kevlar Vest,0,1500,0.4
-buy,assault-rig,Assault Rig,2,12000,2.9
-buy,plated-carrier,Plated Carrier,2,12000,2.9
-buy,siege-plates,Siege Plates,3,28000,6.7
-buy,field-trousers,Field Trousers,0,1500,0.4
-buy,kneepad-trousers,Kneepad Trousers,1,6000,1.4
-buy,armoured-trousers,Armoured Trousers,2,14000,3.3
-buy,field-boots,Field Boots,0,1500,0.4
-buy,runner-boots,Runner Boots,1,6000,1.4
-buy,steel-toe-boots,Steel-Toe Boots,2,14000,3.3
-buy,frag-grenades,Frag Grenades,0,1500,0.4
-buy,incendiary-grenades,Incendiary Grenades,1,6000,1.4
-buy,shock-grenades,Shock Grenades,1,6000,1.4
-buy,sticky-mines,Sticky Mines,1,6000,1.4
-buy,decoy-beacon,Decoy Beacon,2,14000,3.3
-buy,mini-sentry,Mini-Sentry,2,14000,3.3
-upgrade 1-10,p9-service,G19,0,41890,10.0
-upgrade 1-10,halcyon-45,Desert Eagle,1,55850,13.3
-upgrade 1-10,vex-9,Vector,0,41890,10.0
-upgrade 1-10,k-71,HK416,0,41890,10.0
-upgrade 1-10,breacher-12,M4 Super 90,1,55850,13.3
-upgrade 1-10,mower,M249,3,153580,36.6
-upgrade 1-10,longstride,AWP,2,97740,23.3
-upgrade 1-10,kiln,Kiln,2,97740,23.3
-upgrade 1-10,thumper,GL-06,3,153580,36.6
-upgrade 1-10,arclight,AUG,2,97740,23.3
-upgrade 1-10,viper,Viper,2,97740,23.3
-upgrade 1-10,field-helmet,Field Helmet,0,41890,10.0
-upgrade 1-10,ridge-helmet,Ridge Helmet,2,97740,23.3
-upgrade 1-10,bastion-helmet,Bastion Helmet,3,153580,36.6
-upgrade 1-10,visor-helmet,Visor Helmet,2,97740,23.3
-upgrade 1-10,field-shirt,Field Shirt,0,41890,10.0
-upgrade 1-10,padded-jacket,Padded Jacket,1,55850,13.3
-upgrade 1-10,hazmat-suit,Hazmat Suit,2,97740,23.3
-upgrade 1-10,kevlar-vest,Kevlar Vest,0,41890,10.0
-upgrade 1-10,assault-rig,Assault Rig,2,97740,23.3
-upgrade 1-10,plated-carrier,Plated Carrier,2,97740,23.3
-upgrade 1-10,siege-plates,Siege Plates,3,153580,36.6
-upgrade 1-10,field-trousers,Field Trousers,0,41890,10.0
-upgrade 1-10,kneepad-trousers,Kneepad Trousers,1,55850,13.3
-upgrade 1-10,armoured-trousers,Armoured Trousers,2,97740,23.3
-upgrade 1-10,field-boots,Field Boots,0,41890,10.0
-upgrade 1-10,runner-boots,Runner Boots,1,55850,13.3
-upgrade 1-10,steel-toe-boots,Steel-Toe Boots,2,97740,23.3
-upgrade 1-10,frag-grenades,Frag Grenades,0,41890,10.0
-upgrade 1-10,incendiary-grenades,Incendiary Grenades,1,55850,13.3
-upgrade 1-10,shock-grenades,Shock Grenades,1,55850,13.3
-upgrade 1-10,sticky-mines,Sticky Mines,1,55850,13.3
-upgrade 1-10,decoy-beacon,Decoy Beacon,2,97740,23.3
-upgrade 1-10,mini-sentry,Mini-Sentry,2,97740,23.3
-respec,one-class,Respec one class,,2500,0.6
-perk switch,any,Switch a perk,,500,0.1
+buy,p9-service,G19,0,1350,0.3
+buy,halcyon-45,Desert Eagle,1,3600,0.9
+buy,vex-9,Vector,0,1350,0.3
+buy,k-71,HK416,0,1350,0.3
+buy,breacher-12,M4 Super 90,1,5400,1.3
+buy,mower,M249,3,25200,6.0
+buy,longstride,AWP,2,12600,3.0
+buy,kiln,Kiln,2,12600,3.0
+buy,thumper,GL-06,3,25200,6.0
+buy,arclight,AUG,2,12600,3.0
+buy,viper,Viper,2,12600,3.0
+buy,field-helmet,Field Helmet,0,1350,0.3
+buy,ridge-helmet,Ridge Helmet,2,12600,3.0
+buy,bastion-helmet,Bastion Helmet,3,25200,6.0
+buy,visor-helmet,Visor Helmet,2,12600,3.0
+buy,field-shirt,Field Shirt,0,1350,0.3
+buy,padded-jacket,Padded Jacket,1,5400,1.3
+buy,hazmat-suit,Hazmat Suit,2,10800,2.6
+buy,kevlar-vest,Kevlar Vest,0,1350,0.3
+buy,assault-rig,Assault Rig,2,10800,2.6
+buy,plated-carrier,Plated Carrier,2,10800,2.6
+buy,siege-plates,Siege Plates,3,25200,6.0
+buy,field-trousers,Field Trousers,0,1350,0.3
+buy,kneepad-trousers,Kneepad Trousers,1,5400,1.3
+buy,armoured-trousers,Armoured Trousers,2,12600,3.0
+buy,field-boots,Field Boots,0,1350,0.3
+buy,runner-boots,Runner Boots,1,5400,1.3
+buy,steel-toe-boots,Steel-Toe Boots,2,12600,3.0
+buy,frag-grenades,Frag Grenades,0,1350,0.3
+buy,incendiary-grenades,Incendiary Grenades,1,5400,1.3
+buy,shock-grenades,Shock Grenades,1,5400,1.3
+buy,sticky-mines,Sticky Mines,1,5400,1.3
+buy,decoy-beacon,Decoy Beacon,2,12600,3.0
+buy,mini-sentry,Mini-Sentry,2,12600,3.0
+upgrade 1-10,p9-service,G19,0,37700,9.0
+upgrade 1-10,halcyon-45,Desert Eagle,1,50280,12.0
+upgrade 1-10,vex-9,Vector,0,37700,9.0
+upgrade 1-10,k-71,HK416,0,37700,9.0
+upgrade 1-10,breacher-12,M4 Super 90,1,50280,12.0
+upgrade 1-10,mower,M249,3,138230,32.9
+upgrade 1-10,longstride,AWP,2,87960,20.9
+upgrade 1-10,kiln,Kiln,2,87960,20.9
+upgrade 1-10,thumper,GL-06,3,138230,32.9
+upgrade 1-10,arclight,AUG,2,87960,20.9
+upgrade 1-10,viper,Viper,2,87960,20.9
+upgrade 1-10,field-helmet,Field Helmet,0,37700,9.0
+upgrade 1-10,ridge-helmet,Ridge Helmet,2,87960,20.9
+upgrade 1-10,bastion-helmet,Bastion Helmet,3,138230,32.9
+upgrade 1-10,visor-helmet,Visor Helmet,2,87960,20.9
+upgrade 1-10,field-shirt,Field Shirt,0,37700,9.0
+upgrade 1-10,padded-jacket,Padded Jacket,1,50280,12.0
+upgrade 1-10,hazmat-suit,Hazmat Suit,2,87960,20.9
+upgrade 1-10,kevlar-vest,Kevlar Vest,0,37700,9.0
+upgrade 1-10,assault-rig,Assault Rig,2,87960,20.9
+upgrade 1-10,plated-carrier,Plated Carrier,2,87960,20.9
+upgrade 1-10,siege-plates,Siege Plates,3,138230,32.9
+upgrade 1-10,field-trousers,Field Trousers,0,37700,9.0
+upgrade 1-10,kneepad-trousers,Kneepad Trousers,1,50280,12.0
+upgrade 1-10,armoured-trousers,Armoured Trousers,2,87960,20.9
+upgrade 1-10,field-boots,Field Boots,0,37700,9.0
+upgrade 1-10,runner-boots,Runner Boots,1,50280,12.0
+upgrade 1-10,steel-toe-boots,Steel-Toe Boots,2,87960,20.9
+upgrade 1-10,frag-grenades,Frag Grenades,0,37700,9.0
+upgrade 1-10,incendiary-grenades,Incendiary Grenades,1,50280,12.0
+upgrade 1-10,shock-grenades,Shock Grenades,1,50280,12.0
+upgrade 1-10,sticky-mines,Sticky Mines,1,50280,12.0
+upgrade 1-10,decoy-beacon,Decoy Beacon,2,87960,20.9
+upgrade 1-10,mini-sentry,Mini-Sentry,2,87960,20.9
+respec,one-class,Respec one class,,2250,0.5
+perk switch,any,Switch a perk,,450,0.1
 earn per kill,drudge,Drudge,,0.5,
 earn per kill,bolter,Bolter,,1,
 earn per kill,swell,Swell,,3,

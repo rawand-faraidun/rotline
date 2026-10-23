@@ -121,11 +121,11 @@ describe('progression', () => {
 		expect((await post(jar, 'buy', { itemId: 'breacher-12' })).body.error).toBe('not-enough-salvage')
 		await pay(id, 0, 30000)
 		const bought = await post(jar, 'buy', { itemId: 'breacher-12' })
-		expect(bought.body.salvage).toBe(24000)
+		expect(bought.body.salvage).toBe(24600)
 		expect((await post(jar, 'buy', { itemId: 'breacher-12' })).body.error).toBe('owned')
 		expect(await db.purchase.count({ where: { playerId: id, sku: 'breacher-12' } })).toBe(1)
 
-		let salvage = 24000
+		let salvage = 24600
 		for (let level = 1; level <= 5; level++) {
 			const upgraded = await post(jar, 'upgrade', { itemId: 'breacher-12' })
 			salvage -= upgradeCost('breacher-12', level)
@@ -171,7 +171,7 @@ describe('progression', () => {
 		const { jar, id } = await enlist('Fay')
 		expect((await post(jar, 'discard', { itemId: 'p9-service' })).body.error).toBe('last-pistol')
 		expect((await post(jar, 'discard', { itemId: 'vex-9' })).body.error).toBe('last-mains')
-		await pay(id, 0, 6000)
+		await pay(id, 0, 5400)
 		await post(jar, 'buy', { itemId: 'breacher-12' })
 		const ask = await post(jar, 'discard', { itemId: 'vex-9' })
 		expect(ask.body).toMatchObject({ error: 'needs-confirmation', equipped: true, level: 0, value: 300 })
