@@ -1,0 +1,53 @@
+name: Deploy
+
+# Once the images for a push to main are published, the server pulls and runs them (over SSH, with a
+# key that may only run the deploy command). Can also be run by hand with any published version,
+# for example to roll back: version `sha-<commit>`.
+on:
+  workflow_run:
+    workflows: [Images]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Image tag to deploy (sha-<full commit> or main)
+        required: true
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Deploy to the server
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          VERSION: ${{ inputs.version || format('sha-{0}', github.event.workflow_run.head_sha) }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o BatchMode=yes "deploy@$HOST" "deploy $VERSION"
+
+      - name: Check the site answers
+        if: vars.PUBLIC_ORIGIN != ''
+        env:
+          ORIGIN: ${{ vars.PUBLIC_ORIGIN }}
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            curl -fsS -m 10 "$ORIGIN/api/health" && exit 0
+            sleep 10
+          done
+          exit 1
