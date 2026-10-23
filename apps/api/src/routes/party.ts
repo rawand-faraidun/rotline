@@ -60,8 +60,9 @@ function storedView(party: Party, seen: { mission: string; difficulty: string } 
 }
 
 /**
- * Missions a player may choose: the campaign in order — a mission opens once the one before it in
- * its zone is done (any difficulty); a zone opens once the previous zone's last mission is done.
+ * Missions a player may choose: every contract, and the campaign in order — a mission opens once the
+ * one before it in its zone is done (any difficulty); a zone opens once the previous zone's last
+ * mission is done.
  */
 export async function openMissions(db: Services['db'], playerId: string): Promise<Set<string>> {
 	const done = new Set(
@@ -69,7 +70,7 @@ export async function openMissions(db: Services['db'], playerId: string): Promis
 			await db.missionProgress.findMany({ where: { playerId, completions: { gt: 0 } }, select: { missionId: true } })
 		).map(record => record.missionId)
 	)
-	const open = new Set<string>()
+	const open = new Set<string>(campaign.contracts)
 	let previous: string | null = null
 	for (const zone of campaign.zones) {
 		for (const id of zone.missions) {

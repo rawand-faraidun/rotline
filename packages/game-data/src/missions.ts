@@ -8,7 +8,7 @@ export const Mastery = { none: 0, bronze: 1, silver: 2, gold: 3 } as const
  * mission). Chosen in the lobby like a mission; its full rules and leaderboard come with milestone 7.
  */
 export const SURVIVAL = 'survival'
-export const SURVIVAL_MAP = 'yard'
+export const SURVIVAL_MAP = 'crossroads'
 
 export type MissionResult = {
 	difficulty: DifficultyId

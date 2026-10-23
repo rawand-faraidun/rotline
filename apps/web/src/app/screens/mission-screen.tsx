@@ -7,7 +7,7 @@ import {
 	loadGraphicsSetting,
 	saveGraphicsSetting
 } from '@rotline/client'
-import { missionById, zombies } from '@rotline/game-data'
+import { missionById, SURVIVAL_MAP, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -606,7 +606,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					return
 				}
 				const { ticket, path } = issued
-				const map = range ? 'range' : (missionById(issued.mission?.id ?? '')?.map ?? 'yard')
+				const map = range ? 'range' : (missionById(issued.mission?.id ?? '')?.map ?? SURVIVAL_MAP)
 				// the engine and its assets load only now, never on the landing page or lobby
 				const { startGame } = await import('@rotline/client')
 				if (cancelled || !canvasRef.current) return

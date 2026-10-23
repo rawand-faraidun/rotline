@@ -10,27 +10,99 @@ export const en = {
 		privacy: 'Privacy',
 		terms: 'Terms',
 		credits: 'Credits',
+		github: 'GitHub',
 		home: 'Home'
 	},
 	landing: {
-		kicker: 'Browser co-op shooter',
-		lead: 'Fight through objective missions against a horde that mutates to answer your tactics. Solo or with up to three friends, right in your browser.',
+		nav: { missions: 'Missions', modes: 'Modes', squad: 'Squad', source: 'Source' },
+		kicker: 'Top-down co-op zombie shooter',
+		lead: 'Drop into timed missions with up to three friends, hold the line against a horde that keeps coming, and get out before the clock runs down. Free, in your browser, nothing to install.',
 		cta: 'Play now',
 		ctaHint: 'Free. Sign in with GitHub or Google.',
-		features: [
+		source: 'Source on GitHub',
+		facts: [
+			{ value: '10', label: 'campaign missions' },
+			{ value: '4', label: 'contracts' },
+			{ value: 'Endless', label: 'Survival' },
+			{ value: '1–4', label: 'players' }
+		],
+		heroAlt: 'A soldier holds a ring of zombies off at night in the Power Plant.',
+		pillarsKicker: 'How it plays',
+		pillarsTitle: 'Short, loud, together',
+		pillars: [
 			{
-				title: 'Squad of four',
-				body: 'Assault, Medic and Heavy cover each other. Revive the fallen, focus the elites, survive together.'
+				title: 'Missions against the clock',
+				body: 'Every mission is a run of eight to fifteen minutes: carry the flight recorder, restart the generators, walk the survivors out, hold the helipad. Checkpoints between the steps, a radio in your ear, and a timer that does not wait.'
 			},
 			{
-				title: 'The horde adapts',
-				body: 'Eighteen kinds of infected, and strains that evolve to resist whatever your squad relies on.'
+				title: 'A squad of four',
+				body: 'Assault, Medic and Heavy, each with their own abilities and skill trees. Revive the fallen, focus the Brutes, cover the ramps. Every class can also go it alone.'
 			},
 			{
 				title: 'Earned, never bought',
-				body: 'One currency, earned by playing. No loot boxes, no rarity, no real money. Ever.'
+				body: 'One currency, earned by playing. No loot boxes, no rarity, no real money. Upgrade your guns and armour with what you bring back.'
 			}
 		],
+		campaignKicker: 'The campaign',
+		campaignTitle: 'Two zones. Ten missions. One way out.',
+		campaignLead:
+			'Each mission opens when you finish the one before it, and every one is on its own map: a crashed transport, a rail yard, a power plant, an airfield, a hospital, a mansion on the hill, the metro.',
+		zoneLabel: 'Zone {number}',
+		modesKicker: 'Game modes',
+		modesTitle: 'When the campaign is not enough',
+		modes: [
+			{
+				title: 'Survival',
+				tag: 'Endless',
+				body: 'Wave after wave at the Crossroads, a market town gone dark. Hold the square, fall back to the church, the car park or the petrol station, and every fifth wave, face the Brutes.'
+			},
+			{
+				title: 'Contracts',
+				tag: '3–4 min',
+				body: 'Short jobs for a quick payout: Hotspot, Supply Run, Data Grab and Shipment. Open from the start.'
+			},
+			{
+				title: 'Firing range',
+				tag: 'Practice',
+				body: 'Your loadout against targets and zombies on demand. Try a build before you take it out.'
+			}
+		],
+		squadKicker: 'The squad',
+		squadTitle: 'Pick your role, bring your guns',
+		classes: [
+			{
+				name: 'Assault',
+				body: 'Mobile and deadly: Adrenaline Burst, Slide Dash, and damage that climbs with every kill in a chain.'
+			},
+			{
+				name: 'Medic',
+				body: 'Keeps everyone standing: medkits, healing fields, Stim and a Defibrillator that revives from range.'
+			},
+			{
+				name: 'Heavy',
+				body: 'Holds the choke point: barricades, Taunt, and the health and armour to stand in the middle of it.'
+			}
+		],
+		arsenal:
+			'Twelve weapons, from the G19 to the M134 minigun, the Kiln flamethrower and the GL-06 grenade launcher, each upgraded to +10 with perks along the way.',
+		galleryKicker: 'In the field',
+		galleryTitle: 'Straight from the game',
+		gallery: {
+			survival: 'Survival at the Crossroads',
+			airlift: 'Airlift: holding the cargo bay',
+			holdouts: 'Holdouts: the food depot at night',
+			landfall: 'Landfall: up the high street',
+			railyard: 'Rail Yard: the platform',
+			blackout: 'Blackout: the approach road'
+		},
+		openKicker: 'Open source',
+		openTitle: 'Built in the open',
+		openBody:
+			'Rotline’s code is public on GitHub under the MIT licence: the simulation, the netcode, the server and this site. Read it, report a bug, or follow along as new missions land.',
+		openCta: 'View on GitHub',
+		openStack: 'TypeScript · three.js · Astro · React · WebSockets',
+		finalTitle: 'Hold the line.',
+		finalBody: 'The horde is already moving. Sign in and deploy in under a minute.',
 		footer: 'Rotline is an original game.'
 	},
 	queue: {
@@ -473,8 +545,11 @@ export const en = {
 				shop: 'Shop',
 				profile: 'Profile'
 			},
-			survivalHint: 'Endless rounds. How long can you last?',
+			survivalHint: 'Endless waves at the Crossroads. How long can you last?',
+			contractsHint: 'Three-minute jobs for a quick payout.',
 			rangeHint: 'Try your guns on targets and zombies.',
+			modes: 'Game modes',
+			contracts: 'Contracts',
 			squad: 'Squad',
 			class: 'Class',
 			salvage: 'Salvage',
@@ -491,7 +566,7 @@ export const en = {
 			next: 'Next mission',
 			deploy: 'Deploy',
 			deploySquad: 'Deploy squad',
-			deployHint: 'Hold the yard against wave after wave.',
+			deployHint: 'Hold the Crossroads against wave after wave.',
 			waiting: 'Waiting for everyone to be ready',
 			ready: 'Ready',
 			notReady: 'Not ready',
@@ -539,10 +614,18 @@ export const en = {
 			locked: 'Locked',
 			done: 'Done',
 			lockedHint: 'Finish the mission before it to open this one.',
+			timeLimit: '{time} on the clock',
+			tabs: { campaign: 'Campaign', modes: 'Game modes' },
+			tabHints: {
+				campaign: 'Missions in order, zone by zone',
+				modes: 'Survival and contracts, open any time'
+			},
 			survival: 'Survival',
 			endless: 'Endless',
 			survivalDescription:
-				'Endless rounds in the yard. Every round is bigger and harder than the last; hold out as long as you can.'
+				'Endless waves at the Crossroads, a market town gone dark. Every wave is bigger than the last, and every fifth brings Brutes. Hold the square, fall back to the church, the flats, the car park or the petrol station, and last as long as you can.',
+			contracts: 'Contracts',
+			contractsDescription: 'Short, sharp jobs of three or four minutes, for a quick payout.'
 		},
 		mission: {
 			loading: 'Deploying',

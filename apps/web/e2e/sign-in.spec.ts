@@ -1,8 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
-import { releaseSeats } from './helpers.ts'
+import { releaseSeats, runTag } from './helpers.ts'
 
-// digits only: random letters can spell a word the name filter refuses
-const run = String(Math.floor(Math.random() * 1e6)).padStart(6, '0')
+const run = runTag()
 
 async function signInWithTestProvider(page: Page, username: string) {
 	await page.getByRole('button', { name: /test account/i }).click()
@@ -25,7 +24,11 @@ test('landing page loads without game code and links to play', async ({ page }) 
 	await expect(page.getByRole('img', { name: /hold the line against the rot/i })).toBeVisible()
 	// against the built site the landing page ships no JavaScript at all (the dev server injects its own)
 	if (process.env.E2E_STATIC) expect(scripts).toEqual([])
-	await page.getByRole('link', { name: /play now/i }).click()
+	await expect(page.getByRole('link', { name: /source on github/i }).first()).toHaveAttribute('href', /github\.com/)
+	await page
+		.getByRole('link', { name: /play now/i })
+		.first()
+		.click()
 	await expect(page).toHaveURL(/\/play$/)
 })
 
@@ -60,6 +63,10 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 		'true'
 	)
 	await expect(page.getByRole('dialog').getByRole('button', { name: /rail yard/i })).toBeDisabled()
+	// the game modes sit apart from the campaign, and every contract is open from the start
+	await page.getByRole('tab', { name: /game modes/i }).click()
+	await expect(page.getByRole('dialog').getByRole('button', { name: /hotspot/i })).toBeEnabled()
+	await page.getByRole('tab', { name: /campaign/i }).click()
 	await page.getByRole('button', { name: /^done$/i }).click()
 
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition

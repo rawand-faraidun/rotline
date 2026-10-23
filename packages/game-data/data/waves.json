@@ -4,11 +4,13 @@
 	"spawnPerSecond": 4,
 	"maxAlive": 120,
 	"waves": [
-		{ "drudge": 16, "bolter": 0, "swell": 0 },
-		{ "drudge": 24, "bolter": 6, "swell": 0 },
-		{ "drudge": 30, "bolter": 10, "swell": 2 },
-		{ "drudge": 40, "bolter": 14, "swell": 4 },
-		{ "drudge": 50, "bolter": 20, "swell": 6 }
+		{ "drudge": 16 },
+		{ "drudge": 24, "bolter": 6 },
+		{ "drudge": 30, "bolter": 10, "crawler": 4 },
+		{ "drudge": 36, "bolter": 14, "swell": 3, "crawler": 6 },
+		{ "drudge": 44, "bolter": 18, "swell": 5, "crawler": 8, "screamer": 2 },
+		{ "drudge": 52, "bolter": 22, "swell": 6, "crawler": 10, "screamer": 3 }
 	],
-	"growthPerWave": 1.2
+	"growthPerWave": 1.15,
+	"boss": { "every": 5, "type": "brute" }
 }
