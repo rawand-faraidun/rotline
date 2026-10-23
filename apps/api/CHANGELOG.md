@@ -1,5 +1,17 @@
 # @rotline/api
 
+## 0.4.2
+
+### Patch Changes
+
+- a47d80c: Lower ping where the route through the site's CDN is slow: the game now connects straight to the game server's own address when the server offers one, and falls back to the usual path if that does not open within 5 seconds.
+- @rotline/auth@0.4.2
+  - @rotline/constants@0.4.2
+  - @rotline/db@0.4.2
+  - @rotline/game-data@0.4.2
+  - @rotline/state@0.4.2
+  - @rotline/ticket@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes
