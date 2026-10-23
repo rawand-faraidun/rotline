@@ -60,6 +60,10 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 		'true'
 	)
 	await expect(page.getByRole('dialog').getByRole('button', { name: /rail yard/i })).toBeDisabled()
+	// the game modes sit apart from the campaign, and every contract is open from the start
+	await page.getByRole('tab', { name: /game modes/i }).click()
+	await expect(page.getByRole('dialog').getByRole('button', { name: /hotspot/i })).toBeEnabled()
+	await page.getByRole('tab', { name: /campaign/i }).click()
 	await page.getByRole('button', { name: /^done$/i }).click()
 
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition

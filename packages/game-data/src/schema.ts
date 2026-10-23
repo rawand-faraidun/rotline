@@ -484,7 +484,9 @@ export const wavesSchema = z.object({
 	spawnPerSecond: z.number().positive(),
 	maxAlive: z.number().int().positive().max(300),
 	waves: z.array(z.record(id, z.number().int().min(0))).min(1),
-	growthPerWave: z.number().min(1)
+	growthPerWave: z.number().min(1),
+	/** every `every`th wave brings bosses of this type too: one, and one more for each further 2 × `every` waves */
+	boss: z.object({ every: z.number().int().positive(), type: id }).optional()
 })
 
 export const difficultyId = z.enum(['recruit', 'veteran', 'nightmare', 'apocalypse'])
@@ -645,7 +647,9 @@ export const campaignSchema = z.object({
 				missions: z.array(id).min(1)
 			})
 		)
-		.min(1)
+		.min(1),
+	/** contracts: short runs outside the campaign, every one open from the start */
+	contracts: z.array(id).optional()
 })
 
 /** Interactive map props: their numbers. */

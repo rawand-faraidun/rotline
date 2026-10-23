@@ -1074,5 +1074,1347 @@
 				}
 			}
 		}
+	},
+	{
+		"id": "airlift",
+		"name": "Airlift",
+		"zone": "harrow",
+		"map": "airfield",
+		"description": "A transport is down on Harrow's airfield with its ramps broken. Hold the cargo bay while the crew fixes them, keep the hydraulics alive, then clear the apron for take-off.",
+		"briefing": [
+			"The last transport out of Harrow put down on the airfield with both ramps jammed open, and every dead thing for miles heard it land.",
+			"Hold the cargo bay while the crew works. They'll open the side bays and the jumpseat room as they get to them; there's kit in both.",
+			"Something big is coming across the apron. It doesn't get near the plane."
+		],
+		"debrief": "Wheels up. Nobody left on the tarmac.",
+		"parTimeSeconds": 480,
+		"timeLimitSeconds": 600,
+		"scoreTarget": 46000,
+		"enemyLevel": 8,
+		"recommendedLevel": 8,
+		"spawn": {
+			"perSecond": 2.1,
+			"maxAlive": 120,
+			"composition": {
+				"drudge": 48,
+				"bolter": 24,
+				"swell": 12,
+				"crawler": 12,
+				"screamer": 4
+			}
+		},
+		"caches": [
+			{
+				"x": 40.5,
+				"y": 21.5
+			},
+			{
+				"x": 24.5,
+				"y": 36.5
+			},
+			{
+				"x": 15.5,
+				"y": 24.5
+			}
+		],
+		"gates": {
+			"gate-bay-north": {
+				"openOn": 1
+			},
+			"gate-bay-south": {
+				"openOn": 1
+			},
+			"gate-jumpseat": {
+				"openOn": 2
+			}
+		},
+		"objectives": [
+			{
+				"type": "hold",
+				"label": "Hold the cargo bay",
+				"area": {
+					"x": 34,
+					"y": 29,
+					"radius": 6
+				},
+				"seconds": 70,
+				"checkpoint": true,
+				"spawnScale": 1.2,
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"drudge": 70,
+						"bolter": 30
+					}
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "Both ramps are jammed open. Hold the bay while my crew gets to work!",
+					"done": "First ramp's moving. Need power for the rest."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Start the power unit on the apron",
+				"props": ["apu"],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 40.5,
+					"y": 29.5
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "The ground power unit's on the apron, off the tail. Get it running and the ramp turrets wake up.",
+					"done": "Power's on. Side bays are open, grab what's in them."
+				}
+			},
+			{
+				"type": "defend",
+				"label": "Keep the ramp hydraulics running",
+				"prop": "ramp-hydraulics",
+				"seconds": 80,
+				"spawnScale": 1.6,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 40.5,
+					"y": 29.5
+				},
+				"ambush": {
+					"count": 18,
+					"composition": {
+						"screamer": 15,
+						"bolter": 40,
+						"drudge": 45
+					}
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "Hydraulics are between the ramps and they're going for them. Eighty seconds!",
+					"done": "Ramps are up. Jumpseat room's open, there's a med kit in there."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Clear the apron for take-off",
+				"count": 1,
+				"of": "brute",
+				"spawnScale": 0.6,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 64.5,
+						"y": 28.5
+					}
+				},
+				"radio": {
+					"speaker": "Tower",
+					"start": "Big one on the apron, right where you need to roll. Put it down!",
+					"done": "Apron's clear."
+				}
+			},
+			{
+				"type": "survive",
+				"label": "Hold on while the engines spin up",
+				"seconds": 40,
+				"spawnScale": 2.0,
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"drudge": 60,
+						"bolter": 40
+					}
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "Engines spinning up. Forty seconds!"
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Everyone aboard",
+				"area": {
+					"x": 34,
+					"y": 29,
+					"radius": 5
+				},
+				"seconds": 40,
+				"spawnScale": 1.5,
+				"radio": {
+					"speaker": "Pilot",
+					"start": "Nose up in forty. Get in the bay!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 200",
+				"count": 200,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "hive",
+		"name": "Hive",
+		"zone": "harrow",
+		"map": "supermarket",
+		"description": "The supermarket on the ring road has become a nest. Burn the pods in the car park, the nests among the aisles, then the egg in the loading yard and whatever hatches from it.",
+		"briefing": [
+			"The supermarket on Harrow's ring road went quiet a week ago. Now it breathes.",
+			"Pods all over the car park, nests in the aisles. Burn every one: while they stand, the dead keep coming.",
+			"Behind the shop, in the loading yard, there's an egg the size of a van. Burn its brood, then whatever comes out."
+		],
+		"debrief": "Hive's burnt out. Harrow's ring road is ours again.",
+		"parTimeSeconds": 540,
+		"timeLimitSeconds": 720,
+		"scoreTarget": 50000,
+		"enemyLevel": 9,
+		"recommendedLevel": 9,
+		"spawn": {
+			"perSecond": 1.9,
+			"maxAlive": 120,
+			"composition": {
+				"drudge": 45,
+				"crawler": 25,
+				"bolter": 18,
+				"swell": 8,
+				"screamer": 4
+			}
+		},
+		"caches": [
+			{
+				"x": 56.5,
+				"y": 56.5
+			},
+			{
+				"x": 17.5,
+				"y": 37.5
+			},
+			{
+				"x": 45.5,
+				"y": 3.5
+			}
+		],
+		"gates": {
+			"gate-entrance": {
+				"openOn": 0,
+				"closeOn": 1,
+				"side": {
+					"x": 31.5,
+					"y": 67.5
+				}
+			},
+			"gate-loading": {
+				"openOn": 2,
+				"closeOn": 3,
+				"side": {
+					"x": 31.5,
+					"y": 27.5
+				}
+			}
+		},
+		"objectives": [
+			{
+				"type": "destroy",
+				"label": "Burn the pods in the car park",
+				"props": ["pod-west", "pod-east", "pod-trolleys"],
+				"sections": [0],
+				"spawnScale": 0.8,
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"crawler": 60,
+						"drudge": 40
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "Pods all over the car park. Burn them, then we'll get the doors open.",
+					"done": "Car park's clear. The front doors are giving way."
+				}
+			},
+			{
+				"type": "reach",
+				"label": "Into the supermarket",
+				"area": {
+					"x": 31.5,
+					"y": 66.5,
+					"radius": 3
+				},
+				"sections": [0, 1],
+				"checkpoint": true,
+				"radio": {
+					"speaker": "Command",
+					"start": "Get inside before the doors fall on you."
+				}
+			},
+			{
+				"type": "destroy",
+				"label": "Burn the nests among the aisles",
+				"props": ["nest-aisles-west", "nest-aisles-east", "nest-deli", "nest-freezers"],
+				"sections": [1],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 60.5
+				},
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"crawler": 40,
+						"bolter": 30,
+						"drudge": 30
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "Four nests: the west aisles, the east aisles, behind the deli and in the freezers.",
+					"done": "That's the last one. Loading doors are open."
+				}
+			},
+			{
+				"type": "destroy",
+				"label": "Burn the brood round the egg",
+				"props": ["egg-west", "egg-east", "egg-north"],
+				"sections": [2],
+				"spawnScale": 1.2,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 26.5
+				},
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"crawler": 50,
+						"drudge": 30,
+						"swell": 20
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "Three smaller eggs round the big one. Burn them first.",
+					"done": "Brood's gone. The big one's cracking open!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Kill what hatches",
+				"count": 1,
+				"of": "brute",
+				"sections": [2],
+				"spawnScale": 0.8,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 31.5,
+						"y": 15.5
+					}
+				},
+				"radio": {
+					"speaker": "Scout",
+					"start": "It's out! Put it down!",
+					"done": "It's dead. Van's on its way."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Out through the yard gate",
+				"area": {
+					"x": 31.5,
+					"y": 3.5,
+					"radius": 4
+				},
+				"seconds": 40,
+				"sections": [2],
+				"spawnScale": 1.6,
+				"radio": {
+					"speaker": "Command",
+					"start": "Van's at the yard gate. Everyone on!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 200",
+				"count": 200,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "lifeline",
+		"name": "Lifeline",
+		"zone": "harrow",
+		"map": "hospital",
+		"description": "Harrow General has lost power and its patients are on borrowed batteries. Clear the atrium, then work down each corridor to its switch room, one after another.",
+		"briefing": [
+			"Harrow General is still holding: its doors keep the dead out, but the power's gone and the backup batteries won't last.",
+			"Four switch rooms, each at the end of its own corridor off the atrium. The corridors open one at a time, once the atrium is clear.",
+			"The last team in didn't make it past the atrium. Their kit is still on the floor."
+		],
+		"debrief": "Lights are on in Harrow General. Everyone on the wards made it.",
+		"parTimeSeconds": 660,
+		"timeLimitSeconds": 900,
+		"scoreTarget": 56000,
+		"enemyLevel": 10,
+		"recommendedLevel": 10,
+		"spawn": {
+			"perSecond": 2.0,
+			"maxAlive": 130,
+			"composition": {
+				"drudge": 45,
+				"bolter": 25,
+				"crawler": 15,
+				"swell": 10,
+				"screamer": 5
+			}
+		},
+		"caches": [
+			{
+				"x": 24.5,
+				"y": 19.5
+			},
+			{
+				"x": 67.5,
+				"y": 62.5
+			},
+			{
+				"x": 17.5,
+				"y": 51.5
+			},
+			{
+				"x": 75.5,
+				"y": 11.5
+			}
+		],
+		"gates": {
+			"gate-alpha": {
+				"openOn": 0
+			},
+			"gate-bravo": {
+				"openOn": 2
+			},
+			"gate-charlie": {
+				"openOn": 4
+			},
+			"gate-delta": {
+				"openOn": 6
+			}
+		},
+		"objectives": [
+			{
+				"type": "kill",
+				"label": "Clear the atrium",
+				"count": 25,
+				"sections": [0],
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 39.5,
+					"y": 39.5
+				},
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"drudge": 70,
+						"crawler": 30
+					}
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "They're coming out of the walls in the atrium. Clear it and the first corridor opens.",
+					"done": "Corridor Alpha's open, north side."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Throw switch Alpha",
+				"props": ["switch-alpha"],
+				"sections": [1],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 33.5,
+					"y": 24.5
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "Alpha's at the far end, past the ward. Throw it and come back.",
+					"done": "Alpha's in. They're in the atrium again."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Clear the atrium again",
+				"count": 30,
+				"sections": [0],
+				"spawnScale": 1.2,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 39.5,
+					"y": 39.5
+				},
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"drudge": 50,
+						"bolter": 50
+					}
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "Clear them out and I'll open Bravo, east side.",
+					"done": "Bravo's open."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Throw switch Bravo",
+				"props": ["switch-bravo"],
+				"sections": [2],
+				"spawnScale": 1.1,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 55.5,
+					"y": 39.5
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "Bravo's room is up the corridor and round the corner.",
+					"done": "Two down. Here they come again."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Hold the atrium",
+				"count": 35,
+				"sections": [0],
+				"spawnScale": 1.4,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 39.5,
+					"y": 39.5
+				},
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"screamer": 15,
+						"bolter": 40,
+						"drudge": 45
+					}
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "Screamers in that lot! Kill them first. Charlie opens after, south side.",
+					"done": "Charlie's open."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Throw switch Charlie",
+				"props": ["switch-charlie"],
+				"sections": [3],
+				"spawnScale": 1.2,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 45.5,
+					"y": 55.5
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "Charlie's down the long corridor, the far west room. There's a store behind the boxes in the east ward.",
+					"done": "Three. One to go."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Clear the atrium one more time",
+				"count": 40,
+				"sections": [0],
+				"spawnScale": 1.5,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 39.5,
+					"y": 39.5
+				},
+				"ambush": {
+					"count": 18,
+					"composition": {
+						"drudge": 40,
+						"bolter": 30,
+						"swell": 30
+					}
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "Last lot before Delta. North-east door.",
+					"done": "Delta's open."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Throw switch Delta",
+				"props": ["switch-delta"],
+				"sections": [4],
+				"spawnScale": 1.3,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 47.5,
+					"y": 24.5
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "Delta's at the end of the north-east corridor.",
+					"done": "Power's back! Something big just walked into the atrium..."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Brutes in the atrium",
+				"count": 2,
+				"of": "brute",
+				"sections": [0],
+				"spawnScale": 1.0,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 39.5,
+						"y": 30.5
+					}
+				},
+				"ambush": {
+					"count": 1,
+					"composition": {
+						"brute": 1
+					}
+				},
+				"radio": {
+					"speaker": "Doctor",
+					"start": "Two of them in the atrium! Keep them off the wards!",
+					"done": "Both down. Ambulance bay, now."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Out through the ambulance bay",
+				"area": {
+					"x": 4.5,
+					"y": 39.5,
+					"radius": 4
+				},
+				"seconds": 45,
+				"sections": [0],
+				"spawnScale": 1.4,
+				"radio": {
+					"speaker": "Command",
+					"start": "Ambulance bay, everyone. Forty-five seconds."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 250",
+				"count": 250,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "minister",
+		"name": "The Minister",
+		"zone": "harrow",
+		"map": "mansion",
+		"description": "The minister is shut in the safe room of a mansion on Harrow's hill. Clear the house, override the lock, walk the minister to the helipad on the lawn and hold it until the chopper lands.",
+		"briefing": [
+			"The minister for reconstruction locked themselves in the safe room of their house on the hill when the dead came up the drive.",
+			"The house is a maze of rooms and dead ends. Clear it, override the safe room lock from the kitchen, and walk the minister out to the helipad.",
+			"There's a generator in the garden that wakes the helipad's turrets. Nine minutes before the chopper has to turn back."
+		],
+		"debrief": "Minister's aboard. They'll be thanking you on the radio for a week.",
+		"parTimeSeconds": 450,
+		"timeLimitSeconds": 570,
+		"scoreTarget": 52000,
+		"enemyLevel": 11,
+		"recommendedLevel": 11,
+		"spawn": {
+			"perSecond": 2.0,
+			"maxAlive": 120,
+			"composition": {
+				"drudge": 45,
+				"bolter": 28,
+				"crawler": 12,
+				"swell": 10,
+				"screamer": 5
+			}
+		},
+		"caches": [
+			{
+				"x": 12.5,
+				"y": 21.5
+			},
+			{
+				"x": 49.5,
+				"y": 21.5
+			},
+			{
+				"x": 12.5,
+				"y": 71.5
+			}
+		],
+		"gates": {
+			"safe-room-door": {
+				"openOn": 2
+			}
+		},
+		"objectives": [
+			{
+				"type": "reach",
+				"label": "Get inside the house",
+				"area": {
+					"x": 35.5,
+					"y": 50.5,
+					"radius": 3
+				},
+				"sections": [0],
+				"spawnScale": 0.8,
+				"checkpoint": true,
+				"radio": {
+					"speaker": "Minister",
+					"start": "Hello? Is someone out there? They're in the house, I can hear them in the halls..."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Clear the halls",
+				"count": 30,
+				"sections": [1],
+				"spawnScale": 1.1,
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"drudge": 60,
+						"bolter": 40
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "Clear the house before you open that safe room. Watch the dead ends.",
+					"done": "Halls are clear."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Override the safe room lock",
+				"props": ["safe-room-lock"],
+				"sections": [1],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 53.5,
+					"y": 40.5
+				},
+				"radio": {
+					"speaker": "Minister",
+					"start": "The override is in the kitchen, by the door. Please hurry.",
+					"done": "It's open! Get me out of here!"
+				}
+			},
+			{
+				"type": "rescue",
+				"label": "Walk the minister to the helipad",
+				"survivors": ["minister"],
+				"area": {
+					"x": 57.5,
+					"y": 76.5,
+					"radius": 4
+				},
+				"sections": [0, 1],
+				"spawnScale": 1.2,
+				"checkpoint": true,
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"bolter": 60,
+						"crawler": 40
+					}
+				},
+				"radio": {
+					"speaker": "Minister",
+					"start": "Stay close to me. Please, stay close.",
+					"done": "Is that the chopper? Tell me that's the chopper."
+				}
+			},
+			{
+				"type": "hold",
+				"label": "Hold the helipad until the chopper lands",
+				"area": {
+					"x": 57.5,
+					"y": 76.5,
+					"radius": 5
+				},
+				"seconds": 45,
+				"sections": [0, 2],
+				"spawnScale": 1.7,
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"screamer": 15,
+						"drudge": 50,
+						"bolter": 35
+					}
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "Forty-five seconds out. Keep that pad clear!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Brute on the lawn",
+				"count": 1,
+				"of": "brute",
+				"sections": [0],
+				"spawnScale": 0.8,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 35.5,
+						"y": 80.5
+					}
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "I'm not setting down with that thing on the lawn!",
+					"done": "Lawn's clear. Coming in."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Everyone on the chopper",
+				"area": {
+					"x": 57.5,
+					"y": 76.5,
+					"radius": 4
+				},
+				"seconds": 30,
+				"sections": [0],
+				"spawnScale": 1.5,
+				"radio": {
+					"speaker": "Pilot",
+					"start": "On the skids. Thirty seconds!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 200",
+				"count": 200,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "cure",
+		"name": "Cure",
+		"zone": "harrow",
+		"map": "metro",
+		"description": "A cure is waiting in a lab at the end of Harrow's metro line. Fight down through the station, through a stopped train and the blast door, find which lab holds it, and carry it to the evacuation pad.",
+		"briefing": [
+			"The research labs at the end of the metro line say they have it: a cure. Then they stopped answering.",
+			"Down through the station, onto the platforms, and through the stopped train: the hall is blocked past it. The tunnel's power opens the blast door to the labs.",
+			"Six labs. The index terminal will say which one. Carry it to the pad on the roof yard. Eleven minutes before the city's bombed flat."
+		],
+		"debrief": "The cure's on the bird. Whatever happens now, it was worth it.",
+		"parTimeSeconds": 540,
+		"timeLimitSeconds": 690,
+		"scoreTarget": 60000,
+		"enemyLevel": 12,
+		"recommendedLevel": 12,
+		"spawn": {
+			"perSecond": 2.1,
+			"maxAlive": 130,
+			"composition": {
+				"drudge": 42,
+				"bolter": 28,
+				"crawler": 12,
+				"swell": 12,
+				"screamer": 6
+			}
+		},
+		"caches": [
+			{
+				"x": 7.5,
+				"y": 108.5
+			},
+			{
+				"x": 55.5,
+				"y": 77.5
+			},
+			{
+				"x": 20.5,
+				"y": 18.5
+			}
+		],
+		"gates": {
+			"gate-station": {
+				"openOn": 0,
+				"closeOn": 1,
+				"side": {
+					"x": 31.5,
+					"y": 114.5
+				}
+			},
+			"gate-platform": {
+				"openOn": 1,
+				"closeOn": 2,
+				"side": {
+					"x": 31.5,
+					"y": 79.5
+				}
+			},
+			"gate-labs": {
+				"openOn": 3,
+				"closeOn": 4,
+				"side": {
+					"x": 31.5,
+					"y": 33.5
+				}
+			},
+			"lab-4-door": {
+				"openOn": 4
+			}
+		},
+		"objectives": [
+			{
+				"type": "kill",
+				"label": "Clear the station entrance",
+				"count": 30,
+				"sections": [0],
+				"spawnScale": 1.0,
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"drudge": 70,
+						"bolter": 30
+					}
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "Dropping you by the stadium. Clear the entrance and the station's yours.",
+					"done": "Station doors are open. No going back up after this."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Open the platform gates from the ticket office",
+				"props": ["ticket-terminal"],
+				"sections": [1],
+				"spawnScale": 1.1,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 112.5
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "The platform gates are run from the ticket office, west side of the hall.",
+					"done": "Gates are up. Down you go."
+				}
+			},
+			{
+				"type": "reach",
+				"label": "Through the train to the far platform",
+				"area": {
+					"x": 30.5,
+					"y": 45.5,
+					"radius": 4
+				},
+				"sections": [2],
+				"spawnScale": 1.2,
+				"checkpoint": true,
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"crawler": 50,
+						"drudge": 50
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "The hall's fallen in halfway. The way on is through the stopped train on the west track.",
+					"done": "You're through."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Power the blast door",
+				"props": ["tunnel-power"],
+				"sections": [2],
+				"spawnScale": 1.3,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 30.5,
+					"y": 45.5
+				},
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"bolter": 60,
+						"drudge": 40
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "The tunnel's generator runs the blast door. Start it and hold while it runs up.",
+					"done": "Blast door's open. Labs ahead."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Find which lab has the cure",
+				"props": ["lab-index"],
+				"sections": [3],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 33.5
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "Index terminal's by the blast door. It'll say which lab.",
+					"done": "Lab four, east side. Its door's open now."
+				}
+			},
+			{
+				"type": "retrieve",
+				"label": "Carry the cure to the pad",
+				"item": "cure",
+				"area": {
+					"x": 31.5,
+					"y": 6.5,
+					"radius": 3
+				},
+				"sections": [3],
+				"spawnScale": 1.3,
+				"checkpoint": true,
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"screamer": 15,
+						"drudge": 50,
+						"bolter": 35
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "Get it out of lab four and up to the pad. Don't drop it.",
+					"done": "Cure's on the pad."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Brute on the pad",
+				"count": 1,
+				"of": "brute",
+				"sections": [3],
+				"spawnScale": 0.8,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 44.5,
+						"y": 6.5
+					}
+				},
+				"radio": {
+					"speaker": "Pilot",
+					"start": "There's something huge on the roof yard! I can't land!",
+					"done": "It's down. Coming in."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Everyone on the bird",
+				"area": {
+					"x": 31.5,
+					"y": 6.5,
+					"radius": 4
+				},
+				"seconds": 45,
+				"sections": [3],
+				"spawnScale": 1.6,
+				"radio": {
+					"speaker": "Pilot",
+					"start": "Forty-five seconds, then the bombers are over the city!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 200",
+				"count": 200,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "hotspot",
+		"name": "Hotspot",
+		"zone": "contracts",
+		"map": "yard",
+		"description": "Three minutes in the old freight yard with the nests awake. Kill as many as you can, as fast as you can.",
+		"briefing": ["The old freight yard is boiling over. Three minutes: kill everything that moves."],
+		"debrief": "Time. Count the bodies.",
+		"parTimeSeconds": 185,
+		"timeLimitSeconds": 200,
+		"scoreTarget": 24000,
+		"enemyLevel": 4,
+		"recommendedLevel": 3,
+		"spawn": {
+			"perSecond": 3.5,
+			"maxAlive": 150,
+			"composition": {
+				"drudge": 60,
+				"bolter": 22,
+				"crawler": 12,
+				"swell": 6
+			}
+		},
+		"caches": [
+			{
+				"x": 4,
+				"y": 44
+			}
+		],
+		"objectives": [
+			{
+				"type": "survive",
+				"label": "Kill all you can for three minutes",
+				"seconds": 180,
+				"spawnScale": 1.0,
+				"ambush": {
+					"count": 20,
+					"composition": {
+						"drudge": 70,
+						"bolter": 30
+					}
+				},
+				"radio": {
+					"speaker": "Command",
+					"start": "Three minutes. Make them count."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 150",
+				"count": 150,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "supply-run",
+		"name": "Supply Run",
+		"zone": "contracts",
+		"map": "compound",
+		"description": "Three supply crates are lying around an overrun army compound. Carry each one back to the truck in the courtyard.",
+		"briefing": [
+			"An army compound outside Harrow was overrun with its stores still in it. Three crates are worth the trip.",
+			"Carry them to the truck in the courtyard. Carrying slows you down: travel light."
+		],
+		"debrief": "Crates are on the truck. Good haul.",
+		"parTimeSeconds": 200,
+		"timeLimitSeconds": 270,
+		"scoreTarget": 18000,
+		"enemyLevel": 5,
+		"recommendedLevel": 4,
+		"spawn": {
+			"perSecond": 2.0,
+			"maxAlive": 100,
+			"composition": {
+				"drudge": 60,
+				"bolter": 25,
+				"crawler": 15
+			}
+		},
+		"caches": [
+			{
+				"x": 16.5,
+				"y": 12.5
+			}
+		],
+		"objectives": [
+			{
+				"type": "retrieve",
+				"label": "Bring the crate from the barracks",
+				"item": "crate-barracks",
+				"area": {
+					"x": 28.5,
+					"y": 31.5,
+					"radius": 3
+				},
+				"radio": {
+					"speaker": "Quartermaster",
+					"start": "First crate's in the barracks, south-west."
+				}
+			},
+			{
+				"type": "retrieve",
+				"label": "Bring the crate from the shed",
+				"item": "crate-shed",
+				"area": {
+					"x": 28.5,
+					"y": 31.5,
+					"radius": 3
+				},
+				"radio": {
+					"speaker": "Quartermaster",
+					"start": "Next one's in the vehicle shed, south-east."
+				}
+			},
+			{
+				"type": "retrieve",
+				"label": "Bring the crate from the radar hut",
+				"item": "crate-radar",
+				"area": {
+					"x": 28.5,
+					"y": 31.5,
+					"radius": 3
+				},
+				"spawnScale": 1.4,
+				"radio": {
+					"speaker": "Quartermaster",
+					"start": "Last one's behind the radar mast, north-east.",
+					"done": "That's all three."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 80",
+				"count": 80,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "data-grab",
+		"name": "Data Grab",
+		"zone": "contracts",
+		"map": "compound",
+		"description": "Four terminals in an overrun army compound still hold their data. Pull it from every one, then get to the truck.",
+		"briefing": [
+			"The compound's terminals still have the army's patrol data on them. Pull it from all four: HQ, operations, the radar hut and the vehicle shed."
+		],
+		"debrief": "Data's out. Command will put it to use.",
+		"parTimeSeconds": 200,
+		"timeLimitSeconds": 260,
+		"scoreTarget": 18000,
+		"enemyLevel": 5,
+		"recommendedLevel": 4,
+		"spawn": {
+			"perSecond": 2.2,
+			"maxAlive": 100,
+			"composition": {
+				"drudge": 55,
+				"bolter": 30,
+				"crawler": 15
+			}
+		},
+		"caches": [
+			{
+				"x": 44.5,
+				"y": 10.5
+			}
+		],
+		"objectives": [
+			{
+				"type": "interact",
+				"label": "Pull the data from all four terminals",
+				"props": ["terminal-hq", "terminal-ops", "terminal-radar", "terminal-shed"],
+				"spawnScale": 1.1,
+				"radio": {
+					"speaker": "Command",
+					"start": "Four terminals. Work them in any order.",
+					"done": "Got it all. To the truck."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Get to the truck",
+				"area": {
+					"x": 28.5,
+					"y": 31.5,
+					"radius": 4
+				},
+				"seconds": 30,
+				"spawnScale": 1.5,
+				"radio": {
+					"speaker": "Command",
+					"start": "Truck's leaving in thirty."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 80",
+				"count": 80,
+				"optional": true
+			}
+		]
+	},
+	{
+		"id": "shipment",
+		"name": "Shipment",
+		"zone": "contracts",
+		"map": "compound",
+		"description": "A weapons shipment is sitting in an overrun compound's courtyard. Keep it in one piece until the convoy collects it.",
+		"briefing": [
+			"A weapons shipment is on pallets in the compound courtyard and the dead are all over it. The convoy needs two and a half minutes."
+		],
+		"debrief": "Shipment's on the convoy, every crate of it.",
+		"parTimeSeconds": 160,
+		"timeLimitSeconds": 200,
+		"scoreTarget": 20000,
+		"enemyLevel": 6,
+		"recommendedLevel": 5,
+		"spawn": {
+			"perSecond": 2.4,
+			"maxAlive": 110,
+			"composition": {
+				"drudge": 50,
+				"bolter": 30,
+				"swell": 10,
+				"crawler": 10
+			}
+		},
+		"caches": [
+			{
+				"x": 45.5,
+				"y": 49.5
+			}
+		],
+		"objectives": [
+			{
+				"type": "defend",
+				"label": "Keep the shipment in one piece",
+				"prop": "shipment",
+				"seconds": 150,
+				"spawnScale": 1.3,
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"drudge": 60,
+						"bolter": 40
+					}
+				},
+				"radio": {
+					"speaker": "Convoy",
+					"start": "Two and a half minutes out. Don't let them tear it open!",
+					"done": "Convoy's here. Shipment's safe."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 100",
+				"count": 100,
+				"optional": true
+			}
+		]
 	}
 ]

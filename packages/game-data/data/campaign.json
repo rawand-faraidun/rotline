@@ -5,6 +5,13 @@
 			"name": "Ashgate",
 			"description": "The town where it started. The first mutations, the first survivors, and the road out.",
 			"missions": ["landfall", "yard-sweep", "power-out", "survivors", "yard-stand"]
+		},
+		{
+			"id": "harrow",
+			"name": "Harrow",
+			"description": "The city past Ashgate: its airfield, its hospital, the houses on the hill and the metro under it all.",
+			"missions": ["airlift", "hive", "lifeline", "minister", "cure"]
 		}
-	]
+	],
+	"contracts": ["hotspot", "supply-run", "data-grab", "shipment"]
 }

@@ -17,12 +17,13 @@ import { FriendsPanel } from './friends-panel.tsx'
 import { GameShell } from './game-shell.tsx'
 import { HubBackdrop } from './hub-backdrop.tsx'
 import { pane, panes } from './layout.ts'
-import { MissionPanel } from './mission-panel.tsx'
+import { isMode, MissionPanel, type MissionTab } from './mission-panel.tsx'
 import { StableLabel } from './stable-label.tsx'
 
 const t = en.app.lobby
 
 const pictureOf = (id: string | null | undefined) => (id ? itemPicture(id) : null)
+const isContract = (id: string) => id !== SURVIVAL && isMode(id)
 
 /** Simple line drawings for the hub tiles that have no item to show. */
 const GLYPHS = {
@@ -169,7 +170,7 @@ export function LobbyScreen() {
 	const [problem, setProblem] = useState<PartyProblem | null>(null)
 	const [copied, setCopied] = useState<'code' | 'link' | null>(null)
 	const [side, setSide] = useState<'squad' | 'friends'>('squad')
-	const [picking, setPicking] = useState(false)
+	const [picking, setPicking] = useState<MissionTab | null>(null)
 	const progress = useQuery(progressQuery)
 	const player = me.status === 'signed-in' ? me.player : null
 
@@ -315,7 +316,7 @@ export function LobbyScreen() {
 							// the campaign: what the squad is about to play; it opens the mission picker
 							<button
 								type="button"
-								onClick={() => setPicking(true)}
+								onClick={() => setPicking(view && isMode(view.mission.id) ? 'modes' : 'campaign')}
 								className={cn(
 									'frame cut flex shrink-0 flex-col gap-1 p-5 text-left [--frame-color:var(--color-rot-lime)] hover:[--frame-color:var(--color-bone)]',
 									glass
@@ -335,28 +336,45 @@ export function LobbyScreen() {
 								</span>
 							</button>
 						)}
-						<div className="grid grid-cols-2 gap-3">
-							<button
-								type="button"
-								disabled={!view || !isLeader || view.state !== 'lobby' || view.mission.id === SURVIVAL}
-								onClick={() => void act(() => partyActions.mission(SURVIVAL, view?.mission.difficulty ?? 'veteran'))}
-								className={cn(
-									'frame cut flex flex-col gap-1 p-4 text-left disabled:cursor-default hover:[--frame-color:var(--color-bone)]',
-									glass,
-									view?.mission.id === SURVIVAL && '[--frame-color:var(--color-rot-lime)]'
-								)}
-							>
-								<span className="font-display text-2xl uppercase">{en.app.missions.survival}</span>
-								<span className="text-muted text-xs">{t.survivalHint}</span>
-							</button>
-							<Link
-								to="/play/range"
-								className={cn('frame cut flex flex-col gap-1 p-4 hover:[--frame-color:var(--color-bone)]', glass)}
-							>
-								<span className="font-display text-2xl uppercase">{en.app.range.title}</span>
-								<span className="text-muted text-xs">{t.rangeHint}</span>
-							</Link>
-						</div>
+						{/* the game modes, set apart from the campaign above */}
+						<section aria-label={t.modes} className="mt-3 flex flex-col gap-2">
+							<h2 className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.modes}</h2>
+							<div className="grid grid-cols-3 gap-3">
+								<button
+									type="button"
+									disabled={!view || !isLeader || view.state !== 'lobby' || view.mission.id === SURVIVAL}
+									onClick={() => void act(() => partyActions.mission(SURVIVAL, view?.mission.difficulty ?? 'veteran'))}
+									className={cn(
+										'frame cut flex flex-col gap-1 p-4 text-left disabled:cursor-default hover:[--frame-color:var(--color-bone)]',
+										glass,
+										view?.mission.id === SURVIVAL && '[--frame-color:var(--color-rot-lime)]'
+									)}
+								>
+									<span className="font-display text-2xl uppercase">{en.app.missions.survival}</span>
+									<span className="text-muted text-xs">{t.survivalHint}</span>
+								</button>
+								<button
+									type="button"
+									disabled={!view}
+									onClick={() => setPicking('modes')}
+									className={cn(
+										'frame cut flex flex-col gap-1 p-4 text-left disabled:cursor-default hover:[--frame-color:var(--color-bone)]',
+										glass,
+										view && isContract(view.mission.id) && '[--frame-color:var(--color-rot-lime)]'
+									)}
+								>
+									<span className="font-display text-2xl uppercase">{t.contracts}</span>
+									<span className="text-muted text-xs">{t.contractsHint}</span>
+								</button>
+								<Link
+									to="/play/range"
+									className={cn('frame cut flex flex-col gap-1 p-4 hover:[--frame-color:var(--color-bone)]', glass)}
+								>
+									<span className="font-display text-2xl uppercase">{en.app.range.title}</span>
+									<span className="text-muted text-xs">{t.rangeHint}</span>
+								</Link>
+							</div>
+						</section>
 					</div>
 					<PlayerCard />
 				</div>
@@ -460,13 +478,13 @@ export function LobbyScreen() {
 					{deployBar}
 				</div>
 			</div>
-			{picking && view && <MissionPicker view={view} onClose={() => setPicking(false)} />}
+			{picking && view && <MissionPicker view={view} tab={picking} onClose={() => setPicking(null)} />}
 		</GameShell>
 	)
 }
 
-/** Choosing where to go: the campaign, Survival and the difficulty, over the lobby. */
-function MissionPicker({ view, onClose }: { view: PartyView; onClose: () => void }) {
+/** Choosing where to go: the campaign or a game mode, and the difficulty, over the lobby. */
+function MissionPicker({ view, tab, onClose }: { view: PartyView; tab: MissionTab; onClose: () => void }) {
 	const dialog = useRef<HTMLDialogElement>(null)
 	useEffect(() => {
 		dialog.current?.showModal()
@@ -481,7 +499,7 @@ function MissionPicker({ view, onClose }: { view: PartyView; onClose: () => void
 			{/* the missions scroll; Done stays in view under them */}
 			<div className="flex h-full flex-col gap-3">
 				<div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
-					<MissionPanel view={view} />
+					<MissionPanel view={view} tab={tab} />
 				</div>
 				<Button className="shrink-0 self-end" onClick={() => dialog.current?.close()}>
 					{t.done}

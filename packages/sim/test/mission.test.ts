@@ -385,6 +385,40 @@ describe('survival', () => {
 	})
 })
 
+describe('survival bosses', () => {
+	it('brings bosses on every few waves, more of them the further the run goes', () => {
+		const world = new World({
+			seed: 5,
+			map: yard,
+			survival: true,
+			waves: {
+				firstWaveDelaySeconds: 0,
+				breakSeconds: 0,
+				spawnPerSecond: 100,
+				maxAlive: 300,
+				waves: [{ drudge: 1 }],
+				growthPerWave: 1,
+				boss: { every: 2, type: 'brute' }
+			}
+		})
+		world.addPlayer(1)
+		const brute = zombieIndex('brute')
+		const brutes: number[] = []
+		for (let wave = 1; wave <= 4; wave++) {
+			steps(world, TICK_RATE)
+			let count = 0
+			for (let i = 0; i < world.alive.length; i++) {
+				if (world.alive[i] !== 1) continue
+				if (world.type[i] === brute) count++
+				world.damageZombie(i, 1e9, 1)
+			}
+			brutes.push(count)
+			steps(world, 2)
+		}
+		expect(brutes).toEqual([0, 1, 0, 2])
+	})
+})
+
 describe('mission clock', () => {
 	it('loses a timed mission when its clock runs out, and the world finishes', () => {
 		const world = missionWorld({ timeLimitSeconds: 2 })

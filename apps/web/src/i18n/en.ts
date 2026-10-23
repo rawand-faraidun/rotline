@@ -473,8 +473,11 @@ export const en = {
 				shop: 'Shop',
 				profile: 'Profile'
 			},
-			survivalHint: 'Endless rounds. How long can you last?',
+			survivalHint: 'Endless waves at the Crossroads. How long can you last?',
+			contractsHint: 'Three-minute jobs for a quick payout.',
 			rangeHint: 'Try your guns on targets and zombies.',
+			modes: 'Game modes',
+			contracts: 'Contracts',
 			squad: 'Squad',
 			class: 'Class',
 			salvage: 'Salvage',
@@ -491,7 +494,7 @@ export const en = {
 			next: 'Next mission',
 			deploy: 'Deploy',
 			deploySquad: 'Deploy squad',
-			deployHint: 'Hold the yard against wave after wave.',
+			deployHint: 'Hold the Crossroads against wave after wave.',
 			waiting: 'Waiting for everyone to be ready',
 			ready: 'Ready',
 			notReady: 'Not ready',
@@ -539,10 +542,18 @@ export const en = {
 			locked: 'Locked',
 			done: 'Done',
 			lockedHint: 'Finish the mission before it to open this one.',
+			timeLimit: '{time} on the clock',
+			tabs: { campaign: 'Campaign', modes: 'Game modes' },
+			tabHints: {
+				campaign: 'Missions in order, zone by zone',
+				modes: 'Survival and contracts, open any time'
+			},
 			survival: 'Survival',
 			endless: 'Endless',
 			survivalDescription:
-				'Endless rounds in the yard. Every round is bigger and harder than the last; hold out as long as you can.'
+				'Endless waves at the Crossroads, a market town gone dark. Every wave is bigger than the last, and every fifth brings Brutes. Hold the square, fall back to the church, the flats, the car park or the petrol station, and last as long as you can.',
+			contracts: 'Contracts',
+			contractsDescription: 'Short, sharp jobs of three or four minutes, for a quick payout.'
 		},
 		mission: {
 			loading: 'Deploying',

@@ -6,12 +6,19 @@ import classesData from '../data/classes.json' with { type: 'json' }
 import difficultiesData from '../data/difficulties.json' with { type: 'json' }
 import economyData from '../data/economy.json' with { type: 'json' }
 import gearData from '../data/gear.json' with { type: 'json' }
+import airfieldData from '../data/maps/airfield.json' with { type: 'json' }
+import compoundData from '../data/maps/compound.json' with { type: 'json' }
+import crossroadsData from '../data/maps/crossroads.json' with { type: 'json' }
 import depotData from '../data/maps/depot.json' with { type: 'json' }
+import hospitalData from '../data/maps/hospital.json' with { type: 'json' }
 import landfallData from '../data/maps/landfall.json' with { type: 'json' }
+import mansionData from '../data/maps/mansion.json' with { type: 'json' }
+import metroData from '../data/maps/metro.json' with { type: 'json' }
 import motorpoolData from '../data/maps/motorpool.json' with { type: 'json' }
 import powerplantData from '../data/maps/powerplant.json' with { type: 'json' }
 import railyardData from '../data/maps/railyard.json' with { type: 'json' }
 import rangeData from '../data/maps/range.json' with { type: 'json' }
+import supermarketData from '../data/maps/supermarket.json' with { type: 'json' }
 import yardData from '../data/maps/yard.json' with { type: 'json' }
 import missionsData from '../data/missions.json' with { type: 'json' }
 import playerData from '../data/player.json' with { type: 'json' }
@@ -87,7 +94,14 @@ export const maps: Record<string, MapDef> = {
 	railyard: loadMap('railyard', railyardData),
 	powerplant: loadMap('powerplant', powerplantData),
 	motorpool: loadMap('motorpool', motorpoolData),
-	depot: loadMap('depot', depotData)
+	depot: loadMap('depot', depotData),
+	crossroads: loadMap('crossroads', crossroadsData),
+	airfield: loadMap('airfield', airfieldData),
+	supermarket: loadMap('supermarket', supermarketData),
+	hospital: loadMap('hospital', hospitalData),
+	mansion: loadMap('mansion', mansionData),
+	metro: loadMap('metro', metroData),
+	compound: loadMap('compound', compoundData)
 }
 export const propsDef = parse('props', propsDataSchema, propsData)
 export const campaign = parse('campaign', campaignSchema, campaignData)
@@ -119,6 +133,13 @@ for (const [index, wave] of waves.waves.entries()) {
 			`waves[${index}]: unknown zombie ${key}`
 		)
 	}
+}
+if (waves.boss) {
+	const type = waves.boss.type
+	check(
+		zombies.some(zombie => zombie.id === type && zombie.elite === true),
+		`waves: the boss ${type} is not an elite`
+	)
 }
 for (const weapon of weapons) {
 	for (const { level } of weapon.perks) {
@@ -381,14 +402,15 @@ for (const mission of missions) {
 	}
 }
 {
-	const listed = campaign.zones.flatMap(zone => zone.missions)
+	const listed = [...campaign.zones.flatMap(zone => zone.missions), ...(campaign.contracts ?? [])]
 	check(new Set(listed).size === listed.length, 'campaign: a mission is listed twice')
 	for (const id of listed)
 		check(
 			missions.some(mission => mission.id === id),
 			`campaign: unknown mission ${id}`
 		)
-	for (const mission of missions) check(listed.includes(mission.id), `campaign: mission ${mission.id} is in no zone`)
+	for (const mission of missions)
+		check(listed.includes(mission.id), `campaign: mission ${mission.id} is in no zone and is no contract`)
 }
 for (const tier of difficulties.tiers) {
 	check(economy.drops.tierWeights[tier.id] !== undefined, `economy: drop weights for ${tier.id}`)

@@ -1453,6 +1453,14 @@ export class World {
 		return Object.fromEntries(Object.entries(last).map(([key, count]) => [key, Math.round(count * growth)]))
 	}
 
+	/** The bosses a wave brings on top of its zombies (`wave` counts from 0). */
+	private waveBosses(wave: number): number {
+		const boss = this.wavesDef.boss
+		const number = wave + 1
+		if (!boss || number % boss.every !== 0) return 0
+		return 1 + Math.floor(number / (boss.every * 2))
+	}
+
 	/** The wave director: queues each wave's zombies, releases them at a steady rate, then rests. */
 	private direct(): void {
 		const spawning = this.spawning
@@ -1463,6 +1471,9 @@ export class World {
 				for (const [key, count] of Object.entries(counts)) {
 					for (let n = 0; n < count; n++) spawning.queue.push(zombieIndex(key))
 				}
+				const bosses = this.waveBosses(spawning.wave)
+				if (bosses > 0 && this.wavesDef.boss)
+					for (let n = 0; n < bosses; n++) spawning.queue.push(zombieIndex(this.wavesDef.boss.type))
 				// shuffle so types arrive mixed (Fisher–Yates with the room's rng)
 				for (let i = spawning.queue.length - 1; i > 0; i--) {
 					const j = this.rng.int(i + 1)

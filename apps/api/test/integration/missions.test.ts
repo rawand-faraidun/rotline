@@ -1,5 +1,5 @@
 import { createPublicKey } from 'node:crypto'
-import { economy, items, Mastery, type MissionDef, missionById } from '@rotline/game-data'
+import { campaign, economy, items, Mastery, type MissionDef, missionById } from '@rotline/game-data'
 import { claimPlayerRoom, recordRoomMission, releasePlayerRoom } from '@rotline/state'
 import { loadPrivateKey, signMessage, verifyTicket } from '@rotline/ticket'
 import { describe, expect, it } from 'vitest'
@@ -149,9 +149,10 @@ describe('missions', () => {
 			mastery: Mastery.bronze
 		})
 		expect(list.find(entry => entry.id === 'yard-stand')?.difficulties).toEqual([])
-		// a new player has only the first mission open
+		// a new player has only the first mission open, and every contract
 		expect(list.find(entry => entry.id === 'landfall')).toMatchObject({ open: true })
 		expect(list.find(entry => entry.id === 'power-out')).toMatchObject({ open: false })
+		expect(list.find(entry => entry.id === 'hotspot')).toMatchObject({ open: true })
 	})
 
 	it('counts one mission result per room, however many reports carry one', async () => {
@@ -225,7 +226,8 @@ describe('campaign', () => {
 		const { id } = await enlist('Vic')
 		const landfall = missionById('landfall') as MissionDef
 		const open = async () => [...(await openMissions(db, id))]
-		expect(await open()).toEqual(['landfall'])
+		const contracts = campaign.contracts ?? []
+		expect(await open()).toEqual([...contracts, 'landfall'])
 		await grantReward(db, null, {
 			grantKey: `squad-${crypto.randomUUID()}:${id}:0a1b2c3d:0`,
 			userId: id,
@@ -235,6 +237,6 @@ describe('campaign', () => {
 			kills: 1,
 			result: { ...result(landfall.parTimeSeconds * 1000), missionId: 'landfall', difficulty: 'veteran' }
 		})
-		expect(await open()).toEqual(['landfall', 'yard-sweep'])
+		expect(await open()).toEqual([...contracts, 'landfall', 'yard-sweep'])
 	})
 })
