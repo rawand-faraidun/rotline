@@ -154,7 +154,8 @@ describe('mission difficulty and spawning', () => {
 		expect(world.aliveCount).toBeLessThanOrEqual(9)
 		steps(world, 120 * TICK_RATE)
 		expect(world.aliveCount).toBeLessThanOrEqual(Math.round(sweep.spawn.maxAlive * 0.5))
-	})
+		// two simulated minutes: slow on a busy CI runner measuring coverage
+	}, 30_000)
 })
 
 describe('score and multiplier', () => {
