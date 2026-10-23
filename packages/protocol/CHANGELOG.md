@@ -1,5 +1,12 @@
 # @rotline/protocol
 
+## 0.3.0
+
+### Patch Changes
+
+- @rotline/game-data@0.3.0
+  - @rotline/sim@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes

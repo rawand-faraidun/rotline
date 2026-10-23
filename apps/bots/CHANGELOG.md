@@ -1,5 +1,15 @@
 # @rotline/bots
 
+## 0.3.0
+
+### Patch Changes
+
+- @rotline/client@0.3.0
+  - @rotline/game-data@0.3.0
+  - @rotline/protocol@0.3.0
+  - @rotline/sim@0.3.0
+  - @rotline/ticket@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes
