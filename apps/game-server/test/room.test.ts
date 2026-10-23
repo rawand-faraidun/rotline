@@ -266,6 +266,18 @@ describe('room lifecycle', () => {
 		expect(room.paused).toBe(false)
 	})
 
+	it('comes out of a pause when the player comes back (a reload or a return to the range)', () => {
+		const room = new Room('range-u', 'range', 1, 0)
+		room.join('user-a', 'A', starterBuild(), connection())
+		room.pause('user-a', true, 1000)
+		expect(room.paused).toBe(true)
+		room.join('user-a', 'A', starterBuild(), connection())
+		expect(room.paused).toBe(false)
+		const tick = room.world.tick
+		room.tick(1100)
+		expect(room.world.tick).toBe(tick + 1)
+	})
+
 	it('tells only the finder about a drop, and splits a report too large for one', () => {
 		const reports: Report[] = []
 		const sentA: Uint8Array[] = []

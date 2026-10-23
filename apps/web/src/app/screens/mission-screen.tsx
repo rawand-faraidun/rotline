@@ -17,6 +17,8 @@ import { clock, masteryTone } from './mission-panel.tsx'
 import { SeatKeeper } from './seat-keeper.tsx'
 
 const t = en.app.mission
+/** how long the loading screen waits before offering to try again */
+const SLOW_LOADING_MS = 20_000
 
 const noop = () => () => {}
 const empty = (): HudState | null => null
@@ -622,6 +624,14 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 		}
 	}, [navigate, range])
 
+	// a loading screen that does not end on its own offers a way out instead of waiting forever
+	const [slow, setSlow] = useState(false)
+	useEffect(() => {
+		if (loaded) return
+		const timer = window.setTimeout(() => setSlow(true), SLOW_LOADING_MS)
+		return () => window.clearTimeout(timer)
+	}, [loaded])
+
 	const [menuOpen, setMenuOpen] = useState(false)
 	// the pause menu: Esc opens and closes it (alone in the room the game really pauses)
 	useEffect(() => {
@@ -655,6 +665,17 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					<div className="flex max-w-2xl flex-col items-center gap-4 px-6 text-center">
 						<img src="/brand/svg/rotline-mark.svg" alt="" width={72} height={72} className="animate-pulse" />
 						<p className="font-display text-3xl uppercase tracking-wider">{t.loading}</p>
+						{slow && (
+							<div className="flex flex-col items-center gap-3">
+								<p className="text-bone/85">{t.slowLoading}</p>
+								<div className="flex gap-3">
+									<Button onClick={() => window.location.reload()}>{t.tryAgain}</Button>
+									<Button variant="secondary" onClick={() => void navigate({ to: '/play/lobby' })}>
+										{t.backToLobby}
+									</Button>
+								</div>
+							</div>
+						)}
 						{briefing && (
 							<div className="flex flex-col gap-3">
 								<p className="font-display text-5xl text-rot-lime uppercase">{briefing.name}</p>

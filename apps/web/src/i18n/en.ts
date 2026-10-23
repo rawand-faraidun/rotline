@@ -542,6 +542,8 @@ export const en = {
 		},
 		mission: {
 			loading: 'Deploying',
+			slowLoading: 'This is taking longer than it should.',
+			tryAgain: 'Try again',
 			leave: 'Leave',
 			wave: 'Wave',
 			kills: 'Kills',

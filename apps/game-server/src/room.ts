@@ -297,6 +297,9 @@ export class Room {
 
 	/** Attaches a connection for a player; a reconnecting player keeps their character and build. */
 	join(userId: string, name: string, build: Build, connection: Connection): { ok: true; slot: number } | { ok: false } {
+		// whoever comes (back) in arrives with the menu closed: a pause left behind would hold the room
+		// still and keep their loading screen up until it ran out
+		this.pausedAt = 0
 		let member = this.members.get(userId)
 		if (!member) {
 			if (this.members.size >= this.capacity) return { ok: false }

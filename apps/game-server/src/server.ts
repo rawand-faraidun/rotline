@@ -299,11 +299,13 @@ export class GameServer {
 		}
 		const { payload } = check
 		if (payload.inst !== this.env.GAME_INSTANCE_ID || !this.nonces.claim(payload.nonce, payload.exp)) {
+			this.log.info({ room: payload.room }, 'ticket for another server or already used')
 			this.kick(socket, KickReason.badTicket)
 			return
 		}
 		// a room that has closed never starts again from a late ticket
 		if ((this.closedRooms.get(payload.room) ?? 0) > Date.now()) {
+			this.log.info({ room: payload.room }, 'ticket for a closed room')
 			this.kick(socket, KickReason.badTicket)
 			return
 		}
@@ -432,7 +434,9 @@ export class GameServer {
 			if (finished || (room.emptySince > 0 && wall - room.emptySince > EMPTY_ROOM_MS)) {
 				room.reportAll()
 				if (finished) room.closeAll(KickReason.complete)
-				this.closedRooms.set(id, wall + CLOSED_ROOM_MS)
+				// a squad's room never starts again from a late ticket; the firing range is the same room
+				// id every visit and earns nothing, so it may open again at once
+				if (room.mode !== 'range') this.closedRooms.set(id, wall + CLOSED_ROOM_MS)
 				this.dropped.delete(id)
 				if (this.valkey && room.mode === 'squad') {
 					for (const userId of room.userIds()) void releasePlayerRoom(this.valkey, userId, id).catch(() => {})
