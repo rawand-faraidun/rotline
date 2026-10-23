@@ -130,20 +130,22 @@
 			"name": "Tactical Plate Carrier Vest",
 			"author": "txyrm70",
 			"joint": "spine_03",
-			"offset": [0, 0.03, 0.01],
+			"offset": [0, 0.0, 0.01],
 			"rotation": [0, -90, 0],
-			"size": 0.64,
-			"triangles": 6000
+			"size": 0.58,
+			"triangles": 6000,
+			"stretch": [0.85, 1, 1]
 		},
 		"vest-heavy": {
 			"uid": "abe8e567ae72431384ee7535845b6f45",
 			"name": "Modern Tactical Vest / Plate Carrier",
 			"author": "txyrm70",
 			"joint": "spine_03",
-			"offset": [0, -0.01, 0],
+			"offset": [0, -0.02, 0.01],
 			"rotation": [0, 0, 0],
-			"size": 0.63,
-			"triangles": 9000
+			"size": 0.58,
+			"triangles": 9000,
+			"stretch": [1, 1, 0.85]
 		},
 		"vest-rig": {
 			"uid": "7c41d35e505c4057abe60f89537408bd",
