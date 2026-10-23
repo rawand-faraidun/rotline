@@ -62,6 +62,7 @@ import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
 import { PlayerFigure } from './render/players.ts'
 import { PropRenderer } from './render/props.ts'
 import { Stage, spawnHoles } from './render/scene.ts'
+import { surroundings } from './render/surroundings.ts'
 import { ZombieRenderer } from './render/zombies.ts'
 import { objectiveTarget, screenWaypoint } from './waypoint.ts'
 
@@ -121,7 +122,9 @@ export function startGame(options: GameOptions): GameHandle {
 	const decor = new Decor(
 		stage.scene,
 		// the map's own scenery, and litter scattered along its walls (models only on capable devices)
-		stage.quality === 'high' ? { ...map, decor: [...(map.decor ?? []), ...autoDecor(map)] } : map,
+		stage.quality === 'high'
+			? { ...map, decor: [...(map.decor ?? []), ...autoDecor(map), ...surroundings(map).decor] }
+			: map,
 		options.assets,
 		stage.quality === 'high'
 	)
