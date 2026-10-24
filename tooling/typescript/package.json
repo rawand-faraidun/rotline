@@ -1,6 +1,6 @@
 {
 	"name": "@rotline/tsconfig",
-	"version": "0.4.2",
+	"version": "0.4.3",
 	"private": true,
 	"type": "module",
 	"description": "Shared TypeScript configs: base, node and web variants",
