@@ -1,4 +1,4 @@
-import { AudioEngine } from '@rotline/client/audio'
+import { type AudioEngine, sharedAudio } from '@rotline/client/audio'
 
 /**
  * Interface sounds for the screens around the game (lobby, armory, shop): a click for every button
@@ -9,7 +9,7 @@ let engine: AudioEngine | null = null
 
 function audio(): AudioEngine | null {
 	if (typeof window === 'undefined') return null
-	engine ??= new AudioEngine('/assets/audio')
+	engine ??= sharedAudio('/assets/audio')
 	return engine
 }
 
@@ -21,6 +21,8 @@ export function uiSound(name: UiSound, volume = 0.6): void {
 
 /** Clicks for every enabled button and link on the page; returns a function that stops it. */
 export function listenForClicks(): () => void {
+	// fetch and decode the game's sounds now, while the player is in the lobby, not when they deploy
+	audio()?.preload()
 	const press = (event: PointerEvent) => {
 		const sound = audio()
 		sound?.unlock()

@@ -48,7 +48,7 @@ import {
 	TICK_RATE
 } from '@rotline/sim'
 import * as THREE from 'three'
-import { AudioEngine, type AudioSettings, type LoopHandle } from './audio.ts'
+import { type AudioSettings, type LoopHandle, sharedAudio } from './audio.ts'
 import { Controls } from './controls.ts'
 import { HudStore, type InteractAction, type InteractHint, type MissionHud, type Toast } from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
@@ -136,7 +136,9 @@ export function startGame(options: GameOptions): GameHandle {
 	const rangeWriter = new Writer(16)
 	const interpolator = new Interpolator()
 	const controls = new Controls(options.canvas)
-	const audio = new AudioEngine(`${options.assets}/audio`)
+	// the page's sound engine, shared with the lobby: its sounds are usually decoded already
+	const audio = sharedAudio(`${options.assets}/audio`)
+	audio.preload()
 	// sound may only start after the player clicks or presses a key
 	const unlock = () => audio.unlock()
 	window.addEventListener('pointerdown', unlock)
@@ -1113,7 +1115,9 @@ export function startGame(options: GameOptions): GameHandle {
 			set: (settings: AudioSettings) => audio.setSettings(settings)
 		},
 		stop() {
-			audio.dispose()
+			// the engine lives on for the lobby and the next game: only this game's soundscape stops
+			if (loops) for (const loop of Object.values(loops)) loop.stop(0.5)
+			loops = null
 			window.removeEventListener('pointerdown', unlock)
 			window.removeEventListener('keydown', unlock)
 			stopped = true
