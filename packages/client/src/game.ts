@@ -127,16 +127,16 @@ export function startGame(options: GameOptions): GameHandle {
 	stage.scene.add(spawnHoles(map.zombieSpawns))
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene, options.assets)
-	const propRenderer = new PropRenderer(stage.scene, props, options.assets, stage.quality === 'high')
+	const propRenderer = new PropRenderer(stage.scene, props, options.assets, stage.quality !== 'low')
 	// the map's scenery: wrecks, cars, barriers, lamps, fires
 	const decor = new Decor(
 		stage.scene,
 		// the map's own scenery, and litter scattered along its walls (models only on capable devices)
-		stage.quality === 'high'
+		stage.quality !== 'low'
 			? { ...map, decor: [...(map.decor ?? []), ...autoDecor(map), ...surroundings(map).decor] }
 			: map,
 		options.assets,
-		stage.quality === 'high'
+		stage.quality !== 'low'
 	)
 	stage.scene.add(groundMarks(map))
 	const showNumbers = options.damageNumbers ?? options.map === 'range'
@@ -302,7 +302,7 @@ export function startGame(options: GameOptions): GameHandle {
 			predictor.collide = state =>
 				separateFromZombies(grid, state, interpolator.view.count, interpolator.view.x, interpolator.view.y, viewRadius)
 			me?.dispose()
-			me = new PlayerFigure(slot, true, options.assets)
+			me = new PlayerFigure(slot, true, options.assets, 'game')
 			me.setClass(
 				build.class,
 				ARMOUR_PIECES.map(piece => build.loadout.armour[piece]?.id ?? null)
@@ -1115,7 +1115,7 @@ export function startGame(options: GameOptions): GameHandle {
 			for (const other of interpolator.others) {
 				let figure = others.get(other.id)
 				if (!figure) {
-					figure = new PlayerFigure(other.id, false, options.assets)
+					figure = new PlayerFigure(other.id, false, options.assets, 'game')
 					others.set(other.id, figure)
 					stage.scene.add(figure.group)
 				}
@@ -1138,6 +1138,7 @@ export function startGame(options: GameOptions): GameHandle {
 		decor.update(now / 1000)
 		numbers?.update(now / 1000)
 		stage.render()
+		if (!paused) stage.adapt(wallNow)
 
 		frames++
 		// the frame rate and the HUD run on the wall clock (the HUD keeps updating behind the menu)

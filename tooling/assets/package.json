@@ -7,7 +7,8 @@
 	"scripts": {
 		"audio": "node audio.ts",
 		"models": "node models.ts",
-		"characters": "node soldier.ts",
+		"characters": "node soldier.ts && node soldier-game.ts",
+		"characters:game": "node soldier-game.ts",
 		"thumbnails": "node thumbnails.ts",
 		"textures": "node textures.ts",
 		"props": "node props.ts",

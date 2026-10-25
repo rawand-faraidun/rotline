@@ -504,6 +504,7 @@ function GraphicsSettings() {
 			>
 				<option value="auto">{g.auto}</option>
 				<option value="high">{g.high}</option>
+				<option value="medium">{g.medium}</option>
 				<option value="low">{g.low}</option>
 			</select>
 		</label>

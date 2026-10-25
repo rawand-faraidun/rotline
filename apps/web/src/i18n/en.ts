@@ -766,7 +766,8 @@ export const en = {
 				hint: 'Applies the next time a game loads.',
 				auto: 'Automatic',
 				high: 'High',
-				low: 'Low (faster)'
+				medium: 'Medium (laptops)',
+				low: 'Low (fastest)'
 			},
 			pause: {
 				title: 'Paused',

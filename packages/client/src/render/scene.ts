@@ -295,6 +295,13 @@ export class Stage {
 	private readonly canvas: HTMLCanvasElement
 	private post: PostProcessing | null = null
 	private readonly playerLight: THREE.PointLight
+	/** the pixel ratio the quality calls for, and the share of it drawn now (lowered when frames run slow) */
+	private basePixelRatio = 1
+	private resolution = 1
+	/** frames counted since the last look at the frame rate, and when that was */
+	private frames = 0
+	private framesSince = 0
+	private slowChecks = 0
 	/** the zoom the player chose (1 the usual view, smaller closer) and the one shown, easing toward it */
 	private zoom = loadZoom()
 	private shownZoom = this.zoom
@@ -310,9 +317,13 @@ export class Stage {
 			powerPreference: 'high-performance'
 		})
 		const high = this.quality === 'high'
-		this.renderer.setPixelRatio(pixelRatioFor(this.quality, 1.5))
-		this.renderer.shadowMap.enabled = high
-		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+		// textures with their detail maps, models and shadows everywhere but on a software renderer
+		const detailed = this.quality !== 'low'
+		this.basePixelRatio = pixelRatioFor(this.quality, 1.5)
+		this.renderer.setPixelRatio(this.basePixelRatio)
+		this.renderer.shadowMap.enabled = detailed
+		// soft shadows on a graphics card; plain ones on built-in graphics
+		this.renderer.shadowMap.type = high ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap
 		this.renderer.toneMapping = THREE.ACESFilmicToneMapping
 		// a little brighter than neutral: the fight on the ground has to read, even at dusk
 		this.renderer.toneMappingExposure = 1.35
@@ -326,7 +337,7 @@ export class Stage {
 		this.sun = new THREE.DirectionalLight(light.sun, light.strength)
 		this.sunHeight = light.height
 		this.sun.castShadow = true
-		this.sun.shadow.mapSize.set(2048, 2048)
+		this.sun.shadow.mapSize.set(high ? 2048 : 1024, high ? 2048 : 1024)
 		Object.assign(this.sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 90 })
 		this.sun.shadow.bias = -0.0006
 		this.scene.add(this.sun, this.sun.target)
@@ -348,7 +359,7 @@ export class Stage {
 		const groundGeometry = new THREE.PlaneGeometry(groundWidth, groundDepth)
 		const uv = groundGeometry.getAttribute('uv') as THREE.BufferAttribute
 		for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * groundWidth) / 4, (uv.getY(i) * groundDepth) / 4)
-		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4, high)
+		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4, detailed)
 		this.ground = new THREE.Mesh(groundGeometry, groundMaterial)
 		this.ground.rotation.x = -Math.PI / 2
 		this.ground.position.set(map.width / 2, 0, map.height / 2)
@@ -357,10 +368,10 @@ export class Stage {
 
 		const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
 		// the photos as they are (a tint multiplies in linear light: a grey one turns them near black)
-		dress(wallMaterial, `${assets}/textures/${look.walls}`, null, 0xe8e8e2, high)
+		dress(wallMaterial, `${assets}/textures/${look.walls}`, null, 0xe8e8e2, detailed)
 		// the tops of walls and blocks read as rooftops from above: dark gravel, not more brick
 		const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3c38, roughness: 0.95 })
-		dress(roofMaterial, `${assets}/textures/roof`, null, 0xc8c8c2, high)
+		dress(roofMaterial, `${assets}/textures/roof`, null, 0xc8c8c2, detailed)
 		const walls = new THREE.Mesh(wallGeometry(map.walls, WALL_HEIGHT, 2), [wallMaterial, roofMaterial])
 		walls.name = 'walls'
 		walls.castShadow = walls.receiveShadow = true
@@ -368,7 +379,7 @@ export class Stage {
 		// the town beyond the border: buildings of a few heights, in the map's wall material and another
 		const other = look.walls === 'brick' ? 'wall-concrete' : 'brick'
 		const otherMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
-		dress(otherMaterial, `${assets}/textures/${other}`, null, 0xe0e0da, high)
+		dress(otherMaterial, `${assets}/textures/${other}`, null, 0xe0e0da, detailed)
 		const byHeight = new Map<number, Building[]>()
 		for (const building of surroundings(map).buildings)
 			byHeight.set(building.height, [...(byHeight.get(building.height) ?? []), building])
@@ -378,7 +389,7 @@ export class Stage {
 				roofMaterial
 			])
 			mesh.name = 'outside'
-			mesh.castShadow = mesh.receiveShadow = high
+			mesh.castShadow = mesh.receiveShadow = detailed
 			this.scene.add(mesh)
 		}
 		if (high) this.post = new PostProcessing(this.renderer, this.scene, this.camera)
@@ -447,6 +458,37 @@ export class Stage {
 		this.camera.lookAt(this.cameraTarget.x + ox, 0, this.cameraTarget.z + oz)
 		this.sun.position.set(this.cameraTarget.x + 14, this.sunHeight, this.cameraTarget.z + 8)
 		this.sun.target.position.set(this.cameraTarget.x, 0, this.cameraTarget.z)
+	}
+
+	/**
+	 * Keeps the frame rate up on a device that cannot hold it: every two seconds, below 50 frames a
+	 * second the picture is drawn at fewer pixels (down to 60 %), and ambient occlusion goes first on a
+	 * graphics card that struggles; with time to spare, pixels come back. Call once per frame.
+	 */
+	adapt(now: number): void {
+		this.frames++
+		if (this.framesSince === 0) this.framesSince = now
+		const elapsed = now - this.framesSince
+		if (elapsed < 2000) return
+		const fps = (this.frames * 1000) / elapsed
+		this.frames = 0
+		this.framesSince = now
+		// a tab in the background or a paused game is not a slow device
+		if (document.hidden || elapsed > 4000) return
+		if (fps < 50) {
+			this.slowChecks++
+			if (this.post?.occlusion && this.slowChecks >= 2) this.post.occlusion = false
+			else if (this.resolution > 0.6) this.setResolution(Math.max(0.6, this.resolution * 0.85))
+		} else if (fps > 58) {
+			this.slowChecks = 0
+			if (this.resolution < 1) this.setResolution(Math.min(1, this.resolution * 1.1))
+		}
+	}
+
+	private setResolution(resolution: number): void {
+		this.resolution = resolution
+		this.renderer.setPixelRatio(this.basePixelRatio * resolution)
+		this.resize()
 	}
 
 	render(): void {

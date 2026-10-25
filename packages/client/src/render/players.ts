@@ -27,12 +27,22 @@ type Clips = {
 export type Soldier = { scene: THREE.Object3D; clips: Clips }
 
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-let soldier: Promise<Soldier | null> | null = null
+const soldiers = new Map<string, Promise<Soldier | null>>()
 const weaponModels = new Map<string, Promise<THREE.Object3D | null>>()
 
-/** The soldier model with all three classes and its animations, loaded once. */
+/**
+ * Which soldier file a figure wears: `full` for close-ups (the lobby and armory), `game` in a mission,
+ * the same people and gear with a third of the triangles and smaller textures.
+ */
+export type SoldierDetail = 'full' | 'game'
+export const soldierUrl = (assets: string, detail: SoldierDetail): string =>
+	`${assets}/models/characters/${detail === 'game' ? 'soldier-game.glb' : 'soldier.glb'}`
+
+/** The soldier model with all three classes and its animations, loaded once per file. */
 export function loadSoldier(url: string): Promise<Soldier | null> {
-	soldier ??= loader
+	const cached = soldiers.get(url)
+	if (cached) return cached
+	const soldier = loader
 		.loadAsync(url)
 		.then(gltf => {
 			const split = (keep: (bone: string) => boolean) =>
@@ -57,6 +67,7 @@ export function loadSoldier(url: string): Promise<Soldier | null> {
 			return { scene: gltf.scene, clips }
 		})
 		.catch(() => null)
+	soldiers.set(url, soldier)
 	return soldier
 }
 
@@ -121,9 +132,11 @@ export class PlayerFigure {
 	private last = performance.now()
 	/** standing at ease (the lobby): no aiming, no gun in hand */
 	private relaxed = false
+	private readonly detail: SoldierDetail
 
-	constructor(slot: number, isSelf: boolean, assets = '/assets') {
+	constructor(slot: number, isSelf: boolean, assets = '/assets', detail: SoldierDetail = 'full') {
 		this.assets = assets
+		this.detail = detail
 		const colour = SLOT_COLOURS[(slot - 1) % SLOT_COLOURS.length] ?? 0xffffff
 		this.colour = colour
 		const body = new THREE.Mesh(
@@ -169,7 +182,7 @@ export class PlayerFigure {
 		const look = `${classId}:${armour?.join(',') ?? ''}`
 		if (look === this.look) return
 		this.look = look
-		void loadSoldier(`${this.assets}/models/characters/soldier.glb`).then(loaded => {
+		void loadSoldier(soldierUrl(this.assets, this.detail)).then(loaded => {
 			if (!loaded || this.look !== look) return
 			if (this.model) {
 				// same soldier, new clothes: no need to rebuild the animation
