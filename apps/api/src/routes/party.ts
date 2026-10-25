@@ -409,6 +409,9 @@ export function partyRoutes(services: Services) {
 						await notify(valkey, await friendIds(db, user.id), { type: 'presence', userId: user.id, status, detail })
 					}
 				}
+				// proxies and the CDN must pass each event on at once, not buffer or compress the stream
+				c.header('Cache-Control', 'no-cache, no-transform')
+				c.header('X-Accel-Buffering', 'no')
 				return streamSSE(c, async stream => {
 					const unsubscribe = await events.subscribe(user.id, event => {
 						void stream.writeSSE({ event: event.type, data: JSON.stringify(event) })

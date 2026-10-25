@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import type { AvatarStyle } from '@rotline/constants'
 import { AvatarFrame, Button, cn, Panel } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -22,6 +22,7 @@ const tabs = [
 	{ to: '/play/skills', label: t.nav.skills },
 	{ to: '/play/armory', label: t.nav.armory },
 	{ to: '/play/shop', label: t.nav.shop },
+	{ to: '/play/friends', label: t.nav.friends },
 	{ to: '/play/range', label: en.app.range.enter }
 ] as const
 
@@ -40,6 +41,19 @@ export function GameShell({ children, backdrop }: { children: ReactNode; backdro
 		setInvite(invite)
 	})
 	useEffect(() => listenForClicks(), [])
+	// when the leader deploys, everyone in the squad follows from whichever screen they are on
+	// (the event stream brings the change; polling in a squad catches one that was missed)
+	const party = useQuery({
+		...partyQuery,
+		refetchInterval: query =>
+			query.state.data?.state === 'mission' ? 10_000 : (query.state.data?.members.length ?? 1) > 1 ? 5_000 : false
+	})
+	const partyState = party.data?.state
+	const previousState = useRef(partyState)
+	useEffect(() => {
+		if (previousState.current === 'lobby' && partyState === 'mission') void navigate({ to: '/play/mission' })
+		previousState.current = partyState
+	}, [partyState, navigate])
 	const player = me.status === 'signed-in' ? me.player : null
 	const avatar = useAvatar((player?.avatarStyle ?? 'pixel-art') as AvatarStyle, player?.avatarSeed ?? '')
 	if (!player) return null

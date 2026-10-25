@@ -7,8 +7,11 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { en, format } from '../../i18n/en.ts'
 import { useAvatar } from '../../lib/avatar.ts'
 import { salvage } from '../../lib/describe.ts'
+import { asPlayerCode, friendActions, friendsQuery } from '../../lib/friends.ts'
+import { takeLinkCodes } from '../../lib/link-codes.ts'
 import { type PartyMember, type PartyProblem, type PartyView, partyActions, partyQuery } from '../../lib/party.ts'
 import { progressQuery } from '../../lib/progress.ts'
+import { canShare, copyText, shareLink } from '../../lib/share.ts'
 import { meQuery } from '../app.tsx'
 import { AdminPanel } from './admin-panel.tsx'
 import { itemPicture } from './character-stage.tsx'
@@ -159,10 +162,7 @@ function MemberRow({
 export function LobbyScreen() {
 	const { data: me } = useSuspenseQuery(meQuery)
 	// while the squad is in a mission, check now and then whether it has ended
-	const party = useQuery({
-		...partyQuery,
-		refetchInterval: query => (query.state.data?.state === 'mission' ? 10_000 : false)
-	})
+	const party = useQuery(partyQuery)
 	const queryClient = useQueryClient()
 	const navigate = useNavigate()
 	const codeId = useId()
@@ -171,26 +171,27 @@ export function LobbyScreen() {
 	const [copied, setCopied] = useState<'code' | 'link' | null>(null)
 	const [side, setSide] = useState<'squad' | 'friends'>('squad')
 	const [picking, setPicking] = useState<MissionTab | null>(null)
+	const [friendNote, setFriendNote] = useState<'sent' | 'failed' | null>(null)
 	const progress = useQuery(progressQuery)
 	const player = me.status === 'signed-in' ? me.player : null
 
 	const view = party.data
-	// when the leader deploys, everyone in the squad follows (but returning to the lobby does not bounce back)
-	const previousState = useRef(view?.state)
-	useEffect(() => {
-		if (previousState.current === 'lobby' && view?.state === 'mission') void navigate({ to: '/play/mission' })
-		previousState.current = view?.state
-	}, [view?.state, navigate])
+	// following the leader into a mission is the game shell's job (it works from every screen)
 
-	// invite links: /play/lobby?join=CODE
+	// invite links: /play/lobby?join=SQUAD and /play/lobby?friend=PLAYER (kept through signing in)
 	useEffect(() => {
-		const join = new URLSearchParams(location.search).get('join')
-		if (!join) return
-		history.replaceState(null, '', '/play/lobby')
-		void partyActions.join(join).then(result => {
-			if ('error' in result) setProblem(result.error)
-			else queryClient.setQueryData(partyQuery.queryKey, result)
-		})
+		const { join, friend } = takeLinkCodes()
+		if (join)
+			void partyActions.join(join).then(result => {
+				if ('error' in result) setProblem(result.error)
+				else queryClient.setQueryData(partyQuery.queryKey, result)
+			})
+		const code = friend ? asPlayerCode(friend) : null
+		if (code)
+			void friendActions.requestByCode(code).then(result => {
+				setFriendNote('error' in result ? 'failed' : 'sent')
+				void queryClient.invalidateQueries({ queryKey: friendsQuery.queryKey })
+			})
 	}, [queryClient])
 
 	if (!player) return null
@@ -205,19 +206,7 @@ export function LobbyScreen() {
 	/** Copies the squad code or the invite link, and says so on that button for a moment. */
 	async function copy(text: string, which: 'code' | 'link') {
 		if (!text) return
-		try {
-			await navigator.clipboard.writeText(text)
-		} catch {
-			// no clipboard permission (or not a secure page): fall back to a hidden text field
-			const field = document.createElement('textarea')
-			field.value = text
-			field.style.position = 'fixed'
-			field.style.opacity = '0'
-			document.body.append(field)
-			field.select()
-			document.execCommand('copy')
-			field.remove()
-		}
+		await copyText(text)
 		setCopied(which)
 		setTimeout(() => setCopied(current => (current === which ? null : current)), 1500)
 	}
@@ -271,6 +260,11 @@ export function LobbyScreen() {
 			{problem && (
 				<p role="alert" className="text-alert text-sm">
 					{t.problems[problem]}
+				</p>
+			)}
+			{friendNote && (
+				<p role="status" className={cn('text-sm', friendNote === 'sent' ? 'text-rot-lime' : 'text-alert')}>
+					{friendNote === 'sent' ? en.app.friends.fromLink : en.app.friends.fromLinkFailed}
 				</p>
 			)}
 		</div>
@@ -437,14 +431,31 @@ export function LobbyScreen() {
 										{view?.code ?? '······'}
 									</span>
 								</span>
-								<Button
-									variant="secondary"
-									size="sm"
-									disabled={!view}
-									onClick={() => void copy(view?.code ?? '', 'code')}
-								>
-									<StableLabel labels={[t.copyCode, t.copied]} current={copied === 'code' ? t.copied : t.copyCode} />
-								</Button>
+								<span className="flex gap-2">
+									<Button
+										variant="secondary"
+										size="sm"
+										disabled={!view}
+										onClick={() => void copy(view?.code ?? '', 'code')}
+									>
+										<StableLabel labels={[t.copyCode, t.copied]} current={copied === 'code' ? t.copied : t.copyCode} />
+									</Button>
+									{canShare() && (
+										<Button
+											size="sm"
+											disabled={view?.state !== 'lobby'}
+											onClick={() =>
+												void shareLink({
+													title: t.shareInviteTitle,
+													text: format(t.shareInviteText, { code: view?.code ?? '' }),
+													url: inviteLink
+												})
+											}
+										>
+											{t.shareInvite}
+										</Button>
+									)}
+								</span>
 							</div>
 							<form
 								className="flex flex-col gap-1.5"

@@ -8,9 +8,11 @@ import {
 	redirect
 } from '@tanstack/react-router'
 import { fetchMe, fetchProviders } from '../lib/api.ts'
+import { keepLinkCodes } from '../lib/link-codes.ts'
 import { requireSeat } from '../lib/seat.ts'
 import { ArmoryScreen } from './screens/armory-screen.tsx'
 import { ErrorScreen } from './screens/error-screen.tsx'
+import { FriendsScreen } from './screens/friends-screen.tsx'
 import { LobbyScreen } from './screens/lobby-screen.tsx'
 import { MissionScreen, RangeScreen } from './screens/mission-screen.tsx'
 import { ProfileScreen } from './screens/profile-screen.tsx'
@@ -92,7 +94,7 @@ const missionRoute = createRoute({
 })
 
 /** Lobby-side screens: signed in, enlisted, holding a seat. */
-function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop' | '/play/profile'>(
+function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop' | '/play/profile' | '/play/friends'>(
 	path: P,
 	component: () => React.ReactNode
 ) {
@@ -126,6 +128,10 @@ const skillsRoute = hubRoute('/play/skills', SkillsScreen)
 const armoryRoute = hubRoute('/play/armory', ArmoryScreen)
 const shopRoute = hubRoute('/play/shop', ShopScreen)
 const profileRoute = hubRoute('/play/profile', ProfileScreen)
+const friendsRoute = hubRoute('/play/friends', FriendsScreen)
+
+// codes in an invite or friend link survive signing in
+keepLinkCodes()
 
 // "/play/lobby/" and "/play/lobby" are the same screen
 if (typeof location !== 'undefined' && location.pathname.length > 1 && location.pathname.endsWith('/'))
@@ -140,6 +146,7 @@ const router = createRouter({
 		armoryRoute,
 		shopRoute,
 		profileRoute,
+		friendsRoute,
 		rangeRoute,
 		missionRoute
 	]),

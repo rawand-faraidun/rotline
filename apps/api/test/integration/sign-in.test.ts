@@ -202,6 +202,45 @@ describe('friends', () => {
 		expect((await list(lou.jar)).friends).toEqual([])
 	})
 
+	it('adds a player by their code, typed any way', async () => {
+		const sam = await enlist('Sam')
+		const tia = await enlist('Tia')
+		const code = ((await (await call(tia.jar, '/api/friends')).json()) as { code: string }).code
+		expect(code).toMatch(/^[0-9A-F]{8}$/)
+		const typed = `${code.slice(0, 4).toLowerCase()}-${code.slice(4)}`
+		expect(
+			await (
+				await call(sam.jar, '/api/friends/request', { method: 'POST', body: JSON.stringify({ code: typed }) })
+			).json()
+		).toEqual({ status: 'requested' })
+		expect((await list(tia.jar)).incoming.map(entry => entry.id)).toEqual([sam.id])
+		const wrong = await call(sam.jar, '/api/friends/request', {
+			method: 'POST',
+			body: JSON.stringify({ code: 'nope' })
+		})
+		expect(wrong.status).toBe(400)
+	})
+
+	it('finds players by part of a name or a close spelling, with where each stands, but never blockers', async () => {
+		const uma = await enlist('Umaroth')
+		const vic = await enlist('Vic')
+		await call(vic.jar, '/api/friends/request', { method: 'POST', body: JSON.stringify({ name: uma.name }) })
+		type Found = { players: { id: string; name: string; relation: string }[] }
+		const search = async (jar: Jar, q: string) =>
+			(await (await call(jar, `/api/friends/search?q=${encodeURIComponent(q)}`)).json()) as Found
+		// a part of the name, and a misspelling of it
+		expect((await search(vic.jar, 'umaro')).players.find(entry => entry.id === uma.id)?.relation).toBe('outgoing')
+		expect((await search(vic.jar, uma.name.replace('roth', 'rth'))).players.some(entry => entry.id === uma.id)).toBe(
+			true
+		)
+		expect((await search(uma.jar, vic.name)).players[0]).toMatchObject({ id: vic.id, relation: 'incoming' })
+		// never yourself, and nobody who blocked you
+		expect((await search(uma.jar, uma.name)).players.some(entry => entry.id === uma.id)).toBe(false)
+		await call(uma.jar, '/api/friends/block', { method: 'POST', body: JSON.stringify({ userId: vic.id }) })
+		expect((await search(vic.jar, uma.name)).players.some(entry => entry.id === uma.id)).toBe(false)
+		expect((await call(vic.jar, '/api/friends/search?q=a')).status).toBe(400)
+	})
+
 	it('accepts automatically when both send a request', async () => {
 		const max = await enlist('Max')
 		const ned = await enlist('Ned')

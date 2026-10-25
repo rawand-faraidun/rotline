@@ -97,6 +97,8 @@ model Player {
   isAdmin      Boolean     @default(false) @map("is_admin")
   /// a test account: may hold every skill in a tree, whatever its level
   unrestricted Boolean     @default(false)
+  /// the code a player hands out so others can add them (8 hex characters, shown as XXXX-XXXX)
+  friendCode   String      @unique @default(dbgenerated("upper(substr(replace((gen_random_uuid())::text, '-'::text, ''::text), 1, 8))")) @map("friend_code")
   createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -116,6 +118,8 @@ model Player {
   loadout    Loadout?
   missions   MissionProgress[]
 
+  // finding players by a part of their name, or one close to it (pg_trgm)
+  @@index([nameKey(ops: raw("gin_trgm_ops"))], type: Gin, map: "player_name_key_trgm")
   @@map("player")
 }
 
