@@ -105,7 +105,11 @@ export type Ticket = {
 	path: string
 	/** a direct address for the game connection, tried before `path` on the site itself */
 	direct?: string | null
+	/** the room: a contract's map depends on it */
+	room: string
 	mission: { id: string; difficulty: DifficultyId } | null
+	/** Survival's arena (none for missions and the range) */
+	arena?: string | null
 }
 
 export async function fetchTicket(): Promise<Ticket | null> {
@@ -126,7 +130,7 @@ export async function fetchRangeTicket(): Promise<Ticket | null> {
 		body: '{}'
 	})
 	if (response.status !== 200) return null
-	return { ...((await response.json()) as Omit<Ticket, 'mission'>), mission: null }
+	return { ...((await response.json()) as Omit<Ticket, 'mission' | 'arena'>), mission: null, arena: null }
 }
 
 export const partyActions = {

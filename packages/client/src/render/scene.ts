@@ -11,6 +11,61 @@ import { type Building, OUTSIDE, surroundings } from './surroundings.ts'
 const CAMERA_HEIGHT = 19
 /** walls stand this tall (metres): buildings and yard walls, not kerbs */
 const WALL_HEIGHT = 3.2
+/** clipped hedges: over a zombie's head, under the camera's line */
+const HEDGE_HEIGHT = 1.9
+/** a shipping container, a little over its real 2.6 m so it reads beside the walls */
+const CONTAINER_HEIGHT = 2.9
+/** faded container liveries: rust red, navy, green, orange, grey, teal */
+const CONTAINER_COLOURS = [0x9a3b2a, 0x2c4a7a, 0x3d6b3a, 0xc0702a, 0x8a8f92, 0x2f7a78]
+/** a container's length (a 20-foot box) and width in metres */
+const CONTAINER_LENGTH = 6
+const CONTAINER_WIDTH = 2
+
+/**
+ * A block of container cells as single containers: rows two metres wide along the block's longer
+ * side, cut into six-metre boxes, each a hair smaller than its cells so the seams between show.
+ */
+function splitContainers(block: { x: number; y: number; w: number; h: number }) {
+	const along = block.w >= block.h
+	const length = along ? block.w : block.h
+	const across = along ? block.h : block.w
+	const boxes: { x: number; y: number; w: number; h: number }[] = []
+	for (let a = 0; a < across; a += CONTAINER_WIDTH) {
+		const width = Math.min(CONTAINER_WIDTH, across - a)
+		const count = Math.max(1, Math.round(length / CONTAINER_LENGTH))
+		for (let i = 0; i < count; i++) {
+			const start = (length / count) * i
+			const size = length / count
+			const gap = 0.06
+			boxes.push(
+				along
+					? { x: block.x + start + gap, y: block.y + a + gap, w: size - gap * 2, h: width - gap * 2 }
+					: { x: block.x + a + gap, y: block.y + start + gap, w: width - gap * 2, h: size - gap * 2 }
+			)
+		}
+	}
+	return boxes
+}
+
+let ribs: THREE.Texture | null = null
+/** Corrugated steel: light and dark ribs, multiplied by each container's paint. */
+function ribTexture(): THREE.Texture {
+	if (ribs) return ribs
+	const canvas = document.createElement('canvas')
+	canvas.width = 64
+	canvas.height = 8
+	const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+	for (let x = 0; x < 64; x++) {
+		const shade = 0.72 + 0.28 * Math.sin((x / 64) * Math.PI * 2 * 4) ** 2
+		const v = Math.round(255 * shade)
+		ctx.fillStyle = `rgb(${v},${v},${v})`
+		ctx.fillRect(x, 0, 1, 8)
+	}
+	ribs = new THREE.CanvasTexture(canvas)
+	ribs.wrapS = ribs.wrapT = THREE.RepeatWrapping
+	ribs.colorSpace = THREE.SRGBColorSpace
+	return ribs
+}
 const CAMERA_BACK = 6
 /** How far the camera leans toward where the player aims, in metres. */
 const AIM_LEAN = 3
@@ -281,6 +336,8 @@ export class Stage {
 	readonly scene = new THREE.Scene()
 	readonly camera: THREE.PerspectiveCamera
 	readonly ground: THREE.Mesh
+	/** the walls' sides and tops, shared with the weak walls so a cracked one matches the rest */
+	readonly wallMaterials: [THREE.Material, THREE.Material]
 	/** what this device can draw: `low` skips shadows, texture detail and prop models */
 	readonly quality: Quality
 	private readonly sun: THREE.DirectionalLight
@@ -374,10 +431,12 @@ export class Stage {
 		// the tops of walls and blocks read as rooftops from above: dark gravel, not more brick
 		const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3c38, roughness: 0.95 })
 		dress(roofMaterial, `${assets}/textures/roof`, null, 0xc8c8c2, detailed)
+		this.wallMaterials = [wallMaterial, roofMaterial]
 		const walls = new THREE.Mesh(wallGeometry(map.walls, WALL_HEIGHT, 2), [wallMaterial, roofMaterial])
 		walls.name = 'walls'
 		walls.castShadow = walls.receiveShadow = true
 		this.scene.add(walls)
+		this.addSolids(map, assets, detailed)
 		// the town beyond the border: buildings of a few heights, in the map's wall material and another
 		const other = look.walls === 'brick' ? 'wall-concrete' : 'brick'
 		const otherMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
@@ -396,6 +455,46 @@ export class Stage {
 		}
 		if (high) this.post = new PostProcessing(this.renderer, this.scene, this.camera)
 		this.resize()
+	}
+
+	/**
+	 * Hedges (low, leafy, clipped flat on top) and shipping containers (ribbed steel in a few faded
+	 * liveries, picked by where each stands so every client paints them alike).
+	 */
+	private addSolids(map: MapDef, assets: string, detailed: boolean): void {
+		const solids = map.solids ?? []
+		if (solids.length === 0) return
+		const hedges = solids.filter(solid => solid.kind === 'hedge')
+		if (hedges.length > 0) {
+			const leaves = new THREE.MeshStandardMaterial({ color: 0x3f5a2c, roughness: 1 })
+			dress(leaves, `${assets}/textures/grass`, null, 0x5d7a3e, detailed)
+			const top = new THREE.MeshStandardMaterial({ color: 0x4a6a32, roughness: 1 })
+			dress(top, `${assets}/textures/grass`, null, 0x6e8c48, detailed)
+			const mesh = new THREE.Mesh(wallGeometry(hedges, HEDGE_HEIGHT, 1), [leaves, top])
+			mesh.name = 'hedges'
+			mesh.castShadow = mesh.receiveShadow = true
+			this.scene.add(mesh)
+		}
+		const containers = solids.filter(solid => solid.kind === 'container').flatMap(splitContainers)
+		if (containers.length === 0) return
+		const ribs = ribTexture()
+		for (const [index, colour] of CONTAINER_COLOURS.entries()) {
+			const group = containers.filter(
+				box => Math.abs(Math.round(box.x * 7 + box.y * 13 + box.w * 3)) % CONTAINER_COLOURS.length === index
+			)
+			if (group.length === 0) continue
+			const paint = new THREE.MeshStandardMaterial({ color: colour, map: ribs, roughness: 0.6, metalness: 0.15 })
+			const roof = new THREE.MeshStandardMaterial({
+				color: new THREE.Color(colour).multiplyScalar(0.8),
+				map: ribs,
+				roughness: 0.7,
+				metalness: 0.1
+			})
+			const mesh = new THREE.Mesh(wallGeometry(group, CONTAINER_HEIGHT, 1), [paint, roof])
+			mesh.name = 'containers'
+			mesh.castShadow = mesh.receiveShadow = true
+			this.scene.add(mesh)
+		}
 	}
 
 	resize(): void {

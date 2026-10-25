@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { campaign, type DifficultyId, difficulties, type MissionDef, missionById, SURVIVAL } from '@rotline/game-data'
+import {
+	campaign,
+	type DifficultyId,
+	difficulties,
+	isSurvival,
+	type MissionDef,
+	missionById,
+	SURVIVAL_ARENAS
+} from '@rotline/game-data'
 import { Badge, cn, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { en, format } from '../../i18n/en.ts'
@@ -27,7 +35,7 @@ export const masteryTone = ['muted', 'warning', 'bone', 'lime'] as const
 export type MissionTab = 'campaign' | 'modes'
 
 /** Is this a game mode (Survival or a contract) rather than a campaign mission? */
-export const isMode = (id: string) => id === SURVIVAL || (campaign.contracts ?? []).includes(id)
+export const isMode = (id: string) => isSurvival(id) || (campaign.contracts ?? []).includes(id)
 
 /** One mission or contract to pick: its name, what it is, its numbers and the squad's record on it. */
 function MissionCard({
@@ -99,7 +107,7 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 	const [tab, setTab] = useState<MissionTab>(initialTab ?? (isMode(view.mission.id) ? 'modes' : 'campaign'))
 	const leader = view.leader === view.you
 	const editable = leader && view.state === 'lobby'
-	const survival = view.mission.id === SURVIVAL
+	const survival = isSurvival(view.mission.id)
 
 	async function choose(mission: string, difficulty: DifficultyId) {
 		setProblem(null)
@@ -175,28 +183,34 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 				<>
 					<section className="flex flex-col gap-2">
 						<h3 className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.survival}</h3>
-						<ul className="grid gap-3">
-							<li>
-								<button
-									type="button"
-									aria-pressed={survival}
-									disabled={!editable}
-									onClick={() => void choose(SURVIVAL, view.mission.difficulty)}
-									className={cn(
-										'frame cut flex h-full w-full flex-col gap-2 p-4 text-left',
-										survival
-											? '[--frame-color:var(--color-rot-lime)]'
-											: editable && 'hover:[--frame-color:var(--color-bone)]',
-										!editable && !survival && 'opacity-60'
-									)}
-								>
-									<span className="flex items-start justify-between gap-3">
-										<span className="font-display text-2xl uppercase">{t.survival}</span>
-										<Badge tone="alert">{t.endless}</Badge>
-									</span>
-									<span className="text-bone/80 text-sm">{t.survivalDescription}</span>
-								</button>
-							</li>
+						<p className="text-muted text-sm">{t.survivalDescription}</p>
+						<ul className="grid gap-3 md:grid-cols-3">
+							{SURVIVAL_ARENAS.map(arena => {
+								const chosen = view.mission.id === arena.id
+								return (
+									<li key={arena.id}>
+										<button
+											type="button"
+											aria-pressed={chosen}
+											disabled={!editable}
+											onClick={() => void choose(arena.id, view.mission.difficulty)}
+											className={cn(
+												'frame cut flex h-full w-full flex-col gap-2 p-4 text-left',
+												chosen
+													? '[--frame-color:var(--color-rot-lime)]'
+													: editable && 'hover:[--frame-color:var(--color-bone)]',
+												!editable && !chosen && 'opacity-60'
+											)}
+										>
+											<span className="flex items-start justify-between gap-3">
+												<span className="font-display text-2xl uppercase">{t.arenas[arena.id].name}</span>
+												<Badge tone="alert">{t.endless}</Badge>
+											</span>
+											<span className="text-bone/80 text-sm">{t.arenas[arena.id].description}</span>
+										</button>
+									</li>
+								)
+							})}
 						</ul>
 					</section>
 					<section className="flex flex-col gap-2">

@@ -105,6 +105,34 @@ describe('props', () => {
 		expect(world.alive[zombie]).toBe(0)
 	})
 
+	it('breaks a cracked wall under fire and opens the room behind it, all of it at once', () => {
+		const world = new World({
+			seed: 1,
+			// the doorway in the middle wall bricked up with a weak wall
+			map: room([{ id: 'weak', kind: 'weakwall', x: 15, y: 9, h: 3 }]),
+			waves: quiet
+		})
+		const wall = world.propById.get('weak')
+		if (!wall) throw new Error()
+		for (const y of [9.5, 10.5, 11.5]) expect(world.grid.isWall(15.5, y)).toBe(true)
+		const player = world.addPlayer(1)
+		player.x = 5
+		player.y = 10.5
+		for (let i = 0; i < 600 && wall.state !== PropState.destroyed; i++)
+			world.step(new Map([[1, input({ seq: i + 1, aim: 0, buttons: Button.fire })]]))
+		expect(wall.state).toBe(PropState.destroyed)
+		expect(world.events.some(event => event.type === 'prop' && event.index === wall.index)).toBe(true)
+		for (const y of [9.5, 10.5, 11.5]) expect(world.grid.isWall(15.5, y)).toBe(false)
+		// a blast brings one down too
+		const blasted = new World({
+			seed: 1,
+			map: room([{ id: 'weak', kind: 'weakwall', x: 15, y: 9, h: 3 }]),
+			waves: quiet
+		})
+		blasted.blast(14, 10.5, 3, propsDef.weakwall.health * 3, 'explosive', 0)
+		expect(blasted.propById.get('weak')?.state).toBe(PropState.destroyed)
+	})
+
 	it('opens and closes doors with a press, welds them with a hold, and zombies break them', () => {
 		const world = new World({
 			seed: 1,

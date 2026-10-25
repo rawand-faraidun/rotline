@@ -124,7 +124,7 @@ export type MissionHud = {
 
 export type Toast = {
 	id: number
-	kind: 'item' | 'buff' | 'threshold' | 'resupply'
+	kind: 'item' | 'buff' | 'threshold' | 'resupply' | 'secret'
 	/** the item or buff name, or the Salvage paid for a threshold */
 	text: string
 	/** who picked a buff up (teammates' pickups help everyone) */

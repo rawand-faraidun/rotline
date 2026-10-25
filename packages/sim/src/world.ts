@@ -948,7 +948,14 @@ export class World {
 		if (!prop) return
 		const kind = prop.def.kind
 		// doors too: a closed or welded door can always be shot open (never a mission gate)
-		if (kind === 'barrel' || kind === 'crate' || kind === 'sandbags' || kind === 'door' || kind === 'nest')
+		if (
+			kind === 'barrel' ||
+			kind === 'crate' ||
+			kind === 'weakwall' ||
+			kind === 'sandbags' ||
+			kind === 'door' ||
+			kind === 'nest'
+		)
 			damageProp(this, prop, damage, by)
 	}
 
@@ -1147,7 +1154,15 @@ export class World {
 		if (damage > 0 && this.props.length > 0) {
 			for (const prop of this.props) {
 				const kind = prop.def.kind
-				if (kind !== 'barrel' && kind !== 'crate' && kind !== 'sandbags' && kind !== 'door' && kind !== 'nest') continue
+				if (
+					kind !== 'barrel' &&
+					kind !== 'crate' &&
+					kind !== 'weakwall' &&
+					kind !== 'sandbags' &&
+					kind !== 'door' &&
+					kind !== 'nest'
+				)
+					continue
 				const d = Math.hypot(prop.x - x, prop.y - y)
 				if (d < radius + 0.5) damageProp(this, prop, damage * (1 - (1 - EDGE_DAMAGE) * Math.min(1, d / radius)), owner)
 			}

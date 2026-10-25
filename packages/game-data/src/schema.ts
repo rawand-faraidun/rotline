@@ -396,6 +396,8 @@ export const propKindId = z.enum([
 	'barrel',
 	'crate',
 	'sandbags',
+	/** a cracked stretch of wall hiding a secret room: shoot or blow it down */
+	'weakwall',
 	'door',
 	'generator',
 	'terminal',
@@ -457,6 +459,14 @@ export const mapSchema = z.object({
 	walls: z.array(rect),
 	/** cells that block like walls but are not drawn (under scenery: wrecks, cars, barriers) */
 	blockers: z.array(rect).optional(),
+	/**
+	 * Solid features drawn their own way over blockers: hedges (low, leafy) and shipping containers
+	 * (painted, ribbed). They block like walls.
+	 */
+	solids: z
+		.array(rect.extend({ kind: z.enum(['hedge', 'container']) }))
+		.max(4000)
+		.optional(),
 	decor: z.array(decorSchema).max(2000).optional(),
 	playerSpawns: z.array(point).min(4),
 	zombieSpawns: z.array(zombieSpawn).min(1),
@@ -600,7 +610,7 @@ export const objectiveSchema = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('extract'), area, seconds: z.number().positive(), ...objectiveBase })
 ])
 
-export const missionSchema = z.object({
+const missionFields = z.object({
 	id,
 	name: z.string().min(1),
 	zone: id,
@@ -643,7 +653,25 @@ export const missionSchema = z.object({
 			})
 		)
 		.optional(),
+	/**
+	 * Props this mission lays on its map, beside the map's own: objective props (crates to carry,
+	 * terminals, a shipment) on a map that is also played without them (Survival's maps).
+	 */
+	props: z.array(mapPropSchema).max(64).optional(),
 	objectives: z.array(objectiveSchema).min(1)
+})
+
+/**
+ * The same run on another map (contracts): what changes with the map, everything else as the
+ * mission says. Each room is given one of the mission's maps at random.
+ */
+export const missionVariantSchema = missionFields
+	.pick({ description: true, briefing: true, caches: true, gates: true, props: true, objectives: true })
+	.partial()
+	.extend({ map: id })
+
+export const missionSchema = missionFields.extend({
+	variants: z.array(missionVariantSchema).max(8).optional()
 })
 
 /** The campaign: zones in order, each with its missions in order. */
@@ -672,6 +700,7 @@ export const propsDataSchema = z.object({
 		playerDamageShare: z.number().min(0).max(1)
 	}),
 	crate: z.object({ health: z.number().positive() }),
+	weakwall: z.object({ health: z.number().positive() }),
 	sandbags: z.object({ health: z.number().positive() }),
 	door: z.object({
 		weldSeconds: z.number().positive(),

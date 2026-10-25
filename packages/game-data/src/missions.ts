@@ -1,14 +1,37 @@
-import { difficulties, economy, propsDef } from './data.ts'
+import { difficulties, economy, missionLayouts, propsDef } from './data.ts'
 import type { DifficultyId, MissionDef } from './schema.ts'
 
 export const Mastery = { none: 0, bronze: 1, silver: 2, gold: 3 } as const
 
 /**
- * Survival: endless rounds on one map, each harder than the last (a game mode of its own, not a
- * mission). Chosen in the lobby like a mission; its full rules and leaderboard come with milestone 7.
+ * Survival: endless rounds, each harder than the last (a game mode of its own, not a mission), on a
+ * map the leader picks from these. Chosen in the lobby like a mission; `SURVIVAL` is the first.
  */
-export const SURVIVAL = 'survival'
-export const SURVIVAL_MAP = 'crossroads'
+export const SURVIVAL_ARENAS = [
+	{ id: 'survival', map: 'oldtown' },
+	{ id: 'survival-glasshouse', map: 'glasshouse' },
+	{ id: 'survival-docks', map: 'docks' }
+] as const
+export type SurvivalId = (typeof SURVIVAL_ARENAS)[number]['id']
+export const SURVIVAL: SurvivalId = 'survival'
+export const SURVIVAL_MAP: string = SURVIVAL_ARENAS[0].map
+export const isSurvival = (id: string | null | undefined): id is SurvivalId =>
+	SURVIVAL_ARENAS.some(arena => arena.id === id)
+/** The map of a Survival arena (the first for anything else). */
+export const survivalMap = (id: string | null | undefined): string =>
+	SURVIVAL_ARENAS.find(arena => arena.id === id)?.map ?? SURVIVAL_MAP
+
+/**
+ * The mission as it plays in this room: a contract with several maps runs on the one the room's id
+ * picks (the id is random, so is the map, and the server, the API and every player agree on it).
+ */
+export function missionFor(id: string, room: string): MissionDef | undefined {
+	const layouts = missionLayouts.get(id)
+	if (!layouts) return undefined
+	let hash = 0x811c9dc5
+	for (let i = 0; i < room.length; i++) hash = Math.imul(hash ^ room.charCodeAt(i), 0x01000193)
+	return layouts[(hash >>> 0) % layouts.length]
+}
 
 export type MissionResult = {
 	difficulty: DifficultyId

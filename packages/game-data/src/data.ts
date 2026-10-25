@@ -10,11 +10,14 @@ import airfieldData from '../data/maps/airfield.json' with { type: 'json' }
 import compoundData from '../data/maps/compound.json' with { type: 'json' }
 import crossroadsData from '../data/maps/crossroads.json' with { type: 'json' }
 import depotData from '../data/maps/depot.json' with { type: 'json' }
+import docksData from '../data/maps/docks.json' with { type: 'json' }
+import glasshouseData from '../data/maps/glasshouse.json' with { type: 'json' }
 import hospitalData from '../data/maps/hospital.json' with { type: 'json' }
 import landfallData from '../data/maps/landfall.json' with { type: 'json' }
 import mansionData from '../data/maps/mansion.json' with { type: 'json' }
 import metroData from '../data/maps/metro.json' with { type: 'json' }
 import motorpoolData from '../data/maps/motorpool.json' with { type: 'json' }
+import oldtownData from '../data/maps/oldtown.json' with { type: 'json' }
 import powerplantData from '../data/maps/powerplant.json' with { type: 'json' }
 import railyardData from '../data/maps/railyard.json' with { type: 'json' }
 import rangeData from '../data/maps/range.json' with { type: 'json' }
@@ -101,7 +104,10 @@ export const maps: Record<string, MapDef> = {
 	hospital: loadMap('hospital', hospitalData),
 	mansion: loadMap('mansion', mansionData),
 	metro: loadMap('metro', metroData),
-	compound: loadMap('compound', compoundData)
+	compound: loadMap('compound', compoundData),
+	oldtown: loadMap('oldtown', oldtownData),
+	glasshouse: loadMap('glasshouse', glasshouseData),
+	docks: loadMap('docks', docksData)
 }
 export const propsDef = parse('props', propsDataSchema, propsData)
 export const campaign = parse('campaign', campaignSchema, campaignData)
@@ -114,6 +120,30 @@ export const upgrades = parse('upgrades', upgradesSchema, upgradesData)
 export const difficulties = parse('difficulties', difficultiesSchema, difficultiesData)
 export const buffs = parse('buffs', buffsSchema, buffsData)
 export const missions = uniqueById('missions', parse('missions', z.array(missionSchema), missionsData))
+/**
+ * Each mission on each of its maps: the mission as written first, then its variants (contracts run
+ * on several maps). A variant keeps the mission's id, rules and rewards; only the place changes.
+ */
+export const missionLayouts: ReadonlyMap<string, readonly MissionDef[]> = new Map(
+	missions.map(mission => {
+		const { variants, ...base } = mission
+		// parsed data holds no keys set to undefined, so a variant's fields simply replace the mission's
+		const layouts = [mission, ...(variants ?? []).map(variant => ({ ...base, ...variant }) as MissionDef)]
+		return [mission.id, layouts] as const
+	})
+)
+const layouts = [...missionLayouts.values()].flat()
+const laidOut = new WeakMap<MissionDef, MapDef>()
+/** The map a mission (or one of its variants) plays on, with the props the mission lays on it. */
+export function missionMap(mission: MissionDef): MapDef {
+	let map = laidOut.get(mission)
+	if (!map) {
+		const base = maps[mission.map] as MapDef
+		map = mission.props?.length ? { ...base, props: [...(base.props ?? []), ...mission.props] } : base
+		laidOut.set(mission, map)
+	}
+	return map
+}
 uniqueById('buffs', buffs.buffs)
 export const skillTrees: Record<ClassId, SkillTree> = {
 	assault: parse('skills/assault', skillTreeSchema, assaultTree),
@@ -180,9 +210,9 @@ for (const tierKey of ['0', '1', '2', '3'] as const) {
 	)
 }
 check(maps.range?.range !== undefined, 'maps/range: needs its range section')
-for (const mission of missions) {
-	const map = maps[mission.map]
-	check(map !== undefined, `missions/${mission.id}: unknown map ${mission.map}`)
+for (const layout of layouts) check(maps[layout.map] !== undefined, `missions/${layout.id}: unknown map ${layout.map}`)
+for (const mission of layouts) {
+	const map = missionMap(mission)
 	for (const key of Object.keys(mission.spawn.composition)) {
 		check(
 			zombies.some(zombie => zombie.id === key && !zombie.dummy),
@@ -332,9 +362,20 @@ const NEIGHBOURS = [
 	[0, -1]
 ] as const
 
-const ON_CELLS = new Set(['barrel', 'crate', 'sandbags', 'door', 'generator', 'terminal', 'turret', 'defend', 'nest'])
-const occupied = new Map<string, Uint8Array>()
-for (const [name, map] of Object.entries(maps)) {
+const ON_CELLS = new Set([
+	'barrel',
+	'crate',
+	'sandbags',
+	'weakwall',
+	'door',
+	'generator',
+	'terminal',
+	'turret',
+	'defend',
+	'nest'
+])
+/** Checks where a map's props stand, and returns its cells with the props marked. */
+function placeProps(name: string, map: MapDef): Uint8Array {
 	const ids = new Set<string>()
 	const cells = occupancy(map)
 	check((map.props?.length ?? 0) <= 4096, `maps/${name}: at most 4096 props`)
@@ -372,12 +413,17 @@ for (const [name, map] of Object.entries(maps)) {
 			)
 		if (prop.locked) check(prop.kind === 'door', `maps/${name}: only doors can be locked`)
 	}
-	occupied.set(name, cells)
+	return cells
 }
-for (const mission of missions) {
-	const map = maps[mission.map]
-	const cells = occupied.get(mission.map)
-	if (!map || !cells) continue
+const occupied = new Map<MapDef, Uint8Array>()
+for (const [name, map] of Object.entries(maps)) occupied.set(map, placeProps(name, map))
+for (const mission of layouts) {
+	const map = missionMap(mission)
+	let cells = occupied.get(map)
+	if (!cells) {
+		cells = placeProps(`${mission.map} (with ${mission.id}'s props)`, map)
+		occupied.set(map, cells)
+	}
 	const floor = (point: { x: number; y: number }, what: string) =>
 		check(
 			cells[Math.floor(point.y) * map.width + Math.floor(point.x)] === 0,

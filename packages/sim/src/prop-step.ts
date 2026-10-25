@@ -399,6 +399,7 @@ export function damageProp(world: World, prop: Prop, amount: number, by: number)
 			break
 		case 'barrel':
 		case 'crate':
+		case 'weakwall':
 		case 'sandbags':
 		case 'defend':
 		case 'nest':

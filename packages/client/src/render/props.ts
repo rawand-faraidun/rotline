@@ -7,6 +7,9 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { outfitFor, wear } from './outfits.ts'
 import { loadSoldier, loadWeapon, soldierUrl } from './players.ts'
 
+/** as tall as the map's walls */
+const WEAK_WALL_HEIGHT = 3.2
+
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
 const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
@@ -60,8 +63,18 @@ export class PropRenderer {
 	/** on a weak device props stay simple shapes */
 	private readonly models: boolean
 
-	constructor(scene: THREE.Scene, props: readonly Prop[], assets = '/assets', models = true) {
+	/** the map's wall sides and tops, for weak walls */
+	private readonly wallMaterials: [THREE.Material, THREE.Material] | null
+
+	constructor(
+		scene: THREE.Scene,
+		props: readonly Prop[],
+		assets = '/assets',
+		models = true,
+		wallMaterials: [THREE.Material, THREE.Material] | null = null
+	) {
 		this.scene = scene
+		this.wallMaterials = wallMaterials
 		this.assets = assets
 		this.models = models
 		for (const prop of props) {
@@ -131,6 +144,35 @@ export class PropRenderer {
 				const body = add(new THREE.Mesh(this.box, this.material(0x8a7a52)), 0.4)
 				body.scale.set(w * 0.98, 0.8, h * 0.98)
 				this.dressUp(prop, root, [body], [w, 0.8, h], null)
+				break
+			}
+			case 'weakwall': {
+				// a stretch of wall like the rest, but cracked through and patched: it gives way under fire
+				const [sides, top] = this.wallMaterials ?? [this.material(0x5d665a), this.material(0x3a3c38)]
+				const body = add(new THREE.Mesh(this.box, [sides, sides, top, top, sides, sides]), WEAK_WALL_HEIGHT / 2)
+				body.scale.set(w, WEAK_WALL_HEIGHT, h)
+				body.receiveShadow = true
+				const crack = this.material(0x141614)
+				// jagged dark seams on both faces, standing a hair proud of the wall
+				const along = w >= h
+				const length = along ? w : h
+				for (let i = 0; i < 2 + Math.round(length); i++) {
+					const seam = new THREE.Mesh(this.box, crack)
+					const t = (((prop.index * 7 + i * 13) % 17) / 17 - 0.5) * (length - 0.4)
+					const y = 0.6 + (((prop.index * 5 + i * 11) % 13) / 13) * 2
+					const tilt = (((prop.index + i * 3) % 7) / 7 - 0.5) * 2.2
+					const tall = 0.9 + (i % 3) * 0.35
+					if (along) {
+						seam.scale.set(0.06, tall, h + 0.04)
+						seam.rotation.z = tilt
+						seam.position.set(t, y, 0)
+					} else {
+						seam.scale.set(w + 0.04, tall, 0.06)
+						seam.rotation.x = tilt
+						seam.position.set(0, y, t)
+					}
+					root.add(seam)
+				}
 				break
 			}
 			case 'door': {

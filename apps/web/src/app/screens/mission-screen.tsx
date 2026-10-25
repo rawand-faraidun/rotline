@@ -7,7 +7,7 @@ import {
 	loadGraphicsSetting,
 	saveGraphicsSetting
 } from '@rotline/client'
-import { missionById, player as playerDef, SURVIVAL_MAP, zombies } from '@rotline/game-data'
+import { missionById, missionFor, missionMap, player as playerDef, survivalMap, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -448,6 +448,9 @@ function Toasts({ hud }: { hud: HudState }) {
 					{toast.kind === 'threshold' && (
 						<span className="font-bold text-warning">{format(t.threshold, { salvage: toast.text })}</span>
 					)}
+					{toast.kind === 'secret' && (
+						<span className="font-bold text-warning uppercase tracking-wide">{t.secretFound}</span>
+					)}
 					{toast.kind === 'resupply' && (
 						<span className="font-bold text-rot-lime uppercase tracking-wide">
 							{toast.text === '0'
@@ -709,7 +712,9 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					return
 				}
 				const { ticket, path, direct } = issued
-				const map = range ? 'range' : (missionById(issued.mission?.id ?? '')?.map ?? SURVIVAL_MAP)
+				// a contract runs on the map its room picked; Survival on the arena the leader chose
+				const layout = !range && issued.mission ? missionFor(issued.mission.id, issued.room) : undefined
+				const map = range ? 'range' : layout ? missionMap(layout) : survivalMap(issued.arena)
 				// the engine and its assets load only now, never on the landing page or lobby
 				const { startGame } = await import('@rotline/client')
 				if (cancelled || !canvasRef.current) return
@@ -720,7 +725,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					url: [...(direct ? [direct] : []), `${protocol}//${location.host}${path}`],
 					ticket,
 					assets: '/assets',
-					map
+					map,
+					room: issued.room
 				})
 				setHandle(game)
 				await game.ready

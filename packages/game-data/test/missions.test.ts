@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { Mastery, type MissionDef, masteryFor, minimumSeconds, missionById, missions } from '../src/index.ts'
+import {
+	isSurvival,
+	Mastery,
+	type MissionDef,
+	maps,
+	masteryFor,
+	minimumSeconds,
+	missionById,
+	missionFor,
+	missionLayouts,
+	missionMap,
+	missions,
+	SURVIVAL_ARENAS,
+	survivalMap
+} from '../src/index.ts'
 
 const full = missionById('yard-sweep') as MissionDef
 /** Rail Yard without its optional objective */
@@ -43,5 +57,38 @@ describe('mission mastery', () => {
 	it('knows the fastest possible time of every mission', () => {
 		expect(minimumSeconds(sweep)).toBe(71)
 		for (const mission of missions) expect(minimumSeconds(mission)).toBeLessThan(mission.parTimeSeconds)
+	})
+})
+
+describe('maps for each run', () => {
+	it('gives a contract one of its maps per room, the same one every time, and spreads rooms over all of them', () => {
+		const layouts = missionLayouts.get('hotspot') ?? []
+		expect(layouts.length).toBeGreaterThan(1)
+		expect(missionFor('hotspot', 'squad-a')).toBe(missionFor('hotspot', 'squad-a'))
+		const seen = new Set<string>()
+		for (let i = 0; i < 400; i++) seen.add(missionFor('hotspot', `squad-${i}`)?.map ?? '')
+		expect([...seen].sort()).toEqual(layouts.map(layout => layout.map).sort())
+		// a variant keeps the mission's id and rules, only the place changes
+		for (const layout of layouts) {
+			expect(layout.id).toBe('hotspot')
+			expect(layout.timeLimitSeconds).toBe(missionById('hotspot')?.timeLimitSeconds)
+		}
+		expect(missionFor('nope', 'squad-a')).toBeUndefined()
+	})
+
+	it("lays a variant's own props on its map, leaving the map itself as it is", () => {
+		const docks = missionLayouts.get('supply-run')?.find(layout => layout.map === 'docks') as MissionDef
+		expect(missionMap(docks).props?.some(prop => prop.id === 'crate-quay')).toBe(true)
+		expect(maps.docks?.props?.some(prop => prop.id === 'crate-quay')).toBe(false)
+	})
+
+	it('offers Survival on several maps, the first by default', () => {
+		expect(SURVIVAL_ARENAS.length).toBeGreaterThanOrEqual(3)
+		for (const arena of SURVIVAL_ARENAS) {
+			expect(isSurvival(arena.id)).toBe(true)
+			expect(maps[survivalMap(arena.id)]).toBeDefined()
+		}
+		expect(isSurvival('hotspot')).toBe(false)
+		expect(survivalMap(undefined)).toBe(SURVIVAL_ARENAS[0].map)
 	})
 })

@@ -9,9 +9,11 @@ import {
 	economy,
 	gear,
 	items,
+	type MapDef,
 	type MissionDef,
 	maps,
 	missionById,
+	missionFor,
 	propsDef,
 	weapons,
 	zombies as zombieDefs
@@ -84,8 +86,10 @@ export type GameOptions = {
 	/** where the game's models live, e.g. "/assets" */
 	assets: string
 	gore?: boolean
-	/** the map to draw: the mission's map, or 'range' for the firing range */
-	map?: string
+	/** the map to draw: the mission's map (with its props), an id, or 'range' for the firing range */
+	map?: string | MapDef
+	/** the room the ticket is for: a contract's map (and so its objectives) depends on it */
+	room?: string
 	/** floating damage numbers for your own hits (always on in the firing range) */
 	damageNumbers?: boolean
 }
@@ -118,7 +122,10 @@ const TOAST_MS = 4000
 /** Starts a mission client: connects, predicts, interpolates and draws until stopped. */
 export function startGame(options: GameOptions): GameHandle {
 	const hud = new HudStore()
-	const map = (maps[options.map ?? 'yard'] ?? maps.yard) as NonNullable<typeof maps.yard>
+	const map = (
+		typeof options.map === 'object' ? options.map : (maps[options.map ?? 'yard'] ?? maps.yard)
+	) as NonNullable<typeof maps.yard>
+	const range = map.id === 'range'
 	const grid = new Grid(map)
 	// the map's props, kept in step with the server's (their blocking cells match its grid)
 	const props = createProps(map, grid)
@@ -127,7 +134,13 @@ export function startGame(options: GameOptions): GameHandle {
 	stage.scene.add(spawnHoles(map.zombieSpawns))
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene, options.assets)
-	const propRenderer = new PropRenderer(stage.scene, props, options.assets, stage.quality !== 'low')
+	const propRenderer = new PropRenderer(
+		stage.scene,
+		props,
+		options.assets,
+		stage.quality !== 'low',
+		stage.wallMaterials
+	)
 	// the map's scenery: wrecks, cars, barriers, lamps, fires
 	const decor = new Decor(
 		stage.scene,
@@ -139,7 +152,7 @@ export function startGame(options: GameOptions): GameHandle {
 		stage.quality !== 'low'
 	)
 	stage.scene.add(groundMarks(map))
-	const showNumbers = options.damageNumbers ?? options.map === 'range'
+	const showNumbers = options.damageNumbers ?? range
 	const numbers = showNumbers ? new DamageNumbers(stage.scene) : null
 	const ownHits: { at: number; amount: number }[] = []
 	const barricades = new Map<number, number[]>()
@@ -321,7 +334,7 @@ export function startGame(options: GameOptions): GameHandle {
 				ARMOUR_PIECES.map(piece => build.loadout.armour[piece]?.id ?? null)
 			)
 			stage.scene.add(me.group)
-			mission = missionById(missionId) ?? null
+			mission = (options.room ? missionFor(missionId, options.room) : missionById(missionId)) ?? null
 			rewardScale = difficultyDef(difficulty as DifficultyId)?.rewards ?? 1
 			markers?.dispose()
 			markers = mission ? new MissionMarkers(stage.scene, mission) : null
@@ -855,7 +868,7 @@ export function startGame(options: GameOptions): GameHandle {
 	/** What interact would do where the player stands (the same rules the server applies). */
 	let lastHint: InteractHint | null = null
 	// the firing range charges nothing for ammo (nobody scores there)
-	const ammoPrice = options.map === 'range' ? 0 : propsDef.ammo.price
+	const ammoPrice = range ? 0 : propsDef.ammo.price
 	function interactHint(state: PlayerState): InteractHint | null {
 		let best: InteractHint | null = null
 		if (state.alive && !state.downed) {

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { AvatarStyle } from '@rotline/constants'
-import { difficulties, missionById, SURVIVAL } from '@rotline/game-data'
+import { difficulties, isSurvival, missionById, SURVIVAL } from '@rotline/game-data'
 import { AvatarFrame, Badge, Button, cn, Input, Label, Panel } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
@@ -26,7 +26,7 @@ import { StableLabel } from './stable-label.tsx'
 const t = en.app.lobby
 
 const pictureOf = (id: string | null | undefined) => (id ? itemPicture(id) : null)
-const isContract = (id: string) => id !== SURVIVAL && isMode(id)
+const isContract = (id: string) => !isSurvival(id) && isMode(id)
 
 /** Simple line drawings for the hub tiles that have no item to show. */
 const GLYPHS = {
@@ -215,8 +215,9 @@ export function LobbyScreen() {
 	const isLeader = view?.leader === view?.you
 	const solo = (view?.members.length ?? 1) === 1
 	const inviteLink = view ? `${location.origin}/play/lobby?join=${view.code}` : ''
-	const missionName =
-		view?.mission.id === SURVIVAL ? en.app.missions.survival : (missionById(view?.mission.id ?? '')?.name ?? '')
+	const missionName = isSurvival(view?.mission.id)
+		? `${en.app.missions.survival} · ${en.app.missions.arenas[view.mission.id].name}`
+		: (missionById(view?.mission.id ?? '')?.name ?? '')
 	const difficultyName = difficulties.tiers.find(tier => tier.id === view?.mission.difficulty)?.name ?? ''
 
 	const deployBar = (
@@ -324,8 +325,8 @@ export function LobbyScreen() {
 								</span>
 								<span className="font-display text-4xl uppercase">{missionName}</span>
 								<span className="text-muted text-sm">
-									{view.mission.id === SURVIVAL
-										? en.app.missions.endless
+									{isSurvival(view.mission.id)
+										? `${en.app.missions.endless} · ${en.app.missions.arenas[view.mission.id].description}`
 										: `${difficultyName} · ${missionById(view.mission.id)?.description ?? ''}`}
 								</span>
 							</button>
@@ -336,12 +337,17 @@ export function LobbyScreen() {
 							<div className="grid grid-cols-3 gap-3">
 								<button
 									type="button"
-									disabled={!view || !isLeader || view.state !== 'lobby' || view.mission.id === SURVIVAL}
-									onClick={() => void act(() => partyActions.mission(SURVIVAL, view?.mission.difficulty ?? 'veteran'))}
+									disabled={!view}
+									onClick={() =>
+										// the first arena straight away; the panel offers the others
+										isLeader && view?.state === 'lobby' && !isSurvival(view.mission.id)
+											? void act(() => partyActions.mission(SURVIVAL, view.mission.difficulty))
+											: setPicking('modes')
+									}
 									className={cn(
 										'frame cut flex flex-col gap-1 p-4 text-left disabled:cursor-default hover:[--frame-color:var(--color-bone)]',
 										glass,
-										view?.mission.id === SURVIVAL && '[--frame-color:var(--color-rot-lime)]'
+										isSurvival(view?.mission.id) && '[--frame-color:var(--color-rot-lime)]'
 									)}
 								>
 									<span className="font-display text-2xl uppercase">{en.app.missions.survival}</span>

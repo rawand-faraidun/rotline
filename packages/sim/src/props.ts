@@ -18,7 +18,8 @@ export const PropKind: Record<PropKindId, number> = {
 	carry: 11,
 	defend: 12,
 	nest: 13,
-	ammo: 14
+	ammo: 14,
+	weakwall: 15
 }
 
 /** What a prop is doing. Not every state applies to every kind. */
@@ -86,6 +87,7 @@ const cellsOf = (def: MapProp, width: number): number[] => {
 const CELL_KINDS = new Set<PropKindId>([
 	'barrel',
 	'crate',
+	'weakwall',
 	'sandbags',
 	'door',
 	'generator',
@@ -111,6 +113,8 @@ function startHealth(def: MapProp): number {
 			return propsDef.barrel.health
 		case 'crate':
 			return propsDef.crate.health
+		case 'weakwall':
+			return propsDef.weakwall.health
 		case 'sandbags':
 			return propsDef.sandbags.health
 		case 'door':

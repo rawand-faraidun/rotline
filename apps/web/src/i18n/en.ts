@@ -576,7 +576,7 @@ export const en = {
 				shop: 'Shop',
 				profile: 'Profile'
 			},
-			survivalHint: 'Endless waves at the Crossroads. How long can you last?',
+			survivalHint: 'Endless waves on one of three maps. How long can you last?',
 			contractsHint: 'Three-minute jobs for a quick payout.',
 			rangeHint: 'Try your guns on targets and zombies.',
 			modes: 'Game modes',
@@ -657,7 +657,24 @@ export const en = {
 			survival: 'Survival',
 			endless: 'Endless',
 			survivalDescription:
-				'Endless waves at the Crossroads, a market town gone dark. Every wave is bigger than the last, and every fifth brings Brutes. Hold the square, fall back to the church, the flats, the car park or the petrol station, and last as long as you can.',
+				'Endless waves, each bigger than the last, and every fifth brings Brutes. Pick the map, hold your ground, fall back when it breaks, and last as long as you can. Cracked walls hide rooms worth finding.',
+			arenas: {
+				survival: {
+					name: 'Old Town',
+					description:
+						'A walled old town at dusk: the town hall and its courtyard in the middle, the church and its graveyard, the covered market, the mill and the terraced lanes.'
+				},
+				'survival-glasshouse': {
+					name: 'Glasshouse',
+					description:
+						'The botanical gardens after dark: the great palm house, hedge mazes, the rose garden, the potting sheds and the old orangery.'
+				},
+				'survival-docks': {
+					name: 'Docks',
+					description:
+						'A container port at night: lanes between the stacks, the warehouses, the crane yard and the quay where the last ship never left.'
+				}
+			},
 			contracts: 'Contracts',
 			contractsDescription: 'Short, sharp jobs of three or four minutes, for a quick payout.'
 		},
@@ -729,6 +746,7 @@ export const en = {
 			buffBy: '{name} — from {by}',
 			threshold: 'Score bonus: +{salvage} Salvage and health',
 			resupply: 'Ammo refilled',
+			secretFound: 'Secret found: a hidden room is open',
 			ammoFree: 'Hold E — refill ammo',
 			resupplyPaid: 'Ammo refilled (−{price} score)',
 			results: {
