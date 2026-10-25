@@ -190,6 +190,40 @@ describe('props', () => {
 		expect(trap.state).toBe(PropState.idle)
 	})
 
+	it('in Survival, runs a generator on a tank of fuel: dry, its turret goes dark until it is started again', () => {
+		const world = new World({
+			seed: 1,
+			survival: true,
+			map: room([
+				{ id: 'generator', kind: 'generator', x: 5, y: 5, w: 2, h: 2 },
+				{ id: 'turret', kind: 'turret', x: 10, y: 15, powerBy: 'generator' }
+			]),
+			waves: quiet
+		})
+		const generator = world.propById.get('generator')
+		const turret = world.propById.get('turret')
+		if (!generator || !turret) throw new Error()
+		const player = world.addPlayer(1)
+		player.x = 6
+		player.y = 7.8
+		steps(world, Math.round(propsDef.generator.holdSeconds * TICK_RATE) + 2, () => hold())
+		steps(world, Math.round(propsDef.generator.startSeconds * TICK_RATE) + 2)
+		expect(generator.state).toBe(PropState.done)
+		expect(turret.powered).toBe(true)
+		// the bar shows the fuel left, draining
+		expect(generator.progress).toBeGreaterThan(0.95)
+		steps(world, Math.round((propsDef.generator.fuelSeconds * TICK_RATE) / 2))
+		expect(generator.progress).toBeCloseTo(0.5, 1)
+		steps(world, Math.round((propsDef.generator.fuelSeconds * TICK_RATE) / 2) + 2)
+		expect(generator.state).toBe(PropState.idle)
+		steps(world, 1)
+		expect(turret.powered).toBe(false)
+		// started again, it runs again
+		world.step(new Map([[1, input()]]))
+		steps(world, Math.round(propsDef.generator.holdSeconds * TICK_RATE) + 2, () => hold())
+		expect(generator.state).toBe(PropState.active)
+	})
+
 	it('frees a survivor who then follows, and lets one player carry an object (slower)', () => {
 		const world = new World({
 			seed: 1,

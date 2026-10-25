@@ -71,7 +71,8 @@ export function loadSoldier(url: string): Promise<Soldier | null> {
 	return soldier
 }
 
-function loadWeapon(url: string): Promise<THREE.Object3D | null> {
+/** A weapon model (muzzle along +X, grip down, real size), loaded once per file. */
+export function loadWeapon(url: string): Promise<THREE.Object3D | null> {
 	let model = weaponModels.get(url)
 	if (!model) {
 		model = loader

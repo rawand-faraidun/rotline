@@ -1,13 +1,16 @@
 import { liveInstances, notify, type Seats, type Valkey } from '@rotline/state'
 import type { Logger } from 'pino'
 
-/** Ticks above this (p99 over the last few seconds) count as an unhealthy game server. */
-const SLOW_TICK_MS = 10
+/**
+ * A game server counts as overloaded when more than this share of its ticks ran over budget in the
+ * last few seconds. One slow tick (a garbage collection, a room starting) is not overload.
+ */
+const SLOW_SHARE = 0.05
 const LOCK_KEY = 'queue:ticker'
 
 /**
  * Once a second, exactly one queue process (holding a short Valkey lock) hands admission passes to
- * the front of the queue, and adjusts the effective capacity: while any game server ticks slowly it
+ * the front of the queue, and adjusts the effective capacity: while any game server is overloaded it
  * drops by 10 % a minute (never below half), then recovers by one seat a minute.
  */
 export function startTicker(valkey: Valkey, seats: Seats, log: Logger, instanceId: string): () => void {
@@ -23,7 +26,7 @@ export function startTicker(valkey: Valkey, seats: Seats, log: Logger, instanceI
 		if (now - lastAdjust >= 60_000) {
 			lastAdjust = now
 			const capacity = await seats.capacity()
-			const slow = (await liveInstances(valkey)).some(instance => instance.tickMaxMs > SLOW_TICK_MS)
+			const slow = (await liveInstances(valkey)).some(instance => instance.tickSlowShare > SLOW_SHARE)
 			const current = effective ?? capacity
 			const next = slow
 				? Math.max(Math.ceil(capacity / 2), current - Math.ceil(capacity * 0.1))

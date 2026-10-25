@@ -8,6 +8,8 @@ export type InstanceInfo = {
 	draining: boolean
 	/** slowest tick since the last announcement, ms */
 	tickMaxMs: number
+	/** share of the ticks since the last announcement that ran over budget (0..1): sustained load, not one spike */
+	tickSlowShare: number
 	updated: number
 }
 
@@ -40,6 +42,7 @@ export async function liveInstances(valkey: Valkey): Promise<InstanceInfo[]> {
 			players: Number(raw.players),
 			draining: raw.draining === '1',
 			tickMaxMs: Number(raw.tickMaxMs ?? 0),
+			tickSlowShare: Number(raw.tickSlowShare ?? 0),
 			updated: Number(raw.updated)
 		})
 	}

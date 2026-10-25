@@ -200,6 +200,105 @@
 			"triangles": 1500
 		},
 		{
+			"kind": "scene-statue",
+			"source": "horse_statue_01",
+			"name": "Horse Statue 01",
+			"author": "Rico Cilliers",
+			"triangles": 4000,
+			"tint": [0.42, 0.36, 0.28]
+		},
+		{
+			"kind": "scene-bench",
+			"source": "painted_wooden_bench",
+			"name": "Painted Wooden Bench",
+			"author": "Kirill Sannikov",
+			"triangles": 630
+		},
+		{
+			"kind": "scene-hydrant",
+			"source": "fire_hydrant",
+			"name": "Fire Hydrant",
+			"author": "Gonçalo Felício",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-payphone",
+			"source": "korean_public_payphone_01",
+			"name": "Korean Public Payphone 01",
+			"author": "UM JOORIN",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-planter",
+			"source": "planter_box_01",
+			"name": "Planter Box 01",
+			"author": "James Ray Cock",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-shrub",
+			"source": "shrub_02",
+			"name": "Shrub 02",
+			"author": "Rico Cilliers",
+			"triangles": 4000
+		},
+		{
+			"kind": "scene-cafe",
+			"source": "outdoor_table_chair_set_01",
+			"name": "Outdoor Table Chair Set 01",
+			"author": "James Ray Cock",
+			"triangles": 3000
+		},
+		{
+			"kind": "scene-coffee-cart",
+			"source": "CoffeeCart_01",
+			"name": "Coffee Cart 01",
+			"author": "Joe Seabuhr",
+			"triangles": 4000
+		},
+		{
+			"kind": "scene-aircon",
+			"source": "exterior_aircon_unit",
+			"name": "Exterior Aircon Unit",
+			"author": "Monsta3D",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-manhole",
+			"source": "water_manhole_cover",
+			"name": "Water Manhole Cover",
+			"author": "Raunox",
+			"triangles": 800
+		},
+		{
+			"kind": "scene-firepit",
+			"source": "stone_fire_pit",
+			"name": "Stone Fire Pit",
+			"author": "Sebastian Platen",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-barrels",
+			"source": "wooden_barrels_01",
+			"name": "Wooden Barrels 01",
+			"author": "James Ray Cock",
+			"triangles": 4000
+		},
+		{
+			"kind": "scene-picnic",
+			"source": "wooden_picnic_table",
+			"name": "Wooden Picnic Table",
+			"author": "Ulan Cabanilla",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-dead-tree",
+			"source": "dead_tree_trunk",
+			"name": "Dead Tree Trunk",
+			"author": "Rob Tuytel",
+			"triangles": 3000
+		},
+		{
 			"kind": "item-ammo",
 			"uid": "280b2457431348768f19c61b74f26dbc",
 			"name": "Ammo Box",

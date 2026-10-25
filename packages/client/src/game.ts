@@ -283,6 +283,13 @@ export function startGame(options: GameOptions): GameHandle {
 	let modelReady = false
 	let snapshotReady = false
 	const checkReady = () => modelReady && snapshotReady && markReady()
+	// once the models are in, every shader is compiled up front (and again when late models have
+	// arrived), so the first explosion, flame or corpse does not freeze a frame mid-fight
+	void ready.then(() => {
+		if (stopped) return
+		stage.warmUp()
+		window.setTimeout(() => !stopped && stage.warmUp(), 5000)
+	})
 
 	void ZombieRenderer.load(`${options.assets}/models/characters/zombie.glb`).then(renderer => {
 		if (stopped) return
@@ -484,9 +491,11 @@ export function startGame(options: GameOptions): GameHandle {
 						const behaviour = weapon?.behaviour.type ?? 'hitscan'
 						// our own bullets and flames are already drawn (and heard) when predicted; lightning is drawn from here
 						if (event.player === you && behaviour !== 'chain') break
-						// sentries and turrets (player 0) sound like a light rifle
-						if (event.player === 0) audio.sound('rifle', { x: event.x, y: event.y, rate: 1.3, volume: 0.45 })
-						else if (event.player !== you) {
+						// sentries and turrets (player 0) sound like a light rifle; a map turret turns to its target
+						if (event.player === 0) {
+							audio.sound('rifle', { x: event.x, y: event.y, rate: 1.3, volume: 0.45 })
+							propRenderer.aimTurret(event.x, event.y, event.angle, now)
+						} else if (event.player !== you) {
 							shotSound(event.weapon, { x: event.x, y: event.y })
 							others.get(event.player)?.fired()
 							lastFired.set(event.player, { weapon: event.weapon, at: now * 1000 })

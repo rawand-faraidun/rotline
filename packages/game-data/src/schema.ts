@@ -683,7 +683,9 @@ export const propsDataSchema = z.object({
 	generator: z.object({
 		holdSeconds: z.number().positive(),
 		startSeconds: z.number().min(0),
-		health: z.number().positive()
+		health: z.number().positive(),
+		/** Survival: how long a started generator runs before it needs starting again (missions: for good) */
+		fuelSeconds: z.number().positive()
 	}),
 	terminal: z.object({ holdSeconds: z.number().positive() }),
 	turret: z.object({

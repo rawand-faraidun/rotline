@@ -5,7 +5,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { outfitFor, wear } from './outfits.ts'
-import { loadSoldier, soldierUrl } from './players.ts'
+import { loadSoldier, loadWeapon, soldierUrl } from './players.ts'
 
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
 const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
@@ -167,9 +167,65 @@ export class PropRenderer {
 				break
 			}
 			case 'turret': {
-				add(new THREE.Mesh(this.cylinder, this.material(0x3a443b)), 0.4).scale.set(0.8, 0.8, 0.8)
-				glow = this.material(0x6b6b6b, 0x000000)
-				add(new THREE.Mesh(this.box, glow), 0.95).scale.set(0.2, 0.2, 0.9)
+				// a mounted M134: a tripod and post, a swivelling cradle with its ammunition box, and the
+				// minigun on top, turning to whatever it fires at
+				const steel = this.material(0x2b2f2b)
+				for (let leg = 0; leg < 3; leg++) {
+					const angle = (leg / 3) * Math.PI * 2
+					const strut = add(new THREE.Mesh(this.cylinder, steel), 0.42)
+					strut.scale.set(0.07, 0.95, 0.07)
+					strut.position.set(Math.cos(angle) * 0.32, 0.4, Math.sin(angle) * 0.32)
+					strut.rotation.set(Math.sin(angle) * 0.62, 0, -Math.cos(angle) * 0.62)
+				}
+				add(new THREE.Mesh(this.cylinder, steel), 0.55).scale.set(0.14, 1.1, 0.14)
+				const head = new THREE.Group()
+				head.position.y = 1.08
+				root.add(head)
+				const cradle = new THREE.Mesh(this.box, this.material(0x3a4038))
+				cradle.scale.set(0.36, 0.16, 0.3)
+				cradle.castShadow = true
+				head.add(cradle)
+				const ammo = new THREE.Mesh(this.box, this.material(0x4a5236))
+				ammo.scale.set(0.3, 0.26, 0.2)
+				ammo.position.set(-0.08, 0.02, 0.27)
+				ammo.castShadow = true
+				head.add(ammo)
+				// a lamp on the cradle: dark without power, lit once its generator runs
+				glow = this.material(0x1a1a1a, 0x000000)
+				const lamp = new THREE.Mesh(this.box, glow)
+				lamp.scale.set(0.08, 0.06, 0.08)
+				lamp.position.set(-0.14, 0.11, -0.1)
+				head.add(lamp)
+				// a plain barrel until the gun's model has loaded (or if it cannot)
+				const stand = new THREE.Mesh(this.box, this.material(0x55595a))
+				stand.scale.set(0.9, 0.14, 0.14)
+				stand.position.set(0.3, 0.14, 0)
+				head.add(stand)
+				// a heavy emplacement, a little larger than a soldier's own gun
+				root.scale.setScalar(1.25)
+				root.userData.head = head
+				root.userData.aim = 0
+				root.userData.firedAt = -1
+				if (this.models)
+					void loadWeapon(`${this.assets}/models/weapons/minigun.glb`).then(loaded => {
+						if (!loaded || !root.parent) return
+						const gun = loaded.clone()
+						gun.traverse(node => {
+							if ((node as THREE.Mesh).isMesh) {
+								node.castShadow = true
+								node.userData.shared = true
+							}
+						})
+						const box = new THREE.Box3().setFromObject(gun)
+						// pivot a little behind the middle, sitting on the cradle
+						gun.position.set(
+							-box.min.x - (box.max.x - box.min.x) * 0.38,
+							0.08 - box.min.y * 0.6,
+							-(box.min.z + box.max.z) / 2
+						)
+						head.remove(stand)
+						head.add(gun)
+					})
 				break
 			}
 			case 'floodlight': {
@@ -287,6 +343,18 @@ export class PropRenderer {
 		return { root, bar, glow, light, lastState: -1 }
 	}
 
+	/** A map turret at (x, y) fired along `angle` (radians on the map): its gun turns that way. */
+	aimTurret(x: number, y: number, angle: number, timeSeconds: number): void {
+		for (const drawn of this.drawn) {
+			const root = drawn.root
+			if (!root.userData.head) continue
+			if (Math.abs(root.position.x - x) > 0.6 || Math.abs(root.position.z - y) > 0.6) continue
+			root.userData.aim = -angle
+			root.userData.firedAt = timeSeconds
+			return
+		}
+	}
+
 	private bar(root: THREE.Group, height: number): THREE.Mesh {
 		const back = new THREE.Mesh(BAR, new THREE.MeshBasicMaterial({ color: 0x0d100e, depthTest: false }))
 		back.position.y = height
@@ -340,13 +408,36 @@ export class PropRenderer {
 					if (prop.state === PropState.active) {
 						drawn.glow?.emissive.setHex(0xffa020)
 						if (drawn.glow) drawn.glow.emissiveIntensity = 0.6 + 0.4 * Math.sin(timeSeconds * 8)
+					} else if (prop.state === PropState.done && prop.progress > 0 && prop.progress < 0.2) {
+						// running dry (Survival): amber, blinking, until someone starts it again
+						drawn.glow?.emissive.setHex(0xffa020)
+						if (drawn.glow) drawn.glow.emissiveIntensity = Math.sin(timeSeconds * 10) > 0 ? 1 : 0.2
 					} else {
 						drawn.glow?.emissive.setHex(prop.state === PropState.done ? 0xb8f23c : 0xff3a2a)
 						if (drawn.glow) drawn.glow.emissiveIntensity = 1
 					}
-					this.setBar(drawn.bar, prop.state === PropState.done ? 0 : prop.progress)
+					// a hold's progress, a generator running up, or (Survival) the fuel left in a running one
+					this.setBar(drawn.bar, prop.progress)
 					break
-				case 'turret':
+				case 'turret': {
+					drawn.glow?.emissive.setHex(prop.powered ? 0xb8f23c : 0x000000)
+					const head = root.userData.head as THREE.Group | undefined
+					if (head) {
+						// it turns to its last target; idle and powered it sweeps slowly; without power the gun droops
+						const firedAt = root.userData.firedAt as number
+						const idle = firedAt < 0 || timeSeconds - firedAt > 1.5
+						const want =
+							idle && prop.powered
+								? (root.userData.aim as number) + Math.sin(timeSeconds * 0.6) * 0.6
+								: (root.userData.aim as number)
+						let delta = want - head.rotation.y
+						delta = Math.atan2(Math.sin(delta), Math.cos(delta))
+						head.rotation.y += delta * (1 - Math.exp(-(idle ? 2 : 18) * dt))
+						const droop = prop.powered ? 0 : -0.18
+						head.rotation.z += (droop - head.rotation.z) * (1 - Math.exp(-4 * dt))
+					}
+					break
+				}
 				case 'floodlight':
 					drawn.glow?.emissive.setHex(prop.powered ? 0xfff2cc : 0x000000)
 					if (drawn.light) drawn.light.intensity = prop.powered ? 40 : 0
@@ -406,7 +497,8 @@ export class PropRenderer {
 			this.scene.remove(drawn.root)
 			drawn.root.traverse(node => {
 				const mesh = node as THREE.Mesh
-				if (mesh.material) (mesh.material as THREE.Material).dispose()
+				// a weapon model's materials are shared with the soldiers' guns
+				if (mesh.material && !mesh.userData.shared) (mesh.material as THREE.Material).dispose()
 			})
 		}
 		this.box.dispose()

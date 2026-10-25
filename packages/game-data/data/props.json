@@ -21,15 +21,16 @@
 	"generator": {
 		"holdSeconds": 5,
 		"startSeconds": 20,
-		"health": 400
+		"health": 400,
+		"fuelSeconds": 75
 	},
 	"terminal": {
 		"holdSeconds": 6
 	},
 	"turret": {
-		"damage": 22,
-		"shotsPerSecond": 8,
-		"range": 16,
+		"damage": 15,
+		"shotsPerSecond": 6,
+		"range": 14,
 		"damageType": "ballistic"
 	},
 	"trap": {

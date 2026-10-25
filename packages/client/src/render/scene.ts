@@ -302,6 +302,8 @@ export class Stage {
 	private frames = 0
 	private framesSince = 0
 	private slowChecks = 0
+	private fastChecks = 0
+	private loweredAt = 0
 	/** the zoom the player chose (1 the usual view, smaller closer) and the one shown, easing toward it */
 	private zoom = loadZoom()
 	private shownZoom = this.zoom
@@ -477,11 +479,24 @@ export class Stage {
 		if (document.hidden || elapsed > 4000) return
 		if (fps < 50) {
 			this.slowChecks++
-			if (this.post?.occlusion && this.slowChecks >= 2) this.post.occlusion = false
+			this.fastChecks = 0
+			// two slow looks in a row before anything changes: one hitch is not a slow device
+			if (this.slowChecks < 2) return
+			this.loweredAt = now
+			if (this.post?.occlusion) this.post.occlusion = false
 			else if (this.resolution > 0.6) this.setResolution(Math.max(0.6, this.resolution * 0.85))
 		} else if (fps > 58) {
 			this.slowChecks = 0
-			if (this.resolution < 1) this.setResolution(Math.min(1, this.resolution * 1.1))
+			this.fastChecks++
+			// pixels come back slowly (a resize costs a frame): after 20 s at the lower setting and three
+			// fast looks in a row, so the picture never pumps up and down
+			if (this.resolution < 1 && this.fastChecks >= 3 && now - this.loweredAt > 20_000) {
+				this.fastChecks = 0
+				this.setResolution(Math.min(1, this.resolution * 1.1))
+			}
+		} else {
+			this.slowChecks = 0
+			this.fastChecks = 0
 		}
 	}
 
@@ -489,6 +504,25 @@ export class Stage {
 		this.resolution = resolution
 		this.renderer.setPixelRatio(this.basePixelRatio * resolution)
 		this.resize()
+	}
+
+	/**
+	 * Compiles every material in the scene now, hidden ones included (the first explosion, flame or
+	 * corpse would otherwise stall a frame while its shader compiles). Call when models have loaded.
+	 */
+	warmUp(): void {
+		const hidden: THREE.Object3D[] = []
+		this.scene.traverse(object => {
+			if (!object.visible) {
+				hidden.push(object)
+				object.visible = true
+			}
+		})
+		try {
+			this.renderer.compile(this.scene, this.camera)
+		} finally {
+			for (const object of hidden) object.visible = false
+		}
 	}
 
 	render(): void {
