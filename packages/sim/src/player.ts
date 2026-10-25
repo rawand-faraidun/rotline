@@ -38,6 +38,8 @@ export type PlayerState = {
 	bleedoutTick: number
 	/** downs since the last respawn; each one shortens the next bleed-out */
 	downs: number
+	/** times bled out this run: each one makes the next timed respawn (contracts) a little longer */
+	outs: number
 	/** revive progress while downed, 0..REVIVE_COMPLETE */
 	reviveProgress: number
 	respawnTick: number
@@ -154,6 +156,7 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 		downed: false,
 		bleedoutTick: 0,
 		downs: 0,
+		outs: 0,
 		reviveProgress: 0,
 		respawnTick: 0,
 		safeUntilTick: 0,

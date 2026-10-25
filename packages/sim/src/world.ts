@@ -40,6 +40,7 @@ import {
 	countKill,
 	createMission,
 	enemyScale,
+	failMission,
 	isActive,
 	type MissionSetup,
 	type MissionState,
@@ -90,7 +91,8 @@ export type SimEvent =
 	| { type: 'run-over'; wave: number }
 	| { type: 'checkpoint'; index: number }
 	| { type: 'mission-complete' }
-	| { type: 'mission-failed' }
+	/** the run is lost: the clock ran out, or a player alone used their last life */
+	| { type: 'mission-failed'; reason: 'time' | 'lives' }
 	/** an item (index into game-data items) found by one player; drops are per player */
 	| { type: 'item-found'; player: number; item: number }
 	| { type: 'cache'; player: number; index: number }
@@ -316,6 +318,8 @@ export class World {
 	readonly lastHitTick = new Uint32Array(MAX_ZOMBIES)
 	aliveCount = 0
 	kills = 0
+	/** deaths so far while playing alone (a squad does not count them) */
+	soloDeaths = 0
 	score = 0
 
 	// missions and Survival
@@ -465,7 +469,7 @@ export class World {
 			if (survivors.some(other => other.state !== PropState.destroyed)) return
 		}
 		this.events.push({ type: 'failed', index: prop.index })
-		this.wipe()
+		this.wipe('failed')
 	}
 
 	/**
@@ -534,7 +538,7 @@ export class World {
 	timeUp(): void {
 		if (!this.mission || this.finished) return
 		this.events.push({ type: 'failed', index: -1 })
-		this.wipe()
+		this.wipe('failed')
 	}
 
 	/** A zombie's body radius, by slot. */
@@ -759,7 +763,7 @@ export class World {
 		}
 		this.events.push({ type: 'player-down', player: state.id })
 		// nobody left standing (always the case solo): the squad restarts the wave
-		if (this.standing() === 0) this.wipe()
+		if (this.standing() === 0) this.wipe('death')
 	}
 
 	/** Revives in progress, and bleed-outs. Runs after everyone's input for the tick. */
@@ -770,10 +774,15 @@ export class World {
 				downed.downed = false
 				downed.alive = false
 				downed.reviveProgress = 0
-				// back with the next round (Survival, if someone finishes it) or at the next checkpoint
-				downed.respawnTick = NEVER
+				// back with the next round (Survival, if someone finishes it) or at the next checkpoint, or, in a
+				// run with no checkpoints to wait for (contracts), after a while that grows each time
+				const timed = this.mission?.def.respawn
+				downed.respawnTick = timed
+					? this.tick + Math.round(Math.min(timed.maxSeconds, timed.seconds + timed.step * downed.outs) * TICK_RATE)
+					: NEVER
+				downed.outs++
 				this.events.push({ type: 'player-out', player: downed.id })
-				if (this.standing() === 0) this.wipe()
+				if (this.standing() === 0) this.wipe('death')
 				continue
 			}
 			let reviver: PlayerState | null = null
@@ -814,11 +823,31 @@ export class World {
 		target.health = Math.min(target.stats.maxHealth, target.health + scaled)
 	}
 
-	/** Everyone is down or out: clear the board and restart the current wave (or objective). */
-	private wipe(): void {
+	/**
+	 * Lives left playing alone (`soloLives` deaths lose the run), or null in a squad, where nobody
+	 * counts deaths: the fallen wait to be revived, or for the next checkpoint or round.
+	 */
+	get livesLeft(): number | null {
+		if (this.players.size !== 1 || this.range) return null
+		return Math.max(0, playerDef.soloLives - this.soloDeaths)
+	}
+
+	/**
+	 * Everyone is down or out (`death`), or the objective failed: clear the board and restart the
+	 * current wave (or objective). Alone, deaths are counted: the last life loses the run.
+	 */
+	private wipe(reason: 'death' | 'failed'): void {
 		if (this.finished) return
-		// Survival: a wipe ends the run
-		if (this.survival) {
+		const solo = this.players.size === 1
+		if (solo && reason === 'death') this.soloDeaths++
+		const outOfLives = solo && this.soloDeaths >= playerDef.soloLives
+		if (this.mission && outOfLives) {
+			failMission(this, this.mission, 'lives')
+			return
+		}
+		// Survival: a wipe ends the run in a squad, and alone at the last life (before that, alone, the
+		// round starts again)
+		if (this.survival && (!solo || outOfLives || reason !== 'death')) {
 			for (const state of this.players.values()) {
 				state.downed = false
 				state.alive = false

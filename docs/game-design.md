@@ -220,3 +220,247 @@ An objective is a data record (type, parameters, triggers, rewards) plus one sma
 | 8 | **Lifeline** | Harrow General (80 × 80 m, an atrium and four corridors) | a 15-minute run: clear the atrium; down corridor Alpha to its switch; clear the atrium again; Bravo; clear it again; Charlie; clear it one more time; Delta; kill two Brutes in the atrium; out through the ambulance bay (45 s). Each corridor opens only once the atrium is clear; a sealed store behind boxes holds a cache | kill 250 |
 | 9 | **The Minister** | Hill House (72 × 92 m) | a 9½-minute rescue: get into the house; clear its halls (kill 30); override the safe room lock from the kitchen; walk the minister to the helipad on the lawn; hold the pad 45 s; kill the Brute on the lawn; on the chopper (30 s). A generator in the garden wakes the helipad's turrets | kill 200 |
 | 10 | **Cure** | Harrow Metro (64 × 150 m, four areas closed behind the squad) | an 11½-minute run: clear the station entrance; open the platform gates from the ticket office; through the stopped train to the far platform (the hall has fallen in); power the blast door; find on the index terminal which lab holds the cure; carry it from lab four to the roof pad; kill the Brute on the pad; on the bird (45 s). A dead train on the other track holds a nest and a cache | kill 200 |
+
+Every mission has a briefing (shown while it loads), a radio line from the squad's handler or a survivor when each step starts and ends, and a debrief on the results screen.
+
+### Objective types
+
+| Type | Done when |
+|---|---|
+| Kill | The squad has killed a set number of zombies, or of one type ("kill the Brute") |
+| Reach | A standing player who is playing (not idle) enters an area |
+| Hold | A standing, playing player has been in an area for a set time; the timer runs only while someone is there |
+| Survive | A set time has passed; the clock stops while the whole squad is down |
+| Interact | Every listed generator or terminal has been worked (a generator counts once it has finished starting up) |
+| Defend | A defend target has stood for a set time; the clock stops while the whole squad is down. Losing the target fails the objective |
+| Rescue | Every listed survivor is either safe (walked into the area) or lost, and at least one is safe. Losing every survivor fails the objective |
+| Retrieve | An object has been carried into the area |
+| Destroy | Every listed nest has been destroyed |
+| Extract | Every player who is standing and playing (not away, and active within the last 15 s) is inside the area at once, with at least one there, before the timer runs out; the timer stops while the whole squad is down. Running out of time fails the objective |
+
+Optional objectives can be kill or interact objectives.
+
+### How a mission runs
+
+- Steps come one at a time. Each one completed gives 1,000 score to every player who has played in the last 60 seconds and pays its reward (section 6), the first time only.
+- Optional objectives run from the start, alongside the steps. Each pays once when done: 1,500 score to every player who has played in the last 60 seconds, plus 150 XP and 150 Salvage (section 6), and it counts toward mastery (section 18). An optional kill objective counts every kill since the mission began. Every mission has one optional objective now.
+- A step marked as a checkpoint saves progress when done and brings everyone back: players who bled out return, downed players get up, everyone is at full health, and utility charges and the Defibrillator refill. Players coming back, and players joining a mission under way, appear at the last checkpoint: the objective's area, or a point the mission names.
+- A squad wipe returns to the last checkpoint, with that step started again. So does a **failed** objective: a survivor or defend target lost, or an extraction timer run out. What the steps from that checkpoint on use (their generators, terminals, survivors, carried object and defend target) goes back to how it started; the rest of the map (opened or broken doors, broken cover, spent barrels) stays as it is.
+- Zombies arrive in a steady stream: the mission's spawn rate × the objective's spawn scale × the difficulty's enemy count × the squad-size scale, up to the mission's own cap (scaled the same way) and never more than 300 alive. They come from the spawn points of the map sections the current step names (every section when it names none). Nothing spawns while the whole squad is down.
+- Zombies go for the nearest player, or for the current step's survivors, its defend target or a generator it is starting up when one of those is nearer. Only the current step's props draw zombies, and losing one fails only that step.
+- **Gates** divide some maps into sections. A gate is a locked door that nobody can open, break or work; it opens when the objective the mission names is done, and it can close again behind the squad when a later step is done. When a gate closes, anyone left on the far side or standing in the doorway, survivors following the squad and objects still to be carried are brought to the gate's side point, and zombies shut out on the far side are gone.
+- **Ambushes**: a step can name an ambush, a burst of extra zombies (its count scaled by difficulty and squad size, at least one) that arrives as the step starts, three a tick while fewer than 292 are alive.
+- **Bosses**: a step can bring an elite (the Brute) onto the map when it starts, at a point the mission names or at a zombie spawn of the step's sections. While an elite is in view the HUD shows its name and a health bar.
+- **Timed missions**: a mission may run against a clock (Landfall: 12 minutes). The time left shows in the objective panel, red in the last minute; when it runs out the mission is lost. Everyone keeps the XP, Salvage and items earned on the way, but there is no completion reward, result or final item.
+- **Waypoint**: a marker shows where the current objective is, or the nearest nest, generator, survivor or object still to deal with. When it is out of view, an arrow on a ring around the middle of the screen points the way, with the distance.
+- When the last step is done the mission is complete: the board is cleared and nobody can be hurt. Each player sees their results screen (time, score, kills, XP, Salvage, downs, items found, mastery) for 20 seconds while the squad is already back in the lobby; then the room closes.
+
+### Objective rules (starting values)
+
+| Objective | Rules |
+|---|---|
+| **Restore power** (interact) | Hold interact on a generator for 5 s to start it; it then runs up for 20 s with 400 HP, and zombies go for it. Broken while running up, it stops at full health and must be started again. Blackout has three generators in the transformer yard, worked in any order; each also powers the turrets and floodlights wired to it |
+| Terminal (interact) | Hold interact for 6 s |
+| **Defend** | The target's health comes from the map (1,500 by default) and is restored to full when the defend step starts. Players repair it by holding interact (50 HP a second). Blackout: 70 s |
+| **Rescue** | Survivors (150 HP) wait where the map puts them; holding interact for 2 s frees one. A freed survivor follows the player who freed them (or the nearest standing player once that one is down or gone), keeping 2.2 m back at up to 4.2 m/s; a survivor stuck for 3 s catches up beside them. Only zombies hurt survivors |
+| **Retrieve** | Holding interact for 1 s picks the object up; a player carries one at a time and moves at 80 % speed. The object drops where its carrier goes down or leaves the mission, and stays there until someone picks it up |
+| **Timed extraction** (extract) | Everyone standing gets into the area before its clock runs out: 40 to 90 s, set per mission |
+| **Destroy nests** | A nest (2 × 2 m, 900 HP) sends out a zombie (Drudge 70 %, Crawler 30 %) every 4 s near the closest player while one is within 22 m, until it is destroyed. Only shots and explosions hurt it. A squad wipe or failed objective brings the step's nests back. Nests a mission does not use are not on the map |
+| Hold terminal (planned) | Stand in a 5 m zone while a 120 s upload runs; the timer pauses when the zone is empty |
+| Escort vehicle (planned) | A slow APC (2 m/s, 3,000 HP) that stops when no player is within 10 m |
+
+How this differs from the brief's sketch, as the game stands: survivors do not panic or stop when zombies come near; a retrieve objective has one object, not several samples, and a dropped object has no timer sending it back; Defend protects one target rather than several barricades; the carrier is only slowed (sprinting is not in the game yet, so there is none to take away).
+
+### Interactive environment
+
+Interact (E) works the nearest usable prop within 1.6 m of its edge with a clear line to it: nothing is worked through a wall. A downed teammate in reach comes first (interact revives them). A press opens or closes a door or sets off a trap; a hold does the rest. A hold is worked by one player at a time and starts over when let go, except on generators and terminals, which keep their progress; repairs from several players add up. Generators, terminals, survivors and carried objects can be worked only while their step is the current one, or when they belong to an optional objective. The HUD says what pressing or holding E would do, with a progress bar for holds.
+
+| Prop | Rules (starting values) |
+|---|---|
+| Explosive barrel | 30 HP, set off by shots and explosions. Deals 150 damage to zombies within 4 m (half at the edge) and breaks nearby cover, doors and barrels, which go off in turn. It hurts only the player who set it off, at half damage (75 at the centre, with the same falloff) |
+| Crates, sandbags | Destructible cover, 200 and 400 HP: they block movement and shots, and players' shots and explosions break them. Zombies walk around them |
+| Door | Press to open or close it, at most once every 0.6 s; it does not close on anyone standing in it. Hold on a closed door for 4 s to weld it. A closed door has 250 HP, a welded one 500; holding on a damaged welded door repairs it (50 HP a second). Zombies path through closed and welded doors and claw them down; players' shots and explosions break them too. A broken door stays open |
+| Generator | See Restore power |
+| Turret | 22 ballistic damage, 8 shots a second at the nearest zombie in sight within 16 m. On while its generator runs, always on when it has none; it cannot be destroyed |
+| Floodlight | Lights its area while powered (by its generator, or always when it has none) |
+| Trap | Press to set it off: 120 shock damage a second to zombies within 3 m for 5 s, then 30 s to recharge. It never hurts players |
+| Ammo station | Hold for 1 s to refill the reserve of every gun to its maximum for 500 score (free in the firing range). The price comes out of the score a player has earned and not yet spent there; their score for rewards and thresholds is untouched. It does nothing while every gun is full, and the HUD shows the price when the player cannot pay yet |
+| Terminal, survivor, carried object, defend target | See the objective rules above |
+
+### Maps
+
+Maps are drawn as text in the game data, one character per metre: walls, blockers (solid like walls but not drawn: they sit under scenery such as wrecks, cars and barriers), floor, player spawns, zombie spawns (numbered by map section), barrels, crates and sandbags. Scenery models are placed beside the drawing (position, rotation, size), some of them burning. Every zombie spawn is a hole in the ground the zombies climb out of; zombies come in off screen when a spawn point allows, and never closer than 8 m to a player. Named props (doors and gates, generators, terminals, turrets, floodlights, traps, survivors, carried objects, defend targets, nests) are listed beside the drawing. The maps now are Landfall (46 × 150 m), the Rail Yard (56 × 128 m), the Power Plant (60 × 136 m), the Food Depot (96 × 64 m), the Motor Pool (64 × 84 m), the Airfield (76 × 60 m), the Supermarket (64 × 104 m), Harrow General (80 × 80 m), Hill House (72 × 92 m), the Harrow Metro (64 × 150 m), the Crossroads (88 × 88 m, Survival), the Compound (56 × 56 m, contracts), the Yard (64 × 48 m, the Hotspot contract) and the firing range.
+
+**The Crossroads** (Survival): a market town's crossroads at dusk, four quarters round a square. The square is where a squad makes its stand: a burnt-out truck in the middle, sandbag arcs facing each street, market stalls of crates at its corners, an ammo station, and two turrets that wake when the generators in the church courtyard and the petrol station's back lot are started. Shock traps sit where the streets open onto the square. Every quarter is somewhere to fall back to: the church with its pews, bell tower and courtyard (north-west); the flats and the pharmacy (north-east); the car park full of wrecks behind its fence (south-west); the petrol station, whose pumps stand among barrels that go up in a chain, its shop and its garage (south-east). Each quarter has an ammo station. Zombies climb out at the four streets' ends and in the quarters' back lots. Beyond every map's border wall the town goes on (drawing only): a street round the map, a ring of buildings of different heights with alleys, and parked and burnt-out cars, lamps and rubbish, so a map's edge is a wall in a town rather than the end of the world.
+
+The data checks refuse a map or mission where:
+
+- a prop that stands on cells is not on whole cells inside the map, or any prop overlaps a wall or another prop; a map has more than 4,096 props;
+- a cache, an objective's area, a checkpoint point or a gate's side point is not on open floor;
+- an objective names a prop of the wrong kind, or a section with no zombie spawns; a checkpoint step has neither an area nor a checkpoint point;
+- a step cannot be done: its area or props cannot be reached from where the squad starts it (the spawn or the last checkpoint), with the gates as the earlier steps left them (walls and locked gates block; doors and cover do not, since they can be opened or broken);
+- a gate is not a locked door, names an objective that is not a step, closes before it opens, or closes without a side point;
+- an optional objective is not a kill or interact objective, or a mission has no steps;
+- a kill objective names a zombie type that does not exist, a boss is not an elite or stands outside the map, or an ambush names an unknown type;
+- a mission is in no campaign zone or listed twice, or the campaign names a mission that does not exist.
+
+## 8. Zombies
+
+Eighteen types. Each is recognisable from above by silhouette, size and an accent colour or glow (readability beats realism).
+
+| # | Name | Role | Health (Veteran) | Speed (m/s) | Behaviour | Player answer | Readability cue |
+|---|---|---|---|---|---|---|---|
+| 1 | **Drudge** | Shambler | 60 | 1.2 | Slow, numerous | Any weapon | Grey, hunched |
+| 2 | **Bolter** | Runner | 35 | 4.2 | Sprints straight in | Keep moving, shotguns | Thin, long stride, red eyes |
+| 3 | **Gutter** | Crawler | 45 | 2.0 | Low, emerges from vents and gaps | Watch the floor, splash damage | Flat silhouette, wet sheen |
+| 4 | **Swell** | Bloater | 150 | 1.0 | Explodes on death (60 damage, 3 m) leaving an 8 s acid pool | Kill at range | Huge round body, green veins |
+| 5 | **Retcher** | Spitter | 80 | 1.6 | Lobs acid (25 + puddle) from 12 m | Move, break line of sight | Hunched, glowing yellow throat |
+| 6 | **Ram** | Brute | 600 | 1.5, charges 7 | Straight-line charge, 1.5 s stun on hit | Sidestep, shoot its back | Twice human size, bone plates |
+| 7 | **Howler** | Screamer | 120 | 2.0 | Screams: summons 6–10 and +25 % speed to zombies in 12 m for 6 s | Priority target | Open jaw, pulsing white ring |
+| 8 | **Shade** | Stalker | 90 | 3.2 | 10 % visible beyond 6 m | Flashlights, Shock reveals | Shimmer distortion |
+| 9 | **Vaulter** | Leaper | 70 | 3.0 | Jumps barricades and gaps (8 m leaps) | Area denial, don't rely on walls | Long limbs, crouched |
+| 10 | **Bulwark** | Shieldbearer | 300 | 1.4 | Front armour absorbs 90 % | Flank, explosives over the shield | Door-shaped shield |
+| 11 | **Delver** | Burrower | 200 | 3.5 underground | Tunnels (visible dust trail), surfaces under players (40 damage, knock-up) | Keep moving when the trail heads to you | Dust trail, armoured head |
+| 12 | **Hive** | Carrier | 180 | 1.3 | On death releases 8 Wrigglers (10 HP parasites) | Fire and area damage | Swollen back sacs |
+| 13 | **Cinder** | Igniter | 160 | 2.2 | On fire, leaves burning trail (15 DPS), immune to fire | Ballistic or shock | Orange glow, flames |
+| 14 | **Arc** | Shocker | 140 | 2.0 | Pulse every 8 s: disables abilities and turrets in 6 m for 3 s | Kill from range | Blue sparks |
+| 15 | **Matron** | Broodmother | 900 | 0.8 | Spawns 2 Wrigglers every 3 s until killed | Focus fire | Huge, egg clusters |
+| 16 | **Mender** | Reanimator | 200 | 1.5 | Raises up to 5 dead zombies within 10 m every 10 s | Kill first; burn corpses | Purple glow, staff-like arm |
+| 17 | **Clutch** | Grabber | 150 | 2.5 | Pins a player; teammate frees with interact (1.5 s) or the player breaks out with 15 taps | Stay grouped, Medic antidote | Long arms, hooked hands |
+| 18 | **Colossus** | Juggernaut (elite) | 2,500 | 1.6 | Heavy armour, 3 glowing weak points (×3 damage) | Aim for weak points, Marksman | Huge, armour plates, orange cores |
+
+Plus **Wriggler** (parasite, 10 HP, from Hive and Matron) as a sub-enemy.
+
+In the game now: Drudge, Bolter and Swell, plus three more that stand in for planned types with simpler rules: the **Crawler** (40 HP, 2.6 m/s, low and quick), the **Brute** (elite, 1,400 HP, 1.5 m/s, 38 melee damage; the missions' boss) and the **Screamer** (120 HP; every 9 s, with a player within 20 m, it screams and six zombies arrive: Drudge 60 %, Bolter 25 %, Crawler 15 %). Health and counts scale by difficulty (section 13).
+
+### Mutation system
+
+- **Stages**: each type has three mutation stages unlocked by zone progress and difficulty (stage 1 from zone 2 or Nightmare, stage 2 from zone 4 or Apocalypse, stage 3 Apocalypse zone 4+). A stage adds one ability, a resistance, or an attack pattern, and a visible change (growths, colour, glow). Example, Retcher: stage 1 spits twice; stage 2 acid slows; stage 3 spits a burst of three.
+- **Adaptive mutations**: the server tracks the squad's damage by type and behaviour (turret share, time spent stationary, average distance to zombies) over the last two checkpoints. If one damage type exceeds 55 % of damage, later spawns shift toward a strain with resistance to it; if the squad camps, more Vaulters and Delvers; if it kites, more Bolters and Clutches.
+- **Fairness**: resistances are capped at 35 % (never immunity, except the Cinder's inherent fire immunity); at most two adaptive strains active at once; every strain is announced in the HUD ("Strain adapted: fire-hardened") and shown on the zombie (a coloured crust); there is always a counter (another damage type, an ability, a utility).
+- **Spawn director**: missions currently spawn a steady stream (section 7). The full director tracks an intensity score (damage taken, zombies within 10 m, time since last peak) and cycles build-up (60–90 s) → peak (20–40 s) → relief (20–30 s). Enemy budget per second scales with squad size and difficulty; specials have per-type cooldowns.
+
+### Bosses
+
+Three phases each (at 100 %, 66 %, 33 % health), telegraphed attacks (ground markings 0.8–1.5 s before impact), weak points, and one coordination mechanic. Health = `base × (0.55, 0.75, 0.9, 1.0)` for 1–4 players × difficulty multiplier.
+
+Example, **The Warden** (zone 1): base 25,000 health. Phase 1: shield charge (telegraphed line), riot-baton slam (circle). Phase 2: calls Bulwarks; its back armour breaks only when hit from two sides within 3 s (solo: a decoy beacon counts as the second side). Phase 3: enraged, faster charges, tear gas zones. Weak point: the exposed spine after armour breaks.
+
+## 9. Temporary buffs
+
+Buffs drop in missions and Survival (never in the firing range). The server rolls them: 2 % chance per kill, 15 % from an elite, 50 % when a cache is opened, and at most one buff every 30 s per squad. A buff lies on the ground for 20 s; a standing player picks it up by walking over it (1.2 m). Team-wide buffs apply to the whole squad.
+
+| Buff | Effect | Duration | Team |
+|---|---|---|---|
+| **Screen nuke** | Kills all non-elite zombies within 22 m; elites and bosses take 25 % of max health | instant | yes |
+| **Max ammo** | Fills all main weapons to their upgraded maximum | instant | yes |
+| **Double XP** | Doubles the class XP earned from kills, objectives, rounds, score and the completion reward (×2) | 60 s | yes |
+| **Minigun** | Replaces your weapon with a minigun (45 damage, 1,200 rpm, unlimited ammo) | 20 s | no |
+| Instakill | Every hit by a player kills non-elites | 15 s | yes |
+| Speed boost | +30 % move speed | 15 s | yes |
+| Freeze pulse | Freezes zombies within 15 m | 6 s | yes |
+| Sentry | Deploys a turret (25 damage, 600 rpm, 14 m reach) | 30 s | no |
+| Shield bubble (not in the game yet) | Stationary 5 m bubble that blocks zombies and projectiles | 10 s | yes |
+
+## 10. Score multiplier
+
+- A kill within **2.5 s** of the previous kill extends the chain. The chain sets the multiplier: ×1 (0–9 kills), ×2 (10), ×3 (25), ×4 (50), ×5 (100), ×6 (200).
+- The chain lapses after 2.5 s without a kill and **resets when the player goes down**.
+- Score is kept per player in missions and Survival (not in the firing range).
+- Score per kill = zombie score value × multiplier (Drudge 10 … Colossus 1,000); each objective gives a flat 1,000 and each optional objective 1,500 (section 7).
+- Score converts as it is saved (at checkpoints, rounds cleared and the end): 1 class XP per 20 score and 1 Salvage per 1,000 score, both × the difficulty's reward multiplier.
+- Score thresholds (25,000, 75,000, 150,000, then every 150,000) pay a Salvage bonus (100 each, × the reward multiplier) and heal the player by exactly 30 % of their maximum health (healing bonuses do not change it).
+- HUD: multiplier and chain timer in the top centre, large, with a draining bar; a chain whose timer has run out shows as 0.
+
+## 11. Downed and revive
+
+In a squad there are no lives: a player at zero health goes down and waits to be revived. Playing alone, a run has three lives.
+
+| Rule | Value |
+|---|---|
+| Zero health in a squad | The player is **downed**: crawls slowly, can use the pistol, and a bleed-out timer starts |
+| Bleed-out timer | 30 s, minus 5 s for each earlier down since the player last came back (respawn, checkpoint or new round), minimum 15 s |
+| Revive (hold interact within 1.5 m) | 4 s, Medic 2.5 s, skills down to 1.5 s; taking damage does not cancel it |
+| Revived health | 30 % |
+| Bled out, campaign mission | The player is out and spectates teammates; they return at the next checkpoint with full health |
+| Bled out, Survival | Back at the start of the next round, if someone finishes the round |
+| Bled out, contract | Back after 15 s, then 20 s, 25 s and 30 s for each later time (contracts have no checkpoints to wait for) |
+| Squad wipe | Everyone downed or out at once: restart from the last checkpoint, with that objective begun again (Survival: the run ends and the results show the rounds survived) |
+| Zero health alone | A death: three lives a run. The first two send the run back to the last checkpoint (Survival: the round starts again) with full health; the third loses it (mission failed, or the Survival run over). The HUD shows the lives left under the health bar |
+| Failed objective | A survivor or defend target lost, or an extraction timer run out: the same as a squad wipe (section 7); it does not cost a life |
+
+## 12. Contracts and bounties
+
+- **3 daily contracts** rotate at 00:00 UTC (1,500 Salvage each); **3 weekly contracts** rotate Monday 00:00 UTC (8,000 each). A countdown is shown.
+- Examples: "Kill 200 zombies with shotguns", "Finish a mission with nobody bleeding out", "Revive 5 teammates", "Destroy 10 nests on Nightmare".
+- **Bounties**: a named elite (e.g. *Old Ironjaw*, a mutated Ram) that appears in one mission at one difficulty this week; reward 5,000 and a title.
+- Progress is counted by the server from match events. Missing a day costs nothing: no streaks, no penalties.
+
+## 13. Lobby, difficulty and matchmaking
+
+- Private lobbies by invite link, 6-character code, or the friends list; public quick match by mission and difficulty.
+- The lobby shows each player's class, class level, loadout and avatar, with a ready check (all ready, or the host starts after a 10 s countdown).
+- Disconnect grace period: 120 s (see `netcode.md`). Meanwhile the player's character is away: it stays where it is, holds no buttons, and an extraction does not wait for it.
+- Idle in lobby: warning at 10 minutes, seat released at 12 minutes (queue rules in `architecture.md`).
+- Communication: ping wheel (8 pings: here, enemy, defend, loot, help, revive me, go, wait) and 12 quick-chat phrases. No free text chat in version 1.
+
+- The leader picks the mission (or Survival) and the difficulty; see section 2.
+
+| Difficulty | Enemy health | Enemy damage | Enemy count | Mutation stage offset | Rewards |
+|---|---|---|---|---|---|
+| Recruit | ×0.8 | ×0.8 | ×0.8 | +0 | ×0.7 |
+| Veteran | ×1.0 | ×1.0 | ×1.0 | +0 | ×1.0 |
+| Nightmare | ×1.5 | ×1.2 | ×1.25 | +1 | ×1.35 |
+| Apocalypse | ×2.2 | ×1.5 | ×1.5 | +2 | ×1.8 |
+
+Squad-size scaling of enemy count: 1 player ×0.5, 2 ×0.7, 3 ×0.85, 4 ×1.0. A 4-player Apocalypse peak is capped at **300 zombies alive**.
+
+## 14. Friends list
+
+- Add by unique player name or an invite link (valid 7 days); accept, decline, remove, block.
+- Status: online in lobby, in a mission (name), in the queue, in the firing range, offline (last seen).
+- Invite to lobby; join a friend's lobby if it has a free slot.
+- Recent players: the last 50 people you finished a mission with, with an "add friend" button.
+- Presence is pushed (Valkey pub/sub → the player's push channel), never polled.
+
+## 15. Firing range
+
+A small map reached from the lobby. Target dummies (2,000 health, heal back three seconds after the last hit, never die), a spawner for zombie types, damage numbers on your own hits, and a damage-per-second meter over the last three seconds. Abilities recharge in one second and utilities never run out. Nobody goes down: health comes back instead. At most 60 spawned zombies at once. Nothing earned counts toward progression. It runs on the server like everything else, as a room of one.
+
+Planned with the bestiary and later content: moving and armoured dummies with weak points, and limiting the spawner to types (and mutation stages) the player has already met.
+
+## 16. Bestiary
+
+An entry unlocks on a player's first kill of a type: the model (rotatable), behaviour notes, weaknesses and resistances, every mutation stage and adaptive strain the player has seen, and their kill count.
+
+## 17. Achievements and cosmetics
+
+About 60 achievements at launch (milestones, feats, mastery, bestiary completion). Rewards are cosmetics only: titles, profile banners, weapon skins, armour colours, extra DiceBear avatar styles. Cosmetics never change stats and are never sold.
+
+## 18. Mission mastery
+
+| Rating | Requirement (per mission, any difficulty from Veteran up) |
+|---|---|
+| Bronze | Complete |
+| Silver | Complete under par time and at least 1 optional objective |
+| Gold | Complete under 80 % of par, all optional objectives, the squad's total score at or above the target, and no more than 1 down across the squad |
+
+- Recruit earns no mastery.
+- The score target scales with squad size like the enemy count (target × 0.5, 0.7, 0.85 or 1.0 for 1–4 players).
+- A mission without optional objectives asks for none.
+- Each player keeps, per mission and difficulty, the number of completions, the best time, the best score and the best mastery reached; only players who took part (section 6) are credited.
+
+Shown on the mission select map.
+
+## 19. Mission modifiers
+
+Switched on before a mission; the reward bonus is shown clearly and capped at **+60 %** total.
+
+| Modifier | Effect | Reward bonus |
+|---|---|---|
+| Friendly fire | Your shots hurt teammates (50 %) | +15 % |
+| Hardened strains | Mutation stage +1 | +20 % |
+| Scarce ammunition | Ammo pickups −50 %, no max-ammo buffs | +15 % |
+| Blackout | Darkness; flashlights only | +20 % |
+| Fragile | −30 % max health | +25 % |
+| Swarm | Enemy count ×1.3 | +15 % |

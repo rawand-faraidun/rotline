@@ -451,6 +451,7 @@ export function startGame(options: GameOptions): GameHandle {
 					beingRevived: self.downed ? self.reviveProgress / REVIVE_COMPLETE : 0,
 					reviveHint: near ? (names.get(near.id)?.name ?? `Player ${near.id}`) : null,
 					teammates,
+					livesLeft: snapshot.livesLeft,
 					health: Math.ceil(self.health),
 					wave: snapshot.wave + 1,
 					kills: snapshot.kills,
@@ -615,7 +616,11 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					case 'mission-failed':
 						audio.sound('stinger-high', { bus: 'interface' })
-						hud.set({ banner: { text: 'timeout', wave: 0, at: performance.now() } }, performance.now(), true)
+						hud.set(
+							{ banner: { text: event.reason === 'lives' ? 'lives' : 'timeout', wave: 0, at: performance.now() } },
+							performance.now(),
+							true
+						)
 						break
 					case 'run-over':
 						hud.set({ banner: { text: 'run-over', wave: event.wave, at: performance.now() } }, performance.now(), true)

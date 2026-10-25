@@ -2207,7 +2207,12 @@
 				"count": 150,
 				"optional": true
 			}
-		]
+		],
+		"respawn": {
+			"seconds": 15,
+			"step": 5,
+			"maxSeconds": 30
+		}
 	},
 	{
 		"id": "supply-run",
@@ -2291,7 +2296,12 @@
 				"count": 80,
 				"optional": true
 			}
-		]
+		],
+		"respawn": {
+			"seconds": 15,
+			"step": 5,
+			"maxSeconds": 30
+		}
 	},
 	{
 		"id": "data-grab",
@@ -2356,7 +2366,12 @@
 				"count": 80,
 				"optional": true
 			}
-		]
+		],
+		"respawn": {
+			"seconds": 15,
+			"step": 5,
+			"maxSeconds": 30
+		}
 	},
 	{
 		"id": "shipment",
@@ -2415,6 +2430,11 @@
 				"count": 100,
 				"optional": true
 			}
-		]
+		],
+		"respawn": {
+			"seconds": 15,
+			"step": 5,
+			"maxSeconds": 30
+		}
 	}
 ]

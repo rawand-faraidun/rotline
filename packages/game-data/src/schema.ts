@@ -160,7 +160,9 @@ export const zombieSchema = z.object({
 
 export const playerSchema = z.object({
 	radius: z.number().positive(),
-	respawnSeconds: z.number().min(0)
+	respawnSeconds: z.number().min(0),
+	/** playing alone, a run is lost at this many deaths (a death sends you back to the checkpoint or round) */
+	soloLives: z.number().int().min(1)
 })
 
 export const classesSchema = z.object({
@@ -611,6 +613,14 @@ export const missionSchema = z.object({
 	parTimeSeconds: z.number().positive(),
 	/** a run against the clock: the mission is lost when this runs out (seconds from the start) */
 	timeLimitSeconds: z.number().int().positive().max(3600).optional(),
+	/**
+	 * A squad member who bleeds out comes back after `seconds`, plus `step` more for each earlier
+	 * time, up to `maxSeconds` (for runs with no checkpoint to wait for, like contracts). Without it,
+	 * they wait for the next checkpoint.
+	 */
+	respawn: z
+		.object({ seconds: z.number().positive(), step: z.number().min(0), maxSeconds: z.number().positive() })
+		.optional(),
 	scoreTarget: z.number().int().positive(),
 	enemyLevel: z.number().int().min(1).max(60),
 	recommendedLevel: z.number().int().min(1).max(50),

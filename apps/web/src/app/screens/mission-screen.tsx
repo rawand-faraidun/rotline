@@ -7,7 +7,7 @@ import {
 	loadGraphicsSetting,
 	saveGraphicsSetting
 } from '@rotline/client'
-import { missionById, SURVIVAL_MAP, zombies } from '@rotline/game-data'
+import { missionById, player as playerDef, SURVIVAL_MAP, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -52,6 +52,27 @@ function HealthBar({ health, max }: { health: number; max: number }) {
 					/>
 				))}
 			</div>
+		</div>
+	)
+}
+
+/** Playing alone: the lives left, as pips (a death sends you back; the last one loses the run). */
+function Lives({ left }: { left: number }) {
+	return (
+		<div className="mt-2 flex items-center justify-between gap-3">
+			<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.lives}</span>
+			<span className="flex gap-1" role="img" aria-label={format(t.livesLabel, { lives: String(left) })}>
+				{Array.from({ length: playerDef.soloLives }, (_, i) => (
+					<span
+						// biome-ignore lint/suspicious/noArrayIndexKey: fixed pips
+						key={i}
+						className={cn(
+							'size-3 rotate-45',
+							i < left ? (left === 1 ? 'bg-alert' : 'bg-rot-lime') : 'bg-surface-raised'
+						)}
+					/>
+				))}
+			</span>
 		</div>
 	)
 }
@@ -854,7 +875,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						<p
 							className={cn(
 								'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
-								hud.banner.text === 'wipe' || hud.banner.text === 'timeout'
+								hud.banner.text === 'wipe' || hud.banner.text === 'timeout' || hud.banner.text === 'lives'
 									? 'text-alert'
 									: hud.banner.text === 'wave'
 										? 'text-warning'
@@ -865,25 +886,32 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 							{hud.banner.text === 'wave'
 								? format(t.waveBanner, { wave: String(hud.banner.wave) })
 								: hud.banner.text === 'wipe'
-									? inMission
-										? t.missionWipeBanner
-										: format(t.wipeBanner, { wave: String(hud.banner.wave) })
-									: hud.banner.text === 'objective'
-										? t.objectiveBanner
-										: hud.banner.text === 'checkpoint'
-											? t.checkpointBanner
-											: hud.banner.text === 'failed'
-												? t.failedBanner
-												: hud.banner.text === 'timeout'
-													? t.timeoutBanner
-													: hud.banner.text === 'run-over'
-														? format(t.runOverBanner, { wave: String(hud.banner.wave) })
-														: t.completeBanner}
+									? hud.livesLeft !== null
+										? format(hud.livesLeft === 1 ? t.lastLifeBanner : t.livesBanner, {
+												lives: String(hud.livesLeft)
+											})
+										: inMission
+											? t.missionWipeBanner
+											: format(t.wipeBanner, { wave: String(hud.banner.wave) })
+									: hud.banner.text === 'lives'
+										? t.outOfLivesBanner
+										: hud.banner.text === 'objective'
+											? t.objectiveBanner
+											: hud.banner.text === 'checkpoint'
+												? t.checkpointBanner
+												: hud.banner.text === 'failed'
+													? t.failedBanner
+													: hud.banner.text === 'timeout'
+														? t.timeoutBanner
+														: hud.banner.text === 'run-over'
+															? format(t.runOverBanner, { wave: String(hud.banner.wave) })
+															: t.completeBanner}
 						</p>
 					)}
 
 					<div className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
 						<HealthBar health={hud.health} max={hud.maxHealth} />
+						{hud.livesLeft !== null && <Lives left={hud.livesLeft} />}
 					</div>
 
 					<div className="pointer-events-none absolute right-6 bottom-6">

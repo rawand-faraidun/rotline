@@ -1,4 +1,5 @@
 {
 	"radius": 0.4,
-	"respawnSeconds": 3
+	"respawnSeconds": 3,
+	"soloLives": 3
 }
