@@ -99,7 +99,9 @@ describe('abilities', () => {
 		const barricade = world.objects.find(object => object.kind === ObjectKind.barricade)
 		expect(barricade?.cells.length).toBeGreaterThan(3)
 		expect(barricade?.cells.every(cell => world.grid.walls[cell] === 2)).toBe(true)
-		// a crowd on the far side tears it down
+		// a crowd on the far side tears it down when it is the only way through (else they walk round)
+		const { width, height, walls } = world.grid
+		for (let y = 0; y < height; y++) if (!barricade?.cells.includes(y * width + 33)) walls[y * width + 33] = 1
 		for (const y of [22.5, 24, 25.5]) world.spawnZombie(drudge, { x: 34.8, y })
 		player(world).safeUntilTick = 1e9
 		steps(world, 60 * TICK_RATE)

@@ -245,7 +245,7 @@ export const en = {
 			status: '{seats} playing · {queue} waiting · effective capacity {effective}'
 		},
 		progression: {
-			nav: { lobby: 'Lobby', skills: 'Skills', armory: 'Armory', shop: 'Shop' },
+			nav: { lobby: 'Lobby', skills: 'Skills', armory: 'Armory', shop: 'Shop', friends: 'Friends' },
 			salvage: 'Salvage',
 			level: 'Level {level}',
 			xp: '{into} / {next} XP',
@@ -525,7 +525,31 @@ export const en = {
 			},
 			inviteToast: '{name} invited you to their squad',
 			joinSquad: 'Join squad',
-			dismiss: 'Dismiss'
+			dismiss: 'Dismiss',
+			manage: 'Manage friends',
+			yourCode: 'Your player code',
+			codeHint: 'Anyone with this code or your link can send you a friend request.',
+			copyCode: 'Copy code',
+			share: 'Share link',
+			copyLink: 'Copy link',
+			copied: 'Copied',
+			shareTitle: 'Add me on Rotline',
+			shareText: 'Add me on Rotline, my player code is {code}.',
+			addByName: 'Add by name or code',
+			addPlaceholder2: 'Player name or code',
+			tabs: { friends: 'Friends', find: 'Find players', recent: 'Recent', blocked: 'Blocked' },
+			search: 'Find players',
+			searchPlaceholder: 'Name, part of a name, or a player code',
+			searchHint: 'Type at least two letters. Close spellings count too.',
+			noResults: 'Nobody found by that name.',
+			searching: 'Searching…',
+			relation: { friend: 'Friends', outgoing: 'Request sent', incoming: 'Wants to add you', none: '' },
+			noRecent: 'Players you share a squad with show up here.',
+			noBlocked: 'You have not blocked anyone.',
+			noRequests: 'No requests right now.',
+			fromLink: 'Friend request sent.',
+			fromLinkFailed: 'That player link did not work.',
+			online: '{count} online'
 		},
 		profile: {
 			title: 'Profile',
@@ -586,6 +610,9 @@ export const en = {
 			inviteCode: 'Squad code',
 			copyLink: 'Copy invite link',
 			copyCode: 'Copy code',
+			shareInvite: 'Share',
+			shareInviteTitle: 'Join my squad on Rotline',
+			shareInviteText: 'Join my squad on Rotline, the squad code is {code}.',
 			copied: 'Copied',
 			joinCode: 'Join a squad',
 			joinPlaceholder: 'CODE',
@@ -635,6 +662,9 @@ export const en = {
 			contractsDescription: 'Short, sharp jobs of three or four minutes, for a quick payout.'
 		},
 		mission: {
+			openMap: 'Open the map (M)',
+			closeMap: 'Close the map',
+			mapHint: 'M or click to close',
 			loading: 'Deploying',
 			slowLoading: 'This is taking longer than it should.',
 			tryAgain: 'Try again',
@@ -736,7 +766,8 @@ export const en = {
 				hint: 'Applies the next time a game loads.',
 				auto: 'Automatic',
 				high: 'High',
-				low: 'Low (faster)'
+				medium: 'Medium (laptops)',
+				low: 'Low (fastest)'
 			},
 			pause: {
 				title: 'Paused',
@@ -750,7 +781,7 @@ export const en = {
 			},
 			backToLobby: 'Back to lobby',
 			controls:
-				'WASD move · mouse aim · click fire · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · Esc menu',
+				'WASD move · mouse aim · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
 			abilities: 'Abilities and utilities',
 			ready: 'Ready'
 		}

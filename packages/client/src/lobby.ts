@@ -48,10 +48,11 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets', view: 
 	const quality = probeQuality()
 	const high = quality === 'high'
 	const renderer = new THREE.WebGLRenderer({ canvas, antialias: high, powerPreference: 'high-performance' })
+	// shadows everywhere but on a software renderer; the post finish only on a graphics card
 	renderer.setPixelRatio(pixelRatioFor(quality, 1.5))
 	renderer.toneMapping = THREE.ACESFilmicToneMapping
 	renderer.toneMappingExposure = 1.05
-	renderer.shadowMap.enabled = high
+	renderer.shadowMap.enabled = quality !== 'low'
 	renderer.shadowMap.type = THREE.PCFShadowMap
 	const scene = new THREE.Scene()
 	scene.background = new THREE.Color(0x06080a)
@@ -67,7 +68,7 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets', view: 
 	const flood = new THREE.SpotLight(0xffe2b8, 120, 30, Math.PI / 5, 0.5, 1.6)
 	flood.position.set(4.5, 7, 6)
 	flood.target.position.set(0, 0.8, -0.6)
-	flood.castShadow = high
+	flood.castShadow = quality !== 'low'
 	flood.shadow.mapSize.set(1024, 1024)
 	flood.shadow.bias = -0.0005
 	scene.add(flood, flood.target)
@@ -82,7 +83,7 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets', view: 
 	const textures = new THREE.TextureLoader()
 	const material = (name: string, repeat: number, tint: number) => {
 		const paint = new THREE.MeshStandardMaterial({ color: 0x3a3d38, roughness: 0.95 })
-		const maps = high ? (['color', 'normal', 'rough'] as const) : (['color'] as const)
+		const maps = quality !== 'low' ? (['color', 'normal', 'rough'] as const) : (['color'] as const)
 		for (const map of maps)
 			textures.load(`${assets}/textures/${name}/${map}.webp`, texture => {
 				texture.wrapS = texture.wrapT = THREE.RepeatWrapping
@@ -126,7 +127,7 @@ export function mountLobby(canvas: HTMLCanvasElement, assets = '/assets', view: 
 			model.position.set(x, 0, z)
 			model.rotation.y = turn
 			model.traverse(node => {
-				if ((node as THREE.Mesh).isMesh) node.castShadow = node.receiveShadow = high
+				if ((node as THREE.Mesh).isMesh) node.castShadow = node.receiveShadow = quality !== 'low'
 			})
 			scene.add(model)
 		})

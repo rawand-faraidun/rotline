@@ -5,7 +5,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 import { outfitFor, wear } from './outfits.ts'
-import { loadSoldier } from './players.ts'
+import { loadSoldier, soldierUrl } from './players.ts'
 
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
 const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
@@ -194,7 +194,7 @@ export class PropRenderer {
 				head.scale.set(0.35, 0.35, 0.35)
 				// a civilian from the soldiers' file, standing at ease (walking when led out)
 				if (this.models)
-					void loadSoldier(`${this.assets}/models/characters/soldier.glb`).then(loaded => {
+					void loadSoldier(soldierUrl(this.assets, 'game')).then(loaded => {
 						if (!loaded || !root.parent) return
 						const person = cloneSkinned(loaded.scene)
 						wear(person, outfitFor('survivor'))

@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import type { AvatarStyle } from '@rotline/constants'
 import { AvatarFrame, Button, cn, Input, Label, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { en } from '../../i18n/en.ts'
 import { useAvatar } from '../../lib/avatar.ts'
 import {
@@ -82,6 +83,9 @@ export function FriendsPanel({ squad }: { squad: readonly string[] }) {
 					{view?.friends.length ?? 0}
 				</span>
 			</PanelHeader>
+			<Link to="/play/friends" className="font-bold text-rot-lime text-xs uppercase tracking-[0.2em] hover:text-bone">
+				{t.manage} →
+			</Link>
 			<form
 				className="flex flex-col gap-2"
 				onSubmit={event => {
@@ -100,8 +104,8 @@ export function FriendsPanel({ squad }: { squad: readonly string[] }) {
 					<Input
 						id={nameId}
 						value={name}
-						maxLength={16}
-						placeholder={t.addPlaceholder}
+						maxLength={32}
+						placeholder={t.addPlaceholder2}
 						autoComplete="off"
 						onChange={event => setName(event.target.value)}
 					/>

@@ -192,6 +192,8 @@ export const THROWN = 255
 const OVERWATCH_PIERCE = abilityById.get('overwatch')?.params.pierce ?? 0
 /** a zombie set alight burns for this long after the flame, each second for this share of the flame's damage */
 const BURN_TICKS = 3 * TICK_RATE
+/** A zombie pressing on without moving this many ticks steps sideways to get round what holds it. */
+const STUCK_TICKS = Math.round(0.5 * TICK_RATE)
 const BURN_SHARE = 0.5
 /** A kill within this many ticks of the last one extends the chain. */
 export const CHAIN_TICKS = combat.chainSeconds * TICK_RATE
@@ -284,6 +286,8 @@ export class World {
 	readonly y = new Float64Array(MAX_ZOMBIES)
 	readonly vx = new Float64Array(MAX_ZOMBIES)
 	readonly vy = new Float64Array(MAX_ZOMBIES)
+	/** ticks a zombie has been pressing on without getting anywhere (caught on a corner) */
+	readonly stuckTicks = new Uint8Array(MAX_ZOMBIES)
 	readonly health = new Float64Array(MAX_ZOMBIES)
 	/** health at spawn, after difficulty and enemy level */
 	readonly maxHealth = new Float64Array(MAX_ZOMBIES)
@@ -1548,6 +1552,7 @@ export class World {
 		this.y[index] = point.y
 		this.vx[index] = 0
 		this.vy[index] = 0
+		this.stuckTicks[index] = 0
 		this.health[index] = def.dummy ? def.health : def.health * this.healthScale
 		this.maxHealth[index] = this.health[index] as number
 		this.cooldown[index] = 0
@@ -1753,26 +1758,43 @@ export class World {
 
 			let wantX = 0
 			let wantY = 0
+			let breaking = false
 			const reach = def.radius + playerDef.radius + def.meleeRange
 			const decoy = taunted && (this.tauntTarget[i] as number) === 0
 			const toDecoy = decoy ? Math.hypot((this.tauntX[i] as number) - x, (this.tauntY[i] as number) - y) : 0
 			if (decoy && toDecoy > 0.8 && !(target && targetDistance < reach)) {
 				wantX = ((this.tauntX[i] as number) - x) / toDecoy
 				wantY = ((this.tauntY[i] as number) - y) / toDecoy
-			} else if (target && (targetDistance < 3 || taunter === target)) {
-				// close in directly once near
+			} else if (
+				target &&
+				(taunter === target || (targetDistance < 3 && this.clearLine(x, y, target.x, target.y, targetDistance)))
+			) {
+				// close in directly once near, when nothing stands between (else the flow leads round it)
 				wantX = (target.x - x) / targetDistance
 				wantY = (target.y - y) / targetDistance
-			} else if (propTarget && targetDistance < 3) {
+			} else if (
+				propTarget &&
+				targetDistance < 3 &&
+				this.clearLine(x, y, propTarget.x, propTarget.y, Math.hypot(propTarget.x - x, propTarget.y - y) - 1)
+			) {
 				const toward = Math.hypot(propTarget.x - x, propTarget.y - y) || 1
 				wantX = (propTarget.x - x) / toward
 				wantY = (propTarget.y - y) / toward
 			} else {
-				const dir = this.flow[Math.floor(y) * width + Math.floor(x)] as number
+				const cx = Math.floor(x)
+				const cy = Math.floor(y)
+				const dir = this.flow[cy * width + cx] as number
 				if (dir >= 0) {
-					const scale = dir >= 4 ? Math.SQRT1_2 : 1
-					wantX = (DX[dir] as number) * scale
-					wantY = (DY[dir] as number) * scale
+					// the way on is through something to break (a barricade, a door): pressing on it is not being stuck
+					const next = (cy + (DY[dir] as number)) * width + cx + (DX[dir] as number)
+					breaking = this.grid.walls[next] !== 0 && this.breakable[next] !== 0
+					// head for the middle of the next cell, not just its direction: zombies keep off the
+					// edges of walls and cover, and round corners instead of catching on them
+					const tx = cx + (DX[dir] as number) + 0.5 - x
+					const ty = cy + (DY[dir] as number) + 0.5 - y
+					const length = Math.hypot(tx, ty) || 1
+					wantX = tx / length
+					wantY = ty / length
 				}
 			}
 			const slowed = (this.slowUntil[i] as number) > this.tick ? 1 - (this.slowAmount[i] as number) : 1
@@ -1813,6 +1835,13 @@ export class World {
 				}
 			}
 
+			// caught on a corner for a moment: step sideways (left or right by the zombie's number) to free it
+			if (breaking) this.stuckTicks[i] = 0
+			else if ((this.stuckTicks[i] as number) > STUCK_TICKS && speed > 0) {
+				const side = i % 2 === 0 ? 1 : -1
+				ax += -wantY * side * speed
+				ay += wantX * side * speed
+			}
 			const vx = (this.vx[i] as number) * 0.75 + ax * 0.25
 			const vy = (this.vy[i] as number) * 0.75 + ay * 0.25
 			this.vx[i] = vx
@@ -1820,6 +1849,10 @@ export class World {
 			this.grid.moveCircle(x, y, vx * DT, vy * DT, def.radius * 0.8, this.moved)
 			this.x[i] = this.moved.x
 			this.y[i] = this.moved.y
+			const travelled = Math.hypot(this.moved.x - x, this.moved.y - y)
+			if (speed > 0 && travelled < speed * DT * 0.2)
+				this.stuckTicks[i] = Math.min(255, (this.stuckTicks[i] as number) + 1)
+			else if ((this.stuckTicks[i] as number) > 0) this.stuckTicks[i] = Math.max(0, (this.stuckTicks[i] as number) - 2)
 
 			// a screamer near players calls others in now and then
 			if (def.call && this.tick >= (this.callAt[i] as number)) {
@@ -1848,6 +1881,13 @@ export class World {
 				this.attackBarricade(i, def)
 			}
 		}
+	}
+
+	/** Nothing solid on the straight line from (x, y) over `distance` metres toward (tx, ty). */
+	private clearLine(x: number, y: number, tx: number, ty: number, distance: number): boolean {
+		if (distance <= 0.05) return true
+		const length = Math.hypot(tx - x, ty - y) || 1
+		return this.grid.rayToWall(x, y, (tx - x) / length, (ty - y) / length, distance) >= distance - 0.05
 	}
 
 	/** A zombie next to a barricade claws at it; at zero health the barricade falls. */

@@ -81,6 +81,15 @@ export class PostProcessing {
 		this.composer.addPass(this.grade)
 	}
 
+	/** Ambient occlusion on or off (it is the most expensive pass; the frame-rate guard drops it first). */
+	get occlusion(): boolean {
+		return this.ao.enabled
+	}
+
+	set occlusion(on: boolean) {
+		this.ao.enabled = on
+	}
+
 	setSize(width: number, height: number, pixelRatio: number): void {
 		this.composer.setPixelRatio(pixelRatio)
 		this.composer.setSize(width, height)
