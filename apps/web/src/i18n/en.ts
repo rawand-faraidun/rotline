@@ -662,6 +662,9 @@ export const en = {
 			contractsDescription: 'Short, sharp jobs of three or four minutes, for a quick payout.'
 		},
 		mission: {
+			openMap: 'Open the map (M)',
+			closeMap: 'Close the map',
+			mapHint: 'M or click to close',
 			loading: 'Deploying',
 			slowLoading: 'This is taking longer than it should.',
 			tryAgain: 'Try again',
@@ -777,7 +780,7 @@ export const en = {
 			},
 			backToLobby: 'Back to lobby',
 			controls:
-				'WASD move · mouse aim · click fire · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · Esc menu',
+				'WASD move · mouse aim · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
 			abilities: 'Abilities and utilities',
 			ready: 'Ready'
 		}

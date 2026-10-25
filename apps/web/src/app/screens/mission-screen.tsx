@@ -235,6 +235,75 @@ function Waypoint({ hud }: { hud: HudState }) {
 	)
 }
 
+/** Each squad slot's colour, as on the soldiers' rings. */
+const SLOT_COLOURS = ['#b8f23c', '#4fb3ff', '#ffc02e', '#ff7ad9']
+
+/** Teammates out of view: an arrow in their colour at the screen's edge, with their name and distance. */
+function AllyArrows({ hud }: { hud: HudState }) {
+	return (
+		<>
+			{hud.allies.map(ally => {
+				const colour = ally.downed ? 'var(--color-alert)' : (SLOT_COLOURS[(ally.slot - 1) % 4] ?? '#ece8dc')
+				return (
+					<div
+						key={ally.slot}
+						className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
+						style={{ left: `${ally.x * 100}%`, top: `${ally.y * 100}%`, color: colour }}
+						aria-hidden="true"
+					>
+						<svg viewBox="0 0 24 24" className="size-7" style={{ transform: `rotate(${ally.angle}rad)` }}>
+							<path d="M5 6 L21 12 L5 18 L9 12 Z" fill="currentColor" stroke="#0d100e" strokeWidth="1.5" />
+						</svg>
+						<span className="max-w-28 truncate bg-rot-black/75 px-1.5 font-bold text-[11px] uppercase tracking-wider">
+							{ally.name} · {ally.distance} m
+						</span>
+					</div>
+				)
+			})}
+		</>
+	)
+}
+
+/**
+ * The minimap in the top-right corner, following the player; opened up (click it, or M) it shows
+ * the whole map over the game.
+ */
+function MinimapView({ handle, expanded, onToggle }: { handle: GameHandle; expanded: boolean; onToggle: () => void }) {
+	const corner = useRef<HTMLCanvasElement>(null)
+	const full = useRef<HTMLCanvasElement>(null)
+	useEffect(() => (corner.current ? handle.minimap(corner.current, 'corner') : undefined), [handle])
+	useEffect(() => (expanded && full.current ? handle.minimap(full.current, 'full') : undefined), [handle, expanded])
+	return (
+		<>
+			<button
+				type="button"
+				onClick={onToggle}
+				aria-label={t.openMap}
+				title={t.openMap}
+				className="frame cut-sm absolute top-4 right-4 flex size-48 flex-col p-1 [--frame-fill:rgb(13_16_14/0.85)] hover:[--frame-color:var(--color-rot-lime)]"
+			>
+				<canvas ref={corner} className="size-full" />
+				<span className="pointer-events-none absolute right-2 bottom-1.5 font-bold text-[10px] text-muted uppercase tracking-[0.2em]">
+					M
+				</span>
+			</button>
+			{expanded && (
+				<button
+					type="button"
+					onClick={onToggle}
+					aria-label={t.closeMap}
+					className="absolute inset-0 z-30 grid place-items-center bg-rot-black/60 backdrop-blur-[2px]"
+				>
+					<span className="frame cut flex flex-col gap-2 p-3 [--frame-color:var(--color-rot-lime)] [--frame-fill:rgb(13_16_14/0.92)]">
+						<canvas ref={full} className="size-[min(78vh,78vw)]" />
+						<span className="text-center font-bold text-muted text-xs uppercase tracking-[0.2em]">{t.mapHint}</span>
+					</span>
+				</button>
+			)}
+		</>
+	)
+}
+
 /** The current objective, top right: what to do and how far along. */
 function ObjectiveTracker({ hud }: { hud: HudState }) {
 	const mission = hud.mission
@@ -243,7 +312,7 @@ function ObjectiveTracker({ hud }: { hud: HudState }) {
 	return (
 		<section
 			aria-label={mission.name}
-			className="frame cut pointer-events-none absolute top-4 right-4 flex w-72 flex-col gap-1.5 px-4 py-3 [--frame-fill:rgb(13_16_14/0.85)]"
+			className="frame cut pointer-events-none absolute top-[13.5rem] right-4 flex w-72 flex-col gap-1.5 px-4 py-3 [--frame-fill:rgb(13_16_14/0.85)]"
 		>
 			<span className="flex items-baseline justify-between gap-3">
 				<span className="truncate font-display text-xl uppercase">{mission.name}</span>
@@ -333,7 +402,7 @@ function Toasts({ hud }: { hud: HudState }) {
 	const live = hud.toasts.filter(toast => now - toast.at < 4000)
 	if (live.length === 0) return null
 	return (
-		<ul className="pointer-events-none absolute top-1/3 right-4 flex w-72 flex-col gap-2" aria-live="polite">
+		<ul className="pointer-events-none absolute right-4 bottom-52 flex w-72 flex-col-reverse gap-2" aria-live="polite">
 			{live.map(toast => (
 				<li
 					key={toast.id}
@@ -585,6 +654,18 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 	const range = mode === 'range'
 	const canvasRef = useRef<HTMLCanvasElement>(null)
 	const [handle, setHandle] = useState<GameHandle | null>(null)
+	const [mapOpen, setMapOpen] = useState(false)
+	// M opens and closes the full map
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (event.repeat || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+				return
+			if (event.key === 'm' || event.key === 'M') setMapOpen(open => !open)
+			else if (event.key === 'Escape') setMapOpen(false)
+		}
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	}, [])
 	const [loaded, setLoaded] = useState(false)
 	const [failed, setFailed] = useState(false)
 	const navigate = useNavigate()
@@ -702,8 +783,12 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 				<>
 					{range && handle && <RangePanel handle={handle} hud={hud} />}
 					{!range && <Multiplier hud={hud} round={inMission ? null : hud.wave} />}
+					{!range && handle && (
+						<MinimapView handle={handle} expanded={mapOpen} onToggle={() => setMapOpen(open => !open)} />
+					)}
 					<ObjectiveTracker hud={hud} />
 					<Waypoint hud={hud} />
+					<AllyArrows hud={hud} />
 					<BossBar hud={hud} />
 					<Radio hud={hud} />
 					<Toasts hud={hud} />

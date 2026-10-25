@@ -14,6 +14,20 @@ const WALL_HEIGHT = 3.2
 const CAMERA_BACK = 6
 /** How far the camera leans toward where the player aims, in metres. */
 const AIM_LEAN = 3
+/** How far the player may zoom: a little closer, or a little further out than the usual view. */
+const ZOOM_MIN = 0.72
+const ZOOM_MAX = 1.35
+const ZOOM_KEY = 'rotline.zoom'
+
+function loadZoom(): number {
+	try {
+		const value = Number(localStorage.getItem(ZOOM_KEY))
+		if (value >= ZOOM_MIN && value <= ZOOM_MAX) return value
+	} catch {
+		// private window: the usual view
+	}
+	return 1
+}
 
 /**
  * The holes zombies climb out of, one at each spawn point: a dark, ragged pit in the ground with a
@@ -281,6 +295,9 @@ export class Stage {
 	private readonly canvas: HTMLCanvasElement
 	private post: PostProcessing | null = null
 	private readonly playerLight: THREE.PointLight
+	/** the zoom the player chose (1 the usual view, smaller closer) and the one shown, easing toward it */
+	private zoom = loadZoom()
+	private shownZoom = this.zoom
 
 	constructor(canvas: HTMLCanvasElement, map: MapDef, assets = '/assets') {
 		const look = map.look ?? { ground: 'concrete', walls: 'wall-concrete', light: 'overcast' }
@@ -393,6 +410,17 @@ export class Stage {
 		this.trauma = Math.min(1, this.trauma + amount)
 	}
 
+	/** Zooms by a mouse-wheel step: a notch is a few percent in or out, within limits. */
+	zoomBy(deltaY: number): void {
+		const step = Math.max(-1, Math.min(1, deltaY / 100))
+		this.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, this.zoom * (1 + step * 0.06)))
+		try {
+			localStorage.setItem(ZOOM_KEY, this.zoom.toFixed(3))
+		} catch {
+			// not kept: it still applies now
+		}
+	}
+
 	/** Follows the player, leaning toward the aim point. */
 	follow(x: number, y: number, aimX: number, aimY: number, dtSeconds: number): void {
 		this.playerLight.position.set(x, 3.2, y)
@@ -410,7 +438,12 @@ export class Stage {
 		const shake = this.trauma * this.trauma * 0.9
 		const ox = this.kickOffset.x + (Math.random() - 0.5) * shake
 		const oz = this.kickOffset.y + (Math.random() - 0.5) * shake
-		this.camera.position.set(this.cameraTarget.x + ox, CAMERA_HEIGHT, this.cameraTarget.z + CAMERA_BACK + oz)
+		this.shownZoom += (this.zoom - this.shownZoom) * (1 - Math.exp(-10 * dtSeconds))
+		this.camera.position.set(
+			this.cameraTarget.x + ox,
+			CAMERA_HEIGHT * this.shownZoom,
+			this.cameraTarget.z + CAMERA_BACK * this.shownZoom + oz
+		)
 		this.camera.lookAt(this.cameraTarget.x + ox, 0, this.cameraTarget.z + oz)
 		this.sun.position.set(this.cameraTarget.x + 14, this.sunHeight, this.cameraTarget.z + 8)
 		this.sun.target.position.set(this.cameraTarget.x, 0, this.cameraTarget.z)

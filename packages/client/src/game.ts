@@ -50,8 +50,16 @@ import {
 import * as THREE from 'three'
 import { type AudioSettings, type LoopHandle, sharedAudio } from './audio.ts'
 import { Controls } from './controls.ts'
-import { HudStore, type InteractAction, type InteractHint, type MissionHud, type Toast } from './hud-store.ts'
+import {
+	type HudState,
+	HudStore,
+	type InteractAction,
+	type InteractHint,
+	type MissionHud,
+	type Toast
+} from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
+import { Minimap, type MinimapMode } from './minimap.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
 import { Decor } from './render/decor.ts'
@@ -95,6 +103,8 @@ export type GameHandle = {
 	 * goes on, and the player simply stands still while the menu is open.
 	 */
 	menu(open: boolean): void
+	/** Draws the minimap into this canvas until the returned function is called. */
+	minimap(canvas: HTMLCanvasElement, mode: MinimapMode): () => void
 	stop(): void
 }
 
@@ -143,6 +153,12 @@ export function startGame(options: GameOptions): GameHandle {
 	const unlock = () => audio.unlock()
 	window.addEventListener('pointerdown', unlock)
 	window.addEventListener('keydown', unlock)
+	// the mouse wheel zooms a little in or out (kept for next time)
+	const onWheel = (event: WheelEvent) => {
+		event.preventDefault()
+		stage.zoomBy(event.deltaY)
+	}
+	options.canvas.addEventListener('wheel', onWheel, { passive: false })
 	let lastReloadEnd = 0
 	let lastBurnAt = 0
 	let lastEmptyAt = 0
@@ -210,6 +226,12 @@ export function startGame(options: GameOptions): GameHandle {
 	const names = new Map<number, { name: string; connected: boolean }>()
 	let mission: MissionDef | null = null
 	const waypointVector = new THREE.Vector3()
+	const allyVector = new THREE.Vector3()
+	const minimap = new Minimap(map)
+	const minimapCanvases = new Map<HTMLCanvasElement, MinimapMode>()
+	let nextMinimapAt = 0
+	/** the off-screen teammates last shown, so the HUD only changes when they do */
+	let alliesKey = ''
 	let openedCaches = 0
 	/** score this player can still spend at ammo stations (from the server) */
 	let spendable = 0
@@ -988,6 +1010,51 @@ export function startGame(options: GameOptions): GameHandle {
 				const placed = screenWaypoint((waypointVector.x + 1) / 2, (1 - waypointVector.y) / 2, waypointVector.z > 1)
 				hud.set({ waypoint: { ...placed, distance: Math.hypot(target.x - drawn.x, target.y - drawn.y) } }, wallNow)
 			} else if (hud.getSnapshot().waypoint) hud.set({ waypoint: null }, wallNow)
+
+			// teammates out of view: an arrow at the edge of the screen toward each, with their name
+			const allies: HudState['allies'] = []
+			for (const other of interpolator.others) {
+				allyVector.set(other.x, 0.9, other.y).project(stage.camera)
+				const sx = (allyVector.x + 1) / 2
+				const sy = (1 - allyVector.y) / 2
+				if (allyVector.z <= 1 && sx > 0.02 && sx < 0.98 && sy > 0.04 && sy < 0.96) continue
+				const placed = screenWaypoint(sx, sy, allyVector.z > 1)
+				allies.push({
+					slot: other.id,
+					name: names.get(other.id)?.name ?? `Player ${other.id}`,
+					x: placed.x,
+					y: placed.y,
+					angle: placed.angle,
+					distance: Math.round(Math.hypot(other.x - drawn.x, other.y - drawn.y)),
+					downed: other.downed
+				})
+			}
+			const key = allies
+				.map(ally => `${ally.slot}:${ally.x.toFixed(3)}:${ally.y.toFixed(3)}:${ally.distance}:${ally.downed}`)
+				.join('|')
+			if (key !== alliesKey) {
+				alliesKey = key
+				hud.set({ allies }, wallNow)
+			}
+
+			// the minimap, a dozen times a second
+			if (minimapCanvases.size > 0 && now >= nextMinimapAt) {
+				nextMinimapAt = now + 80
+				const frameData = {
+					me: { x: drawn.x, y: drawn.y, angle: aimAngle, slot: you, alive: own.alive },
+					others: interpolator.others.map(other => ({
+						x: other.x,
+						y: other.y,
+						slot: other.id,
+						alive: other.alive,
+						downed: other.downed
+					})),
+					zombies: interpolator.view,
+					target,
+					props
+				}
+				for (const [canvas, mode] of minimapCanvases) minimap.draw(canvas, mode, frameData)
+			}
 		}
 		if (interpolator.sample(renderTick)) {
 			zombies?.update(interpolator.view, now / 1000)
@@ -1114,12 +1181,20 @@ export function startGame(options: GameOptions): GameHandle {
 			get: () => audio.getSettings(),
 			set: (settings: AudioSettings) => audio.setSettings(settings)
 		},
+		minimap(canvas, mode) {
+			minimapCanvases.set(canvas, mode)
+			nextMinimapAt = 0
+			return () => {
+				minimapCanvases.delete(canvas)
+			}
+		},
 		stop() {
 			// the engine lives on for the lobby and the next game: only this game's soundscape stops
 			if (loops) for (const loop of Object.values(loops)) loop.stop(0.5)
 			loops = null
 			window.removeEventListener('pointerdown', unlock)
 			window.removeEventListener('keydown', unlock)
+			options.canvas.removeEventListener('wheel', onWheel)
 			stopped = true
 			cancelAnimationFrame(frame)
 			connection.close()

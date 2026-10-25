@@ -46,6 +46,8 @@ export type HudState = {
 	 * angle toward it; metres away. Null when the objective is not a place.
 	 */
 	waypoint: { x: number; y: number; onScreen: boolean; angle: number; distance: number } | null
+	/** teammates out of view: where their arrow sits at the screen's edge (0..1), pointing at them */
+	allies: { slot: number; name: string; x: number; y: number; angle: number; distance: number; downed: boolean }[]
 	/** this player's kill chain, its multiplier, the chain timer left (0..1) and mission score */
 	chain: number
 	multiplier: number
@@ -150,6 +152,7 @@ export const initialHud: HudState = {
 	boss: null,
 	mission: null,
 	waypoint: null,
+	allies: [],
 	chain: 0,
 	multiplier: 1,
 	chainLeft: 0,

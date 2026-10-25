@@ -10,7 +10,8 @@ const WEAPON_SCALE = 0.88
 /** how much longer the arm bones are drawn than the model has them */
 const ARM_STRETCH = 1.12
 
-const SLOT_COLOURS = [0xb8f23c, 0x4fb3ff, 0xffc02e, 0xff7ad9]
+/** Each squad slot's colour (slot 1 first): rings, names, the minimap. */
+export const SLOT_COLOURS = [0xb8f23c, 0x4fb3ff, 0xffc02e, 0xff7ad9]
 
 /** bones the legs' clips drive; the rest (spine, arms, head) follows the gun */
 const LOWER = /^(root|pelvis|thigh_|calf_|foot_|ball_)/
