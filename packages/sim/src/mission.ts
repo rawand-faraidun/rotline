@@ -220,16 +220,21 @@ export function timeLeft(world: World, mission: MissionState): number | null {
 	return Math.max(0, Math.ceil(limit - (world.tick - mission.startTick) / TICK_RATE))
 }
 
+/** The mission is lost (the clock ran out, or a player alone used their last life); what was earned is kept. */
+export function failMission(world: World, mission: MissionState, reason: 'time' | 'lives' = 'time'): void {
+	mission.status = MissionStatus.failed
+	mission.completedTick = world.tick
+	world.events.push({ type: 'mission-failed', reason })
+	world.finish()
+}
+
 /** Spawns, objective progress and checkpoints; called once a tick while a mission runs. */
 export function stepMission(world: World): void {
 	const mission = world.mission
 	if (!mission || mission.status !== MissionStatus.active) return
 	// a timed mission whose clock runs out is lost (what was earned on the way is kept)
 	if (timeLeft(world, mission) === 0) {
-		mission.status = MissionStatus.failed
-		mission.completedTick = world.tick
-		world.events.push({ type: 'mission-failed' })
-		world.finish()
+		failMission(world, mission)
 		return
 	}
 	const objective = currentObjective(mission)

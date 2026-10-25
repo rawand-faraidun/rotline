@@ -136,7 +136,8 @@ sequenceDiagram
 - An unused pass counts as a taken seat until it expires. A queued player whose page stops asking for 30 seconds (tab closed) leaves the line.
 - The heartbeat carries how long the player has been idle: at 10 minutes the app warns, at 12 the seat is released and the player goes to the queue page.
 - The API hands out game tickets only to players holding a seat.
-- Game servers publish their slowest recent tick. While any is slower than 10 ms, the effective capacity drops by 10 % a minute (never below half); when healthy it recovers by one seat a minute. Lowering never removes anyone; it only stops admitting.
+- Game servers publish their slowest recent tick and the share of ticks over 20 ms in the last five seconds. While more than 5 % of any server's ticks run over (sustained load, not one garbage collection or a room starting), the effective capacity drops by 10 % a minute (never below half); when healthy it recovers by one seat a minute. Lowering never removes anyone; it only stops admitting.
+- The app checks the seat when a lobby screen opens, but not on a hover that only preloads a screen, not again within a minute of a confirmed seat (heartbeats confirm it too), and never sends a player to the queue on a failed or refused check: only a definite "queued" does. The API checks the seat again before any game ticket.
 - The capacity is stored in the database (`admin_setting`) and mirrored into Valkey when the API starts and whenever an admin changes it.
 - The queue page is static (`/queue`): position, estimated wait (from how fast seats recently turned over), players in the game, friends online, rotating tips and bestiary entries, an optional browser notification and a sound when the pass arrives, and a countdown to use it.
 

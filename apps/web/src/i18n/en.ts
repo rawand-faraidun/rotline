@@ -698,6 +698,11 @@ export const en = {
 			progressLeft: '{progress} s left',
 			failedBanner: 'Objective failed — back to the checkpoint',
 			timeoutBanner: 'Out of time',
+			livesBanner: 'You died — {lives} lives left',
+			lastLifeBanner: 'You died — last life',
+			outOfLivesBanner: 'Out of lives',
+			lives: 'Lives',
+			livesLabel: '{lives} lives left',
 			timeLeft: 'Time left',
 			interact: {
 				open: 'E — open the door',

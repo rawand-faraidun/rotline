@@ -46,7 +46,7 @@ export function createQueueApp({ auth, db, seats, valkey, origin }: QueueService
 	const routes = app
 		.post('/enter', async c => {
 			const userId = c.get('userId')
-			if (!(await allow(valkey, `rl:queue-enter:${userId}`, 20, 60_000))) return c.json({ error: 'slow-down' }, 429)
+			if (!(await allow(valkey, `rl:queue-enter:${userId}`, 60, 60_000))) return c.json({ error: 'slow-down' }, 429)
 			const status = await seats.enter(userId)
 			if (status.state === 'queued') await waiting(userId)
 			return c.json(status, 200)

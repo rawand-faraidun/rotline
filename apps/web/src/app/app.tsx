@@ -74,10 +74,10 @@ const welcomeRoute = createRoute({
 const lobbyRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/play/lobby',
-	beforeLoad: async ({ context }) => {
+	beforeLoad: async ({ context, preload }) => {
 		const target = await destination(context.queryClient)
 		if (target !== '/play/lobby') throw redirect({ to: target })
-		await requireSeat()
+		await requireSeat(preload)
 	},
 	component: LobbyScreen
 })
@@ -85,10 +85,10 @@ const lobbyRoute = createRoute({
 const missionRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/play/mission',
-	beforeLoad: async ({ context }) => {
+	beforeLoad: async ({ context, preload }) => {
 		const target = await destination(context.queryClient)
 		if (target !== '/play/lobby') throw redirect({ to: target })
-		await requireSeat()
+		await requireSeat(preload)
 	},
 	component: MissionScreen
 })
@@ -104,10 +104,10 @@ function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop' | '/p
 		// the armory and shop open on a tab: ?tab=weapons, armour or equipment
 		validateSearch: (search: Record<string, unknown>): { tab?: 'weapons' | 'armour' | 'equipment' } =>
 			search.tab === 'weapons' || search.tab === 'armour' || search.tab === 'equipment' ? { tab: search.tab } : {},
-		beforeLoad: async ({ context }) => {
+		beforeLoad: async ({ context, preload }) => {
 			const target = await destination(context.queryClient)
 			if (target !== '/play/lobby') throw redirect({ to: target })
-			await requireSeat()
+			await requireSeat(preload)
 		},
 		component
 	})
@@ -116,10 +116,10 @@ function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop' | '/p
 const rangeRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/play/range',
-	beforeLoad: async ({ context }) => {
+	beforeLoad: async ({ context, preload }) => {
 		const target = await destination(context.queryClient)
 		if (target !== '/play/lobby') throw redirect({ to: target })
-		await requireSeat()
+		await requireSeat(preload)
 	},
 	component: RangeScreen
 })

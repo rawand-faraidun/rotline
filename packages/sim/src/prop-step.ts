@@ -31,11 +31,22 @@ export function stepProps(world: World): void {
 			case 'generator':
 				if (prop.state === PropState.active && world.tick >= prop.untilTick) {
 					prop.state = PropState.done
-					prop.progress = 0
+					// in Survival it runs on a tank of fuel, then has to be started again (turrets cannot carry a run)
+					prop.untilTick = world.survival ? world.tick + FUEL_TICKS : 0
+					prop.progress = world.survival ? 1 : 0
 					world.events.push({ type: 'prop', index: prop.index, state: prop.state })
 				} else if (prop.state === PropState.active) {
 					// running up: how far along, so everyone can see it coming on
 					prop.progress = 1 - (prop.untilTick - world.tick) / START_TICKS
+				} else if (prop.state === PropState.done && prop.untilTick > 0) {
+					// the fuel left, shown on its bar; dry, it stops and what it powers goes dark
+					prop.progress = Math.max(0, (prop.untilTick - world.tick) / FUEL_TICKS)
+					if (world.tick >= prop.untilTick) {
+						prop.state = PropState.idle
+						prop.progress = 0
+						prop.untilTick = 0
+						world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+					}
 				}
 				break
 			case 'carry':
@@ -88,6 +99,7 @@ function turret(world: World, prop: Prop): void {
 
 const NEST_INTERVAL = ticks(propsDef.nest.spawnEverySeconds)
 const START_TICKS = Math.max(1, ticks(propsDef.generator.startSeconds))
+const FUEL_TICKS = Math.max(1, ticks(propsDef.generator.fuelSeconds))
 let nestPool: { type: number; upTo: number }[] | null = null
 let nestTotal = 0
 

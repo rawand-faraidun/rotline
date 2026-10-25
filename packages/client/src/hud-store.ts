@@ -31,7 +31,7 @@ export type HudState = {
 	}[]
 	/** short announcements: new wave, squad wiped, objective done, checkpoint, mission complete */
 	banner: {
-		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over' | 'failed' | 'timeout'
+		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over' | 'failed' | 'timeout' | 'lives'
 		wave: number
 		at: number
 	} | null
@@ -46,6 +46,8 @@ export type HudState = {
 	 * angle toward it; metres away. Null when the objective is not a place.
 	 */
 	waypoint: { x: number; y: number; onScreen: boolean; angle: number; distance: number } | null
+	/** lives left playing alone (the run is lost at none), or null in a squad */
+	livesLeft: number | null
 	/** teammates out of view: where their arrow sits at the screen's edge (0..1), pointing at them */
 	allies: { slot: number; name: string; x: number; y: number; angle: number; distance: number; downed: boolean }[]
 	/** this player's kill chain, its multiplier, the chain timer left (0..1) and mission score */
@@ -153,6 +155,7 @@ export const initialHud: HudState = {
 	mission: null,
 	waypoint: null,
 	allies: [],
+	livesLeft: null,
 	chain: 0,
 	multiplier: 1,
 	chainLeft: 0,

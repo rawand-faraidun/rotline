@@ -22,7 +22,7 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 10
+export const PROTOCOL_VERSION = 11
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
@@ -299,6 +299,7 @@ export type SelfState = Omit<
 	| 'lastKillTick'
 	| 'score'
 	| 'scoreSpent'
+	| 'outs'
 	| 'thresholds'
 	| 'foundItems'
 	| 'itemsReported'
@@ -380,6 +381,8 @@ export type SnapshotFrame = {
 	score: number
 	/** round trip measured by the server, in milliseconds */
 	rttMs: number
+	/** lives left playing alone, or null in a squad */
+	livesLeft: number | null
 	self: SelfState
 	mission: MissionFrame
 	others: OtherPlayer[]
@@ -473,6 +476,8 @@ export class SnapshotEncoder {
 			.u32(world.kills)
 			.u32(world.score)
 			.u16(Math.min(0xffff, Math.round(rttMs)))
+			// lives left playing alone (255: in a squad, where deaths are not counted)
+			.u8(world.livesLeft ?? 255)
 
 		// own player, at full precision for reconciliation
 		{
@@ -691,6 +696,8 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 	const kills = r.u32()
 	const score = r.u32()
 	const rttMs = r.u16()
+	const lives = r.u8()
+	const livesLeft = lives === 255 ? null : lives
 	let self: SelfState
 	{
 		const x = r.f64()
@@ -860,7 +867,7 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		if (flags & Flag.status) table.status[index] = r.u8()
 		else if (flags & Flag.fresh) table.status[index] = 0
 	}
-	return { id, tick, lastSeq, wave, kills, score, rttMs, self, mission, others, pools, objects, props }
+	return { id, tick, lastSeq, wave, kills, score, rttMs, livesLeft, self, mission, others, pools, objects, props }
 }
 
 const EMPTY_SELF: SelfState = {
@@ -1023,7 +1030,9 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				w.i16(event.index)
 				break
 			case 'mission-complete':
+				break
 			case 'mission-failed':
+				w.u8(event.reason === 'lives' ? 1 : 0)
 				break
 			case 'item-found':
 				w.u8(event.player).u8(event.item)
@@ -1140,7 +1149,7 @@ export function readEvents(r: Reader): SimEvent[] {
 				events.push({ type: 'mission-complete' })
 				break
 			case EventType['mission-failed']:
-				events.push({ type: 'mission-failed' })
+				events.push({ type: 'mission-failed', reason: r.u8() === 1 ? 'lives' : 'time' })
 				break
 			case EventType['item-found']:
 				events.push({ type: 'item-found', player: r.u8(), item: r.u8() })

@@ -28,6 +28,8 @@ import { type Connection, RESULTS_SECONDS, Room } from './room.ts'
 import type { TemplatedApp, us_listen_socket, WebSocket } from 'uWebSockets.js'
 
 // uWebSockets.js 20.71's ESM wrapper points at a file the package does not ship, so load the CommonJS build
+/** A tick over this (ms) eats into the 33 ms a tick has at 30 a second. */
+const SLOW_TICK_MS = 20
 const uws = createRequire(import.meta.url)('uWebSockets.js') as typeof import('uWebSockets.js')
 
 /** A client must say hello within this many milliseconds. */
@@ -203,6 +205,9 @@ export class GameServer {
 	private announced = 0
 	/** slowest tick since the last announcement */
 	private windowMax = 0
+	/** ticks since the last announcement, and how many of them ran over SLOW_TICK_MS */
+	private windowTicks = 0
+	private windowSlow = 0
 	private async announce(): Promise<void> {
 		if (!this.valkey) return
 		const now = Date.now()
@@ -234,9 +239,12 @@ export class GameServer {
 					rooms: this.rooms.size,
 					players: this.playerCount(),
 					draining: this.draining,
-					tickMaxMs: Number(this.windowMax.toFixed(2))
+					tickMaxMs: Number(this.windowMax.toFixed(2)),
+					tickSlowShare: this.windowTicks > 0 ? Number((this.windowSlow / this.windowTicks).toFixed(3)) : 0
 				})
 				this.windowMax = 0
+				this.windowTicks = 0
+				this.windowSlow = 0
 			}
 		} catch (error) {
 			this.log.warn({ err: error }, 'registry update failed')
@@ -452,6 +460,8 @@ export class GameServer {
 		this.stats.total += took
 		if (took > this.stats.max) this.stats.max = took
 		if (took > this.windowMax) this.windowMax = took
+		this.windowTicks++
+		if (took > SLOW_TICK_MS) this.windowSlow++
 	}
 
 	private metrics(): string {

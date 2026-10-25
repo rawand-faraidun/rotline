@@ -258,6 +258,8 @@ describe('server messages', () => {
 			{ type: 'failed', index: -1 },
 			{ type: 'checkpoint', index: 1 },
 			{ type: 'mission-complete' },
+			{ type: 'mission-failed', reason: 'time' },
+			{ type: 'mission-failed', reason: 'lives' },
 			{ type: 'item-found', player: 2, item: 11 },
 			{ type: 'cache', player: 2, index: 1 },
 			{ type: 'buff', player: 1, buff: 3 },
@@ -292,6 +294,12 @@ describe('snapshots', () => {
 		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), table)
 		expect(frame.lastSeq).toBe(5)
 		expect(frame.tick).toBe(world.tick - 1)
+		// a squad counts no lives; alone, the lives left come along
+		expect(frame.livesLeft).toBeNull()
+		world.removePlayer(2)
+		world.soloDeaths = 1
+		expect(decode(new SnapshotEncoder(1).write(new Writer(), world), new ZombieTable()).livesLeft).toBe(2)
+		world.addPlayer(2)
 		expect(frame.self.x).toBe(me.x)
 		expect(frame.self.y).toBe(me.y)
 		expect(frame.self.weapons).toEqual(me.weapons)

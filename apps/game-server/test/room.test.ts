@@ -241,13 +241,14 @@ describe('room lifecycle', () => {
 	type Report = Parameters<ConstructorParameters<typeof Room>[4] & {}>[0]
 	const decode = (sent: Uint8Array[]) => sent.map(bytes => readServerHeader(new Reader(bytes)))
 
-	it('ends a Survival run on a wipe with the rounds survived', () => {
+	it('ends a Survival run alone at the last life, with the rounds survived', () => {
 		const sent: Uint8Array[] = []
 		const room = new Room('squad-s', 'squad', 1, 0)
 		room.join('user-a', 'A', starterBuild(), { send: bytes => sent.push(bytes) > 0, close: () => {} })
 		expect(room.world.survival).toBe(true)
 		const a = room.world.players.get(1)
 		if (!a) throw new Error()
+		room.world.soloDeaths = 2
 		a.health = 1
 		room.world.spawnZombie(zombieIndex('drudge'), { x: a.x + 0.5, y: a.y })
 		for (let i = 0; i < 120 && room.completedAt === 0; i++) room.tick(Date.now())

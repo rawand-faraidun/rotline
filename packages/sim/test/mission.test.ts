@@ -359,8 +359,8 @@ describe('fair payouts', () => {
 })
 
 describe('survival', () => {
-	it('ends the run when the squad is wiped, after the rounds survived', () => {
-		const world = new World({
+	const survivalWorld = () =>
+		new World({
 			seed: 4,
 			map: yard,
 			survival: true,
@@ -373,16 +373,107 @@ describe('survival', () => {
 				growthPerWave: 1
 			}
 		})
+	/** Drops a player to zero health next to a zombie and runs until they go down. */
+	const die = (world: World, state: ReturnType<World['addPlayer']>) => {
+		state.health = 1
+		state.safeUntilTick = 0
+		const zombie = world.spawnZombie(drudge, { x: state.x + 0.5, y: state.y })
+		for (let i = 0; i < 90 && state.alive && !state.downed; i++) world.step(new Map())
+		world.alive[zombie] = 0
+	}
+
+	it('ends the run when the squad is wiped, after the rounds survived', () => {
+		const world = survivalWorld()
 		const state = world.addPlayer(1)
+		world.addPlayer(2)
 		kill(world, 1, 3)
 		expect(state.score).toBeGreaterThan(0)
-		state.health = 1
-		world.spawnZombie(drudge, { x: state.x + 0.5, y: state.y })
-		for (let i = 0; i < 90 && state.alive; i++) world.step(new Map())
+		for (const player of world.players.values()) {
+			player.downed = true
+			player.bleedoutTick = world.tick
+		}
+		world.step(new Map())
 		expect(world.events.some(event => event.type === 'run-over')).toBe(true)
 		expect(world.finished).toBe(true)
 		steps(world, 10 * TICK_RATE)
 		expect(state.alive).toBe(false)
+	})
+
+	it('alone, restarts the round twice and ends the run at the third death', () => {
+		const world = survivalWorld()
+		const state = world.addPlayer(1)
+		expect(world.livesLeft).toBe(3)
+		die(world, state)
+		expect(world.events.some(event => event.type === 'wipe')).toBe(true)
+		expect(world.finished).toBe(false)
+		expect(world.livesLeft).toBe(2)
+		steps(world, 4 * TICK_RATE)
+		expect(state.alive).toBe(true)
+		die(world, state)
+		expect(world.livesLeft).toBe(1)
+		steps(world, 4 * TICK_RATE)
+		die(world, state)
+		expect(world.events.some(event => event.type === 'run-over')).toBe(true)
+		expect(world.finished).toBe(true)
+		expect(world.livesLeft).toBe(0)
+	})
+})
+
+describe('lives and respawns', () => {
+	it('alone in a mission, two deaths go back to the checkpoint and the third loses it', () => {
+		const world = missionWorld()
+		const state = world.addPlayer(1)
+		for (let death = 1; death <= 2; death++) {
+			state.health = 1
+			state.safeUntilTick = 0
+			world.spawnZombie(drudge, { x: state.x + 0.5, y: state.y })
+			for (let i = 0; i < 90 && !world.events.some(event => event.type === 'wipe'); i++) world.step(new Map())
+			expect(world.mission?.status).toBe(MissionStatus.active)
+			expect(world.livesLeft).toBe(3 - death)
+			steps(world, 4 * TICK_RATE)
+		}
+		state.health = 1
+		state.safeUntilTick = 0
+		world.spawnZombie(drudge, { x: state.x + 0.5, y: state.y })
+		for (let i = 0; i < 90 && !world.finished; i++) world.step(new Map())
+		expect(world.mission?.status).toBe(MissionStatus.failed)
+		expect(world.events).toContainEqual({ type: 'mission-failed', reason: 'lives' })
+	})
+
+	it('counts no lives in a squad', () => {
+		const world = missionWorld()
+		world.addPlayer(1)
+		world.addPlayer(2)
+		expect(world.livesLeft).toBeNull()
+	})
+
+	it('in a contract, brings a bled-out player back after 15 s, then 20 s, while the squad fights on', () => {
+		const world = missionWorld({ respawn: { seconds: 15, step: 5, maxSeconds: 30 } })
+		const out = world.addPlayer(1)
+		const other = world.addPlayer(2)
+		other.safeUntilTick = 1e9
+		for (const wait of [15, 20]) {
+			out.downed = true
+			out.bleedoutTick = world.tick
+			world.step(new Map())
+			expect(out.alive).toBe(false)
+			expect(out.respawnTick - world.tick).toBeGreaterThanOrEqual(wait * TICK_RATE - 2)
+			expect(out.respawnTick - world.tick).toBeLessThanOrEqual(wait * TICK_RATE)
+			steps(world, wait * TICK_RATE + 1)
+			expect(out.alive).toBe(true)
+		}
+	})
+
+	it('in a campaign mission, a bled-out player waits for the next checkpoint', () => {
+		const world = missionWorld()
+		const out = world.addPlayer(1)
+		const other = world.addPlayer(2)
+		other.safeUntilTick = 1e9
+		out.downed = true
+		out.bleedoutTick = world.tick
+		world.step(new Map())
+		steps(world, 60 * TICK_RATE)
+		expect(out.alive).toBe(false)
 	})
 })
 
