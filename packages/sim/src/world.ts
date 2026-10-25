@@ -91,8 +91,8 @@ export type SimEvent =
 	| { type: 'run-over'; wave: number }
 	| { type: 'checkpoint'; index: number }
 	| { type: 'mission-complete' }
-	/** the run is lost: the clock ran out, or a player alone used their last life */
-	| { type: 'mission-failed'; reason: 'time' | 'lives' }
+	/** the run is lost: the clock ran out, a player alone used their last life, or a contract's squad went down */
+	| { type: 'mission-failed'; reason: 'time' | 'lives' | 'wiped' }
 	/** an item (index into game-data items) found by one player; drops are per player */
 	| { type: 'item-found'; player: number; item: number }
 	| { type: 'cache'; player: number; index: number }
@@ -194,6 +194,8 @@ export const THROWN = 255
 const OVERWATCH_PIERCE = abilityById.get('overwatch')?.params.pierce ?? 0
 /** a zombie set alight burns for this long after the flame, each second for this share of the flame's damage */
 const BURN_TICKS = 3 * TICK_RATE
+/** Missions in this zone are contracts: no lives, a wipe loses them. */
+const CONTRACT_ZONE = 'contracts'
 /** A zombie pressing on without moving this many ticks steps sideways to get round what holds it. */
 const STUCK_TICKS = Math.round(0.5 * TICK_RATE)
 const BURN_SHARE = 0.5
@@ -828,8 +830,13 @@ export class World {
 	 * counts deaths: the fallen wait to be revived, or for the next checkpoint or round.
 	 */
 	get livesLeft(): number | null {
-		if (this.players.size !== 1 || this.range) return null
+		if (this.players.size !== 1 || !this.campaignMission) return null
 		return Math.max(0, playerDef.soloLives - this.soloDeaths)
+	}
+
+	/** A campaign mission (not a contract, not Survival): the only kind where a player alone has lives. */
+	private get campaignMission(): boolean {
+		return this.mission !== null && this.mission.def.zone !== CONTRACT_ZONE
 	}
 
 	/**
@@ -839,15 +846,18 @@ export class World {
 	private wipe(reason: 'death' | 'failed'): void {
 		if (this.finished) return
 		const solo = this.players.size === 1
-		if (solo && reason === 'death') this.soloDeaths++
-		const outOfLives = solo && this.soloDeaths >= playerDef.soloLives
-		if (this.mission && outOfLives) {
-			failMission(this, this.mission, 'lives')
+		if (solo && reason === 'death' && this.campaignMission) this.soloDeaths++
+		// a campaign mission alone has lives; a contract is lost the moment the squad is down
+		const lost =
+			this.mission !== null &&
+			reason === 'death' &&
+			(this.campaignMission ? solo && this.soloDeaths >= playerDef.soloLives : true)
+		if (this.mission && lost) {
+			failMission(this, this.mission, this.campaignMission ? 'lives' : 'wiped')
 			return
 		}
-		// Survival: a wipe ends the run in a squad, and alone at the last life (before that, alone, the
-		// round starts again)
-		if (this.survival && (!solo || outOfLives || reason !== 'death')) {
+		// Survival: a wipe ends the run
+		if (this.survival) {
 			for (const state of this.players.values()) {
 				state.downed = false
 				state.alive = false

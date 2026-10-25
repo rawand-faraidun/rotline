@@ -24,6 +24,8 @@ const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
 export const PROTOCOL_VERSION = 11
 
+const FAIL_REASONS = ['time', 'lives', 'wiped'] as const
+
 export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
 /** Firing-range controls: spawn zombies of a type, or clear them away. */
@@ -1032,7 +1034,7 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 			case 'mission-complete':
 				break
 			case 'mission-failed':
-				w.u8(event.reason === 'lives' ? 1 : 0)
+				w.u8(event.reason === 'lives' ? 1 : event.reason === 'wiped' ? 2 : 0)
 				break
 			case 'item-found':
 				w.u8(event.player).u8(event.item)
@@ -1149,7 +1151,7 @@ export function readEvents(r: Reader): SimEvent[] {
 				events.push({ type: 'mission-complete' })
 				break
 			case EventType['mission-failed']:
-				events.push({ type: 'mission-failed', reason: r.u8() === 1 ? 'lives' : 'time' })
+				events.push({ type: 'mission-failed', reason: FAIL_REASONS[r.u8()] ?? 'time' })
 				break
 			case EventType['item-found']:
 				events.push({ type: 'item-found', player: r.u8(), item: r.u8() })

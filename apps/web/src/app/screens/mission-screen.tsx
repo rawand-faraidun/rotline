@@ -875,7 +875,10 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						<p
 							className={cn(
 								'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
-								hud.banner.text === 'wipe' || hud.banner.text === 'timeout' || hud.banner.text === 'lives'
+								hud.banner.text === 'wipe' ||
+									hud.banner.text === 'timeout' ||
+									hud.banner.text === 'lives' ||
+									hud.banner.text === 'wiped'
 									? 'text-alert'
 									: hud.banner.text === 'wave'
 										? 'text-warning'
@@ -895,17 +898,26 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 											: format(t.wipeBanner, { wave: String(hud.banner.wave) })
 									: hud.banner.text === 'lives'
 										? t.outOfLivesBanner
-										: hud.banner.text === 'objective'
-											? t.objectiveBanner
-											: hud.banner.text === 'checkpoint'
-												? t.checkpointBanner
-												: hud.banner.text === 'failed'
-													? t.failedBanner
-													: hud.banner.text === 'timeout'
-														? t.timeoutBanner
-														: hud.banner.text === 'run-over'
-															? format(t.runOverBanner, { wave: String(hud.banner.wave) })
-															: t.completeBanner}
+										: hud.banner.text === 'wiped'
+											? t.contractFailedBanner
+											: hud.banner.text === 'objective'
+												? t.objectiveBanner
+												: hud.banner.text === 'checkpoint'
+													? t.checkpointBanner
+													: hud.banner.text === 'failed'
+														? t.failedBanner
+														: hud.banner.text === 'timeout'
+															? t.timeoutBanner
+															: hud.banner.text === 'run-over'
+																? format(t.runOverBanner, { wave: String(hud.banner.wave) })
+																: t.completeBanner}
+						</p>
+					)}
+
+					{hud.silence && (
+						// the game is silent: say why, so a held or muted sound is never a mystery
+						<p className="pointer-events-none absolute top-16 left-1/2 -translate-x-1/2 bg-rot-black/80 px-3 py-1 font-bold text-warning text-xs uppercase tracking-[0.2em]">
+							{hud.silence === 'blocked' ? t.soundBlocked : t.soundMuted}
 						</p>
 					)}
 

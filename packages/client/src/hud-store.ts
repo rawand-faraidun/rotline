@@ -31,7 +31,17 @@ export type HudState = {
 	}[]
 	/** short announcements: new wave, squad wiped, objective done, checkpoint, mission complete */
 	banner: {
-		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over' | 'failed' | 'timeout' | 'lives'
+		text:
+			| 'wave'
+			| 'wipe'
+			| 'objective'
+			| 'checkpoint'
+			| 'complete'
+			| 'run-over'
+			| 'failed'
+			| 'timeout'
+			| 'lives'
+			| 'wiped'
 		wave: number
 		at: number
 	} | null
@@ -46,6 +56,8 @@ export type HudState = {
 	 * angle toward it; metres away. Null when the objective is not a place.
 	 */
 	waypoint: { x: number; y: number; onScreen: boolean; angle: number; distance: number } | null
+	/** why the game is silent, if it is: the browser holds sound until a click or key, or it is muted */
+	silence: 'blocked' | 'muted' | null
 	/** lives left playing alone (the run is lost at none), or null in a squad */
 	livesLeft: number | null
 	/** teammates out of view: where their arrow sits at the screen's edge (0..1), pointing at them */
@@ -156,6 +168,7 @@ export const initialHud: HudState = {
 	waypoint: null,
 	allies: [],
 	livesLeft: null,
+	silence: null,
 	chain: 0,
 	multiplier: 1,
 	chainLeft: 0,

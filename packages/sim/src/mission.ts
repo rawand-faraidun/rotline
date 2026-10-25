@@ -221,7 +221,7 @@ export function timeLeft(world: World, mission: MissionState): number | null {
 }
 
 /** The mission is lost (the clock ran out, or a player alone used their last life); what was earned is kept. */
-export function failMission(world: World, mission: MissionState, reason: 'time' | 'lives' = 'time'): void {
+export function failMission(world: World, mission: MissionState, reason: 'time' | 'lives' | 'wiped' = 'time'): void {
 	mission.status = MissionStatus.failed
 	mission.completedTick = world.tick
 	world.events.push({ type: 'mission-failed', reason })

@@ -153,6 +153,12 @@ export function startGame(options: GameOptions): GameHandle {
 	const unlock = () => audio.unlock()
 	window.addEventListener('pointerdown', unlock)
 	window.addEventListener('keydown', unlock)
+	// coming back to the tab (or the window) asks the browser to let sound play again
+	const onVisible = () => {
+		if (document.visibilityState === 'visible') audio.unlock()
+	}
+	document.addEventListener('visibilitychange', onVisible)
+	window.addEventListener('focus', onVisible)
 	// the mouse wheel zooms a little in or out (kept for next time)
 	const onWheel = (event: WheelEvent) => {
 		event.preventDefault()
@@ -459,6 +465,7 @@ export function startGame(options: GameOptions): GameHandle {
 					reviveHint: near ? (names.get(near.id)?.name ?? `Player ${near.id}`) : null,
 					teammates,
 					livesLeft: snapshot.livesLeft,
+					silence: audio.silence,
 					health: Math.ceil(self.health),
 					wave: snapshot.wave + 1,
 					kills: snapshot.kills,
@@ -626,7 +633,7 @@ export function startGame(options: GameOptions): GameHandle {
 					case 'mission-failed':
 						audio.sound('stinger-high', { bus: 'interface' })
 						hud.set(
-							{ banner: { text: event.reason === 'lives' ? 'lives' : 'timeout', wave: 0, at: performance.now() } },
+							{ banner: { text: event.reason === 'time' ? 'timeout' : event.reason, wave: 0, at: performance.now() } },
 							performance.now(),
 							true
 						)
@@ -1210,6 +1217,8 @@ export function startGame(options: GameOptions): GameHandle {
 			window.removeEventListener('pointerdown', unlock)
 			window.removeEventListener('keydown', unlock)
 			options.canvas.removeEventListener('wheel', onWheel)
+			document.removeEventListener('visibilitychange', onVisible)
+			window.removeEventListener('focus', onVisible)
 			stopped = true
 			cancelAnimationFrame(frame)
 			connection.close()

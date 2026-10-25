@@ -206,6 +206,18 @@ export class AudioEngine {
 		if (this.context && this.context.state !== 'running') void this.context.resume().catch(() => {})
 	}
 
+	/** Whether sound can be heard right now (the browser lets it play, and it is not muted). */
+	get audible(): boolean {
+		return this.context?.state === 'running' && !this.settings.muted && this.settings.master > 0
+	}
+
+	/** Why sound is not heard: the browser holds it until a click or key, or the player turned it off. */
+	get silence(): 'blocked' | 'muted' | null {
+		if (this.context && this.context.state !== 'running') return 'blocked'
+		if (this.settings.muted || this.settings.master <= 0) return 'muted'
+		return null
+	}
+
 	get ready(): Promise<void> {
 		return this.loading ?? Promise.resolve()
 	}
