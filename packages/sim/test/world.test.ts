@@ -15,6 +15,18 @@ describe('zombies', () => {
 		expect(player.health).toBeLessThan(100)
 	})
 
+	it('go round a wall between them and a near player instead of pressing into it', () => {
+		const world = quietWorld()
+		const player = world.addPlayer(1)
+		// the yard has a short wall at x 22..24, y 22: the player just north of it, a zombie just south
+		player.x = 23.5
+		player.y = 21.2
+		player.safeUntilTick = 1e9
+		const zombie = world.spawnZombie(zombieIndex('drudge'), { x: 23.5, y: 23.6 })
+		steps(world, 6 * TICK_RATE)
+		expect(Math.hypot((world.x[zombie] as number) - player.x, (world.y[zombie] as number) - player.y)).toBeLessThan(1.5)
+	})
+
 	it('take damage and die from shots, and the kill is counted', () => {
 		const world = quietWorld()
 		const player = world.addPlayer(1)
