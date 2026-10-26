@@ -97,7 +97,7 @@ export const en = {
 		gallery: {
 			survival: 'Survival at the Crossroads',
 			airlift: 'Airlift: holding the cargo bay',
-			holdouts: 'Holdouts: the food depot at night',
+			holdouts: 'Hotspot: the food depot at night',
 			landfall: 'Landfall: up the high street',
 			railyard: 'Rail Yard: the platform',
 			blackout: 'Blackout: the approach road'

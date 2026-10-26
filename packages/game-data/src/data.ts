@@ -11,6 +11,7 @@ import compoundData from '../data/maps/compound.json' with { type: 'json' }
 import crossroadsData from '../data/maps/crossroads.json' with { type: 'json' }
 import depotData from '../data/maps/depot.json' with { type: 'json' }
 import docksData from '../data/maps/docks.json' with { type: 'json' }
+import elmcloseData from '../data/maps/elmclose.json' with { type: 'json' }
 import glasshouseData from '../data/maps/glasshouse.json' with { type: 'json' }
 import hospitalData from '../data/maps/hospital.json' with { type: 'json' }
 import landfallData from '../data/maps/landfall.json' with { type: 'json' }
@@ -107,7 +108,8 @@ export const maps: Record<string, MapDef> = {
 	compound: loadMap('compound', compoundData),
 	oldtown: loadMap('oldtown', oldtownData),
 	glasshouse: loadMap('glasshouse', glasshouseData),
-	docks: loadMap('docks', docksData)
+	docks: loadMap('docks', docksData),
+	elmclose: loadMap('elmclose', elmcloseData)
 }
 export const propsDef = parse('props', propsDataSchema, propsData)
 export const campaign = parse('campaign', campaignSchema, campaignData)

@@ -437,6 +437,7 @@ export class Stage {
 		walls.castShadow = walls.receiveShadow = true
 		this.scene.add(walls)
 		this.addSolids(map, assets, detailed)
+		this.addPatches(map, assets, detailed)
 		// the town beyond the border: buildings of a few heights, in the map's wall material and another
 		const other = look.walls === 'brick' ? 'wall-concrete' : 'brick'
 		const otherMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
@@ -493,6 +494,48 @@ export class Stage {
 			const mesh = new THREE.Mesh(wallGeometry(group, CONTAINER_HEIGHT, 1), [paint, roof])
 			mesh.name = 'containers'
 			mesh.castShadow = mesh.receiveShadow = true
+			this.scene.add(mesh)
+		}
+	}
+
+	/** Lawns, gravel and the like laid over the ground, a hair above it, one mesh per kind of ground. */
+	private addPatches(map: MapDef, assets: string, detailed: boolean): void {
+		const kinds = new Set((map.patches ?? []).map(patch => patch.ground))
+		for (const ground of kinds) {
+			const positions: number[] = []
+			const uvs: number[] = []
+			const indices: number[] = []
+			for (const patch of map.patches ?? []) {
+				if (patch.ground !== ground) continue
+				const base = positions.length / 3
+				const [x0, x1, z0, z1] = [patch.x, patch.x + patch.w, patch.y, patch.y + patch.h]
+				positions.push(x0, 0, z0, x1, 0, z0, x1, 0, z1, x0, 0, z1)
+				// the same 4 m tiling as the ground, anchored to the map so neighbouring patches meet
+				uvs.push(x0 / 4, -z0 / 4, x1 / 4, -z0 / 4, x1 / 4, -z1 / 4, x0 / 4, -z1 / 4)
+				indices.push(base, base + 2, base + 1, base, base + 3, base + 2)
+			}
+			const geometry = new THREE.BufferGeometry()
+			geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+			geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
+			geometry.setAttribute(
+				'normal',
+				new THREE.Float32BufferAttribute(
+					positions.map((_, i) => (i % 3 === 1 ? 1 : 0)),
+					3
+				)
+			)
+			geometry.setIndex(indices)
+			const material = new THREE.MeshStandardMaterial({
+				roughness: 0.95,
+				polygonOffset: true,
+				polygonOffsetFactor: -2,
+				polygonOffsetUnits: -2
+			})
+			dress(material, `${assets}/textures/${ground}`, null, 0xdcdcd4, detailed)
+			const mesh = new THREE.Mesh(geometry, material)
+			mesh.position.y = 0.005
+			mesh.receiveShadow = true
+			mesh.name = `patches-${ground}`
 			this.scene.add(mesh)
 		}
 	}

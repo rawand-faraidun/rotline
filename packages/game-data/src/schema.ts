@@ -467,6 +467,11 @@ export const mapSchema = z.object({
 		.array(rect.extend({ kind: z.enum(['hedge', 'container']) }))
 		.max(4000)
 		.optional(),
+	/** patches of other ground drawn over the map's own (lawns in a street, gravel paths): drawing only */
+	patches: z
+		.array(rect.extend({ ground: z.enum(['asphalt', 'concrete', 'dirt', 'grass']) }))
+		.max(400)
+		.optional(),
 	decor: z.array(decorSchema).max(2000).optional(),
 	playerSpawns: z.array(point).min(4),
 	zombieSpawns: z.array(zombieSpawn).min(1),

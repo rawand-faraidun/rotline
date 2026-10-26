@@ -28,6 +28,10 @@
 			{
 				"x": 4.5,
 				"y": 51.5
+			},
+			{
+				"x": 8.5,
+				"y": 77.5
 			}
 		],
 		"gates": {
@@ -278,6 +282,10 @@
 			{
 				"x": 44.5,
 				"y": 40.5
+			},
+			{
+				"x": 5.5,
+				"y": 9.5
 			}
 		],
 		"gates": {
@@ -512,6 +520,10 @@
 			{
 				"x": 50.5,
 				"y": 13.5
+			},
+			{
+				"x": 52.5,
+				"y": 124.5
 			}
 		],
 		"gates": {
@@ -714,8 +726,8 @@
 		"id": "survivors",
 		"name": "Holdouts",
 		"zone": "ashgate",
-		"map": "depot",
-		"description": "Two depot workers are holed up in the food depot. Break in, find them on the cameras, burn the nests, and walk them to the truck on the dock before the horde closes the roads.",
+		"map": "elmclose",
+		"description": "Two families are holed up on Elm Close, a street the residents barricaded themselves. Clear the main road, raise them on the residents' radio, burn the nests in the back gardens, and walk everyone to the school minibus before the roads close.",
 		"parTimeSeconds": 660,
 		"scoreTarget": 64000,
 		"enemyLevel": 6,
@@ -732,42 +744,36 @@
 		},
 		"caches": [
 			{
-				"x": 36.5,
-				"y": 55.5
+				"x": 39.5,
+				"y": 53.5
 			},
 			{
-				"x": 93.5,
-				"y": 61.5
+				"x": 37.5,
+				"y": 4.5
+			},
+			{
+				"x": 98.5,
+				"y": 20.5
 			}
 		],
 		"gates": {
 			"gate-west": {
-				"openOn": 0,
-				"closeOn": 1,
-				"side": {
-					"x": 44.5,
-					"y": 32.5
-				}
+				"openOn": 0
 			},
 			"gate-east": {
-				"openOn": 2,
-				"closeOn": 3,
-				"side": {
-					"x": 78.5,
-					"y": 32.5
-				}
+				"openOn": 3
 			}
 		},
 		"objectives": [
 			{
 				"type": "kill",
-				"label": "Break into the depot",
+				"label": "Clear the main road",
 				"count": 25,
 				"sections": [0],
 				"checkpoint": true,
 				"checkpointAt": {
-					"x": 28.5,
-					"y": 32.5
+					"x": 24.5,
+					"y": 34.5
 				},
 				"ambush": {
 					"count": 10,
@@ -778,29 +784,29 @@
 				},
 				"radio": {
 					"speaker": "Command",
-					"start": "The truck lot's full of them. Clear it and get the west gate open."
+					"start": "The main road's crawling. Clear it and the residents will open their gate."
 				}
 			},
 			{
 				"type": "interact",
-				"label": "Find them on the office cameras",
-				"props": ["office-terminal"],
+				"label": "Raise the families on the residents' radio",
+				"props": ["radio-terminal"],
 				"sections": [1],
 				"checkpoint": true,
 				"checkpointAt": {
-					"x": 44.5,
-					"y": 32.5
+					"x": 38.5,
+					"y": 34.5
 				},
 				"radio": {
 					"speaker": "Command",
-					"start": "The office terminal still has the camera feeds. Find out where they are.",
-					"done": "Got them. One in the cold room, one up by the north stairs."
+					"start": "Their radio's in the first house on the left. Get on it and find out where they are.",
+					"done": "Got them. One family on the north side, one on the south."
 				}
 			},
 			{
 				"type": "destroy",
-				"label": "Burn the nests in the warehouse",
-				"props": ["nest-warehouse", "nest-yard"],
+				"label": "Burn the nests in the back gardens",
+				"props": ["nest-north", "nest-south"],
 				"sections": [1],
 				"ambush": {
 					"count": 12,
@@ -811,21 +817,21 @@
 				},
 				"radio": {
 					"speaker": "Scout",
-					"start": "Two nests between you and them. Burn them or you'll never get them out.",
+					"start": "Two nests in the back gardens, right behind their houses. Burn them or you'll never get them out.",
 					"done": "Nests are gone. Go get them."
 				},
 				"spawnScale": 0.9
 			},
 			{
 				"type": "rescue",
-				"label": "Walk the survivors to the truck",
+				"label": "Walk the families to the far barricade",
 				"survivors": ["survivor-a", "survivor-b"],
 				"area": {
-					"x": 80,
-					"y": 32,
+					"x": 69.5,
+					"y": 34.5,
 					"radius": 4
 				},
-				"sections": [1, 2],
+				"sections": [1],
 				"checkpoint": true,
 				"ambush": {
 					"count": 8,
@@ -836,34 +842,34 @@
 				},
 				"radio": {
 					"speaker": "Survivor",
-					"start": "Is someone there? Please, we can hear them on the roof...",
-					"done": "We're with you. Thank you, thank you."
+					"start": "Is someone there? Please, they're in the garden, we can hear them...",
+					"done": "We're at the gate. Thank you, thank you."
 				}
 			},
 			{
 				"type": "kill",
-				"label": "Put down the Brute on the dock",
+				"label": "Put down the Brute in the schoolyard",
 				"count": 1,
 				"of": "brute",
 				"sections": [2],
 				"boss": {
 					"type": "brute",
 					"at": {
-						"x": 88,
-						"y": 20
+						"x": 90.0,
+						"y": 30.0
 					}
 				},
 				"radio": {
 					"speaker": "Scout",
-					"start": "There's a Brute on the loading dock, right by the truck. It has to go."
+					"start": "Gate's open, and there's a Brute in the schoolyard, right by the minibus. It has to go."
 				}
 			},
 			{
 				"type": "extract",
-				"label": "Everyone on the truck",
+				"label": "Everyone on the minibus",
 				"area": {
-					"x": 80,
-					"y": 6,
+					"x": 90.5,
+					"y": 33.5,
 					"radius": 4
 				},
 				"seconds": 90,
@@ -871,22 +877,22 @@
 				"spawnScale": 1.5,
 				"radio": {
 					"speaker": "Command",
-					"start": "Truck's running. Everyone aboard, now!"
+					"start": "Minibus is running. Everyone aboard, now!"
 				}
 			},
 			{
 				"type": "interact",
-				"label": "Optional: crack the armoury safe",
-				"props": ["armoury-safe"],
+				"label": "Optional: crack the gun shop's safe",
+				"props": ["gunshop-safe"],
 				"optional": true
 			}
 		],
 		"briefing": [
-			"Two workers have been holed up in the old food depot for nine days. Their radio went quiet this morning.",
-			"Break in from the truck lot, find them on the office cameras, burn the nests in the warehouse and walk them to the truck on the far dock.",
-			"The roads out close in fifteen minutes. Nobody gets left behind."
+			"Elm Close barricaded itself in when Ashgate fell. Two families are still in their houses; their radio went quiet this morning.",
+			"Clear the main road so they open the gate, raise them on the residents' radio in the first house, burn the nests in the back gardens and walk them out through the far barricade to the school.",
+			"The minibus at the school is the way out. The roads close in fifteen minutes. Nobody gets left behind."
 		],
-		"debrief": "Truck's rolling with everyone on it. Nine days. They made it.",
+		"debrief": "Minibus is rolling with both families on it. Elm Close held out. So did you.",
 		"timeLimitSeconds": 900
 	},
 	{
@@ -921,6 +927,10 @@
 			{
 				"x": 5.5,
 				"y": 15.5
+			},
+			{
+				"x": 7.5,
+				"y": 6.5
 			}
 		],
 		"objectives": [
@@ -1115,6 +1125,10 @@
 			{
 				"x": 15.5,
 				"y": 24.5
+			},
+			{
+				"x": 68.5,
+				"y": 9.5
 			}
 		],
 		"gates": {
@@ -1293,6 +1307,10 @@
 			{
 				"x": 45.5,
 				"y": 3.5
+			},
+			{
+				"x": 7.5,
+				"y": 7.5
 			}
 		],
 		"gates": {
@@ -1486,6 +1504,10 @@
 			{
 				"x": 75.5,
 				"y": 11.5
+			},
+			{
+				"x": 57.5,
+				"y": 33.5
 			}
 		],
 		"gates": {
@@ -1758,6 +1780,10 @@
 			{
 				"x": 12.5,
 				"y": 71.5
+			},
+			{
+				"x": 7.5,
+				"y": 84.5
 			}
 		],
 		"gates": {
@@ -1951,6 +1977,10 @@
 			{
 				"x": 20.5,
 				"y": 18.5
+			},
+			{
+				"x": 5.5,
+				"y": 133.5
 			}
 		],
 		"gates": {
@@ -2255,6 +2285,17 @@
 					{
 						"x": 92.5,
 						"y": 3.5
+					}
+				]
+			},
+			{
+				"map": "depot",
+				"description": "Three minutes in the old food depot with the nests awake. Kill as many as you can, as fast as you can.",
+				"briefing": ["The food depot is boiling over. Three minutes: kill everything that moves."],
+				"caches": [
+					{
+						"x": 93.5,
+						"y": 61.5
 					}
 				]
 			}

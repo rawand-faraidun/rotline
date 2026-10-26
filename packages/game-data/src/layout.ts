@@ -15,6 +15,7 @@ export type MapSource = {
 	range?: MapDef['range']
 	look?: MapDef['look']
 	decor?: MapDef['decor']
+	patches?: MapDef['patches']
 }
 
 const PROP_CHARS: Record<string, MapProp['kind']> = { b: 'barrel', c: 'crate', s: 'sandbags' }
@@ -80,6 +81,7 @@ export function fromLayout(source: MapSource): MapDef {
 		...(blockers.length > 0 ? { blockers } : {}),
 		...(solids.length > 0 ? { solids } : {}),
 		...(source.decor ? { decor: source.decor } : {}),
+		...(source.patches ? { patches: source.patches } : {}),
 		...(source.range ? { range: source.range } : {}),
 		...(source.look ? { look: source.look } : {})
 	}
