@@ -2581,33 +2581,33 @@
 			"y": 62.0
 		},
 		{
-			"model": "scene-armchair",
+			"model": "scene-tv",
 			"x": 17.7,
 			"y": 79.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-sofa",
+			"model": "scene-armchair",
 			"x": 12.1,
 			"y": 79.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-tv",
+			"model": "scene-chair",
 			"x": 12.96,
 			"y": 79.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-potted",
+			"model": "scene-armchair",
 			"x": 13.03,
 			"y": 88.45
 		},
 		{
-			"model": "scene-potted",
-			"x": 12.6,
-			"y": 79.55,
-			"rotation": [0, 180, 0]
+			"model": "scene-sofa",
+			"x": 18.45,
+			"y": 83.24,
+			"rotation": [0, -90, 0]
 		},
 		{
 			"model": "scene-gnome",
@@ -2620,22 +2620,22 @@
 			"model": "scene-tree",
 			"x": 28.0,
 			"y": 82.0,
-			"rotation": [0, 336, 0],
-			"scale": 0.81
+			"rotation": [0, 106, 0],
+			"scale": 0.84
 		},
 		{
 			"model": "scene-birch",
 			"x": 24.0,
 			"y": 91.0,
-			"rotation": [0, 86, 0],
-			"scale": 0.95
+			"rotation": [0, 222, 0],
+			"scale": 0.93
 		},
 		{
 			"model": "scene-tree",
 			"x": 33.0,
 			"y": 88.0,
-			"rotation": [0, 222, 0],
-			"scale": 0.93
+			"rotation": [0, 349, 0],
+			"scale": 0.88
 		},
 		{
 			"model": "scene-planter",
@@ -2800,22 +2800,22 @@
 			"model": "scene-palm",
 			"x": 83.0,
 			"y": 68.0,
-			"rotation": [0, 349, 0],
-			"scale": 0.88
+			"rotation": [0, 40, 0],
+			"scale": 1.01
 		},
 		{
 			"model": "scene-tree",
 			"x": 101.0,
 			"y": 75.0,
-			"rotation": [0, 40, 0],
-			"scale": 1.01
+			"rotation": [0, 128, 0],
+			"scale": 0.85
 		},
 		{
 			"model": "scene-palm",
 			"x": 90.0,
 			"y": 77.0,
-			"rotation": [0, 128, 0],
-			"scale": 0.85
+			"rotation": [0, 206, 0],
+			"scale": 0.87
 		},
 		{
 			"model": "scene-military-crate",
@@ -2823,25 +2823,25 @@
 			"y": 88.0
 		},
 		{
-			"model": "scene-plastic-crate",
+			"model": "scene-shop-shelf",
 			"x": 42.55,
 			"y": 86.76,
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-cardboard",
+			"model": "scene-shelves",
 			"x": 42.55,
 			"y": 86.8,
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-shelves",
+			"model": "scene-vending",
 			"x": 65.39,
 			"y": 84.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-plastic-crate",
+			"model": "scene-shop-shelf",
 			"x": 66.8,
 			"y": 87.45
 		},

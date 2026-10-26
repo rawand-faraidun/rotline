@@ -10,44 +10,44 @@
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xxxx................00................xxxxxx...................................xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xxxx............0.....................xxxxx.................0...................xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxxx###########...........###########.xxxxxx....................................xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxx.###########...........###########.xxxxxx....................................xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xxxx#.........#...........#.........#.xxxxxx.......#####################.#####.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxx.#.........#...........#.........#.xxxxx........#..............bbb..#.#####..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxx.#...............................#.xxxxxx.x..x..#....x..............#.#####..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxx...................................xxxxx........#...................#.#####.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxxx..........#.....xx....#...........xxxxxx.......#########hhh#########.#####.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxxx#.........#...........#.........#.xxxxx........#..............bbb..#.#####..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxxx#...............................#.xxxxxx.x..x..#....x..............#.#####..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxxx..................................xxxxx........#...................#.#####.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxx...........#.....xx....#...........xxxxxx.......#########hhh#########.#####.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xxx.#.........#.....xx....#.........#.xxxxxx.x..x..#...................#........xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxxx###########.x...xx....###########..xxxxx.......#.......xxxxx.......#........xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxx.###########.x...xx....###########..xxxxx.......#.......xxxxx.......#........xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xxxx..................................xxxxxx.......#.cccccc.....cccccc.#...x...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxxx###########...........###########..xxxxx.x..x..#...................#.......xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxxx#.........#...........#.........#.xxxxxx.......#.cccccc.....cccccc..........xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxx.###########...........###########..xxxxx.x..x..#...................#.......xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxx.#.........#...........#.........#.xxxxxx.......#.cccccc.....cccccc..........xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xxxx#.........#...........#.........#.xxxxxx.......#.......................x....xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxx.#...............................#.xxxxxx.x..x..#.cccccc.....cccccc.#........xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxxx#...............................#.xxxxxx.x..x..#.cccccc.....cccccc.#........xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xxxx...................................xxxxx.......#...................#.......xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xxxx..........#...........#...........xxxxxx.......#.cccccc.....cccccc.#...x...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxxx#.........#...........#.........#.xxxxx..x..x..#...................#.......xx....xxxx.xxxxxxxxxxxxxx.x.xx.xx",
-		"xxx.###########...........###########.xxxxx........#...................#..................0..........xxx.x..x.xx",
-		"xxxx..................................xxxx..x......#...................#....x.......................xxxxxxxxxxxx",
+		"xxx.#.........#...........#.........#.xxxxx..x..x..#...................#.......xx....xxxx.xxxxxxxxxxxxxx.x.xx.xx",
+		"xxxx###########...........###########.xxxxx........#...................#..................0..........xxx.x..x.xx",
+		"xxx...................................xxxx..x......#...................#....x.......................xxxxxxxxxxxx",
 		"xxxx###########.........................0..........########.....########............................xxxxxxxxxxxx",
-		"xxx.#.........#.................................................................##################.xxxxxxxxxxxxx",
+		"xxxx#.........#.................................................................##################.xxxxxxxxxxxxx",
 		"xxxx#.........#...............#############.....................................#........#.......#.xxxxxxxxxxxxx",
-		"xxx.#.........................#...........#.....................................#........#.......#.xxxxxxxxxxxxx",
+		"xxxx#.........................#...........#.....................................#........#.......#.xxxxxxxxxxxxx",
 		"xxxx..........................#...........#.....................................#................#..xxxxxxxxxxxx",
 		"xxxx..........#............xx.#..xx.............x........................x......#................#.xxxxxxxxxxxxx",
-		"xxxx#.........#...............#......................xx..............xx.........#........#.......#.xxxxxxxxxxxxx",
+		"xxx.#.........#...............#......................xx..............xx.........#........#.......#.xxxxxxxxxxxxx",
 		"xxx.###########.x.............#...........#..............................................#.......#..xxxxxxxxxxxx",
-		"xxx...........................#...........#..............................................#.......#..xxxxxxxxxxxx",
-		"xxx.###########.....xx........#...........#.......cc....................c........#####...#########.xxxxxxxxxxxxx",
+		"xxxx..........................#...........#..............................................#.......#..xxxxxxxxxxxx",
+		"xxxx###########.....xx........#...........#.......cc....................c........#####...#########.xxxxxxxxxxxxx",
 		"xxxx#.........#.....xx........#########..##..............P......P...............#................#.xxxxxxxxxxxxx",
-		"xxx.#.........#.....xx........................................................x.#................#..xxxxxxxxxxxx",
-		"xxx.#.........................#############................~~~~...............x.#................#.xxxxxxxxxxxxx",
-		"xxxx..........................#...........#................~~~~...............x.#................#.xxxxxxxxxxxxx",
-		"xxxx..........#...............#............................~~~~.................#................#.xxxxxxxxxxxxx",
-		"xxx.#.........#...............#............................~~~~.................#................#.xxxxxxxxxxxxx",
+		"xxxx#.........#.....xx........................................................x.#................#..xxxxxxxxxxxx",
+		"xxxx#.........................#############................~~~~...............x.#................#.xxxxxxxxxxxxx",
+		"xxx...........................#...........#................~~~~...............x.#................#.xxxxxxxxxxxxx",
+		"xxx...........#...............#............................~~~~.................#................#.xxxxxxxxxxxxx",
+		"xxxx#.........#...............#............................~~~~.................#................#.xxxxxxxxxxxxx",
 		"xxx.###########...............#...........#.....................................#................#..xxxxxxxxxxxx",
-		"xxxx....................x.....#...........#..............P......P...............#######...########.xxxxxxxxxxxxx",
+		"xxx.....................x.....#...........#..............P......P...............#######...########.xxxxxxxxxxxxx",
 		"xxxx..........................#...........#........................................................xxxxxxxxxxxxx",
-		"xx.x..........................#############.......c....................cc..........................xxxxxxxxxxxxx",
+		"xxxx..........................#############.......c....................cc..........................xxxxxxxxxxxxx",
 		"x...................................................................................................xxxxxxxxxxxx",
 		"x..0.....xxx.........................................xx..............xx............................xxxxxxxxxxxxx",
 		"x........xxx.......................................................................................xxxxxxxxxxxxx",
@@ -89,17 +89,17 @@
 		"x.............................................................#..............................................#.x",
 		"x................................................xx...xx......#......#......#.....................#.0........#.x",
 		"x.....................................................xx......#......#......#.....................############.x",
-		"x.xxxxxxxxxxxxxx...xxxxxxxxxxxxxxx............................###############..........................x.xxx.xxx",
-		"x......................................................................................................xxxxxxxxx",
-		"x.......................................................................................#############.xxxxxxxxxx",
+		"x.xxxxxxxxxxxxxx...xxxxxxxxxxxxxxx............................###############.........................x...xxx.xx",
+		"x.....................................................................................................xxxxxxxxxx",
+		"x.......................................................................................#############..xxxxxxxxx",
 		"x..sxxxx...xxxx.......xxxx...xxxx...........................0...........................#...........#..xxxxxxxxx",
-		"x...xxxx...xxxx.......xxxx...xxxx.........................xx.xxxx.xx.xxxxxxx.xx....xx...#...........#.xxxxxxxxxx",
-		"x...............#..##.....................................xxxxxxxxxxxxxxxxxxxxxx...xx...h...........#.xxxxxxxxxx",
+		"x...xxxx...xxxx.......xxxx...xxxx.........................xxxxxxx.xx.xxxx..x.xxx...xx...#...........#..xxxxxxxxx",
+		"x...............#..##......................................xxxxxxxxxxxxxxxxxxxxx...xx...h...........#.xxxxxxxxxx",
 		"x...............#...#.............s.......................xxxxxxxxxxxxxxxxxxxxxx...xx...h...........#..xxxxxxxxx",
-		"x...xxxx...xxxx.#...#.xxxx...xxxx..........................xxxxxxxxxxxxxxxxxxxx.........#...........#.xxxxxxxxxx",
+		"x...xxxx...xxxx.#...#.xxxx...xxxx.........................xxxxxxxxxxxxxxxxxxxxxx........#...........#.xxxxxxxxxx",
 		"x...xxxx...xxxx.#...#.xxxx...xxxx.........................xxxxxxxxxxxxxxxxxxxxx.........#.....x.....#.xxxxxxxxxx",
-		"x...............#####.........0...........................xxxxxxxxxxxxxxxxxxxxxx........#############.xxxxxxxxxx",
-		"x...........0.............................................xxxxxxxxxxxxxxxxxxxxx.......................xxxxxxxxxx",
+		"x...............#####.........0...........................xxxxxxxxxxxxxxxxxxxxx.........#############.xxxxxxxxxx",
+		"x...........0..............................................xxxxxxxxxxxxxxxxxxxx.......................xxxxxxxxxx",
 		"xx.xx...xxx.xx.xxxxxxxx...x.x...x.x..x....................xxxxxxxxxxxxxxxxxxxxxx......................xxxxxxxxxx",
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx....................xxxxxxxxxxxxxxxxxxxxxx..00..................xxxxxxxxxx",
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -854,7 +854,7 @@
 			"y": 30.45
 		},
 		{
-			"model": "scene-table",
+			"model": "scene-metal-table",
 			"x": 35.71,
 			"y": 30.45
 		},
@@ -865,19 +865,19 @@
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-cardboard",
+			"model": "scene-shelves",
 			"x": 34.24,
 			"y": 34.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-shelves",
+			"model": "scene-shop-shelf",
 			"x": 31.55,
 			"y": 39.39,
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-cardboard",
+			"model": "scene-shelves",
 			"x": 33.44,
 			"y": 39.45
 		},
@@ -894,58 +894,51 @@
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-tv",
+			"model": "scene-chair",
 			"x": 93.04,
 			"y": 23.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-bookshelf",
+			"model": "scene-table",
 			"x": 82.93,
 			"y": 23.55,
 			"rotation": [0, 180, 0]
 		},
 		{
+			"model": "scene-chair",
+			"x": 90.5,
+			"y": 23.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-bed",
+			"x": 96.45,
+			"y": 25.36,
+			"rotation": [0, -90, 0]
+		},
+		{
 			"model": "scene-tv",
-			"x": 81.83,
+			"x": 94.42,
 			"y": 37.45
 		},
 		{
-			"model": "scene-armchair",
-			"x": 81.55,
-			"y": 32.19,
-			"rotation": [0, 90, 0]
+			"model": "scene-table",
+			"x": 86.2,
+			"y": 37.45
 		},
 		{
-			"model": "scene-armchair",
-			"x": 96.45,
-			"y": 35.09,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-armchair",
-			"x": 96.45,
-			"y": 26.12,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-potted",
-			"x": 81.55,
-			"y": 36.14,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-armchair",
+			"model": "scene-tv",
 			"x": 92.34,
 			"y": 37.45
 		},
 		{
-			"model": "scene-table",
+			"model": "scene-potted",
 			"x": 91.77,
 			"y": 37.45
 		},
 		{
-			"model": "scene-table",
+			"model": "scene-potted",
 			"x": 96.45,
 			"y": 31.93,
 			"rotation": [0, -90, 0]
@@ -957,10 +950,16 @@
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-chair",
+			"model": "scene-potted",
 			"x": 81.55,
 			"y": 26.89,
 			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-tv",
+			"x": 96.45,
+			"y": 27.65,
+			"rotation": [0, -90, 0]
 		},
 		{
 			"model": "scene-seating",
@@ -969,238 +968,241 @@
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-potted",
-			"x": 13.45,
-			"y": 5.83,
-			"rotation": [0, -90, 0]
+			"model": "scene-bed",
+			"x": 6.59,
+			"y": 4.55,
+			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-sofa",
-			"x": 12.85,
-			"y": 9.45
-		},
-		{
-			"model": "scene-bookshelf",
-			"x": 7.38,
-			"y": 9.45
-		},
-		{
-			"model": "scene-armchair",
+			"model": "scene-table",
 			"x": 7.79,
 			"y": 4.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-table",
+			"model": "scene-potted",
 			"x": 6.14,
-			"y": 13.55,
+			"y": 4.55,
 			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-sofa",
 			"x": 13.45,
-			"y": 14.8,
+			"y": 5.8,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-bookshelf",
+			"model": "scene-kitchen",
 			"x": 7.8,
 			"y": 18.45
 		},
 		{
-			"model": "scene-armchair",
+			"model": "scene-tv",
 			"x": 6.32,
 			"y": 18.45
 		},
 		{
-			"model": "scene-chair",
+			"model": "scene-kitchen",
 			"x": 13.45,
-			"y": 27.31,
+			"y": 18.31,
 			"rotation": [0, -90, 0]
 		},
 		{
 			"model": "scene-sofa",
 			"x": 10.2,
-			"y": 27.45
+			"y": 18.45
 		},
 		{
-			"model": "scene-chair",
+			"model": "scene-bookshelf",
 			"x": 13.45,
 			"y": 26.97,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-sofa",
+			"model": "scene-armchair",
+			"x": 5.77,
+			"y": 22.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-bookshelf",
+			"x": 13.45,
+			"y": 22.92,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-armchair",
 			"x": 5.55,
-			"y": 27.22,
+			"y": 23.26,
 			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-chair",
-			"x": 9.36,
-			"y": 31.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-sofa",
-			"x": 5.55,
-			"y": 33.13,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-tv",
 			"x": 9.13,
 			"y": 31.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-chair",
+			"model": "scene-tv",
 			"x": 12.62,
 			"y": 31.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-tv",
-			"x": 33.79,
-			"y": 9.45
-		},
-		{
-			"model": "scene-table",
-			"x": 27.55,
-			"y": 5.01,
+			"model": "scene-bed",
+			"x": 5.55,
+			"y": 33.29,
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-table",
-			"x": 34.39,
-			"y": 4.55,
+			"model": "scene-potted",
+			"x": 12.39,
+			"y": 31.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-bookshelf",
+			"model": "scene-sofa",
 			"x": 34.34,
 			"y": 4.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-table",
-			"x": 32.47,
-			"y": 13.55,
+			"model": "scene-sofa",
+			"x": 35.45,
+			"y": 6.42,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-armchair",
+			"x": 28.23,
+			"y": 4.55,
 			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-chair",
-			"x": 28.23,
-			"y": 13.55,
-			"rotation": [0, 180, 0]
+			"x": 27.55,
+			"y": 8.82,
+			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-table",
-			"x": 35.35,
-			"y": 13.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-potted",
+			"model": "scene-bed",
 			"x": 35.45,
-			"y": 15.71,
+			"y": 18.08,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-tree",
-			"x": 2.81,
-			"y": 2.68,
-			"rotation": [0, 320, 0],
-			"scale": 0.98
+			"model": "scene-kitchen",
+			"x": 35.45,
+			"y": 15.82,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-kitchen",
+			"x": 31.65,
+			"y": 13.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-armchair",
+			"x": 30.02,
+			"y": 13.55,
+			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-birch",
-			"x": 3.65,
-			"y": 4.6,
+			"x": 1.93,
+			"y": 2.69,
 			"rotation": [0, 231, 0],
 			"scale": 0.89
 		},
 		{
 			"model": "scene-birch",
-			"x": 2.67,
-			"y": 6.06,
+			"x": 3.87,
+			"y": 3.97,
 			"rotation": [0, 21, 0],
 			"scale": 1.06
 		},
 		{
 			"model": "scene-birch",
-			"x": 3.08,
-			"y": 8.25,
+			"x": 1.88,
+			"y": 6.17,
 			"rotation": [0, 288, 0],
 			"scale": 0.76
 		},
 		{
 			"model": "scene-tree",
-			"x": 1.68,
-			"y": 10.49,
+			"x": 2.88,
+			"y": 8.4,
 			"rotation": [0, 136, 0],
 			"scale": 0.86
 		},
 		{
 			"model": "scene-birch",
-			"x": 2.88,
-			"y": 11.99,
+			"x": 1.68,
+			"y": 9.9,
 			"rotation": [0, 59, 0],
 			"scale": 0.95
 		},
 		{
 			"model": "scene-tree",
-			"x": 2.39,
-			"y": 14.95,
+			"x": 3.59,
+			"y": 12.86,
 			"rotation": [0, 39, 0],
 			"scale": 1.06
 		},
 		{
 			"model": "scene-tree",
-			"x": 2.97,
-			"y": 16.78,
+			"x": 1.77,
+			"y": 14.69,
 			"rotation": [0, 5, 0],
 			"scale": 1.09
 		},
 		{
 			"model": "scene-tree",
-			"x": 2.25,
-			"y": 18.24,
+			"x": 3.45,
+			"y": 16.15,
 			"rotation": [0, 139, 0],
 			"scale": 1.1
 		},
 		{
 			"model": "scene-birch",
-			"x": 3.46,
-			"y": 21.64,
+			"x": 2.26,
+			"y": 19.55,
 			"rotation": [0, 314, 0],
 			"scale": 1.2
 		},
 		{
 			"model": "scene-birch",
-			"x": 1.71,
-			"y": 23.58,
+			"x": 2.91,
+			"y": 21.49,
 			"rotation": [0, 114, 0],
 			"scale": 0.79
 		},
 		{
-			"model": "scene-birch",
-			"x": 1.67,
-			"y": 27.19,
-			"rotation": [0, 3, 0],
-			"scale": 0.92
+			"model": "scene-tree",
+			"x": 2.82,
+			"y": 23.4,
+			"rotation": [0, 230, 0],
+			"scale": 0.95
 		},
 		{
 			"model": "scene-tree",
-			"x": 3.5,
-			"y": 29.89,
+			"x": 3.58,
+			"y": 25.76,
+			"rotation": [0, 281, 0],
+			"scale": 1.01
+		},
+		{
+			"model": "scene-tree",
+			"x": 2.75,
+			"y": 27.68,
 			"rotation": [0, 237, 0],
 			"scale": 0.9
 		},
 		{
 			"model": "scene-birch",
-			"x": 2.89,
-			"y": 30.85,
+			"x": 2.73,
+			"y": 31.86,
 			"rotation": [0, 63, 0],
 			"scale": 0.85
 		},
@@ -3305,83 +3307,84 @@
 			"rotation": [0, 10, 0]
 		},
 		{
-			"model": "scene-armchair",
+			"model": "scene-tv",
 			"x": 63.85,
 			"y": 72.45
 		},
 		{
-			"model": "scene-bookshelf",
+			"model": "scene-armchair",
 			"x": 63.55,
 			"y": 67.92,
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-tv",
-			"x": 70.43,
-			"y": 67.55,
-			"rotation": [0, 180, 0]
+			"model": "scene-table",
+			"x": 63.55,
+			"y": 69.66,
+			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-sofa",
+			"model": "scene-armchair",
 			"x": 73.19,
 			"y": 72.45
 		},
 		{
-			"model": "scene-tv",
+			"model": "scene-chair",
 			"x": 75.45,
 			"y": 72.15,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-bookshelf",
+			"model": "scene-kitchen",
 			"x": 72.78,
 			"y": 81.45
 		},
 		{
-			"model": "scene-chair",
+			"model": "scene-potted",
 			"x": 65.35,
 			"y": 76.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-sofa",
-			"x": 75.45,
-			"y": 80.97,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-tv",
-			"x": 70.87,
-			"y": 81.45
-		},
-		{
 			"model": "scene-chair",
+			"x": 66.11,
+			"y": 76.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-potted",
 			"x": 75.45,
 			"y": 80.71,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-bookshelf",
+			"model": "scene-bed",
+			"x": 65.03,
+			"y": 76.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-potted",
 			"x": 99.45,
-			"y": 88.02,
+			"y": 88.79,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-chair",
-			"x": 90.79,
+			"model": "scene-potted",
+			"x": 99.45,
+			"y": 88.01,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-sofa",
+			"x": 94.65,
 			"y": 85.55,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-table",
+			"model": "scene-sofa",
 			"x": 99.45,
-			"y": 87.69,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-bookshelf",
-			"x": 99.45,
-			"y": 89.62,
+			"y": 87.74,
 			"rotation": [0, -90, 0]
 		},
 		{
@@ -3401,31 +3404,33 @@
 		},
 		{
 			"model": "scene-cardboard",
-			"x": 102.9,
-			"y": 80.45
+			"x": 107.8,
+			"y": 76.55,
+			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-shelves",
-			"x": 104.13,
+			"model": "scene-shop-shelf",
+			"x": 108.45,
+			"y": 77.85,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-vending",
+			"x": 108.45,
+			"y": 80.36,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 107.23,
 			"y": 76.55,
 			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-cardboard",
 			"x": 108.45,
-			"y": 78.3,
+			"y": 77.02,
 			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-plastic-crate",
-			"x": 104.83,
-			"y": 76.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-plastic-crate",
-			"x": 104.33,
-			"y": 80.45
 		},
 		{
 			"model": "scene-car",
@@ -3444,480 +3449,473 @@
 		},
 		{
 			"model": "scene-tree",
-			"x": 59.66,
-			"y": 87.32,
-			"rotation": [0, 77, 0],
-			"scale": 1.12
-		},
-		{
-			"model": "scene-tree",
-			"x": 61.27,
-			"y": 87.0,
-			"rotation": [0, 112, 0],
-			"scale": 1.13
-		},
-		{
-			"model": "scene-tree",
-			"x": 63.68,
+			"x": 58.68,
 			"y": 86.77,
 			"rotation": [0, 15, 0],
 			"scale": 1.13
 		},
 		{
 			"model": "scene-tree",
-			"x": 66.93,
+			"x": 61.93,
 			"y": 87.85,
 			"rotation": [0, 45, 0],
 			"scale": 1.19
 		},
 		{
 			"model": "scene-birch",
-			"x": 68.81,
+			"x": 63.81,
 			"y": 87.44,
 			"rotation": [0, 100, 0],
 			"scale": 1.0
 		},
 		{
 			"model": "scene-tree",
-			"x": 72.49,
+			"x": 67.49,
 			"y": 87.07,
 			"rotation": [0, 358, 0],
 			"scale": 0.89
 		},
 		{
 			"model": "scene-birch",
-			"x": 74.44,
+			"x": 69.44,
 			"y": 86.92,
 			"rotation": [0, 106, 0],
 			"scale": 1.06
 		},
 		{
 			"model": "scene-birch",
-			"x": 76.27,
+			"x": 71.27,
 			"y": 86.69,
 			"rotation": [0, 297, 0],
 			"scale": 0.96
 		},
 		{
 			"model": "scene-tree",
-			"x": 78.69,
+			"x": 73.69,
 			"y": 86.67,
 			"rotation": [0, 312, 0],
 			"scale": 1.03
 		},
 		{
 			"model": "scene-tree",
-			"x": 60.21,
-			"y": 88.69,
+			"x": 76.46,
+			"y": 86.51,
 			"rotation": [0, 354, 0],
 			"scale": 0.84
 		},
 		{
 			"model": "scene-tree",
-			"x": 63.33,
-			"y": 89.98,
+			"x": 79.58,
+			"y": 87.81,
 			"rotation": [0, 102, 0],
 			"scale": 0.82
 		},
 		{
 			"model": "scene-birch",
-			"x": 65.7,
+			"x": 60.7,
 			"y": 89.31,
 			"rotation": [0, 209, 0],
 			"scale": 0.88
 		},
 		{
 			"model": "scene-tree",
-			"x": 67.45,
+			"x": 62.45,
 			"y": 88.86,
 			"rotation": [0, 177, 0],
 			"scale": 0.98
 		},
 		{
 			"model": "scene-tree",
-			"x": 70.38,
+			"x": 65.38,
 			"y": 89.41,
 			"rotation": [0, 145, 0],
 			"scale": 0.81
 		},
 		{
 			"model": "scene-tree",
-			"x": 73.57,
+			"x": 68.57,
 			"y": 90.1,
 			"rotation": [0, 346, 0],
 			"scale": 1.04
 		},
 		{
 			"model": "scene-tree",
-			"x": 75.09,
+			"x": 70.09,
 			"y": 89.39,
 			"rotation": [0, 211, 0],
 			"scale": 1.02
 		},
 		{
 			"model": "scene-tree",
-			"x": 77.92,
+			"x": 72.92,
 			"y": 88.77,
 			"rotation": [0, 170, 0],
 			"scale": 0.88
 		},
 		{
 			"model": "scene-tree",
-			"x": 59.16,
-			"y": 92.28,
+			"x": 75.41,
+			"y": 90.11,
 			"rotation": [0, 338, 0],
 			"scale": 1.06
 		},
 		{
 			"model": "scene-tree",
-			"x": 62.01,
-			"y": 91.22,
+			"x": 78.26,
+			"y": 89.04,
 			"rotation": [0, 191, 0],
 			"scale": 0.81
 		},
 		{
 			"model": "scene-tree",
-			"x": 64.84,
+			"x": 59.84,
 			"y": 91.23,
 			"rotation": [0, 142, 0],
 			"scale": 0.9
 		},
 		{
 			"model": "scene-birch",
-			"x": 67.23,
+			"x": 62.23,
 			"y": 92.13,
 			"rotation": [0, 53, 0],
 			"scale": 1.0
 		},
 		{
 			"model": "scene-tree",
-			"x": 68.65,
+			"x": 63.65,
 			"y": 92.19,
 			"rotation": [0, 186, 0],
 			"scale": 0.76
 		},
 		{
 			"model": "scene-birch",
-			"x": 71.05,
+			"x": 66.05,
 			"y": 91.74,
 			"rotation": [0, 176, 0],
 			"scale": 1.2
 		},
 		{
 			"model": "scene-birch",
-			"x": 74.72,
+			"x": 69.72,
 			"y": 92.16,
 			"rotation": [0, 324, 0],
 			"scale": 0.82
 		},
 		{
 			"model": "scene-birch",
-			"x": 76.11,
+			"x": 71.11,
 			"y": 91.11,
 			"rotation": [0, 161, 0],
 			"scale": 0.97
 		},
 		{
 			"model": "scene-tree",
-			"x": 79.48,
+			"x": 74.48,
 			"y": 90.94,
 			"rotation": [0, 10, 0],
 			"scale": 1.2
 		},
 		{
 			"model": "scene-birch",
-			"x": 60.34,
-			"y": 94.27,
+			"x": 76.59,
+			"y": 92.09,
 			"rotation": [0, 277, 0],
 			"scale": 1.07
 		},
 		{
 			"model": "scene-tree",
-			"x": 63.75,
-			"y": 93.12,
+			"x": 80.0,
+			"y": 90.95,
 			"rotation": [0, 335, 0],
 			"scale": 0.93
 		},
 		{
 			"model": "scene-birch",
-			"x": 65.73,
+			"x": 60.73,
 			"y": 93.35,
 			"rotation": [0, 107, 0],
 			"scale": 0.97
 		},
 		{
 			"model": "scene-tree",
-			"x": 68.5,
+			"x": 63.5,
 			"y": 93.8,
 			"rotation": [0, 42, 0],
 			"scale": 0.75
 		},
 		{
 			"model": "scene-birch",
-			"x": 71.19,
+			"x": 66.19,
 			"y": 94.07,
 			"rotation": [0, 129, 0],
 			"scale": 1.05
 		},
 		{
 			"model": "scene-tree",
-			"x": 73.7,
+			"x": 68.7,
 			"y": 93.74,
 			"rotation": [0, 221, 0],
 			"scale": 0.96
 		},
 		{
 			"model": "scene-tree",
-			"x": 74.77,
+			"x": 69.77,
 			"y": 94.31,
 			"rotation": [0, 55, 0],
 			"scale": 0.91
 		},
 		{
 			"model": "scene-tree",
-			"x": 78.05,
+			"x": 73.05,
 			"y": 93.83,
 			"rotation": [0, 48, 0],
 			"scale": 0.89
 		},
 		{
-			"model": "scene-fern",
-			"x": 69.16,
-			"y": 87.12,
+			"model": "scene-birch",
+			"x": 75.51,
+			"y": 93.21,
 			"rotation": [0, 121, 0],
-			"scale": 1
+			"scale": 0.81
+		},
+		{
+			"model": "scene-tree",
+			"x": 77.38,
+			"y": 93.79,
+			"rotation": [0, 180, 0],
+			"scale": 1.1
+		},
+		{
+			"model": "scene-bush",
+			"x": 63.43,
+			"y": 89.73,
+			"rotation": [0, 111, 0],
+			"scale": 1.79
 		},
 		{
 			"model": "scene-fern",
-			"x": 60.85,
-			"y": 86.8,
-			"rotation": [0, 157, 0],
-			"scale": 1
-		},
-		{
-			"model": "scene-fern",
-			"x": 64.47,
-			"y": 93.0,
-			"rotation": [0, 302, 0],
-			"scale": 1
-		},
-		{
-			"model": "scene-fern",
-			"x": 67.11,
-			"y": 86.49,
-			"rotation": [0, 301, 0],
-			"scale": 1
-		},
-		{
-			"model": "scene-stump",
-			"x": 67.94,
-			"y": 91.02,
-			"rotation": [0, 70, 0],
-			"scale": 1
-		},
-		{
-			"model": "scene-fern",
-			"x": 76.72,
+			"x": 61.74,
 			"y": 86.94,
-			"rotation": [0, 79, 0],
+			"rotation": [0, 53, 0],
+			"scale": 1
+		},
+		{
+			"model": "scene-fern",
+			"x": 75.81,
+			"y": 90.53,
+			"rotation": [0, 288, 0],
+			"scale": 1
+		},
+		{
+			"model": "scene-fern",
+			"x": 69.55,
+			"y": 89.66,
+			"rotation": [0, 60, 0],
+			"scale": 1
+		},
+		{
+			"model": "scene-fern",
+			"x": 67.09,
+			"y": 86.1,
+			"rotation": [0, 56, 0],
+			"scale": 1
+		},
+		{
+			"model": "scene-fern",
+			"x": 74.16,
+			"y": 92.41,
+			"rotation": [0, 150, 0],
 			"scale": 1
 		},
 		{
 			"model": "scene-tree",
-			"x": 103.64,
-			"y": 83.66,
-			"rotation": [0, 213, 0],
-			"scale": 0.88
-		},
-		{
-			"model": "scene-birch",
-			"x": 105.32,
-			"y": 83.31,
-			"rotation": [0, 214, 0],
-			"scale": 0.9
-		},
-		{
-			"model": "scene-birch",
-			"x": 108.23,
-			"y": 83.48,
-			"rotation": [0, 70, 0],
-			"scale": 1.01
-		},
-		{
-			"model": "scene-tree",
-			"x": 110.75,
+			"x": 103.25,
 			"y": 83.86,
 			"rotation": [0, 320, 0],
 			"scale": 0.88
 		},
 		{
 			"model": "scene-tree",
-			"x": 104.86,
-			"y": 85.06,
+			"x": 106.11,
+			"y": 82.89,
 			"rotation": [0, 43, 0],
 			"scale": 0.94
 		},
 		{
 			"model": "scene-tree",
-			"x": 106.97,
-			"y": 85.21,
+			"x": 108.22,
+			"y": 83.04,
 			"rotation": [0, 170, 0],
 			"scale": 0.95
 		},
 		{
 			"model": "scene-tree",
-			"x": 108.82,
-			"y": 85.93,
+			"x": 110.07,
+			"y": 83.75,
 			"rotation": [0, 83, 0],
 			"scale": 0.99
 		},
 		{
 			"model": "scene-tree",
-			"x": 103.32,
-			"y": 87.45,
+			"x": 104.57,
+			"y": 85.27,
 			"rotation": [0, 345, 0],
 			"scale": 0.79
 		},
 		{
 			"model": "scene-tree",
-			"x": 105.56,
-			"y": 87.32,
+			"x": 106.81,
+			"y": 85.15,
 			"rotation": [0, 117, 0],
 			"scale": 0.98
 		},
 		{
 			"model": "scene-tree",
-			"x": 108.29,
-			"y": 87.95,
+			"x": 109.54,
+			"y": 85.77,
 			"rotation": [0, 208, 0],
 			"scale": 1.02
 		},
 		{
 			"model": "scene-tree",
-			"x": 110.16,
+			"x": 102.66,
 			"y": 87.88,
 			"rotation": [0, 126, 0],
 			"scale": 0.91
 		},
 		{
 			"model": "scene-tree",
-			"x": 104.65,
-			"y": 89.58,
+			"x": 105.9,
+			"y": 87.4,
 			"rotation": [0, 107, 0],
 			"scale": 1.02
 		},
 		{
 			"model": "scene-tree",
-			"x": 107.13,
-			"y": 89.5,
+			"x": 108.38,
+			"y": 87.32,
 			"rotation": [0, 60, 0],
 			"scale": 0.98
 		},
 		{
 			"model": "scene-tree",
-			"x": 109.88,
-			"y": 89.1,
-			"rotation": [0, 109, 0],
-			"scale": 0.86
-		},
-		{
-			"model": "scene-tree",
-			"x": 102.91,
-			"y": 92.39,
-			"rotation": [0, 331, 0],
-			"scale": 1.14
+			"x": 103.89,
+			"y": 89.4,
+			"rotation": [0, 217, 0],
+			"scale": 1.04
 		},
 		{
 			"model": "scene-birch",
-			"x": 105.6,
-			"y": 91.63,
-			"rotation": [0, 49, 0],
+			"x": 106.81,
+			"y": 89.16,
+			"rotation": [0, 348, 0],
 			"scale": 0.79
 		},
 		{
 			"model": "scene-tree",
-			"x": 108.98,
-			"y": 92.45,
-			"rotation": [0, 16, 0],
-			"scale": 0.89
+			"x": 109.35,
+			"y": 89.36,
+			"rotation": [0, 168, 0],
+			"scale": 0.76
 		},
 		{
 			"model": "scene-tree",
-			"x": 104.71,
-			"y": 93.46,
-			"rotation": [0, 24, 0],
-			"scale": 0.93
+			"x": 102.72,
+			"y": 91.43,
+			"rotation": [0, 328, 0],
+			"scale": 0.88
 		},
 		{
 			"model": "scene-tree",
-			"x": 106.38,
-			"y": 93.58,
-			"rotation": [0, 327, 0],
-			"scale": 1.07
+			"x": 106.5,
+			"y": 91.94,
+			"rotation": [0, 319, 0],
+			"scale": 0.79
+		},
+		{
+			"model": "scene-birch",
+			"x": 107.71,
+			"y": 91.71,
+			"rotation": [0, 11, 0],
+			"scale": 1.03
 		},
 		{
 			"model": "scene-tree",
-			"x": 109.68,
-			"y": 94.4,
-			"rotation": [0, 296, 0],
-			"scale": 1.0
+			"x": 104.57,
+			"y": 94.61,
+			"rotation": [0, 214, 0],
+			"scale": 0.9
 		},
 		{
-			"model": "scene-bush2",
+			"model": "scene-tree",
+			"x": 107.19,
+			"y": 94.75,
+			"rotation": [0, 88, 0],
+			"scale": 1.1
+		},
+		{
+			"model": "scene-tree",
 			"x": 109.41,
-			"y": 88.23,
-			"rotation": [0, 347, 0],
-			"scale": 1.83
+			"y": 94.5,
+			"rotation": [0, 229, 0],
+			"scale": 1.05
+		},
+		{
+			"model": "scene-bush",
+			"x": 109.21,
+			"y": 87.79,
+			"rotation": [0, 59, 0],
+			"scale": 2.16
+		},
+		{
+			"model": "scene-bush",
+			"x": 105.2,
+			"y": 92.81,
+			"rotation": [0, 359, 0],
+			"scale": 1.32
 		},
 		{
 			"model": "scene-fern",
-			"x": 110.22,
-			"y": 92.68,
-			"rotation": [0, 42, 0],
-			"scale": 1
-		},
-		{
-			"model": "scene-stump",
-			"x": 105.96,
-			"y": 91.77,
-			"rotation": [0, 229, 0],
+			"x": 104.79,
+			"y": 94.4,
+			"rotation": [0, 58, 0],
 			"scale": 1
 		},
 		{
 			"model": "scene-bin",
-			"x": 84.06,
-			"y": 88.64,
-			"rotation": [0, 163, 0]
+			"x": 85.53,
+			"y": 69.76,
+			"rotation": [0, 165, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 85.38,
-			"y": 86.29,
-			"rotation": [0, 182, 0]
+			"x": 83.22,
+			"y": 89.86,
+			"rotation": [0, 79, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 84.0,
-			"y": 80.54,
-			"rotation": [0, 359, 0]
+			"x": 85.24,
+			"y": 78.12,
+			"rotation": [0, 221, 0]
 		},
 		{
 			"model": "scene-plastic-crate",
-			"x": 80.71,
-			"y": 72.92,
-			"rotation": [0, 286, 0]
+			"x": 85.58,
+			"y": 69.41,
+			"rotation": [0, 253, 0]
 		},
 		{
-			"model": "scene-trash",
-			"x": 80.68,
-			"y": 90.77,
-			"rotation": [0, 212, 0]
+			"model": "scene-bin",
+			"x": 82.96,
+			"y": 85.07,
+			"rotation": [0, 261, 0]
 		},
 		{
-			"model": "scene-trash",
-			"x": 81.94,
-			"y": 67.48,
-			"rotation": [0, 79, 0]
+			"model": "scene-plastic-crate",
+			"x": 84.67,
+			"y": 66.37,
+			"rotation": [0, 85, 0]
 		},
 		{
 			"model": "scene-car",
