@@ -131,25 +131,49 @@ export class Decor {
 			}
 			return pending
 		}
+		// every model is drawn once for all its places (instanced): a forest is a few draw calls
+		const placements = new Map<string, THREE.Matrix4[]>()
+		const euler = new THREE.Euler()
 		for (const entry of map.decor ?? []) {
 			const [rx, ry, rz] = (entry.rotation ?? [0, 0, 0]).map(degrees => (degrees * Math.PI) / 180) as [
 				number,
 				number,
 				number
 			]
-			void model(entry.model).then(loaded => {
-				if (!loaded) return
-				const copy = loaded.clone()
-				copy.position.set(entry.x, 0, entry.y)
-				copy.rotation.set(rx, ry, rz, 'YXZ')
-				copy.scale.setScalar(entry.scale ?? 1)
-				this.group.add(copy)
-			})
+			const matrix = new THREE.Matrix4().compose(
+				new THREE.Vector3(entry.x, 0, entry.y),
+				new THREE.Quaternion().setFromEuler(euler.set(rx, ry, rz, 'YXZ')),
+				new THREE.Vector3().setScalar(entry.scale ?? 1)
+			)
+			placements.set(entry.model, [...(placements.get(entry.model) ?? []), matrix])
 			if (entry.fire) {
 				const fire = new Fire(entry.x, 0.3, entry.y, entry.fire, texture, this.fires.length < LIT_FIRES)
 				this.fires.push(fire)
 				this.group.add(fire.group)
 			}
+		}
+		for (const [id, matrices] of placements) {
+			void model(id).then(loaded => {
+				if (!loaded) return
+				loaded.updateMatrixWorld(true)
+				loaded.traverse(object => {
+					const mesh = object as THREE.Mesh
+					if (!mesh.isMesh) return
+					// shape keys (morph targets) are not drawn on instances: scenery stands still anyway
+					let geometry = mesh.geometry
+					if (Object.keys(geometry.morphAttributes).length > 0) {
+						geometry = geometry.clone()
+						geometry.morphAttributes = {}
+					}
+					const instanced = new THREE.InstancedMesh(geometry, mesh.material, matrices.length)
+					const local = mesh.matrixWorld
+					for (const [i, place] of matrices.entries())
+						instanced.setMatrixAt(i, new THREE.Matrix4().multiplyMatrices(place, local))
+					instanced.castShadow = instanced.receiveShadow = detailed
+					instanced.computeBoundingSphere()
+					this.group.add(instanced)
+				})
+			})
 		}
 	}
 

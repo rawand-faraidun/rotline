@@ -4,7 +4,7 @@ import type { MapDef, MapProp } from './schema.ts'
  * A map drawn as text, one character per metre: `#` wall, `x` blocker (solid, not drawn: under
  * scenery), `.` floor, `P` player spawn, `Z` or a digit zombie spawn (the digit is its section),
  * `b` barrel, `c` crate, `s` sandbags, `h` a cracked stretch of wall hiding a secret (shoot it down),
- * `%` hedge, `=` shipping container (solid, drawn as such; touching cells of one make one block). Named,
+ * `~` water (walked round, shot across), `%` hedge, `=` shipping container (solid, drawn as such; touching cells of one make one block). Named,
  * interactive props come in `props`, scenery in `decor`.
  */
 export type MapSource = {
@@ -30,6 +30,7 @@ export function fromLayout(source: MapSource): MapDef {
 	const props: MapProp[] = []
 	const weak = new Set<number>()
 	const solidCells: Record<'hedge' | 'container', Set<number>> = { hedge: new Set(), container: new Set() }
+	const waterCells = new Set<number>()
 	for (const [y, row] of source.layout.entries()) {
 		if (row.length !== width)
 			throw new Error(`game data maps/${source.id}: row ${y} is ${row.length} wide, not ${width}`)
@@ -60,6 +61,7 @@ export function fromLayout(source: MapSource): MapDef {
 			else if (ch === 'h') weak.add(y * width + x)
 			else if (ch === '%') solidCells.hedge.add(y * width + x)
 			else if (ch === '=') solidCells.container.add(y * width + x)
+			else if (ch === '~') waterCells.add(y * width + x)
 			else if (PROP_CHARS[ch]) props.push({ id: `${PROP_CHARS[ch]}-${x}-${y}`, kind: PROP_CHARS[ch], x, y })
 			else if (ch !== '.') throw new Error(`game data maps/${source.id}: unknown character '${ch}' at ${x}, ${y}`)
 		}
@@ -80,6 +82,7 @@ export function fromLayout(source: MapSource): MapDef {
 		props: [...props, ...(source.props ?? [])],
 		...(blockers.length > 0 ? { blockers } : {}),
 		...(solids.length > 0 ? { solids } : {}),
+		...(waterCells.size > 0 ? { water: blocks(waterCells, width) } : {}),
 		...(source.decor ? { decor: source.decor } : {}),
 		...(source.patches ? { patches: source.patches } : {}),
 		...(source.range ? { range: source.range } : {}),

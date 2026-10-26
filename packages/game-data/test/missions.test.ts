@@ -78,8 +78,8 @@ describe('maps for each run', () => {
 
 	it("lays a variant's own props on its map, leaving the map itself as it is", () => {
 		const docks = missionLayouts.get('supply-run')?.find(layout => layout.map === 'docks') as MissionDef
-		expect(missionMap(docks).props?.some(prop => prop.id === 'crate-quay')).toBe(true)
-		expect(maps.docks?.props?.some(prop => prop.id === 'crate-quay')).toBe(false)
+		expect(missionMap(docks).props?.some(prop => prop.id === 'crate-pier')).toBe(true)
+		expect(maps.docks?.props?.some(prop => prop.id === 'crate-pier')).toBe(false)
 	})
 
 	it('offers Survival on several maps, the first by default', () => {

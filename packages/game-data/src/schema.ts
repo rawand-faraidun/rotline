@@ -457,6 +457,21 @@ export const decorSchema = z.object({
 	fire: z.number().positive().max(4).optional()
 })
 
+/** the ground textures a map or a patch of it can have */
+export const groundKind = z.enum([
+	'asphalt',
+	'concrete',
+	'dirt',
+	'grass',
+	'lawn',
+	'forest',
+	'gravel',
+	'paving',
+	'cobbles',
+	'wood',
+	'tiles'
+])
+
 export const mapSchema = z.object({
 	id,
 	name: z.string(),
@@ -473,9 +488,11 @@ export const mapSchema = z.object({
 		.array(rect.extend({ kind: z.enum(['hedge', 'container']) }))
 		.max(4000)
 		.optional(),
+	/** water: blocks walking (players and zombies), not shots or thrown things */
+	water: z.array(rect).max(2000).optional(),
 	/** patches of other ground drawn over the map's own (lawns in a street, gravel paths): drawing only */
 	patches: z
-		.array(rect.extend({ ground: z.enum(['asphalt', 'concrete', 'dirt', 'grass']) }))
+		.array(rect.extend({ ground: groundKind }))
 		.max(400)
 		.optional(),
 	decor: z.array(decorSchema).max(2000).optional(),
@@ -485,7 +502,7 @@ export const mapSchema = z.object({
 	/** how the place looks: the ground, the walls and the light (drawing only, no effect on play) */
 	look: z
 		.object({
-			ground: z.enum(['asphalt', 'concrete', 'dirt', 'grass']),
+			ground: groundKind,
 			walls: z.enum(['brick', 'stone', 'metal', 'wall-concrete']),
 			light: z.enum(['dusk', 'overcast', 'night'])
 		})

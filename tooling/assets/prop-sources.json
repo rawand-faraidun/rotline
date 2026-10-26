@@ -16,12 +16,10 @@
 		},
 		{
 			"kind": "sandbags",
-			"source": "compost_bags",
-			"name": "Compost Bags",
-			"author": "James Ray Cock",
-			"triangles": 800,
-			"tint": [0.72, 0.66, 0.5],
-			"nodes": ["compost_bags_floorstacked", "compost_bags_floor"]
+			"uid": "8560a93adc7d4c8781d45bac09ddf7b9",
+			"name": "Sandbag",
+			"author": "capus.design",
+			"triangles": 1200
 		},
 		{
 			"kind": "generator",

@@ -17,6 +17,8 @@ const HEDGE_HEIGHT = 1.9
 const CONTAINER_HEIGHT = 2.9
 /** faded container liveries: rust red, navy, green, orange, grey, teal */
 const CONTAINER_COLOURS = [0x9a3b2a, 0x2c4a7a, 0x3d6b3a, 0xc0702a, 0x8a8f92, 0x2f7a78]
+/** ground patches that need toning down (the photos are much paler than the rest of the ground) */
+const PATCH_TINT: Partial<Record<string, number>> = { tiles: 0x9c9c96, paving: 0xc4c0b8, concrete: 0xc8c8c2 }
 /** a container's length (a 20-foot box) and width in metres */
 const CONTAINER_LENGTH = 6
 const CONTAINER_WIDTH = 2
@@ -45,6 +47,30 @@ function splitContainers(block: { x: number; y: number; w: number; h: number }) 
 		}
 	}
 	return boxes
+}
+
+/** A tiling normal map of soft ripples, drawn once. */
+function rippleTexture(): THREE.Texture {
+	const size = 128
+	const data = new Uint8Array(size * size * 4)
+	const height = (x: number, y: number) =>
+		Math.sin((x / size) * Math.PI * 2 * 3 + Math.sin((y / size) * Math.PI * 2 * 2) * 1.5) * 0.5 +
+		Math.sin((y / size) * Math.PI * 2 * 5 + Math.cos((x / size) * Math.PI * 2 * 2)) * 0.35
+	for (let y = 0; y < size; y++) {
+		for (let x = 0; x < size; x++) {
+			const dx = height(x + 1, y) - height(x - 1, y)
+			const dy = height(x, y + 1) - height(x, y - 1)
+			const i = (y * size + x) * 4
+			data[i] = Math.round((0.5 - dx * 0.5) * 255)
+			data[i + 1] = Math.round((0.5 - dy * 0.5) * 255)
+			data[i + 2] = 255
+			data[i + 3] = 255
+		}
+	}
+	const texture = new THREE.DataTexture(data, size, size)
+	texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+	texture.needsUpdate = true
+	return texture
 }
 
 let ribs: THREE.Texture | null = null
@@ -438,6 +464,7 @@ export class Stage {
 		this.scene.add(walls)
 		this.addSolids(map, assets, detailed)
 		this.addPatches(map, assets, detailed)
+		this.addWater(map)
 		// the town beyond the border: buildings of a few heights, in the map's wall material and another
 		const other = look.walls === 'brick' ? 'wall-concrete' : 'brick'
 		const otherMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
@@ -500,16 +527,32 @@ export class Stage {
 
 	/** Lawns, gravel and the like laid over the ground, a hair above it, one mesh per kind of ground. */
 	private addPatches(map: MapDef, assets: string, detailed: boolean): void {
-		const kinds = new Set((map.patches ?? []).map(patch => patch.ground))
+		const patches = map.patches ?? []
+		// a patch lies over the ones listed before it that it overlaps: a tiled floor on a lawn on the ground
+		const layer = patches.map(() => 1)
+		for (const [i, patch] of patches.entries()) {
+			for (let j = 0; j < i; j++) {
+				const other = patches[j] as (typeof patches)[number]
+				if (
+					patch.x < other.x + other.w &&
+					other.x < patch.x + patch.w &&
+					patch.y < other.y + other.h &&
+					other.y < patch.y + patch.h
+				)
+					layer[i] = Math.max(layer[i] as number, (layer[j] as number) + 1)
+			}
+		}
+		const kinds = new Set(patches.map(patch => patch.ground))
 		for (const ground of kinds) {
 			const positions: number[] = []
 			const uvs: number[] = []
 			const indices: number[] = []
-			for (const patch of map.patches ?? []) {
+			for (const [i, patch] of patches.entries()) {
 				if (patch.ground !== ground) continue
 				const base = positions.length / 3
 				const [x0, x1, z0, z1] = [patch.x, patch.x + patch.w, patch.y, patch.y + patch.h]
-				positions.push(x0, 0, z0, x1, 0, z0, x1, 0, z1, x0, 0, z1)
+				const y = Math.min(6, layer[i] as number) * 0.02
+				positions.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1)
 				// the same 4 m tiling as the ground, anchored to the map so neighbouring patches meet
 				uvs.push(x0 / 4, -z0 / 4, x1 / 4, -z0 / 4, x1 / 4, -z1 / 4, x0 / 4, -z1 / 4)
 				indices.push(base, base + 2, base + 1, base, base + 3, base + 2)
@@ -531,11 +574,64 @@ export class Stage {
 				polygonOffsetFactor: -2,
 				polygonOffsetUnits: -2
 			})
-			dress(material, `${assets}/textures/${ground}`, null, 0xdcdcd4, detailed)
+			// pale floors (tiles, paving) toned down to sit with the rest of the ground
+			dress(material, `${assets}/textures/${ground}`, null, PATCH_TINT[ground] ?? 0xdcdcd4, detailed)
 			const mesh = new THREE.Mesh(geometry, material)
-			mesh.position.y = 0.005
 			mesh.receiveShadow = true
 			mesh.name = `patches-${ground}`
+			this.scene.add(mesh)
+		}
+	}
+
+	/** the water's ripples, moved on every frame */
+	private waterNormals: THREE.Texture | null = null
+
+	/**
+	 * Water: dark, still and glossy, catching the lights, with ripples drifting across it and a stone
+	 * edge where it meets the ground. Drawing only; the grid keeps people out of it.
+	 */
+	private addWater(map: MapDef): void {
+		const pools = map.water ?? []
+		if (pools.length === 0) return
+		const normals = rippleTexture()
+		this.waterNormals = normals
+		const surface = new THREE.MeshStandardMaterial({
+			color: 0x2e4a4c,
+			emissive: 0x0b1718,
+			roughness: 0.16,
+			metalness: 0,
+			normalMap: normals,
+			normalScale: new THREE.Vector2(0.7, 0.7)
+		})
+		const kerb = new THREE.MeshStandardMaterial({ color: 0x6d6a62, roughness: 0.9 })
+		for (const pool of pools) {
+			const water = new THREE.Mesh(new THREE.PlaneGeometry(pool.w, pool.h), surface)
+			water.rotation.x = -Math.PI / 2
+			water.position.set(pool.x + pool.w / 2, 0.14, pool.y + pool.h / 2)
+			const uv = water.geometry.getAttribute('uv') as THREE.BufferAttribute
+			for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * pool.w) / 6, (uv.getY(i) * pool.h) / 6)
+			water.receiveShadow = true
+			water.name = 'water'
+			this.scene.add(water)
+		}
+		// a low kerb round the outline (only where water meets dry cells, so a canal of pieces looks like one)
+		const wet = new Set<number>()
+		for (const pool of pools)
+			for (let y = pool.y; y < pool.y + pool.h; y++)
+				for (let x = pool.x; x < pool.x + pool.w; x++) wet.add(y * map.width + x)
+		const edges: { x: number; y: number; w: number; h: number }[] = []
+		for (const cell of wet) {
+			const x = cell % map.width
+			const y = Math.floor(cell / map.width)
+			if (y > 0 && !wet.has(cell - map.width)) edges.push({ x, y, w: 1, h: 0.15 })
+			if (y < map.height - 1 && !wet.has(cell + map.width)) edges.push({ x, y: y + 0.85, w: 1, h: 0.15 })
+			if (x > 0 && !wet.has(cell - 1)) edges.push({ x, y, w: 0.15, h: 1 })
+			if (x < map.width - 1 && !wet.has(cell + 1)) edges.push({ x: x + 0.85, y, w: 0.15, h: 1 })
+		}
+		if (edges.length > 0) {
+			const mesh = new THREE.Mesh(wallGeometry(edges, 0.18, 1), [kerb, kerb])
+			mesh.receiveShadow = true
+			mesh.name = 'water-kerb'
 			this.scene.add(mesh)
 		}
 	}
@@ -668,6 +764,7 @@ export class Stage {
 	}
 
 	render(): void {
+		if (this.waterNormals) this.waterNormals.offset.set(performance.now() * 0.000012, performance.now() * 0.000007)
 		if (this.post) this.post.render(performance.now() / 1000)
 		else this.renderer.render(this.scene, this.camera)
 	}

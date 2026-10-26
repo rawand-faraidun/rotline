@@ -133,6 +133,19 @@ describe('props', () => {
 		expect(blasted.propById.get('weak')?.state).toBe(PropState.destroyed)
 	})
 
+	it('keeps everyone out of water but lets shots cross it', () => {
+		const map = room([])
+		const world = new World({ seed: 1, map: { ...map, water: [{ x: 9, y: 1, w: 3, h: 18 }] }, waves: quiet })
+		const player = world.addPlayer(1)
+		player.x = 5
+		player.y = 10.5
+		for (let i = 0; i < 60; i++) world.step(new Map([[1, input({ seq: i + 1, moveX: 1, aim: 0 })]]))
+		expect(player.x).toBeLessThan(9)
+		// a shot over the water reaches the far bank
+		expect(world.grid.rayToWall(5, 10.5, 1, 0, 9)).toBe(9)
+		expect(world.grid.isWall(10.5, 10.5)).toBe(true)
+	})
+
 	it('opens and closes doors with a press, welds them with a hold, and zombies break them', () => {
 		const world = new World({
 			seed: 1,

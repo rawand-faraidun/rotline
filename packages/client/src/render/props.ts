@@ -11,7 +11,7 @@ import { loadSoldier, loadWeapon, soldierUrl } from './players.ts'
 const WEAK_WALL_HEIGHT = 3.2
 
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
-const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
+const MODELLED = new Set(['barrel', 'crate', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 const models = new Map<string, Promise<THREE.Object3D | null>>()
 
@@ -108,6 +108,60 @@ export class PropRenderer {
 		})
 	}
 
+	/**
+	 * Sandbags as real bags: three courses on each cell, two bags to a course, each course turned
+	 * across the one below (like a wall is laid), with a little give in every bag.
+	 */
+	private stackBags(prop: Prop, root: THREE.Group, body: THREE.Mesh, w: number, h: number) {
+		if (!this.models) return
+		void propModel(`${this.assets}/models/props/sandbags.glb`).then(model => {
+			if (!model || !root.parent) return
+			let seed = prop.index * 9301 + 49297
+			const jitter = () => {
+				seed = (seed * 9301 + 49297) % 233280
+				return seed / 233280 - 0.5
+			}
+			// every bag of the prop in one instanced draw per part of the model
+			const bags: THREE.Matrix4[] = []
+			const quaternion = new THREE.Quaternion()
+			const up = new THREE.Vector3(0, 1, 0)
+			for (let cx = 0; cx < w; cx++) {
+				for (let cy = 0; cy < h; cy++) {
+					for (let course = 0; course < 3; course++) {
+						const across = course % 2 === 1
+						for (let n = 0; n < 2; n++) {
+							const offset = (n - 0.5) * 0.48
+							quaternion.setFromAxisAngle(up, (across ? Math.PI / 2 : 0) + jitter() * 0.2)
+							bags.push(
+								new THREE.Matrix4().compose(
+									new THREE.Vector3(
+										cx - (w - 1) / 2 + (across ? offset : 0) + jitter() * 0.06,
+										course * 0.25,
+										cy - (h - 1) / 2 + (across ? 0 : offset) + jitter() * 0.06
+									),
+									quaternion,
+									new THREE.Vector3(0.95, 0.27, 0.47)
+								)
+							)
+						}
+					}
+				}
+			}
+			model.updateMatrixWorld(true)
+			model.traverse(node => {
+				const mesh = node as THREE.Mesh
+				if (!mesh.isMesh) return
+				const instanced = new THREE.InstancedMesh(mesh.geometry, mesh.material, bags.length)
+				for (const [i, bag] of bags.entries())
+					instanced.setMatrixAt(i, new THREE.Matrix4().multiplyMatrices(bag, mesh.matrixWorld))
+				instanced.castShadow = instanced.receiveShadow = true
+				instanced.computeBoundingSphere()
+				root.add(instanced)
+			})
+			body.visible = false
+		})
+	}
+
 	private material(color: number, emissive = 0): THREE.MeshStandardMaterial {
 		return new THREE.MeshStandardMaterial({ color, roughness: 0.85, emissive, emissiveIntensity: emissive ? 0.8 : 0 })
 	}
@@ -143,7 +197,7 @@ export class PropRenderer {
 			case 'sandbags': {
 				const body = add(new THREE.Mesh(this.box, this.material(0x8a7a52)), 0.4)
 				body.scale.set(w * 0.98, 0.8, h * 0.98)
-				this.dressUp(prop, root, [body], [w, 0.8, h], null)
+				this.stackBags(prop, root, body, w, h)
 				break
 			}
 			case 'weakwall': {

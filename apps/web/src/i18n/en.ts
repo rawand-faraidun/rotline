@@ -664,17 +664,17 @@ export const en = {
 				survival: {
 					name: 'Old Town',
 					description:
-						'A walled old town at dusk: the town hall and its courtyard in the middle, the church and its graveyard, the covered market, the mill and the terraced lanes.'
+						'A river town at dusk: the church square and its fountain, the shops and the hotel, two bridges and a footbridge over the river, the park, the mill and Mill Road. Woods all round.'
 				},
 				'survival-glasshouse': {
 					name: 'Glasshouse',
 					description:
-						'The botanical gardens after dark: the great palm house, hedge mazes, the rose garden, the potting sheds and the old orangery.'
+						'The botanical gardens after dark: the palm house above the lake, a walk all the way round the water and bridges over it, the hedge maze, the nursery, the orangery and the rock garden.'
 				},
 				'survival-docks': {
 					name: 'Docks',
 					description:
-						'A container port at night: lanes between the stacks, the warehouses, the crane yard and the quay where the last ship never left.'
+						"A container port at night on the water: piers and a moored barge, the quay, the dock workers' camp round the crane, the stacks, the warehouses and the gatehouse."
 				}
 			},
 			contracts: 'Contracts',
