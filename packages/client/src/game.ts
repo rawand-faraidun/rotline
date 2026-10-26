@@ -1265,8 +1265,8 @@ export function startGame(options: GameOptions): GameHandle {
 			for (const release of [() => markers?.dispose(), () => propRenderer.dispose(), () => stage.dispose()]) {
 				try {
 					release()
-				} catch (error) {
-					console.warn('game: cleanup failed', error)
+				} catch {
+					// what is left is collected with the page
 				}
 			}
 		}
