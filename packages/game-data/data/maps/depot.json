@@ -405,5 +405,28 @@
 			"y": 56.5,
 			"rotation": [0, 90, 0]
 		}
+	],
+	"patches": [
+		{
+			"ground": "asphalt",
+			"x": 1,
+			"y": 1,
+			"w": 31,
+			"h": 62
+		},
+		{
+			"ground": "concrete",
+			"x": 33,
+			"y": 1,
+			"w": 31,
+			"h": 62
+		},
+		{
+			"ground": "concrete",
+			"x": 65,
+			"y": 1,
+			"w": 30,
+			"h": 62
+		}
 	]
 }

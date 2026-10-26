@@ -245,6 +245,120 @@
 			"model": "scene-lamp2",
 			"x": 41.5,
 			"y": 37.5
+		},
+		{
+			"model": "scene-vending",
+			"x": 6.26,
+			"y": 4.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-bookshelf",
+			"x": 10.16,
+			"y": 13.45
+		},
+		{
+			"model": "scene-desk",
+			"x": 7.23,
+			"y": 4.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-office-chair",
+			"x": 15.58,
+			"y": 4.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-office-chair",
+			"x": 12.55,
+			"y": 10.1,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-desk",
+			"x": 18.45,
+			"y": 8.07,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-desk",
+			"x": 45.0,
+			"y": 4.55,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-office-chair",
+			"x": 39.35,
+			"y": 11.45
+		},
+		{
+			"model": "scene-desk",
+			"x": 46.45,
+			"y": 5.48,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-tyre",
+			"x": 37.55,
+			"y": 49.36,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-tool-cart",
+			"x": 37.55,
+			"y": 47.92,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-compressor",
+			"x": 43.45,
+			"y": 50.38,
+			"rotation": [0, -90, 0]
+		}
+	],
+	"patches": [
+		{
+			"ground": "dirt",
+			"x": 1,
+			"y": 1,
+			"w": 54,
+			"h": 54
+		},
+		{
+			"ground": "concrete",
+			"x": 20,
+			"y": 16,
+			"w": 17,
+			"h": 22
+		},
+		{
+			"ground": "tiles",
+			"x": 4,
+			"y": 4,
+			"w": 15,
+			"h": 10
+		},
+		{
+			"ground": "wood",
+			"x": 38,
+			"y": 4,
+			"w": 13,
+			"h": 8
+		},
+		{
+			"ground": "wood",
+			"x": 4,
+			"y": 41,
+			"w": 15,
+			"h": 11
+		},
+		{
+			"ground": "concrete",
+			"x": 37,
+			"y": 41,
+			"w": 14,
+			"h": 11
 		}
 	]
 }

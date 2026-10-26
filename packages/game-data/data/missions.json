@@ -2192,9 +2192,9 @@
 		"id": "hotspot",
 		"name": "Hotspot",
 		"zone": "contracts",
-		"map": "yard",
-		"description": "Three minutes in the old freight yard with the nests awake. Kill as many as you can, as fast as you can.",
-		"briefing": ["The old freight yard is boiling over. Three minutes: kill everything that moves."],
+		"map": "depot",
+		"description": "Three minutes in the old food depot with the nests awake. Kill as many as you can, as fast as you can.",
+		"briefing": ["The food depot is boiling over. Three minutes: kill everything that moves."],
 		"debrief": "Time. Count the bodies.",
 		"parTimeSeconds": 185,
 		"timeLimitSeconds": 200,
@@ -2213,8 +2213,8 @@
 		},
 		"caches": [
 			{
-				"x": 4,
-				"y": 44
+				"x": 93.5,
+				"y": 61.5
 			}
 		],
 		"objectives": [
@@ -2289,17 +2289,6 @@
 					{
 						"x": 104.5,
 						"y": 79.5
-					}
-				]
-			},
-			{
-				"map": "depot",
-				"description": "Three minutes in the old food depot with the nests awake. Kill as many as you can, as fast as you can.",
-				"briefing": ["The food depot is boiling over. Three minutes: kill everything that moves."],
-				"caches": [
-					{
-						"x": 93.5,
-						"y": 61.5
 					}
 				]
 			}
