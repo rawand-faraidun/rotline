@@ -152,7 +152,8 @@ export function startGame(options: GameOptions): GameHandle {
 			? { ...map, decor: [...(map.decor ?? []), ...autoDecor(map), ...surroundings(map).decor] }
 			: map,
 		options.assets,
-		stage.quality !== 'low'
+		stage.quality !== 'low',
+		stage.quality === 'high' ? 6 : stage.quality === 'medium' ? 3 : 0
 	)
 	stage.scene.add(groundMarks(map))
 	let showNumbers = range || (options.damageNumbers ?? loadDamageNumbers())
@@ -1046,6 +1047,16 @@ export function startGame(options: GameOptions): GameHandle {
 			const watched = own.alive ? null : interpolator.others.find(other => other.alive)
 			if (watched) stage.follow(watched.x, watched.y, watched.x, watched.y, dt)
 			else stage.follow(drawn.x, drawn.y, aimX, aimY, dt)
+			// weapon lights in the dark: yours, then your teammates' nearest first
+			if (stage.dark) {
+				const torches = [{ x: drawn.x, y: drawn.y, angle: aimAngle, on: own.alive }]
+				const near = [...interpolator.others].sort(
+					(a, b) => Math.hypot(a.x - drawn.x, a.y - drawn.y) - Math.hypot(b.x - drawn.x, b.y - drawn.y)
+				)
+				for (const other of near)
+					torches.push({ x: other.x, y: other.y, angle: aimToAngle(other.aim), on: other.alive })
+				stage.setFlashlights(torches)
+			}
 			// where the objective is: a marker on screen, or an arrow at the edge pointing to it
 			const current = mission && missionHud && !missionHud.complete ? mission.objectives[missionHud.objective] : null
 			const target = current ? objectiveTarget(current, props, drawn) : null
@@ -1179,7 +1190,7 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		}
 		effects.update(now / 1000)
-		decor.update(now / 1000)
+		decor.update(now / 1000, drawn.x, drawn.y)
 		numbers.update(now / 1000)
 		stage.render()
 		if (!paused) stage.adapt(wallNow)
@@ -1250,9 +1261,14 @@ export function startGame(options: GameOptions): GameHandle {
 			connection.close()
 			controls.dispose()
 			window.removeEventListener('resize', onResize)
-			markers?.dispose()
-			propRenderer.dispose()
-			stage.dispose()
+			// freeing the GPU's copies must never take the page down with it
+			for (const release of [() => markers?.dispose(), () => propRenderer.dispose(), () => stage.dispose()]) {
+				try {
+					release()
+				} catch (error) {
+					console.warn('game: cleanup failed', error)
+				}
+			}
 		}
 	}
 }

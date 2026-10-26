@@ -504,7 +504,8 @@ export const mapSchema = z.object({
 		.object({
 			ground: groundKind,
 			walls: z.enum(['brick', 'stone', 'metal', 'wall-concrete']),
-			light: z.enum(['dusk', 'overcast', 'night'])
+			/** the hour and the weather: night and dark (no moon, the power out) bring out lamps and torches */
+			light: z.enum(['day', 'dawn', 'dusk', 'overcast', 'fog', 'night', 'dark'])
 		})
 		.optional(),
 	/** firing-range maps: where dummies stand, how fast they heal, how many zombies may be spawned */

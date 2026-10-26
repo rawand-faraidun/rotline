@@ -107,7 +107,7 @@ export class Effects {
 		this.gore = gore
 		this.explosions = new Explosions(scene)
 		this.tracers = new THREE.InstancedMesh(
-			new THREE.BoxGeometry(0.035, 0.035, 1).translate(0, 0, 0.5),
+			new THREE.BoxGeometry(0.022, 0.022, 1).translate(0, 0, 0.5),
 			new THREE.MeshBasicMaterial({
 				color: 0xffffff,
 				transparent: true,

@@ -4,7 +4,7 @@
 	"look": {
 		"ground": "asphalt",
 		"walls": "brick",
-		"light": "dusk"
+		"light": "day"
 	},
 	"layout": [
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -35,7 +35,7 @@
 		"x............................................x",
 		"x###################......###################x",
 		"x............................................x",
-		"x###########3.................3....##########x",
+		"x###########.3................3....##########x",
 		"x#.........#.......................#........#x",
 		"x#.........#.......................#........#x",
 		"x#.........#................................#x",
@@ -43,13 +43,13 @@
 		"x#..........................................#x",
 		"x#.................................#........#x",
 		"x#.........#.......................#........#x",
-		"x#.........#xx...................xx#........#x",
+		"x#.........#xx...................xx#.....3..#x",
 		"x#.........#.......................#........#x",
 		"x#.........#..................xx...###...####x",
-		"x#.........#..................xx............3x",
+		"x#.........#..................xx.............x",
 		"x####...####..................xx..........x..x",
-		"x3...........................................x",
-		"x.x..........................................x",
+		"x............................................x",
+		"x.x.3........................................x",
 		"x............................................x",
 		"x...................~~~~~~...................x",
 		"x...................~~~~~~...................x",
@@ -72,22 +72,22 @@
 		"x#.......#..xx...................xx..#......#x",
 		"x#.......#...........................#......#x",
 		"x#.......#...........................#......#x",
-		"x#.......#...........................#......#x",
-		"x#########3.........................3########x",
+		"x#.......#.3.......................3.#......#x",
+		"x#########...........................########x",
 		"x............................................x",
 		"x###################......###################x",
 		"x............................................x",
 		"x............................................x",
 		"x..##############............##############..x",
 		"x..#............#ss........ss#............#..x",
+		"x..#.1..........#............#............#..x",
 		"x..#............#............#............#..x",
-		"x..#............#............#............#..x",
-		"x.1..........................#............#..x",
-		"x.................2..........#............#..x",
-		"x..#........................2.............#..x",
+		"x............................#............#..x",
+		"x..........................2.#..........1.#..x",
+		"x..#..............2.......................#..x",
 		"x..#............#...xx....................#..x",
 		"x..#............#...xx....................#..x",
-		"x..#............#...xx.......#............#.1x",
+		"x..#............#...xx.......#............#..x",
 		"x..##############............#...............x",
 		"x............................#...............x",
 		"x............................#............#..x",
@@ -100,10 +100,10 @@
 		"x..#.......#....#............................x",
 		"x..#.......#....#............##############..x",
 		"x..##########..##.b..........#............#..x",
-		"x..#............#............#............#..x",
-		"x..#............#.........................#..x",
+		"x..#............#............#..........1.#..x",
+		"x..#.1..........#.........................#..x",
 		"x..#......................................#..x",
-		"x.1.....................b...................1x",
+		"x.......................b....................x",
 		"x............................#...............x",
 		"x..#............#............#............#..x",
 		"x..#............#............#............#..x",
@@ -116,11 +116,11 @@
 		"x..#............#.....xx.....#............#..x",
 		"x..#............#.....xx.....#............#..x",
 		"x..#..................xx..................#..x",
-		"x..#......................................#..x",
+		"x..#.1..................................1.#..x",
 		"x.........................................#..x",
 		"x...............#............#...............x",
-		"x.1#............#............#...............x",
-		"x..#............#............#............#.1x",
+		"x..#............#............#...............x",
+		"x..#............#............#............#..x",
 		"x..#............#............#............#..x",
 		"x..##############............##############..x",
 		"x............................................x",
@@ -150,10 +150,10 @@
 		"xx.xxxx................====............xxxxxxx",
 		"xxxxxxxxx..............====....==......xxxxxxx",
 		"xxxxxxxx........P......====....==......xxxxxxx",
-		"xxxxxxxx......P........====....==.....xxxxxxxx",
+		"xxxxxxxx......P........====....==...0.xxxxxxxx",
 		"xxxxxxxxx.......P.x....====....==.....xxxxxxxx",
 		"xxxxxxxxx.....P................==.....xxxxxxxx",
-		"xxxxxxxxx.............................0xxxxxxx",
+		"xxxxxxxxx..............................xxxxxxx",
 		"xxxxxxxxx...0.................0........xxxxxxx",
 		"xxxxxxxxx.............................xxxxxxxx",
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -228,8 +228,8 @@
 		{
 			"id": "gate-generator",
 			"kind": "generator",
-			"x": 13,
-			"y": 69,
+			"x": 17,
+			"y": 74,
 			"w": 2,
 			"h": 2
 		},
@@ -723,27 +723,27 @@
 		},
 		{
 			"model": "scene-armchair",
-			"x": 6.55,
-			"y": 127.18,
-			"rotation": [0, 90, 0]
+			"x": 12.54,
+			"y": 127.41,
+			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-armchair",
-			"x": 6.55,
-			"y": 129.31,
+			"model": "scene-sofa",
+			"x": 6.41,
+			"y": 130.43,
 			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-table",
-			"x": 9.35,
-			"y": 126.55,
-			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-armchair",
 			"x": 12.45,
-			"y": 126.81,
-			"rotation": [0, -90, 0]
+			"y": 126.46,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-tv",
+			"x": 7.9,
+			"y": 126.31,
+			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-tyre",
@@ -765,15 +765,15 @@
 			"model": "scene-tree",
 			"x": 17.0,
 			"y": 127.0,
-			"rotation": [0, 288, 0],
-			"scale": 0.82
+			"rotation": [0, 92, 0],
+			"scale": 0.96
 		},
 		{
 			"model": "scene-birch",
 			"x": 33.0,
 			"y": 127.0,
-			"rotation": [0, 192, 0],
-			"scale": 0.84
+			"rotation": [0, 232, 0],
+			"scale": 0.95
 		},
 		{
 			"model": "scene-lamp2",
@@ -807,215 +807,217 @@
 		},
 		{
 			"model": "scene-manhole",
-			"x": 20.1,
-			"y": 108.7
+			"x": 24.5,
+			"y": 88.1
 		},
 		{
 			"model": "scene-shop-shelf",
-			"x": 4.88,
-			"y": 72.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-shop-shelf",
-			"x": 15.45,
-			"y": 79.12,
+			"x": 14.96,
+			"y": 80.12,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-shop-shelf",
-			"x": 4.55,
-			"y": 78.83,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-shop-shelf",
-			"x": 5.75,
-			"y": 80.45
+			"model": "scene-vending",
+			"x": 9.1,
+			"y": 79.74
 		},
 		{
 			"model": "scene-shelves",
-			"x": 10.54,
-			"y": 72.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-office-chair",
-			"x": 13.54,
-			"y": 100.45
-		},
-		{
-			"model": "scene-desk",
-			"x": 11.58,
-			"y": 100.45
-		},
-		{
-			"model": "scene-office-chair",
-			"x": 15.45,
-			"y": 89.34,
+			"x": 15.69,
+			"y": 73.85,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-office-chair",
-			"x": 15.45,
-			"y": 99.49,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-desk",
-			"x": 15.45,
-			"y": 99.9,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-desk",
-			"x": 15.11,
-			"y": 100.45
-		},
-		{
-			"model": "scene-kitchen",
-			"x": 9.08,
-			"y": 114.45
-		},
-		{
-			"model": "scene-potted",
-			"x": 15.45,
-			"y": 106.97,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-bed",
-			"x": 6.36,
-			"y": 114.45
-		},
-		{
-			"model": "scene-kitchen",
-			"x": 15.45,
-			"y": 113.67,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-table",
-			"x": 6.07,
-			"y": 114.45
-		},
-		{
-			"model": "scene-chair",
-			"x": 10.92,
-			"y": 114.45
-		},
-		{
-			"model": "scene-barrels",
-			"x": 39.8,
-			"y": 87.45
-		},
-		{
-			"model": "scene-crate2",
-			"x": 30.55,
-			"y": 82.54,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-military-crate",
-			"x": 30.55,
-			"y": 85.76,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-crate2",
-			"x": 33.5,
-			"y": 72.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-military-crate",
-			"x": 32.46,
-			"y": 87.45
+			"model": "scene-vending",
+			"x": 6.41,
+			"y": 79.74
 		},
 		{
 			"model": "scene-cardboard",
-			"x": 34.08,
-			"y": 87.45
+			"x": 7.35,
+			"y": 80.67
 		},
 		{
-			"model": "scene-crate2",
-			"x": 41.45,
-			"y": 87.27,
-			"rotation": [0, -90, 0]
+			"model": "scene-office-chair",
+			"x": 10.94,
+			"y": 100.49
 		},
 		{
-			"model": "scene-plastic-crate",
-			"x": 35.65,
-			"y": 87.45
+			"model": "scene-bookshelf",
+			"x": 13.66,
+			"y": 100.64
 		},
 		{
-			"model": "scene-hospital-bed",
-			"x": 35.8,
-			"y": 92.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-metal-table",
-			"x": 39.85,
-			"y": 92.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-wheelchair",
-			"x": 35.65,
-			"y": 92.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-hospital-bed",
-			"x": 37.6,
-			"y": 100.45
-		},
-		{
-			"model": "scene-shelves",
-			"x": 40.95,
-			"y": 92.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-shelves",
-			"x": 40.21,
-			"y": 100.45
-		},
-		{
-			"model": "scene-sofa",
-			"x": 32.62,
-			"y": 114.45
-		},
-		{
-			"model": "scene-sofa",
-			"x": 30.55,
-			"y": 107.09,
+			"model": "scene-office-chair",
+			"x": 4.51,
+			"y": 95.56,
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-armchair",
-			"x": 30.55,
-			"y": 107.21,
+			"model": "scene-vending",
+			"x": 14.74,
+			"y": 94.4,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-office-chair",
+			"x": 4.51,
+			"y": 98.82,
 			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-bookshelf",
-			"x": 31.87,
-			"y": 105.55,
+			"x": 7.59,
+			"y": 85.36,
 			"rotation": [0, 180, 0]
 		},
 		{
+			"model": "scene-potted",
+			"x": 6.36,
+			"y": 114.59
+		},
+		{
+			"model": "scene-chair",
+			"x": 8.02,
+			"y": 114.61
+		},
+		{
+			"model": "scene-tv",
+			"x": 15.69,
+			"y": 114.52,
+			"rotation": [0, -90, 0]
+		},
+		{
 			"model": "scene-bed",
-			"x": 30.55,
-			"y": 105.92,
+			"x": 9.65,
+			"y": 113.89
+		},
+		{
+			"model": "scene-kitchen",
+			"x": 9.8,
+			"y": 106.26,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-armchair",
+			"x": 15.54,
+			"y": 112.53,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-rack",
+			"x": 41.64,
+			"y": 86.1,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 41.23,
+			"y": 72.33,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-military-crate",
+			"x": 39.9,
+			"y": 87.44
+		},
+		{
+			"model": "scene-military-crate",
+			"x": 32.87,
+			"y": 87.44
+		},
+		{
+			"model": "scene-plastic-crate",
+			"x": 40.52,
+			"y": 72.21,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-military-crate",
+			"x": 35.23,
+			"y": 87.44
+		},
+		{
+			"model": "scene-plastic-crate",
+			"x": 31.68,
+			"y": 72.21,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-military-crate",
+			"x": 30.56,
+			"y": 73.51,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-metal-table",
+			"x": 30.86,
+			"y": 92.56,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-metal-table",
+			"x": 32.81,
+			"y": 92.86,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-medical",
+			"x": 41.74,
+			"y": 95.6,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-medical",
+			"x": 30.26,
+			"y": 93.36,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-shelves",
+			"x": 37.77,
+			"y": 92.31,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-shelves",
+			"x": 36.3,
+			"y": 92.31,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-chair",
+			"x": 30.39,
+			"y": 112.35,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-bookshelf",
+			"x": 30.36,
+			"y": 106.7,
 			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-chair",
-			"x": 30.55,
-			"y": 105.66,
-			"rotation": [0, 90, 0]
+			"x": 37.86,
+			"y": 105.39,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-bookshelf",
+			"x": 37.52,
+			"y": 114.64
+		},
+		{
+			"model": "scene-tv",
+			"x": 34.55,
+			"y": 114.69
+		},
+		{
+			"model": "scene-bed",
+			"x": 31.75,
+			"y": 106.11,
+			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-rack",
@@ -1070,148 +1072,142 @@
 			"y": 115.0
 		},
 		{
+			"model": "scene-plastic-crate",
+			"x": 23.72,
+			"y": 113.2,
+			"rotation": [0, 332, 0]
+		},
+		{
+			"model": "scene-plastic-crate",
+			"x": 24.17,
+			"y": 95.64,
+			"rotation": [0, 95, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 22.49,
+			"y": 84.0,
+			"rotation": [0, 35, 0]
+		},
+		{
 			"model": "scene-trash",
-			"x": 20.98,
-			"y": 87.22,
-			"rotation": [0, 107, 0]
+			"x": 18.29,
+			"y": 77.7,
+			"rotation": [0, 278, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 23.91,
+			"y": 87.81,
+			"rotation": [0, 136, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 20.25,
+			"y": 71.57,
+			"rotation": [0, 21, 0]
+		},
+		{
+			"model": "scene-plastic-crate",
+			"x": 22.74,
+			"y": 82.02,
+			"rotation": [0, 263, 0]
 		},
 		{
 			"model": "scene-bin",
-			"x": 24.73,
-			"y": 104.63,
-			"rotation": [0, 200, 0]
-		},
-		{
-			"model": "scene-tyre",
-			"x": 18.51,
-			"y": 84.3,
-			"rotation": [0, 39, 0]
+			"x": 21.25,
+			"y": 84.98,
+			"rotation": [0, 229, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 24.99,
-			"y": 74.4,
+			"x": 21.23,
+			"y": 109.65,
+			"rotation": [0, 77, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 20.25,
+			"y": 73.78,
+			"rotation": [0, 288, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 26.35,
+			"y": 103.91,
+			"rotation": [0, 357, 0]
+		},
+		{
+			"model": "scene-plastic-crate",
+			"x": 19.27,
+			"y": 89.0,
+			"rotation": [0, 200, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 26.79,
+			"y": 104.94,
+			"rotation": [0, 311, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 1.29,
+			"y": 88.12,
+			"rotation": [0, 278, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 2.06,
+			"y": 96.28,
 			"rotation": [0, 128, 0]
 		},
 		{
-			"model": "scene-tyre",
-			"x": 18.16,
-			"y": 114.18,
-			"rotation": [0, 347, 0]
-		},
-		{
-			"model": "scene-tyre",
-			"x": 26.27,
-			"y": 105.35,
-			"rotation": [0, 339, 0]
-		},
-		{
-			"model": "scene-tyre",
-			"x": 25.11,
-			"y": 100.4,
-			"rotation": [0, 54, 0]
-		},
-		{
-			"model": "scene-plastic-crate",
-			"x": 26.05,
-			"y": 115.14,
-			"rotation": [0, 289, 0]
-		},
-		{
 			"model": "scene-bin",
-			"x": 23.43,
-			"y": 74.44,
-			"rotation": [0, 260, 0]
+			"x": 1.74,
+			"y": 83.06,
+			"rotation": [0, 208, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 2.9,
+			"y": 87.39,
+			"rotation": [0, 298, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 1.62,
+			"y": 92.9,
+			"rotation": [0, 351, 0]
 		},
 		{
 			"model": "scene-plastic-crate",
-			"x": 21.23,
-			"y": 103.47,
-			"rotation": [0, 289, 0]
+			"x": 44.41,
+			"y": 111.99,
+			"rotation": [0, 247, 0]
 		},
 		{
 			"model": "scene-plastic-crate",
-			"x": 25.91,
-			"y": 100.0,
-			"rotation": [0, 323, 0]
-		},
-		{
-			"model": "scene-plastic-crate",
-			"x": 18.79,
-			"y": 86.8,
-			"rotation": [0, 232, 0]
+			"x": 43.06,
+			"y": 78.14,
+			"rotation": [0, 1, 0]
 		},
 		{
 			"model": "scene-cardboard",
-			"x": 18.48,
-			"y": 113.73,
-			"rotation": [0, 169, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 24.74,
-			"y": 100.18,
-			"rotation": [0, 284, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 1.6,
-			"y": 77.97,
-			"rotation": [0, 159, 0]
-		},
-		{
-			"model": "scene-trash",
-			"x": 2.56,
-			"y": 102.86,
-			"rotation": [0, 92, 0]
-		},
-		{
-			"model": "scene-plastic-crate",
-			"x": 2.51,
-			"y": 95.07,
-			"rotation": [0, 200, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 1.72,
-			"y": 81.76,
-			"rotation": [0, 27, 0]
-		},
-		{
-			"model": "scene-trash",
-			"x": 2.75,
-			"y": 71.02,
-			"rotation": [0, 138, 0]
-		},
-		{
-			"model": "scene-tyre",
-			"x": 43.49,
-			"y": 105.91,
-			"rotation": [0, 170, 0]
-		},
-		{
-			"model": "scene-trash",
-			"x": 44.89,
-			"y": 90.52,
-			"rotation": [0, 180, 0]
+			"x": 43.21,
+			"y": 105.29,
+			"rotation": [0, 251, 0]
 		},
 		{
 			"model": "scene-cardboard",
-			"x": 44.0,
-			"y": 116.79,
-			"rotation": [0, 138, 0]
+			"x": 43.35,
+			"y": 99.0,
+			"rotation": [0, 99, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 44.18,
-			"y": 101.71,
-			"rotation": [0, 57, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 43.37,
-			"y": 78.08,
-			"rotation": [0, 343, 0]
+			"x": 44.56,
+			"y": 79.17,
+			"rotation": [0, 330, 0]
 		},
 		{
 			"model": "scene-searchlight",
@@ -1232,140 +1228,142 @@
 			"scale": 11
 		},
 		{
+			"model": "scene-desk",
+			"x": 5.84,
+			"y": 53.86,
+			"rotation": [0, 180, 0]
+		},
+		{
 			"model": "scene-potted",
-			"x": 8.45,
-			"y": 63.23,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-office-chair",
-			"x": 6.03,
-			"y": 65.45
-		},
-		{
-			"model": "scene-office-chair",
-			"x": 8.45,
-			"y": 63.02,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-office-chair",
-			"x": 5.9,
-			"y": 65.45
-		},
-		{
-			"model": "scene-bookshelf",
-			"x": 2.55,
-			"y": 57.96,
-			"rotation": [0, 90, 0]
+			"x": 3.28,
+			"y": 65.59
 		},
 		{
 			"model": "scene-desk",
-			"x": 9.17,
-			"y": 29.55,
+			"x": 2.86,
+			"y": 57.52,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-vending",
+			"x": 3.26,
+			"y": 61.77,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-office-chair",
+			"x": 7.63,
+			"y": 53.51,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-office-chair",
+			"x": 8.22,
+			"y": 29.51,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-potted",
+			"x": 2.41,
+			"y": 39.53,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-office-chair",
+			"x": 9.37,
+			"y": 29.51,
 			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-desk",
-			"x": 10.45,
-			"y": 38.9,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-office-chair",
-			"x": 2.55,
-			"y": 35.02,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-office-chair",
-			"x": 2.55,
-			"y": 35.81,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-potted",
-			"x": 2.55,
-			"y": 38.38,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-table",
-			"x": 43.45,
-			"y": 29.84,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-table",
-			"x": 37.33,
-			"y": 29.55,
+			"x": 5.84,
+			"y": 29.86,
 			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-desk",
+			"x": 2.86,
+			"y": 30.11,
+			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-bed",
-			"x": 43.45,
-			"y": 30.95,
+			"x": 42.89,
+			"y": 33.02,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-kitchen",
-			"x": 37.92,
-			"y": 37.45
+			"model": "scene-bed",
+			"x": 41.5,
+			"y": 30.11,
+			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-shelves",
-			"x": 38.78,
-			"y": 65.45
-		},
-		{
-			"model": "scene-shop-shelf",
-			"x": 43.45,
-			"y": 53.14,
+			"model": "scene-chair",
+			"x": 43.62,
+			"y": 31.25,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-shop-shelf",
-			"x": 39.25,
-			"y": 65.45
+			"model": "scene-chair",
+			"x": 42.54,
+			"y": 37.62
 		},
 		{
 			"model": "scene-shelves",
-			"x": 38.72,
-			"y": 51.55,
+			"x": 39.4,
+			"y": 65.69
+		},
+		{
+			"model": "scene-shop-shelf",
+			"x": 41.44,
+			"y": 64.97
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 41.59,
+			"y": 51.34,
 			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-vending",
-			"x": 41.03,
-			"y": 65.45
+			"x": 42.74,
+			"y": 54.2,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-shop-shelf",
+			"x": 42.97,
+			"y": 57.76,
+			"rotation": [0, -90, 0]
 		},
 		{
 			"model": "scene-tree",
 			"x": 3.0,
 			"y": 43.0,
-			"rotation": [0, 275, 0],
-			"scale": 0.8
+			"rotation": [0, 208, 0],
+			"scale": 0.81
 		},
 		{
 			"model": "scene-birch",
 			"x": 3.0,
 			"y": 47.0,
-			"rotation": [0, 173, 0],
-			"scale": 0.88
+			"rotation": [0, 26, 0],
+			"scale": 0.86
 		},
 		{
 			"model": "scene-tree",
 			"x": 42.0,
 			"y": 41.0,
-			"rotation": [0, 176, 0],
-			"scale": 0.97
+			"rotation": [0, 20, 0],
+			"scale": 0.9
 		},
 		{
 			"model": "scene-birch",
 			"x": 43.0,
 			"y": 48.0,
-			"rotation": [0, 68, 0],
-			"scale": 0.82
+			"rotation": [0, 13, 0],
+			"scale": 1.03
 		},
 		{
 			"model": "scene-planter2",
@@ -1426,110 +1424,117 @@
 			"rotation": [0, 10, 0]
 		},
 		{
+			"model": "scene-bin",
+			"x": 33.73,
+			"y": 40.21,
+			"rotation": [0, 242, 0]
+		},
+		{
 			"model": "scene-trash",
-			"x": 32.49,
-			"y": 58.36,
-			"rotation": [0, 40, 0]
+			"x": 14.34,
+			"y": 43.32,
+			"rotation": [0, 177, 0]
+		},
+		{
+			"model": "scene-plastic-crate",
+			"x": 34.56,
+			"y": 52.21,
+			"rotation": [0, 148, 0]
+		},
+		{
+			"model": "scene-bin",
+			"x": 16.7,
+			"y": 58.79,
+			"rotation": [0, 153, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 22.68,
+			"y": 51.08,
+			"rotation": [0, 172, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 26.61,
+			"y": 43.72,
+			"rotation": [0, 29, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 28.11,
+			"y": 64.96,
+			"rotation": [0, 316, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 9.1,
+			"y": 33.03,
+			"rotation": [0, 9, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 13.77,
+			"y": 33.24,
+			"rotation": [0, 96, 0]
 		},
 		{
 			"model": "scene-cardboard",
-			"x": 29.71,
-			"y": 43.68,
-			"rotation": [0, 32, 0]
-		},
-		{
-			"model": "scene-cardboard",
-			"x": 33.12,
-			"y": 46.86,
-			"rotation": [0, 248, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 17.84,
-			"y": 58.75,
-			"rotation": [0, 39, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 32.67,
-			"y": 56.0,
-			"rotation": [0, 254, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 22.25,
-			"y": 34.31,
-			"rotation": [0, 106, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 27.18,
-			"y": 42.36,
-			"rotation": [0, 234, 0]
-		},
-		{
-			"model": "scene-cardboard",
-			"x": 30.2,
-			"y": 45.65,
-			"rotation": [0, 233, 0]
+			"x": 27.32,
+			"y": 62.61,
+			"rotation": [0, 244, 0]
 		},
 		{
 			"model": "scene-tyre",
-			"x": 34.18,
-			"y": 56.47,
-			"rotation": [0, 189, 0]
+			"x": 18.52,
+			"y": 48.27,
+			"rotation": [0, 337, 0]
 		},
 		{
-			"model": "scene-cardboard",
-			"x": 20.25,
-			"y": 64.97,
-			"rotation": [0, 132, 0]
+			"model": "scene-trash",
+			"x": 9.96,
+			"y": 42.36,
+			"rotation": [0, 323, 0]
 		},
 		{
-			"model": "scene-bin",
-			"x": 30.93,
-			"y": 36.88,
-			"rotation": [0, 273, 0]
+			"model": "scene-metal-table",
+			"x": 10.08,
+			"y": 2.86,
+			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-hospital-bed",
-			"x": 3.84,
-			"y": 8.45
+			"model": "scene-metal-table",
+			"x": 2.86,
+			"y": 5.72,
+			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-wheelchair",
-			"x": 3.46,
-			"y": 8.45
+			"model": "scene-metal-table",
+			"x": 9.2,
+			"y": 8.14
 		},
 		{
-			"model": "scene-hospital-bed",
-			"x": 10.45,
-			"y": 5.44,
-			"rotation": [0, -90, 0]
+			"model": "scene-medical",
+			"x": 2.26,
+			"y": 8.15,
+			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-shelves",
-			"x": 5.74,
-			"y": 2.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-hospital-bed",
-			"x": 43.45,
-			"y": 2.72,
+			"x": 43.69,
+			"y": 4.27,
 			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-hospital-bed",
-			"x": 37.47,
-			"y": 2.55,
-			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-wheelchair",
-			"x": 43.45,
-			"y": 4.47,
+			"x": 43.39,
+			"y": 6.28,
 			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-hospital-bed",
+			"x": 38.31,
+			"y": 2.79,
+			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-car",

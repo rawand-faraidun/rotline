@@ -223,6 +223,8 @@ const VIEW_UP = 11
 const VIEW_DOWN = 8
 /** never closer than this to a player, even when every spawn point is on screen */
 const SPAWN_CLEARANCE = 8
+/** room a zombie needs where it climbs out: the widest of them (a Brute) fits */
+const SPAWN_ROOM = 0.75
 
 /** Zombie animation state, sent to clients. */
 export const ZombieState = { moving: 0, attacking: 1 } as const
@@ -1665,7 +1667,8 @@ export class World {
 		if (!point || (hidden.length === 0 && bestDistance < SPAWN_CLEARANCE)) return null
 		const x = point.x + (this.rng.next() - 0.5) * 1.5
 		const y = point.y + (this.rng.next() - 0.5) * 1.5
-		return this.grid.isWall(x, y) ? point : { x, y }
+		// the jitter never puts a body half inside a wall, a tree or a car (it would be stuck there)
+		return this.grid.circleHitsWall(x, y, SPAWN_ROOM) ? point : { x, y }
 	}
 	private readonly hiddenPoints: { x: number; y: number }[] = []
 

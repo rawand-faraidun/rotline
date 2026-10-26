@@ -4,12 +4,12 @@
 	"look": {
 		"ground": "dirt",
 		"walls": "wall-concrete",
-		"light": "dusk"
+		"light": "day"
 	},
 	"layout": [
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xxxxxxxxxxxxxxxxxxxxxxxxx.....1...1....xxxxxxxxxxxxxxxxxxxxxxxxx",
-		"xx..............xxxxxxxx...............xxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xxxxxxxxxxxxxxxxxxxxxxxxx..............xxxxxxxxxxxxxxxxxxxxxxxxx",
+		"xx..............xxxxxxxx.....1...1.....xxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xx.##########...xxxxxxxxx..............xxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xx.#....x...#...xxxxxxxxx..............xxxxxxxxxxxxxxxxxxxxxxxxx",
 		"xx.#........#...xxxxxxxxx..............xxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -46,8 +46,8 @@
 		"x.#######....#######........................######....########.x",
 		"x..............................................................x",
 		"x..............................................................x",
+		"x.0..........................................................0.x",
 		"x..............................................................x",
-		"x0............................................................0x",
 		"x.......................ssssss....ssssss.......................x",
 		"x...xxx.xxx.............s..............s......============.....x",
 		"x...xxx.xxx.............s..............s......============.....x",
@@ -67,9 +67,9 @@
 		"x.............xxx.......ssssss....ssssss................==.....x",
 		"x.............xxx..............................................x",
 		"x..............................................................x",
-		"x..............................................................x",
-		"x..............................................................x",
-		"x0..........................................########...#######0x",
+		"x...........................................................0..x",
+		"x.0............................................................x",
+		"x...........................................########...#######.x",
 		"x...........................................#................#.x",
 		"x...####...#####............................#................#.x",
 		"x...#..........#............................#................#.x",
@@ -88,8 +88,8 @@
 		"x...........................................##################.x",
 		"x.###......................................................###.x",
 		"x.###......................................................###.x",
-		"x.###......................................................###.x",
-		"x.........0.....................0.....................0........x",
+		"x.###....0.....................0.....................0.....###.x",
+		"x..............................................................x",
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 	],
 	"props": [
@@ -1709,37 +1709,35 @@
 		},
 		{
 			"model": "scene-welding",
-			"x": 6.83,
-			"y": 35.45
+			"x": 4.47,
+			"y": 35.62
+		},
+		{
+			"model": "scene-tyre",
+			"x": 18.47,
+			"y": 35.64
+		},
+		{
+			"model": "scene-tyre",
+			"x": 16.18,
+			"y": 35.64
 		},
 		{
 			"model": "scene-welding",
-			"x": 4.27,
-			"y": 35.45
-		},
-		{
-			"model": "scene-compressor",
-			"x": 3.55,
-			"y": 33.04,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-tool-cart",
-			"x": 3.55,
-			"y": 23.61,
+			"x": 3.38,
+			"y": 33.09,
 			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-jerrycan",
-			"x": 18.28,
-			"y": 23.55,
-			"rotation": [0, 180, 0]
+			"x": 3.16,
+			"y": 23.31,
+			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-tool-cart",
-			"x": 3.55,
-			"y": 33.54,
-			"rotation": [0, 90, 0]
+			"model": "scene-tyre",
+			"x": 7.22,
+			"y": 35.64
 		},
 		{
 			"model": "scene-propane",
@@ -1766,49 +1764,48 @@
 			"scale": 3.5
 		},
 		{
-			"model": "scene-compressor",
-			"x": 47.29,
-			"y": 23.55,
+			"model": "scene-tool-cart",
+			"x": 54.24,
+			"y": 23.43,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-compressor",
-			"x": 60.45,
-			"y": 31.75,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-tyre",
-			"x": 58.32,
-			"y": 35.45
-		},
-		{
 			"model": "scene-welding",
-			"x": 45.55,
-			"y": 31.98,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-welding",
-			"x": 46.28,
-			"y": 23.55,
+			"x": 46.37,
+			"y": 23.39,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-compressor",
-			"x": 60.45,
-			"y": 35.4,
+			"model": "scene-jerrycan",
+			"x": 60.84,
+			"y": 31.86,
 			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-compressor",
+			"x": 58.46,
+			"y": 35.09
 		},
 		{
 			"model": "scene-rack",
-			"x": 56.77,
-			"y": 35.45
+			"x": 55.82,
+			"y": 35.64
 		},
 		{
-			"model": "scene-tyre",
-			"x": 45.55,
-			"y": 26.01,
+			"model": "scene-welding",
+			"x": 60.62,
+			"y": 35.47,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-compressor",
+			"x": 56.87,
+			"y": 35.09
+		},
+		{
+			"model": "scene-rack",
+			"x": 45.36,
+			"y": 26.0,
 			"rotation": [0, 90, 0]
 		},
 		{
@@ -1823,91 +1820,91 @@
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-bookshelf",
-			"x": 57.7,
-			"y": 63.55,
+			"model": "scene-bed",
+			"x": 57.72,
+			"y": 64.11,
 			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-chair",
-			"x": 55.44,
-			"y": 63.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-chair",
-			"x": 60.45,
-			"y": 69.83,
-			"rotation": [0, -90, 0]
+			"x": 50.44,
+			"y": 77.61
 		},
 		{
 			"model": "scene-table",
-			"x": 50.5,
-			"y": 77.45
+			"x": 45.76,
+			"y": 73.89,
+			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-chair",
-			"x": 45.55,
-			"y": 73.99,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-kitchen",
-			"x": 60.45,
-			"y": 66.04,
+			"x": 60.62,
+			"y": 65.93,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-potted",
-			"x": 58.52,
-			"y": 63.55,
+			"model": "scene-sofa",
+			"x": 60.59,
+			"y": 69.08,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-chair",
+			"x": 60.62,
+			"y": 71.44,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-bed",
+			"x": 47.35,
+			"y": 64.11,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-potted",
-			"x": 45.55,
-			"y": 76.41,
+			"model": "scene-armchair",
+			"x": 60.54,
+			"y": 75.72,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-armchair",
+			"x": 58.33,
+			"y": 77.54
+		},
+		{
+			"model": "scene-armchair",
+			"x": 60.54,
+			"y": 64.73,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-desk",
+			"x": 5.86,
+			"y": 66.9,
 			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-armchair",
-			"x": 60.45,
-			"y": 64.22,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-armchair",
-			"x": 60.45,
-			"y": 75.67,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-desk",
-			"x": 13.14,
-			"y": 74.45
-		},
-		{
-			"model": "scene-desk",
-			"x": 14.45,
-			"y": 66.36,
-			"rotation": [0, -90, 0]
 		},
 		{
 			"model": "scene-vending",
-			"x": 5.55,
-			"y": 66.67,
-			"rotation": [0, 90, 0]
+			"x": 8.63,
+			"y": 73.74
 		},
 		{
 			"model": "scene-potted",
-			"x": 8.61,
-			"y": 74.45
+			"x": 14.4,
+			"y": 65.41,
+			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-bookshelf",
-			"x": 14.25,
-			"y": 65.55,
-			"rotation": [0, 180, 0]
+			"x": 5.36,
+			"y": 73.8,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-office-chair",
+			"x": 14.49,
+			"y": 67.45,
+			"rotation": [0, -90, 0]
 		},
 		{
 			"model": "scene-lamp2",
@@ -1926,69 +1923,51 @@
 			"fire": 0.9
 		},
 		{
-			"model": "scene-trash",
-			"x": 36.13,
-			"y": 81.05,
-			"rotation": [0, 138, 0]
+			"model": "scene-plastic-crate",
+			"x": 22.59,
+			"y": 73.56,
+			"rotation": [0, 91, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 22.66,
-			"y": 64.53,
-			"rotation": [0, 286, 0]
+			"x": 24.58,
+			"y": 73.67,
+			"rotation": [0, 255, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 23.2,
+			"y": 67.22,
+			"rotation": [0, 56, 0]
 		},
 		{
 			"model": "scene-cardboard",
-			"x": 39.18,
-			"y": 70.03,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-cardboard",
-			"x": 41.12,
-			"y": 76.61,
-			"rotation": [0, 129, 0]
-		},
-		{
-			"model": "scene-bin",
-			"x": 31.06,
-			"y": 73.24,
-			"rotation": [0, 102, 0]
+			"x": 27.32,
+			"y": 69.24,
+			"rotation": [0, 169, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 26.17,
-			"y": 70.93,
-			"rotation": [0, 183, 0]
-		},
-		{
-			"model": "scene-tyre",
-			"x": 20.56,
-			"y": 63.18,
-			"rotation": [0, 127, 0]
-		},
-		{
-			"model": "scene-tyre",
-			"x": 18.74,
-			"y": 73.57,
-			"rotation": [0, 107, 0]
+			"x": 24.49,
+			"y": 75.49,
+			"rotation": [0, 174, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 20.68,
-			"y": 33.5,
+			"x": 40.98,
+			"y": 62.57,
 			"rotation": [0, 331, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 41.79,
-			"y": 35.02,
+			"x": 41.61,
+			"y": 79.8,
 			"rotation": [0, 145, 0]
 		},
 		{
 			"model": "scene-trash",
-			"x": 21.22,
-			"y": 23.49,
+			"x": 19.32,
+			"y": 66.98,
 			"rotation": [0, 227, 0]
 		},
 		{
@@ -2020,6 +1999,24 @@
 			"x": 43.04,
 			"y": 36.84,
 			"rotation": [0, 112, 0]
+		},
+		{
+			"model": "scene-trash",
+			"x": 31.93,
+			"y": 36.12,
+			"rotation": [0, 24, 0]
+		},
+		{
+			"model": "scene-plastic-crate",
+			"x": 23.13,
+			"y": 27.05,
+			"rotation": [0, 47, 0]
+		},
+		{
+			"model": "scene-plastic-crate",
+			"x": 21.8,
+			"y": 22.78,
+			"rotation": [0, 247, 0]
 		}
 	],
 	"patches": [

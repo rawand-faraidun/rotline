@@ -192,12 +192,93 @@ function groundTexture(): THREE.CanvasTexture {
 	return texture
 }
 
-/** Light for each kind of place: sky and ground fill, the sun (colour, strength, height), fog. */
+/**
+ * Light for each kind of place: sky and ground fill, the sun or moon (colour, strength, height), fog
+ * colour and how near it starts, and whether lamps burn and weapon lights are on.
+ */
 const LIGHTS = {
-	dusk: { sky: 0xaeb0c0, ground: 0x2a2620, fill: 1.4, sun: 0xffc8a0, strength: 2.6, height: 22, fog: 0x15130f },
-	overcast: { sky: 0xc4ccd2, ground: 0x2a3129, fill: 1.5, sun: 0xeef2f0, strength: 1.6, height: 34, fog: 0x0d100e },
-	night: { sky: 0x6f80a8, ground: 0x111418, fill: 0.85, sun: 0xa8bce0, strength: 1.1, height: 30, fog: 0x07090c }
+	day: {
+		sky: 0xd8e2ec,
+		ground: 0x3a3a30,
+		fill: 1.55,
+		sun: 0xfff2dc,
+		strength: 2.9,
+		height: 40,
+		fog: 0x1a1d1c,
+		near: 55,
+		dark: false
+	},
+	dawn: {
+		sky: 0xd8b8c4,
+		ground: 0x2e2622,
+		fill: 1.35,
+		sun: 0xffb48a,
+		strength: 2.4,
+		height: 16,
+		fog: 0x1c1416,
+		near: 45,
+		dark: false
+	},
+	dusk: {
+		sky: 0xaeb0c0,
+		ground: 0x2a2620,
+		fill: 1.4,
+		sun: 0xffc8a0,
+		strength: 2.6,
+		height: 22,
+		fog: 0x15130f,
+		near: 50,
+		dark: false
+	},
+	overcast: {
+		sky: 0xc4ccd2,
+		ground: 0x2a3129,
+		fill: 1.5,
+		sun: 0xeef2f0,
+		strength: 1.6,
+		height: 34,
+		fog: 0x0d100e,
+		near: 50,
+		dark: false
+	},
+	fog: {
+		sky: 0xb4bcc0,
+		ground: 0x2c302e,
+		fill: 1.45,
+		sun: 0xdde4e6,
+		strength: 1.2,
+		height: 34,
+		fog: 0x4a5052,
+		near: 14,
+		dark: false
+	},
+	// a moonlit night: dim but readable, the lamps and the weapon lights do the rest
+	night: {
+		sky: 0x7a8cb6,
+		ground: 0x1b2028,
+		fill: 1.15,
+		sun: 0xb4c6ea,
+		strength: 1.45,
+		height: 30,
+		fog: 0x07090c,
+		near: 45,
+		dark: true
+	},
+	// no moon, the power out: only lamps, fires and torches
+	dark: {
+		sky: 0x4a5878,
+		ground: 0x0e1116,
+		fill: 0.72,
+		sun: 0x8898b8,
+		strength: 0.6,
+		height: 30,
+		fog: 0x030405,
+		near: 30,
+		dark: true
+	}
 } as const
+/** weapon lights: one per player, the nearest teammates first */
+const FLASHLIGHTS = 4
 
 /** A box's five visible faces with texture coordinates in metres (so textures never stretch), merged. */
 function wallGeometry(walls: readonly { x: number; y: number; w: number; h: number }[], height: number, tile: number) {
@@ -378,6 +459,9 @@ export class Stage {
 	private readonly canvas: HTMLCanvasElement
 	private post: PostProcessing | null = null
 	private readonly playerLight: THREE.PointLight
+	/** night and dark maps: lamps burn and every soldier carries a weapon light */
+	readonly dark: boolean
+	private readonly flashlights: THREE.SpotLight[] = []
 	/** the pixel ratio the quality calls for, and the share of it drawn now (lowered when frames run slow) */
 	private basePixelRatio = 1
 	private resolution = 1
@@ -413,7 +497,8 @@ export class Stage {
 		// a little brighter than neutral: the fight on the ground has to read, even at dusk
 		this.renderer.toneMappingExposure = 1.35
 		this.scene.background = new THREE.Color(light.fog)
-		this.scene.fog = new THREE.Fog(light.fog, 50, 90)
+		this.scene.fog = new THREE.Fog(light.fog, light.near, light.near + 40)
+		this.dark = light.dark
 
 		this.camera = new THREE.PerspectiveCamera(38, 1, 1, 200)
 		this.camera.layers.enable(EFFECTS_LAYER)
@@ -432,8 +517,27 @@ export class Stage {
 		this.scene.add(face)
 		// a soft light carried with the player (a weapon light, glow of the screen in SAS-like games):
 		// the soldier and what is close always read, whatever the hour
-		this.playerLight = new THREE.PointLight(0xfff0dc, look.light === 'overcast' ? 14 : 28, 12, 1.4)
+		// in the dark the glow is faint (the weapon light shows the way); by day it only lifts the soldier
+		this.playerLight = new THREE.PointLight(
+			0xfff0dc,
+			light.dark ? 4 : look.light === 'overcast' || look.light === 'day' || look.light === 'fog' ? 12 : 22,
+			light.dark ? 5 : 12,
+			1.4
+		)
 		this.scene.add(this.playerLight)
+		// weapon lights: a cone from each soldier's gun along the aim (yours casts shadows on a graphics card)
+		if (light.dark) {
+			const count = this.quality === 'low' ? 1 : FLASHLIGHTS
+			for (let i = 0; i < count; i++) {
+				const torch = new THREE.SpotLight(0xfff4e0, i === 0 ? 90 : 60, i === 0 ? 24 : 18, 0.36, 0.45, 1.2)
+				torch.castShadow = i === 0 && high
+				torch.shadow.mapSize.set(512, 512)
+				torch.shadow.bias = -0.002
+				torch.visible = false
+				this.scene.add(torch, torch.target)
+				this.flashlights.push(torch)
+			}
+		}
 
 		// the plain ground shows at once; the real material replaces it when it has loaded
 		const texture = groundTexture()
@@ -449,6 +553,8 @@ export class Stage {
 		this.ground.rotation.x = -Math.PI / 2
 		this.ground.position.set(map.width / 2, 0, map.height / 2)
 		this.ground.receiveShadow = true
+		// drawn before the patches of other ground laid over it
+		this.ground.renderOrder = -30
 		this.scene.add(this.ground)
 
 		const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
@@ -542,17 +648,24 @@ export class Stage {
 					layer[i] = Math.max(layer[i] as number, (layer[j] as number) + 1)
 			}
 		}
-		const kinds = new Set(patches.map(patch => patch.ground))
-		for (const ground of kinds) {
+		// Patches lie flat on the ground and write no depth: the order they are drawn in decides which
+		// shows (the ground first, then each layer), so nothing on them (blood, marks) fights them for depth.
+		const materials = new Map<string, THREE.MeshStandardMaterial>()
+		const groups = new Map<string, number[]>()
+		for (const [i, patch] of patches.entries()) {
+			const key = `${patch.ground}:${Math.min(8, layer[i] as number)}`
+			groups.set(key, [...(groups.get(key) ?? []), i])
+		}
+		for (const [key, members] of groups) {
+			const [ground = 'grass', level = '1'] = key.split(':')
 			const positions: number[] = []
 			const uvs: number[] = []
 			const indices: number[] = []
-			for (const [i, patch] of patches.entries()) {
-				if (patch.ground !== ground) continue
+			for (const i of members) {
+				const patch = patches[i] as (typeof patches)[number]
 				const base = positions.length / 3
 				const [x0, x1, z0, z1] = [patch.x, patch.x + patch.w, patch.y, patch.y + patch.h]
-				const y = Math.min(6, layer[i] as number) * 0.02
-				positions.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1)
+				positions.push(x0, 0.002, z0, x1, 0.002, z0, x1, 0.002, z1, x0, 0.002, z1)
 				// the same 4 m tiling as the ground, anchored to the map so neighbouring patches meet
 				uvs.push(x0 / 4, -z0 / 4, x1 / 4, -z0 / 4, x1 / 4, -z1 / 4, x0 / 4, -z1 / 4)
 				indices.push(base, base + 2, base + 1, base, base + 3, base + 2)
@@ -568,17 +681,23 @@ export class Stage {
 				)
 			)
 			geometry.setIndex(indices)
-			const material = new THREE.MeshStandardMaterial({
-				roughness: 0.95,
-				polygonOffset: true,
-				polygonOffsetFactor: -2,
-				polygonOffsetUnits: -2
-			})
-			// pale floors (tiles, paving) toned down to sit with the rest of the ground
-			dress(material, `${assets}/textures/${ground}`, null, PATCH_TINT[ground] ?? 0xdcdcd4, detailed)
+			let material = materials.get(ground)
+			if (!material) {
+				material = new THREE.MeshStandardMaterial({
+					roughness: 0.95,
+					depthWrite: false,
+					polygonOffset: true,
+					polygonOffsetFactor: -2,
+					polygonOffsetUnits: -2
+				})
+				// pale floors (tiles, paving) toned down to sit with the rest of the ground
+				dress(material, `${assets}/textures/${ground}`, null, PATCH_TINT[ground] ?? 0xdcdcd4, detailed)
+				materials.set(ground, material)
+			}
 			const mesh = new THREE.Mesh(geometry, material)
 			mesh.receiveShadow = true
-			mesh.name = `patches-${ground}`
+			mesh.renderOrder = -20 + Number(level)
+			mesh.name = `patches-${key}`
 			this.scene.add(mesh)
 		}
 	}
@@ -607,7 +726,7 @@ export class Stage {
 		for (const pool of pools) {
 			const water = new THREE.Mesh(new THREE.PlaneGeometry(pool.w, pool.h), surface)
 			water.rotation.x = -Math.PI / 2
-			water.position.set(pool.x + pool.w / 2, 0.14, pool.y + pool.h / 2)
+			water.position.set(pool.x + pool.w / 2, 0.03, pool.y + pool.h / 2)
 			const uv = water.geometry.getAttribute('uv') as THREE.BufferAttribute
 			for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * pool.w) / 6, (uv.getY(i) * pool.h) / 6)
 			water.receiveShadow = true
@@ -669,6 +788,22 @@ export class Stage {
 			localStorage.setItem(ZOOM_KEY, this.zoom.toFixed(3))
 		} catch {
 			// not kept: it still applies now
+		}
+	}
+
+	/**
+	 * Points the weapon lights: one per soldier (yours first), from the gun along the aim. Teammates
+	 * beyond the available lights go without.
+	 */
+	setFlashlights(soldiers: readonly { x: number; y: number; angle: number; on: boolean }[]): void {
+		for (const [i, torch] of this.flashlights.entries()) {
+			const soldier = soldiers[i]
+			torch.visible = soldier?.on === true
+			if (!soldier?.on) continue
+			const dx = Math.cos(soldier.angle)
+			const dy = Math.sin(soldier.angle)
+			torch.position.set(soldier.x + dx * 0.45, 1.35, soldier.y + dy * 0.45)
+			torch.target.position.set(soldier.x + dx * 12, 0, soldier.y + dy * 12)
 		}
 	}
 

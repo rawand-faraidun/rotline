@@ -4,7 +4,7 @@
 	"look": {
 		"ground": "grass",
 		"walls": "stone",
-		"light": "dusk"
+		"light": "dawn"
 	},
 	"layout": [
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -566,186 +566,186 @@
 			"scale": 2
 		},
 		{
-			"model": "scene-office-chair",
-			"x": 26.45,
-			"y": 22.86,
-			"rotation": [0, -90, 0]
+			"model": "scene-desk",
+			"x": 9.86,
+			"y": 22.02,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-potted",
+			"x": 9.41,
+			"y": 25.04,
+			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-desk",
-			"x": 9.55,
-			"y": 25.02,
-			"rotation": [0, 90, 0]
+			"x": 22.56,
+			"y": 19.86,
+			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-potted",
-			"x": 22.72,
-			"y": 19.55,
+			"x": 16.96,
+			"y": 19.41,
 			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-office-chair",
-			"x": 16.98,
-			"y": 19.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-bookshelf",
-			"x": 26.06,
-			"y": 29.45
-		},
-		{
-			"model": "scene-sofa",
-			"x": 13.93,
-			"y": 56.45
-		},
-		{
-			"model": "scene-sofa",
-			"x": 22.78,
-			"y": 44.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-table",
-			"x": 26.45,
-			"y": 54.83,
-			"rotation": [0, -90, 0]
-		},
-		{
-			"model": "scene-bed",
-			"x": 21.8,
-			"y": 44.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-sofa",
-			"x": 18.93,
-			"y": 56.45
-		},
-		{
-			"model": "scene-tv",
-			"x": 11.26,
-			"y": 44.55,
-			"rotation": [0, 180, 0]
+			"x": 26.14,
+			"y": 29.49
 		},
 		{
 			"model": "scene-chair",
-			"x": 46.5,
-			"y": 56.45
-		},
-		{
-			"model": "scene-tv",
-			"x": 56.01,
-			"y": 56.45
+			"x": 13.84,
+			"y": 56.62
 		},
 		{
 			"model": "scene-sofa",
-			"x": 62.45,
-			"y": 55.08,
+			"x": 22.61,
+			"y": 44.41,
+			"rotation": [0, 180, 0]
+		},
+		{
+			"model": "scene-sofa",
+			"x": 26.59,
+			"y": 54.61,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-potted",
-			"x": 56.82,
-			"y": 44.55,
+			"model": "scene-bed",
+			"x": 18.93,
+			"y": 55.89
+		},
+		{
+			"model": "scene-sofa",
+			"x": 11.5,
+			"y": 44.41,
 			"rotation": [0, 180, 0]
 		},
 		{
+			"model": "scene-tv",
+			"x": 10.32,
+			"y": 56.69
+		},
+		{
+			"model": "scene-chair",
+			"x": 56.06,
+			"y": 56.62
+		},
+		{
+			"model": "scene-tv",
+			"x": 62.69,
+			"y": 55.23,
+			"rotation": [0, -90, 0]
+		},
+		{
 			"model": "scene-bed",
-			"x": 56.74,
-			"y": 44.55,
-			"rotation": [0, 180, 0]
+			"x": 61.89,
+			"y": 47.31,
+			"rotation": [0, -90, 0]
 		},
 		{
 			"model": "scene-armchair",
-			"x": 62.45,
-			"y": 47.32,
-			"rotation": [0, -90, 0]
+			"x": 46.84,
+			"y": 56.54
 		},
 		{
 			"model": "scene-potted",
-			"x": 46.91,
-			"y": 56.45
-		},
-		{
-			"model": "scene-table",
-			"x": 62.45,
-			"y": 37.35,
+			"x": 62.59,
+			"y": 50.89,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-chair",
-			"x": 60.39,
-			"y": 31.55,
+			"model": "scene-bookshelf",
+			"x": 60.24,
+			"y": 44.36,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-kitchen",
-			"x": 45.55,
-			"y": 33.5,
+			"model": "scene-bed",
+			"x": 46.11,
+			"y": 46.66,
 			"rotation": [0, 90, 0]
 		},
 		{
 			"model": "scene-kitchen",
-			"x": 57.7,
-			"y": 31.55,
+			"x": 57.73,
+			"y": 32.26,
 			"rotation": [0, 180, 0]
 		},
 		{
 			"model": "scene-chair",
-			"x": 60.63,
-			"y": 42.45
-		},
-		{
-			"model": "scene-bookshelf",
-			"x": 55.83,
-			"y": 19.55,
+			"x": 61.92,
+			"y": 31.39,
 			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-armchair",
-			"x": 61.76,
-			"y": 19.55,
-			"rotation": [0, 180, 0]
-		},
-		{
-			"model": "scene-bookshelf",
-			"x": 52.95,
-			"y": 29.45
-		},
-		{
-			"model": "scene-bed",
-			"x": 62.45,
-			"y": 27.33,
+			"model": "scene-chair",
+			"x": 62.62,
+			"y": 40.22,
 			"rotation": [0, -90, 0]
 		},
 		{
+			"model": "scene-kitchen",
+			"x": 49.15,
+			"y": 41.74
+		},
+		{
+			"model": "scene-kitchen",
+			"x": 61.74,
+			"y": 35.13,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-armchair",
+			"x": 62.54,
+			"y": 26.25,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-armchair",
+			"x": 62.54,
+			"y": 23.43,
+			"rotation": [0, -90, 0]
+		},
+		{
+			"model": "scene-tv",
+			"x": 45.31,
+			"y": 27.78,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-armchair",
+			"x": 54.22,
+			"y": 29.54
+		},
+		{
 			"model": "scene-tree",
 			"x": 2.0,
 			"y": 30.0,
-			"rotation": [0, 342, 0],
-			"scale": 0.87
-		},
-		{
-			"model": "scene-birch",
-			"x": 2.0,
-			"y": 46.0,
-			"rotation": [0, 108, 0],
+			"rotation": [0, 332, 0],
 			"scale": 1.03
 		},
 		{
+			"model": "scene-birch",
+			"x": 2.0,
+			"y": 46.0,
+			"rotation": [0, 210, 0],
+			"scale": 0.98
+		},
+		{
 			"model": "scene-tree",
 			"x": 69.0,
 			"y": 30.0,
-			"rotation": [0, 127, 0],
-			"scale": 0.87
+			"rotation": [0, 36, 0],
+			"scale": 0.81
 		},
 		{
 			"model": "scene-birch",
 			"x": 69.0,
 			"y": 46.0,
-			"rotation": [0, 166, 0],
-			"scale": 1.0
+			"rotation": [0, 341, 0],
+			"scale": 0.95
 		}
 	],
 	"patches": [

@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+import { tame } from './decor.ts'
 import { outfitFor, wear } from './outfits.ts'
 import { loadSoldier, loadWeapon, soldierUrl } from './players.ts'
 
@@ -25,6 +26,7 @@ function propModel(url: string): Promise<THREE.Object3D | null> {
 					if ((node as THREE.Mesh).isMesh) {
 						node.castShadow = true
 						node.receiveShadow = true
+						tame((node as THREE.Mesh).material)
 					}
 				})
 				return gltf.scene as THREE.Object3D
@@ -206,6 +208,8 @@ export class PropRenderer {
 				const body = add(new THREE.Mesh(this.box, [sides, sides, top, top, sides, sides]), WEAK_WALL_HEIGHT / 2)
 				body.scale.set(w, WEAK_WALL_HEIGHT, h)
 				body.receiveShadow = true
+				// the map's own wall materials: the stage disposes of them
+				body.userData.shared = this.wallMaterials !== null
 				const crack = this.material(0x141614)
 				// jagged dark seams on both faces, standing a hair proud of the wall
 				const along = w >= h
@@ -594,7 +598,8 @@ export class PropRenderer {
 			drawn.root.traverse(node => {
 				const mesh = node as THREE.Mesh
 				// a weapon model's materials are shared with the soldiers' guns
-				if (mesh.material && !mesh.userData.shared) (mesh.material as THREE.Material).dispose()
+				if (!mesh.material || mesh.userData.shared) return
+				for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose()
 			})
 		}
 		this.box.dispose()

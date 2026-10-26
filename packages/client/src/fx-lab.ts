@@ -106,7 +106,8 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		stage.follow(at.x, at.y, at.x + 1, at.y, time - last)
 		last = time
 		effects.update(time)
-		decor.update(time)
+		decor.update(time, at.x, at.y)
+		stage.setFlashlights([{ x: at.x, y: at.y, angle: 0, on: true }])
 		if (frozen === null) for (const fire of fires) effects.burning(fire.x, fire.y, 1, time, 1 / 60)
 		zombies?.update(view, time)
 		objectRenderer.update(showObjects ? objects : [], time)

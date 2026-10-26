@@ -304,7 +304,7 @@ export class DamageNumbers {
 			const texture = new THREE.CanvasTexture(canvas)
 			const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }))
 			sprite.layers.set(EFFECTS_LAYER)
-			sprite.scale.set(1.6, 0.66, 1)
+			sprite.scale.set(1.05, 0.44, 1)
 			sprite.visible = false
 			scene.add(sprite)
 			this.sprites.push({ sprite, canvas, texture, born: -1 })

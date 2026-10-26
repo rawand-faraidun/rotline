@@ -1046,27 +1046,27 @@
 			"y": 46.77000000000001
 		},
 		{
-			"model": "scene-desk",
-			"x": 54.22,
-			"y": 59.45
+			"model": "scene-office-chair",
+			"x": 53.7,
+			"y": 52.51,
+			"rotation": [0, 180, 0]
 		},
 		{
-			"model": "scene-potted",
-			"x": 60.45,
-			"y": 55.67,
+			"model": "scene-desk",
+			"x": 60.14,
+			"y": 53.6,
 			"rotation": [0, -90, 0]
 		},
 		{
-			"model": "scene-desk",
-			"x": 53.55,
-			"y": 58.96,
+			"model": "scene-potted",
+			"x": 53.41,
+			"y": 59.09,
 			"rotation": [0, 90, 0]
 		},
 		{
-			"model": "scene-desk",
-			"x": 53.55,
-			"y": 57.6,
-			"rotation": [0, 90, 0]
+			"model": "scene-bookshelf",
+			"x": 56.75,
+			"y": 59.64
 		},
 		{
 			"model": "scene-cart",
@@ -1106,8 +1106,8 @@
 		},
 		{
 			"model": "scene-cardboard",
-			"x": 28.2,
-			"y": 43.02,
+			"x": 19.67,
+			"y": 57.42,
 			"rotation": [0, 39, 0]
 		},
 		{
@@ -1219,21 +1219,21 @@
 			"fire": 1.0
 		},
 		{
-			"model": "scene-military-crate",
-			"x": 61.45,
-			"y": 22.95,
+			"model": "scene-crate2",
+			"x": 56.66,
+			"y": 20.09,
+			"rotation": [0, 90, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 61.66,
+			"y": 24.52,
 			"rotation": [0, -90, 0]
 		},
 		{
 			"model": "scene-military-crate",
-			"x": 56.55,
-			"y": 19.06,
-			"rotation": [0, 90, 0]
-		},
-		{
-			"model": "scene-plastic-crate",
-			"x": 59.65,
-			"y": 17.55,
+			"x": 59.54,
+			"y": 17.56,
 			"rotation": [0, 180, 0]
 		},
 		{
@@ -1245,21 +1245,27 @@
 		},
 		{
 			"model": "scene-trash",
-			"x": 33.79,
-			"y": 12.98,
-			"rotation": [0, 185, 0]
+			"x": 41.87,
+			"y": 14.04,
+			"rotation": [0, 20, 0]
 		},
 		{
 			"model": "scene-bin",
-			"x": 6.81,
-			"y": 13.67,
-			"rotation": [0, 303, 0]
+			"x": 55.05,
+			"y": 3.72,
+			"rotation": [0, 187, 0]
 		},
 		{
-			"model": "scene-tyre",
-			"x": 46.32,
-			"y": 2.3,
-			"rotation": [0, 140, 0]
+			"model": "scene-trash",
+			"x": 29.39,
+			"y": 22.2,
+			"rotation": [0, 151, 0]
+		},
+		{
+			"model": "scene-cardboard",
+			"x": 17.24,
+			"y": 3.56,
+			"rotation": [0, 200, 0]
 		},
 		{
 			"model": "scene-bin",
