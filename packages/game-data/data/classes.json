@@ -4,10 +4,15 @@
 		"xpBase": 1000,
 		"xpGrowth": 1.12,
 		"pointsPerLevel": 1,
+		"laterPoints": {
+			"fromLevel": 21,
+			"pointsPerLevel": 2
+		},
 		"bonusPointLevels": [10, 20, 30, 40, 50],
-		"bonusPoints": 2,
+		"bonusPoints": 1,
 		"healthPerLevel": 0.01,
 		"pointsPerTier": 5,
+		"rankCost": [1, 1, 2, 2, 3],
 		"abilitySlots": [
 			{
 				"level": 1,

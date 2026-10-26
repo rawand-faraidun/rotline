@@ -64,6 +64,7 @@ import { Interpolator } from './interpolate.ts'
 import { Minimap, type MinimapMode } from './minimap.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
+import { loadDamageNumbers } from './preferences.ts'
 import { Decor } from './render/decor.ts'
 import { autoDecor, groundMarks } from './render/dressing.ts'
 import { Effects, SHOT_LOOKS } from './render/effects.ts'
@@ -90,7 +91,7 @@ export type GameOptions = {
 	map?: string | MapDef
 	/** the room the ticket is for: a contract's map (and so its objectives) depends on it */
 	room?: string
-	/** floating damage numbers for your own hits (always on in the firing range) */
+	/** floating damage numbers over what is hit (the player's choice; always on in the firing range) */
 	damageNumbers?: boolean
 }
 
@@ -109,6 +110,8 @@ export type GameHandle = {
 	menu(open: boolean): void
 	/** Draws the minimap into this canvas until the returned function is called. */
 	minimap(canvas: HTMLCanvasElement, mode: MinimapMode): () => void
+	/** Floating damage numbers on or off (the firing range always shows them). */
+	damageNumbers(on: boolean): void
 	stop(): void
 }
 
@@ -152,8 +155,10 @@ export function startGame(options: GameOptions): GameHandle {
 		stage.quality !== 'low'
 	)
 	stage.scene.add(groundMarks(map))
-	const showNumbers = options.damageNumbers ?? range
-	const numbers = showNumbers ? new DamageNumbers(stage.scene) : null
+	let showNumbers = range || (options.damageNumbers ?? loadDamageNumbers())
+	const numbers = new DamageNumbers(stage.scene)
+	/** prop health before the first snapshot is the map's, not the server's: no numbers for that change */
+	let propsSynced = false
 	const ownHits: { at: number; amount: number }[] = []
 	const barricades = new Map<number, number[]>()
 	const rangeWriter = new Writer(16)
@@ -310,7 +315,7 @@ export function startGame(options: GameOptions): GameHandle {
 		window.setTimeout(() => !stopped && stage.warmUp(), 5000)
 	})
 
-	void ZombieRenderer.load(`${options.assets}/models/characters/zombie.glb`).then(renderer => {
+	void ZombieRenderer.load(`${options.assets}/models/characters/zombie.glb`, stage.quality).then(renderer => {
 		if (stopped) return
 		zombies = renderer
 		renderer.setSpawnHoles(map.zombieSpawns)
@@ -382,7 +387,11 @@ export function startGame(options: GameOptions): GameHandle {
 			for (const update of snapshot.props) {
 				const prop = props[update.index]
 				if (!prop) continue
-				prop.health = update.health * prop.maxHealth
+				const health = update.health * prop.maxHealth
+				// damage to cover, doors, walls and objectives floats up like a hit on a zombie
+				if (showNumbers && propsSynced && prop.health - health >= 1)
+					numbers.show(prop.x, prop.y, prop.health - health, worldNow() / 1000)
+				prop.health = health
 				prop.progress = update.progress
 				prop.powered = update.powered
 				prop.readyTick = update.cooling ? Number.MAX_SAFE_INTEGER : 0
@@ -390,6 +399,7 @@ export function startGame(options: GameOptions): GameHandle {
 				prop.y = update.y
 				if (prop.state !== update.state) setPropState(grid, prop, update.state)
 			}
+			propsSynced = true
 			predictor?.reconcile(snapshot.self, snapshot.lastSeq, snapshot.tick)
 			hudDirty = true
 			if (snapshot.rttMs > 0) pingMs = snapshot.rttMs
@@ -547,7 +557,7 @@ export function startGame(options: GameOptions): GameHandle {
 					case 'hit':
 						if (event.by === you) {
 							ownHits.push({ at: performance.now(), amount: event.amount })
-							numbers?.show(event.x, event.y, event.amount, now)
+							if (showNumbers) numbers.show(event.x, event.y, event.amount, now)
 						}
 						if (now - lastOwnShotAt < 0.3) {
 							hud.set({ hitMarker: performance.now() }, performance.now(), true)
@@ -1091,7 +1101,7 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		}
 		if (interpolator.sample(renderTick)) {
-			zombies?.update(interpolator.view, now / 1000)
+			zombies?.update(interpolator.view, now / 1000, stage.camera)
 			// zombies on fire burn where they walk
 			{
 				const view = interpolator.view
@@ -1170,7 +1180,7 @@ export function startGame(options: GameOptions): GameHandle {
 		}
 		effects.update(now / 1000)
 		decor.update(now / 1000)
-		numbers?.update(now / 1000)
+		numbers.update(now / 1000)
 		stage.render()
 		if (!paused) stage.adapt(wallNow)
 
@@ -1215,6 +1225,9 @@ export function startGame(options: GameOptions): GameHandle {
 		audio: {
 			get: () => audio.getSettings(),
 			set: (settings: AudioSettings) => audio.setSettings(settings)
+		},
+		damageNumbers(on) {
+			showNumbers = range || on
 		},
 		minimap(canvas, mode) {
 			minimapCanvases.set(canvas, mode)

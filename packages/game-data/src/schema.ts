@@ -170,11 +170,17 @@ export const classesSchema = z.object({
 		maxLevel: z.number().int().min(2).max(100),
 		xpBase: z.number().positive(),
 		xpGrowth: z.number().min(1),
+		/** skill points each level gives, and from which level on each gives more */
 		pointsPerLevel: z.number().int().min(1),
+		laterPoints: z.object({ fromLevel: z.number().int().min(2), pointsPerLevel: z.number().int().min(1) }).optional(),
+		/** levels that give extra points, and how many extra */
 		bonusPointLevels: z.array(z.number().int().min(2)),
 		bonusPoints: z.number().int().min(1),
 		healthPerLevel: fraction,
+		/** points spent in a branch's earlier tiers before the next tier opens */
 		pointsPerTier: z.number().int().min(1),
+		/** what one rank of a skill costs, by tier (deeper skills cost more) */
+		rankCost: z.array(z.number().int().min(1)).length(5),
 		abilitySlots: z.array(z.object({ level: z.number().int().min(1), slots: z.number().int().min(1).max(3) })).min(1)
 	}),
 	/** combat rules that are not per class */

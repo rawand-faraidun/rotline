@@ -4,7 +4,9 @@ import {
 	type GameHandle,
 	type GraphicsSetting,
 	type HudState,
+	loadDamageNumbers,
 	loadGraphicsSetting,
+	saveDamageNumbers,
 	saveGraphicsSetting
 } from '@rotline/client'
 import { missionById, missionFor, missionMap, player as playerDef, survivalMap, zombies } from '@rotline/game-data'
@@ -535,6 +537,25 @@ function GraphicsSettings() {
 	)
 }
 
+/** Floating damage numbers over what you hit, saved in this browser (the firing range always shows them). */
+function DamageNumberSetting({ handle }: { handle: GameHandle }) {
+	const [on, setOn] = useState(() => loadDamageNumbers())
+	return (
+		<label className="flex items-center gap-2 text-sm">
+			<input
+				type="checkbox"
+				checked={on}
+				onChange={event => {
+					setOn(event.target.checked)
+					saveDamageNumbers(event.target.checked)
+					handle.damageNumbers(event.target.checked)
+				}}
+			/>
+			{t.damageNumbers}
+		</label>
+	)
+}
+
 function PauseMenu({
 	handle,
 	range,
@@ -577,6 +598,7 @@ function PauseMenu({
 				</div>
 				<SoundSettings handle={handle} />
 				<GraphicsSettings />
+				<DamageNumberSetting handle={handle} />
 				<p className="text-muted text-xs">{t.controls}</p>
 			</Panel>
 		</div>

@@ -1,5 +1,15 @@
 import { type Database, ItemSource, PlayerClass } from '@rotline/db'
-import { type Build, type ClassId, economy, type ItemRef, levelFromXp } from '@rotline/game-data'
+import {
+	allSkillPoints,
+	type Build,
+	type ClassId,
+	economy,
+	fitSkills,
+	type ItemRef,
+	levelFromXp,
+	pointsAtLevel,
+	unlockedAbilities
+} from '@rotline/game-data'
 import type { Tx } from './ledger.ts'
 
 /** Gives a new player the three classes, the starter kit and a loadout, in the caller's transaction. */
@@ -33,8 +43,43 @@ export async function grantStarterKit(tx: Tx, playerId: string): Promise<void> {
 	})
 }
 
+/**
+ * Brings saved skills in line with the current rules (when skill prices or points change): each
+ * class's allocation is cut back until it fits, deepest ranks first, and abilities it no longer
+ * unlocks leave their slots. The points come free again to spend. Nothing changes when it already fits.
+ */
+export async function fitSavedSkills(db: Database, playerId: string): Promise<void> {
+	const player = await db.player.findUnique({
+		where: { userId: playerId },
+		select: { unrestricted: true, classes: true, skills: true, abilities: true }
+	})
+	if (!player) return
+	for (const progress of player.classes) {
+		const cls = progress.class as ClassId
+		const rows = player.skills.filter(skill => skill.class === cls)
+		if (rows.length === 0) continue
+		const saved = Object.fromEntries(rows.map(row => [row.nodeId, row.rank]))
+		const points = player.unrestricted ? allSkillPoints(cls) : pointsAtLevel(levelFromXp(Number(progress.xp)).level)
+		const fitted = fitSkills(cls, saved, points)
+		if (rows.every(row => fitted[row.nodeId] === row.rank)) continue
+		const unlocked = new Set(unlockedAbilities(fitted))
+		await db.$transaction(async tx => {
+			for (const row of rows) {
+				const rank = fitted[row.nodeId] ?? 0
+				const where = { playerId_class_nodeId: { playerId, class: progress.class, nodeId: row.nodeId } }
+				if (rank === 0) await tx.skillAllocation.delete({ where })
+				else if (rank !== row.rank) await tx.skillAllocation.update({ where, data: { rank } })
+			}
+			const lost = player.abilities.filter(slot => slot.class === progress.class && !unlocked.has(slot.abilityId))
+			for (const slot of lost)
+				await tx.abilitySlot.deleteMany({ where: { playerId, class: progress.class, abilityId: slot.abilityId } })
+		})
+	}
+}
+
 /** The player's build for their active class: what the game ticket carries into a mission. */
 export async function loadBuild(db: Database, playerId: string): Promise<Build | null> {
+	await fitSavedSkills(db, playerId)
 	const player = await db.player.findUnique({
 		where: { userId: playerId },
 		include: { classes: true, skills: true, abilities: true, inventory: true, loadout: true }

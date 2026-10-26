@@ -3,7 +3,7 @@ import * as THREE from 'three'
 
 /**
  * Dressing every map gets without anyone placing it: litter along the walls (trash bags, cardboard,
- * tyres, jerrycans, crates) and marks on the ground (cracks, oil stains, puddles, scattered paper).
+ * tyres, jerrycans, crates) and marks on the ground (cracks, oil stains, grit, scattered paper).
  * Drawing only; placed the same way every time for a map (seeded by its id), and kept clear of
  * spawns, props and the map's own scenery.
  */
@@ -99,7 +99,7 @@ export function groundMarks(map: MapDef): THREE.Object3D {
 	for (let n = 0; n < count; n++) {
 		const cell = open[Math.floor(rng() * open.length)] as number
 		const kind = Math.floor(rng() * 4)
-		// cracks long, puddles and stains wide, paper small
+		// cracks long, grit and stains wide, paper small
 		const size = kind === 0 ? 2 + rng() * 2.5 : kind === 3 ? 0.8 + rng() * 0.8 : 1.2 + rng() * 2
 		turn.setFromAxisAngle(up, rng() * Math.PI * 2)
 		matrix.compose(
@@ -139,7 +139,7 @@ function clearCells(map: MapDef): Uint8Array {
 	return cells
 }
 
-/** Four ground marks drawn into one texture: a crack, an oil stain, a puddle, scattered paper. */
+/** Four ground marks drawn into one texture: a crack, an oil stain, grit, scattered paper. */
 function markAtlas(): THREE.CanvasTexture {
 	const size = 256
 	const canvas = document.createElement('canvas')
@@ -181,23 +181,27 @@ function markAtlas(): THREE.CanvasTexture {
 			ctx.fillRect(ox, oy, size, size)
 		}
 	}
-	// a puddle: dark water with a pale rim of reflected sky
+	// dust and grit: a soft brown drift with small stones in it
 	{
 		const [ox, oy] = cell(2)
-		ctx.save()
-		ctx.beginPath()
-		for (let i = 0; i <= 30; i++) {
-			const a = (i / 30) * Math.PI * 2
-			const r = 90 * (0.75 + rng() * 0.3)
-			ctx.lineTo(ox + size / 2 + Math.cos(a) * r, oy + size / 2 + Math.sin(a) * r * 0.7)
+		for (let blob = 0; blob < 5; blob++) {
+			const x = ox + size / 2 + (rng() - 0.5) * 70
+			const y = oy + size / 2 + (rng() - 0.5) * 70
+			const r = 30 + rng() * 40
+			const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+			g.addColorStop(0, 'rgba(70, 58, 42, 0.2)')
+			g.addColorStop(1, 'rgba(70, 58, 42, 0)')
+			ctx.fillStyle = g
+			ctx.fillRect(ox, oy, size, size)
 		}
-		ctx.closePath()
-		ctx.fillStyle = 'rgba(20, 26, 32, 0.45)'
-		ctx.fill()
-		ctx.strokeStyle = 'rgba(150, 165, 180, 0.25)'
-		ctx.lineWidth = 3
-		ctx.stroke()
-		ctx.restore()
+		for (let n = 0; n < 40; n++) {
+			const shade = 40 + Math.floor(rng() * 50)
+			ctx.fillStyle = `rgba(${shade}, ${shade - 5}, ${shade - 12}, 0.7)`
+			const r = 1 + rng() * 2.5
+			ctx.beginPath()
+			ctx.arc(ox + 50 + rng() * (size - 100), oy + 50 + rng() * (size - 100), r, 0, Math.PI * 2)
+			ctx.fill()
+		}
 	}
 	// paper and rubbish: pale scraps
 	{

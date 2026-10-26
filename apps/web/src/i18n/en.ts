@@ -385,6 +385,8 @@ export const en = {
 			capstone: 'Capstone',
 			passive: 'Passive',
 			perRank: 'per rank',
+			cost: '{points} points a rank',
+			costOne: '1 point a rank',
 			respec: 'Respec',
 			respecConfirm: 'Refund every point in the {class} tree for {price} Salvage?',
 			abilitiesTitle: 'Ability slots',
@@ -787,6 +789,7 @@ export const en = {
 				interface: 'Interface',
 				mute: 'Mute all sound'
 			},
+			damageNumbers: 'Show damage numbers over what you hit',
 			graphics: {
 				title: 'Graphics',
 				hint: 'Applies the next time a game loads.',

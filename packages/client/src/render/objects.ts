@@ -285,6 +285,8 @@ export class ObjectRenderer {
 }
 
 /** Floating damage numbers (the player's own hits). A small pool of sprites, each with its canvas. */
+const MAX_NUMBERS_PER_SECOND = 30
+
 export class DamageNumbers {
 	private readonly sprites: {
 		sprite: THREE.Sprite
@@ -309,7 +311,13 @@ export class DamageNumbers {
 		}
 	}
 
+	/** when the last numbers went up: at most MAX_PER_SECOND a second (each one redraws a texture) */
+	private readonly shown: number[] = []
+
 	show(x: number, y: number, amount: number, now: number): void {
+		while (this.shown.length > 0 && (this.shown[0] as number) < now - 1) this.shown.shift()
+		if (this.shown.length >= MAX_NUMBERS_PER_SECOND) return
+		this.shown.push(now)
 		const slot = this.sprites[this.head] as (typeof this.sprites)[number]
 		this.head = (this.head + 1) % this.sprites.length
 		const ctx = slot.canvas.getContext('2d') as CanvasRenderingContext2D

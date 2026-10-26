@@ -55,11 +55,11 @@ One profile per player; class is switched in the lobby only. Per class: level, X
 | Armour effectiveness | 100 % | 100 % | 120 % |
 | Ability slots | 2 (3 at level 20) | 2 (3 at level 20) | 2 (3 at level 20) |
 
-**Levels:** 1–50 per class. XP to reach level *n* = `round(1000 × 1.12^(n−2))` (level 2 costs 1,000 XP, level 10 about 2,500, level 30 about 24,000). Each level grants 1 skill point; levels 10, 20, 30, 40, 50 grant 2. Total 55 points, against about 70 points of nodes per tree, so builds are real choices.
+**Levels:** 1–50 per class. XP to reach level *n* = `round(1000 × 1.12^(n−2))` (level 2 costs 1,000 XP, level 10 about 2,500, level 30 about 24,000). Each level grants 1 skill point up to level 20 and 2 from level 21, and levels 10, 20, 30, 40 and 50 grant 1 more: 85 points at level 50. Skills are priced by depth: a rank costs 1 point in tiers 1 and 2, 2 points in tiers 3 and 4 and 3 points in tier 5, so a whole tree costs about 120 points and a build is a real choice (the deep skills come later, when levels give more). Allocations saved under older prices are cut back automatically, deepest ranks first, and the points come free to spend again.
 
 **Respec:** 2,250 Salvage per class (about 32 minutes of play at Veteran), refunding all points.
 
-**Tier rule:** a tier opens after 5 points in the branch's earlier tiers (tier 5 needs 20). Each branch has 22 nodes and 24 ranks; most nodes have one rank, a few two. Node ids, effects and ranks are in `packages/game-data/data/skills/`.
+**Tier rule:** a tier opens after 5 points (at their prices) in the branch's earlier tiers (tier 5 needs 20). Each branch has 22 nodes and 24 ranks; most nodes have one rank, a few two. Node ids, effects and ranks are in `packages/game-data/data/skills/`.
 
 **Earning XP:** each kill gives class XP by zombie type (Drudge 4, Crawler 5, Bolter 6, Swell 15, Screamer 20, Brute 80); score converts at 1 XP per 20 score; each objective completed gives 100 XP and 100 Salvage, each optional objective 150 XP and 150 Salvage, and completing a mission 400 XP and 250 Salvage. In Survival every round cleared gives 40 XP and 25 Salvage. In missions all of it is multiplied by the difficulty's reward multiplier (section 13). XP goes to the class the player deployed with.
 

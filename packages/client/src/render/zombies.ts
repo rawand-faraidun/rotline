@@ -11,8 +11,9 @@ const EMERGE = 0.9
 /** how long a body stays on the ground, then how long it takes to sink away (seconds) */
 const CORPSE_SECONDS = 30
 const CORPSE_SINK = 3
-/** bodies kept at once; the oldest goes first */
-const CORPSES = 160
+/** bodies kept at once by detail (the oldest goes first) */
+const CORPSES = { high: 160, medium: 90, low: 40 } as const
+export type ZombieDetail = keyof typeof CORPSES
 
 type Clip = { start: number; frames: number; fps: number }
 
@@ -149,13 +150,15 @@ mat4 batSkin(int f) { return aSkinW.x * batBone(f, aSkinI.x) + aSkinW.y * batBon
 `
 // aAnim: first frame, frame count, then (looping) a phase and frames per second, or (played once,
 // for a body falling) the time it started and frames per second
-const FETCH = (withNormal: boolean, once: boolean) => /* glsl */ `
+// `blend` mixes the two nearest baked frames (smooth, twice the texture reads); without it the
+// nearest frame is drawn, which at 30 baked frames a second is hard to tell apart and much cheaper
+const FETCH = (withNormal: boolean, once: boolean, blend: boolean) => /* glsl */ `
 ${
 	once
 		? 'float batF = clamp((batTime - aAnim.z) * aAnim.w, 0.0, aAnim.y - 1.001);\nint batF0 = int(floor(batF)); int batF1 = min(batF0 + 1, int(aAnim.y) - 1); float batT = fract(batF);'
 		: 'float batF = mod(aAnim.z * aAnim.y + batTime * aAnim.w, aAnim.y);\nint batF0 = int(floor(batF)); int batF1 = (batF0 + 1) % int(aAnim.y); float batT = fract(batF);'
 }
-mat4 batM = batSkin(int(aAnim.x) + batF0) * (1.0 - batT) + batSkin(int(aAnim.x) + batF1) * batT;
+${blend ? 'mat4 batM = batSkin(int(aAnim.x) + batF0) * (1.0 - batT) + batSkin(int(aAnim.x) + batF1) * batT;' : 'mat4 batM = batSkin(int(aAnim.x) + (batT < 0.5 ? batF0 : batF1));'}
 vec3 batP = (batM * vec4(position, 1.0)).xyz;
 ${withNormal ? 'vec3 objectNormal = normalize(mat3(batM) * normal);' : ''}
 `
@@ -174,7 +177,8 @@ export class ZombieRenderer {
 	private readonly anim: THREE.InstancedBufferAttribute
 	private readonly corpseAnim: THREE.InstancedBufferAttribute
 	/** per body: x, y, facing, type, when it fell (seconds) */
-	private readonly bodies = new Float32Array(CORPSES * 5)
+	private readonly bodies: Float32Array
+	private readonly maxBodies: number
 	private bodyCount = 0
 	private bodyHead = 0
 	/** per zombie slot, where it was last drawn: x, y, facing */
@@ -191,20 +195,31 @@ export class ZombieRenderer {
 	// the model is already painted (skin, rags, blood): the type's tint only shifts it a little
 	private readonly tints = zombieDefs.map(def => new THREE.Color(0xffffff).lerp(new THREE.Color(def.tint), 0.4))
 
-	private constructor(baked: Baked) {
+	private readonly frustum = new THREE.Frustum()
+	private readonly viewMatrix = new THREE.Matrix4()
+	private readonly sphere = new THREE.Sphere()
+
+	private constructor(baked: Baked, detail: ZombieDetail) {
 		this.clips = baked.clips
+		this.maxBodies = CORPSES[detail]
+		this.bodies = new Float32Array(this.maxBodies * 5)
+		const blend = detail === 'high'
 		this.uniforms = { batTex: { value: baked.boneTexture }, batTime: { value: 0 } }
 		const patch = <T extends THREE.Material>(material: T, depth: boolean, once: boolean): T => {
 			material.onBeforeCompile = shader => {
 				Object.assign(shader.uniforms, this.uniforms)
 				shader.vertexShader = HEADER + shader.vertexShader
 				shader.vertexShader = depth
-					? shader.vertexShader.replace('#include <begin_vertex>', `${FETCH(false, once)}\nvec3 transformed = batP;`)
+					? shader.vertexShader.replace(
+							'#include <begin_vertex>',
+							`${FETCH(false, once, blend)}\nvec3 transformed = batP;`
+						)
 					: shader.vertexShader
-							.replace('#include <beginnormal_vertex>', FETCH(true, once))
+							.replace('#include <beginnormal_vertex>', FETCH(true, once, blend))
 							.replace('#include <begin_vertex>', 'vec3 transformed = batP;')
 			}
-			material.customProgramCacheKey = () => `rotline-zombie${depth ? '-depth' : ''}${once ? '-once' : ''}`
+			material.customProgramCacheKey = () =>
+				`rotline-zombie${depth ? '-depth' : ''}${once ? '-once' : ''}${blend ? '-blend' : ''}`
 			return material
 		}
 		// the living and the dead share one geometry's vertices, each with its own animation attribute
@@ -225,7 +240,8 @@ export class ZombieRenderer {
 			const mesh = new THREE.InstancedMesh(geometry, materials, count)
 			mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
 			mesh.frustumCulled = false
-			mesh.castShadow = true
+			// the living cast shadows on capable devices; bodies on the ground hardly would
+			mesh.castShadow = !once && detail === 'high'
 			mesh.count = 0
 			mesh.customDepthMaterial = patch(
 				new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }),
@@ -238,15 +254,22 @@ export class ZombieRenderer {
 		const living = instanced(MAX_ZOMBIES, false)
 		this.mesh = living.mesh
 		this.anim = living.anim
-		const dead = instanced(CORPSES, true)
+		const dead = instanced(this.maxBodies, true)
 		this.corpses = dead.mesh
 		this.corpseAnim = dead.anim
 		this.corpses.receiveShadow = true
 	}
 
-	static async load(url: string): Promise<ZombieRenderer> {
+	static async load(url: string, detail: ZombieDetail = 'high'): Promise<ZombieRenderer> {
 		const gltf = await new GLTFLoader().loadAsync(url)
-		return new ZombieRenderer(bake(gltf.scene, gltf.animations))
+		return new ZombieRenderer(bake(gltf.scene, gltf.animations), detail)
+	}
+
+	/** Is a figure at (x, y) of this size in the camera's view? (Off-screen ones are not drawn.) */
+	private inView(x: number, y: number, size: number): boolean {
+		this.sphere.center.set(x, 0.9 * size, y)
+		this.sphere.radius = 1.4 * size
+		return this.frustum.intersectsSphere(this.sphere)
 	}
 
 	/**
@@ -274,24 +297,47 @@ export class ZombieRenderer {
 	fall(slot: number, type: number, x: number, y: number): void {
 		const facing = slot < MAX_ZOMBIES ? (this.lastSeen[slot * 3 + 2] as number) : Math.random() * Math.PI * 2
 		const i = this.bodyHead
-		this.bodyHead = (i + 1) % CORPSES
-		this.bodyCount = Math.min(CORPSES, this.bodyCount + 1)
+		this.bodyHead = (i + 1) % this.maxBodies
+		this.bodyCount = Math.min(this.maxBodies, this.bodyCount + 1)
 		this.bodies.set([x, y, facing, type, this.time], i * 5)
 	}
 
-	update(view: ZombieView, timeSeconds: number): void {
+	/**
+	 * Draws this frame's zombies. With a camera, only those in its view are sent to the GPU (each one
+	 * is skinned in the vertex shader, once more for its shadow): a big horde mostly off screen costs
+	 * little.
+	 */
+	update(view: ZombieView, timeSeconds: number, camera?: THREE.Camera): void {
 		this.uniforms.batTime.value = timeSeconds
 		this.time = timeSeconds
-		this.updateCorpses(timeSeconds)
+		if (camera) {
+			camera.updateMatrixWorld()
+			this.frustum.setFromProjectionMatrix(
+				this.viewMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+			)
+		}
+		const culled = camera !== undefined
+		this.updateCorpses(timeSeconds, culled)
 		this.seenNow.fill(0)
-		for (let n = 0; n < view.count; n++) {
-			const type = view.type[n] as number
+		let drawn = 0
+		for (let i = 0; i < view.count; i++) {
+			const type = view.type[i] as number
 			const def = zombieDefs[type]
-			const attacking = view.state[n] === ZombieState.attacking
+			const attacking = view.state[i] === ZombieState.attacking
 			const clip = attacking ? this.clips.attack : def && def.speed > 2.5 ? this.clips.run : this.clips.walk
 			// a stable per-zombie phase so the horde does not step in unison
-			const phase = (((view.index[n] as number) * 0.6180339887) % 1) as number
+			const phase = (((view.index[i] as number) * 0.6180339887) % 1) as number
 			const speed = attacking ? 1.2 : def ? Math.min(1.6, 0.6 + def.speed / 3) : 1
+			const size = def?.scale ?? 1
+			const slot = view.index[i] as number
+			this.seenNow[slot] = 1
+			this.lastSeen[slot * 3] = view.x[i] as number
+			this.lastSeen[slot * 3 + 1] = view.y[i] as number
+			this.lastSeen[slot * 3 + 2] = view.facing[i] as number
+			if (this.seen[slot] === 0)
+				this.bornAt[slot] = this.nearHole(view.x[i] as number, view.y[i] as number) ? timeSeconds : 0
+			if (culled && !this.inView(view.x[i] as number, view.y[i] as number, size)) continue
+			const n = drawn++
 			const base = n * 4
 			this.anim.array[base] = clip.start
 			this.anim.array[base + 1] = clip.frames
@@ -299,28 +345,20 @@ export class ZombieRenderer {
 			this.anim.array[base + 3] = clip.fps * speed
 
 			// sim (x, y) maps to world (x, z); the model faces +z
-			this.quaternion.setFromAxisAngle(this.up, Math.PI / 2 - (view.facing[n] as number))
-			const size = def?.scale ?? 1
+			this.quaternion.setFromAxisAngle(this.up, Math.PI / 2 - (view.facing[i] as number))
 			// one that just appeared at a hole climbs out of it over EMERGE seconds
-			const slot = view.index[n] as number
-			this.seenNow[slot] = 1
-			this.lastSeen[slot * 3] = view.x[n] as number
-			this.lastSeen[slot * 3 + 1] = view.y[n] as number
-			this.lastSeen[slot * 3 + 2] = view.facing[n] as number
-			if (this.seen[slot] === 0)
-				this.bornAt[slot] = this.nearHole(view.x[n] as number, view.y[n] as number) ? timeSeconds : 0
 			const rising = (timeSeconds - (this.bornAt[slot] as number)) / EMERGE
 			const below = rising < 1 && this.bornAt[slot] !== 0 ? (1 - rising) ** 2 * 1.7 * size : 0
 			this.matrix.compose(
-				this.position.set(view.x[n] as number, -below, view.y[n] as number),
+				this.position.set(view.x[i] as number, -below, view.y[i] as number),
 				this.quaternion,
 				this.scale.set(size, size, size)
 			)
 			this.mesh.setMatrixAt(n, this.matrix)
 			// wounded zombies darken slightly; statuses tint them (stunned blue, marked red, poisoned green)
-			const health = (view.health[n] as number) / 255
+			const health = (view.health[i] as number) / 255
 			this.color.copy(this.tints[type] ?? this.color.set(0xffffff)).multiplyScalar(0.55 + 0.45 * health)
-			const status = view.status[n] as number
+			const status = view.status[i] as number
 			if (status & ZombieStatus.marked) this.color.lerp(MARKED, 0.55)
 			else if (status & ZombieStatus.stunned) this.color.lerp(STUNNED, 0.6)
 			else if (status & ZombieStatus.poisoned) this.color.lerp(POISONED, 0.45)
@@ -330,13 +368,13 @@ export class ZombieRenderer {
 			this.mesh.setColorAt(n, this.color)
 		}
 		this.seen.set(this.seenNow)
-		this.mesh.count = view.count
+		this.mesh.count = drawn
 		this.mesh.instanceMatrix.needsUpdate = true
 		if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true
 		this.anim.needsUpdate = true
 	}
 
-	private updateCorpses(now: number): void {
+	private updateCorpses(now: number, culled: boolean): void {
 		const death = this.clips.death
 		let shown = 0
 		for (let k = 0; k < this.bodyCount; k++) {
@@ -346,6 +384,7 @@ export class ZombieRenderer {
 			if (age < 0 || age > CORPSE_SECONDS + CORPSE_SINK) continue
 			const type = this.bodies[o + 3] as number
 			const size = zombieDefs[type]?.scale ?? 1
+			if (culled && !this.inView(this.bodies[o] as number, this.bodies[o + 1] as number, size)) continue
 			const sink = Math.max(0, age - CORPSE_SECONDS) / CORPSE_SINK
 			this.quaternion.setFromAxisAngle(this.up, Math.PI / 2 - (this.bodies[o + 2] as number))
 			this.matrix.compose(
