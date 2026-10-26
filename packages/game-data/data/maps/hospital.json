@@ -3,7 +3,7 @@
 	"name": "Harrow General",
 	"look": {
 		"ground": "concrete",
-		"walls": "wall-concrete",
+		"walls": "plaster",
 		"light": "dark"
 	},
 	"layout": [

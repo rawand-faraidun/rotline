@@ -1,4 +1,24 @@
-/** Small choices a player makes in the pause menu, kept in this browser. */
+/** Small choices a player makes in the pause menu, and the notes they have found, kept in this browser. */
+
+const NOTES_KEY = 'rotline.notes'
+
+/** Notes read so far, as "mission:note" ids. */
+export function loadReadNotes(): Set<string> {
+	try {
+		const list = JSON.parse(localStorage.getItem(NOTES_KEY) ?? '[]')
+		return new Set(Array.isArray(list) ? list.filter(entry => typeof entry === 'string') : [])
+	} catch {
+		return new Set()
+	}
+}
+
+export function saveReadNotes(read: ReadonlySet<string>): void {
+	try {
+		localStorage.setItem(NOTES_KEY, JSON.stringify([...read]))
+	} catch {
+		// not kept
+	}
+}
 
 const DAMAGE_NUMBERS_KEY = 'rotline.damageNumbers'
 

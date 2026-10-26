@@ -3,7 +3,7 @@
 	"name": "Compound",
 	"look": {
 		"ground": "dirt",
-		"walls": "wall-concrete",
+		"walls": "corrugated",
 		"light": "overcast"
 	},
 	"layout": [

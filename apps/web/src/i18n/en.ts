@@ -749,6 +749,8 @@ export const en = {
 			threshold: 'Score bonus: +{salvage} Salvage and health',
 			resupply: 'Ammo refilled',
 			secretFound: 'Secret found: a hidden room is open',
+			noteFound: 'Note',
+			notesFound: '{found} of {total} found here',
 			ammoFree: 'Hold E — refill ammo',
 			resupplyPaid: 'Ammo refilled (−{price} score)',
 			results: {

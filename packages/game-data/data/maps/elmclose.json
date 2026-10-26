@@ -3,7 +3,7 @@
 	"name": "Elm Close",
 	"look": {
 		"ground": "asphalt",
-		"walls": "brick",
+		"walls": "plaster",
 		"light": "dusk"
 	},
 	"layout": [
@@ -822,6 +822,90 @@
 			"y": 0,
 			"w": 30,
 			"h": 72
+		},
+		{
+			"ground": "wood",
+			"x": 36,
+			"y": 15,
+			"w": 7,
+			"h": 10
+		},
+		{
+			"ground": "wood",
+			"x": 36,
+			"y": 46,
+			"w": 7,
+			"h": 10
+		},
+		{
+			"ground": "wood",
+			"x": 45,
+			"y": 15,
+			"w": 7,
+			"h": 10
+		},
+		{
+			"ground": "wood",
+			"x": 45,
+			"y": 46,
+			"w": 7,
+			"h": 10
+		},
+		{
+			"ground": "wood",
+			"x": 54,
+			"y": 15,
+			"w": 7,
+			"h": 10
+		},
+		{
+			"ground": "wood",
+			"x": 54,
+			"y": 46,
+			"w": 7,
+			"h": 10
+		},
+		{
+			"ground": "wood",
+			"x": 63,
+			"y": 15,
+			"w": 7,
+			"h": 10
+		},
+		{
+			"ground": "wood",
+			"x": 63,
+			"y": 46,
+			"w": 7,
+			"h": 10
+		},
+		{
+			"ground": "tiles",
+			"x": 5,
+			"y": 5,
+			"w": 12,
+			"h": 8
+		},
+		{
+			"ground": "tiles",
+			"x": 5,
+			"y": 57,
+			"w": 12,
+			"h": 10
+		},
+		{
+			"ground": "tiles",
+			"x": 81,
+			"y": 4,
+			"w": 19,
+			"h": 19
+		},
+		{
+			"ground": "lawn",
+			"x": 77,
+			"y": 25,
+			"w": 26,
+			"h": 17
 		}
 	]
 }

@@ -3,7 +3,7 @@
 	"name": "Airfield",
 	"look": {
 		"ground": "concrete",
-		"walls": "metal",
+		"walls": "corrugated",
 		"light": "overcast"
 	},
 	"layout": [

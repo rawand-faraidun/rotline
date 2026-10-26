@@ -64,7 +64,7 @@ import { Interpolator } from './interpolate.ts'
 import { Minimap, type MinimapMode } from './minimap.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
-import { loadDamageNumbers } from './preferences.ts'
+import { loadDamageNumbers, loadReadNotes, saveReadNotes } from './preferences.ts'
 import { Decor } from './render/decor.ts'
 import { autoDecor, groundMarks } from './render/dressing.ts'
 import { Effects, SHOT_LOOKS } from './render/effects.ts'
@@ -161,6 +161,7 @@ export function startGame(options: GameOptions): GameHandle {
 	/** prop health before the first snapshot is the map's, not the server's: no numbers for that change */
 	let propsSynced = false
 	const ownHits: { at: number; amount: number }[] = []
+	const readNotes = loadReadNotes()
 	const barricades = new Map<number, number[]>()
 	const rangeWriter = new Writer(16)
 	const interpolator = new Interpolator()
@@ -1047,6 +1048,23 @@ export function startGame(options: GameOptions): GameHandle {
 			const watched = own.alive ? null : interpolator.others.find(other => other.alive)
 			if (watched) stage.follow(watched.x, watched.y, watched.x, watched.y, dt)
 			else stage.follow(drawn.x, drawn.y, aimX, aimY, dt)
+			// a note underfoot opens to read; it counts as found from then on
+			const notes = mission?.notes ?? []
+			if (mission && notes.length > 0) {
+				const prefix = `${mission.id}:`
+				const note = notes.find(entry => Math.hypot(entry.x - drawn.x, entry.y - drawn.y) < 1.3)
+				if (note && !readNotes.has(prefix + note.id)) {
+					readNotes.add(prefix + note.id)
+					saveReadNotes(readNotes)
+					audio.sound('pickup', { bus: 'interface', rate: 0.7, volume: 0.5 })
+				}
+				const shown = hud.getSnapshot().note
+				if (note && shown?.title !== note.title) {
+					const found = notes.filter(entry => readNotes.has(prefix + entry.id)).length
+					hud.set({ note: { title: note.title, text: note.text, by: note.by, found, total: notes.length } }, wallNow)
+				} else if (!note && shown) hud.set({ note: null }, wallNow)
+				markers?.markNotes(readNotes, prefix, now / 1000)
+			}
 			// weapon lights in the dark: yours, then your teammates' nearest first
 			if (stage.dark) {
 				const torches = [{ x: drawn.x, y: drawn.y, angle: aimAngle, on: own.alive }]

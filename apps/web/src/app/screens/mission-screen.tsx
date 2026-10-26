@@ -949,6 +949,24 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						</p>
 					)}
 
+					{hud.note && (
+						// a note lying where the player stands: read while standing on it
+						<section
+							aria-live="polite"
+							className="frame cut pointer-events-none absolute bottom-40 left-1/2 w-[min(34rem,90vw)] -translate-x-1/2 p-5 [--frame-color:var(--color-warning)] [--frame-fill:rgb(22_20_14/0.92)]"
+						>
+							<p className="flex justify-between font-bold text-[0.65rem] text-warning uppercase tracking-[0.2em]">
+								<span>{t.noteFound}</span>
+								<span>{format(t.notesFound, { found: String(hud.note.found), total: String(hud.note.total) })}</span>
+							</p>
+							<h2 className="mt-1 font-display text-2xl text-bone uppercase">{hud.note.title}</h2>
+							<p className="mt-2 whitespace-pre-line font-serif text-bone/90 text-sm italic leading-relaxed">
+								{hud.note.text}
+							</p>
+							<p className="mt-2 text-right text-muted text-xs">— {hud.note.by}</p>
+						</section>
+					)}
+
 					<div className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
 						<HealthBar health={hud.health} max={hud.maxHealth} />
 						{hud.livesLeft !== null && <Lives left={hud.livesLeft} />}

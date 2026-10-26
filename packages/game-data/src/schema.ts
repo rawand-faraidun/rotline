@@ -503,7 +503,7 @@ export const mapSchema = z.object({
 	look: z
 		.object({
 			ground: groundKind,
-			walls: z.enum(['brick', 'stone', 'metal', 'wall-concrete']),
+			walls: z.enum(['brick', 'stone', 'metal', 'wall-concrete', 'plaster', 'corrugated', 'siding']),
 			/** the hour and the weather: night and dark (no moon, the power out) bring out lamps and torches */
 			light: z.enum(['day', 'dawn', 'dusk', 'overcast', 'fog', 'night', 'dark'])
 		})
@@ -670,6 +670,24 @@ const missionFields = z.object({
 	}),
 	/** hidden caches: open with interact for an item drop */
 	caches: z.array(z.object({ x: z.number(), y: z.number() })).max(16),
+	/**
+	 * Notes left lying about (a diary page, a log, a letter): walk over one to read it. They tell the
+	 * story of the outbreak; finding them is for the player alone (kept in the browser).
+	 */
+	notes: z
+		.array(
+			z.object({
+				id,
+				x: z.number(),
+				y: z.number(),
+				title: z.string().min(1).max(60),
+				text: z.string().min(1).max(700),
+				/** who wrote it */
+				by: z.string().min(1).max(60)
+			})
+		)
+		.max(6)
+		.optional(),
 	/** locked doors this mission opens (and closes behind the squad) when an objective is done */
 	gates: z
 		.record(
@@ -695,7 +713,7 @@ const missionFields = z.object({
  * mission says. Each room is given one of the mission's maps at random.
  */
 export const missionVariantSchema = missionFields
-	.pick({ description: true, briefing: true, caches: true, gates: true, props: true, objectives: true })
+	.pick({ description: true, briefing: true, caches: true, notes: true, gates: true, props: true, objectives: true })
 	.partial()
 	.extend({ map: id })
 

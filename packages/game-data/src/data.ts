@@ -432,6 +432,7 @@ for (const mission of layouts) {
 			`missions/${mission.id}: ${what} is not on open floor`
 		)
 	for (const [index, cache] of mission.caches.entries()) floor(cache, `cache ${index}`)
+	for (const note of mission.notes ?? []) floor(note, `note ${note.id}`)
 	for (const [index, objective] of mission.objectives.entries()) {
 		if ('area' in objective) floor(objective.area, `objective ${index}'s area`)
 		if (objective.checkpointAt) floor(objective.checkpointAt, `objective ${index}'s checkpoint`)

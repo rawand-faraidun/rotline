@@ -3,7 +3,7 @@
 	"name": "Docks",
 	"look": {
 		"ground": "concrete",
-		"walls": "metal",
+		"walls": "corrugated",
 		"light": "fog"
 	},
 	"layout": [
@@ -585,12 +585,52 @@
 		},
 		{
 			"model": "scene-rack",
-			"x": 77.0,
+			"x": 75.5,
 			"y": 8.5
 		},
 		{
 			"model": "scene-rack",
-			"x": 81.0,
+			"x": 76.45,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 77.4,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 78.35,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 79.3,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 80.25,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 81.2,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 82.15,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 83.1,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 84.05,
 			"y": 8.5
 		},
 		{
@@ -600,12 +640,67 @@
 		},
 		{
 			"model": "scene-rack",
-			"x": 77.0,
+			"x": 85.95,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 86.9,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 87.85,
+			"y": 8.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 75.5,
 			"y": 12.5
 		},
 		{
 			"model": "scene-rack",
-			"x": 81.0,
+			"x": 76.45,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 77.4,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 78.35,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 79.3,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 80.25,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 81.2,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 82.15,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 83.1,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 84.05,
 			"y": 12.5
 		},
 		{
@@ -615,17 +710,87 @@
 		},
 		{
 			"model": "scene-rack",
-			"x": 77.0,
+			"x": 85.95,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 86.9,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 87.85,
+			"y": 12.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 75.5,
 			"y": 16.5
 		},
 		{
 			"model": "scene-rack",
-			"x": 81.0,
+			"x": 76.45,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 77.4,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 78.35,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 79.3,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 80.25,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 81.2,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 82.15,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 83.1,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 84.05,
 			"y": 16.5
 		},
 		{
 			"model": "scene-rack",
 			"x": 85.0,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 85.95,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 86.9,
+			"y": 16.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 87.85,
 			"y": 16.5
 		},
 		{
@@ -659,12 +824,52 @@
 		},
 		{
 			"model": "scene-rack",
-			"x": 77.0,
+			"x": 75.5,
 			"y": 28.5
 		},
 		{
 			"model": "scene-rack",
-			"x": 81.0,
+			"x": 76.45,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 77.4,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 78.35,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 79.3,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 80.25,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 81.2,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 82.15,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 83.1,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 84.05,
 			"y": 28.5
 		},
 		{
@@ -674,12 +879,67 @@
 		},
 		{
 			"model": "scene-rack",
-			"x": 77.0,
+			"x": 85.95,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 86.9,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 87.85,
+			"y": 28.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 75.5,
 			"y": 32.5
 		},
 		{
 			"model": "scene-rack",
-			"x": 81.0,
+			"x": 76.45,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 77.4,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 78.35,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 79.3,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 80.25,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 81.2,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 82.15,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 83.1,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 84.05,
 			"y": 32.5
 		},
 		{
@@ -689,17 +949,87 @@
 		},
 		{
 			"model": "scene-rack",
-			"x": 77.0,
+			"x": 85.95,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 86.9,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 87.85,
+			"y": 32.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 75.5,
 			"y": 36.5
 		},
 		{
 			"model": "scene-rack",
-			"x": 81.0,
+			"x": 76.45,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 77.4,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 78.35,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 79.3,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 80.25,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 81.2,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 82.15,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 83.1,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 84.05,
 			"y": 36.5
 		},
 		{
 			"model": "scene-rack",
 			"x": 85.0,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 85.95,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 86.9,
+			"y": 36.5
+		},
+		{
+			"model": "scene-rack",
+			"x": 87.85,
 			"y": 36.5
 		},
 		{

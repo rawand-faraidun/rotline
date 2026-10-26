@@ -58,6 +58,8 @@ export type HudState = {
 	waypoint: { x: number; y: number; onScreen: boolean; angle: number; distance: number } | null
 	/** why the game is silent, if it is: the browser holds sound until a click or key, or it is muted */
 	silence: 'blocked' | 'muted' | null
+	/** a note the player is standing on, open to read; with how many of this mission's they have found */
+	note: { title: string; text: string; by: string; found: number; total: number } | null
 	/** lives left playing alone (the run is lost at none), or null in a squad */
 	livesLeft: number | null
 	/** teammates out of view: where their arrow sits at the screen's edge (0..1), pointing at them */
@@ -169,6 +171,7 @@ export const initialHud: HudState = {
 	allies: [],
 	livesLeft: null,
 	silence: null,
+	note: null,
 	chain: 0,
 	multiplier: 1,
 	chainLeft: 0,

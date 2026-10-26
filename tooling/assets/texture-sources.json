@@ -117,6 +117,30 @@
 			"size": 1024,
 			"saturation": 0.6,
 			"brightness": 0.75
+		},
+		{
+			"id": "plaster",
+			"source": "PaintedPlaster017",
+			"name": "Painted Plaster 017",
+			"size": 512,
+			"saturation": 0.6,
+			"brightness": 0.8
+		},
+		{
+			"id": "corrugated",
+			"source": "CorrugatedSteel006A",
+			"name": "Corrugated Steel 006 A",
+			"size": 512,
+			"saturation": 0.7,
+			"brightness": 0.85
+		},
+		{
+			"id": "siding",
+			"source": "WoodSiding008",
+			"name": "Wood Siding 008",
+			"size": 512,
+			"saturation": 0.6,
+			"brightness": 0.8
 		}
 	]
 }
