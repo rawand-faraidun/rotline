@@ -5,10 +5,10 @@ import {
 	campaign,
 	type DifficultyId,
 	difficultyId,
+	isSurvival,
 	levelFromXp,
 	missionById,
-	missions,
-	SURVIVAL
+	missions
 } from '@rotline/game-data'
 import {
 	liveInstances,
@@ -84,7 +84,7 @@ export async function openMissions(db: Services['db'], playerId: string): Promis
 
 /** The party's mission and difficulty, or the defaults until the leader chooses. */
 function chosenMission(party: Party): { id: string; difficulty: DifficultyId } {
-	const id = party.mission === SURVIVAL || missionById(party.mission) ? party.mission : DEFAULT_MISSION
+	const id = isSurvival(party.mission) || missionById(party.mission) ? party.mission : DEFAULT_MISSION
 	const parsed = difficultyId.safeParse(party.difficulty)
 	return { id, difficulty: parsed.success ? parsed.data : DEFAULT_DIFFICULTY }
 }
@@ -256,7 +256,7 @@ export function partyRoutes(services: Services) {
 				zValidator(
 					'json',
 					z.object({
-						mission: z.string().refine(id => id === SURVIVAL || missionById(id) !== undefined, 'unknown mission'),
+						mission: z.string().refine(id => isSurvival(id) || missionById(id) !== undefined, 'unknown mission'),
 						difficulty: difficultyId
 					})
 				),
@@ -265,7 +265,7 @@ export function partyRoutes(services: Services) {
 					if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
 					const { mission, difficulty } = c.req.valid('json')
 					// only missions the leader has opened in the campaign (Survival is always open)
-					if (mission !== SURVIVAL && !(await openMissions(db, user.id)).has(mission))
+					if (!isSurvival(mission) && !(await openMissions(db, user.id)).has(mission))
 						return c.json({ error: 'locked' as const }, 409)
 					const party = await parties.setMission(user.id, mission, difficulty)
 					await changed(party.id)
@@ -305,7 +305,7 @@ export function partyRoutes(services: Services) {
 				const current = await parties.current(user.id)
 				// a new leader may not have opened the mission the squad had chosen
 				const wanted = chosenMission(current).id
-				if (wanted !== SURVIVAL && !(await openMissions(db, user.id)).has(wanted))
+				if (!isSurvival(wanted) && !(await openMissions(db, user.id)).has(wanted))
 					return c.json({ error: 'locked' as const }, 409)
 				// the start goes ahead only for the mission checked above (or the one the client saw)
 				const seen = c.req.valid('json').seen
@@ -317,7 +317,7 @@ export function partyRoutes(services: Services) {
 				)
 				// the API's own record of what this room plays, checked against the room's reports
 				const chosen = chosenMission(party)
-				await recordRoomMission(valkey, room, chosen.id === SURVIVAL ? null : chosen)
+				await recordRoomMission(valkey, room, isSurvival(chosen.id) ? null : chosen)
 				await changed(party.id)
 				if (party.members.length > 1) await recordRecentPlayers(db, party.members)
 				return c.json(await view(party, user.id), 200)
@@ -344,7 +344,7 @@ export function partyRoutes(services: Services) {
 					return c.json({ error: 'invalid-build' as const }, 409)
 				}
 				// the mission is fixed once the party has started (the leader can change it only in the lobby);
-				// Survival is the endless-rounds mode: a ticket without a mission
+				// Survival is the endless-rounds mode: a ticket without a mission, naming its arena
 				const chosen = chosenMission(party)
 				const { ticket, payload } = signTicket(key, {
 					sub: user.id,
@@ -352,7 +352,7 @@ export function partyRoutes(services: Services) {
 					room: party.room,
 					inst: party.instance,
 					mode: 'squad',
-					...(chosen.id === SURVIVAL ? {} : { mission: chosen }),
+					...(isSurvival(chosen.id) ? { arena: chosen.id } : { mission: chosen }),
 					build
 				})
 				return c.json(
@@ -362,7 +362,8 @@ export function partyRoutes(services: Services) {
 						path: GAME_PATH,
 						direct,
 						expiresAt: payload.exp,
-						mission: payload.mission ?? null
+						mission: payload.mission ?? null,
+						arena: payload.arena ?? null
 					},
 					200
 				)
@@ -404,7 +405,7 @@ export function partyRoutes(services: Services) {
 					const status = party.state === 'mission' ? 'mission' : 'lobby'
 					const chosen = chosenMission(party).id
 					const detail =
-						party.state === 'mission' ? (chosen === SURVIVAL ? 'Survival' : (missionById(chosen)?.name ?? '')) : ''
+						party.state === 'mission' ? (isSurvival(chosen) ? 'Survival' : (missionById(chosen)?.name ?? '')) : ''
 					if (await setPresence(valkey, user.id, { status, detail })) {
 						await notify(valkey, await friendIds(db, user.id), { type: 'presence', userId: user.id, status, detail })
 					}

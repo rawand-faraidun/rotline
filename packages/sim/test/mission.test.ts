@@ -399,23 +399,13 @@ describe('survival', () => {
 		expect(state.alive).toBe(false)
 	})
 
-	it('alone, restarts the round twice and ends the run at the third death', () => {
+	it('alone, ends the run at the first death: Survival has no lives', () => {
 		const world = survivalWorld()
 		const state = world.addPlayer(1)
-		expect(world.livesLeft).toBe(3)
-		die(world, state)
-		expect(world.events.some(event => event.type === 'wipe')).toBe(true)
-		expect(world.finished).toBe(false)
-		expect(world.livesLeft).toBe(2)
-		steps(world, 4 * TICK_RATE)
-		expect(state.alive).toBe(true)
-		die(world, state)
-		expect(world.livesLeft).toBe(1)
-		steps(world, 4 * TICK_RATE)
+		expect(world.livesLeft).toBeNull()
 		die(world, state)
 		expect(world.events.some(event => event.type === 'run-over')).toBe(true)
 		expect(world.finished).toBe(true)
-		expect(world.livesLeft).toBe(0)
 	})
 })
 
@@ -438,6 +428,18 @@ describe('lives and respawns', () => {
 		for (let i = 0; i < 90 && !world.finished; i++) world.step(new Map())
 		expect(world.mission?.status).toBe(MissionStatus.failed)
 		expect(world.events).toContainEqual({ type: 'mission-failed', reason: 'lives' })
+	})
+
+	it('loses a contract the moment the squad is down, with no lives even alone', () => {
+		const world = missionWorld({ zone: 'contracts', respawn: { seconds: 15, step: 5, maxSeconds: 30 } })
+		const state = world.addPlayer(1)
+		expect(world.livesLeft).toBeNull()
+		state.health = 1
+		state.safeUntilTick = 0
+		world.spawnZombie(drudge, { x: state.x + 0.5, y: state.y })
+		for (let i = 0; i < 90 && !world.finished; i++) world.step(new Map())
+		expect(world.mission?.status).toBe(MissionStatus.failed)
+		expect(world.events).toContainEqual({ type: 'mission-failed', reason: 'wiped' })
 	})
 
 	it('counts no lives in a squad', () => {

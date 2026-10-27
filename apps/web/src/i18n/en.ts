@@ -96,11 +96,11 @@ export const en = {
 		galleryTitle: 'Straight from the game',
 		gallery: {
 			survival: 'Survival at the Crossroads',
-			airlift: 'Airlift: holding the cargo bay',
-			holdouts: 'Holdouts: the food depot at night',
-			landfall: 'Landfall: up the high street',
-			railyard: 'Rail Yard: the platform',
-			blackout: 'Blackout: the approach road'
+			airlift: 'Harrow airfield: holding the cargo bay',
+			holdouts: 'The food depot',
+			landfall: 'Ashgate: up the high street',
+			railyard: 'Ashgate rail yard: the platform',
+			blackout: 'Blackout Protocol: the approach road'
 		},
 		openKicker: 'Open source',
 		openTitle: 'Built in the open',
@@ -385,6 +385,8 @@ export const en = {
 			capstone: 'Capstone',
 			passive: 'Passive',
 			perRank: 'per rank',
+			cost: '{points} points a rank',
+			costOne: '1 point a rank',
 			respec: 'Respec',
 			respecConfirm: 'Refund every point in the {class} tree for {price} Salvage?',
 			abilitiesTitle: 'Ability slots',
@@ -576,7 +578,7 @@ export const en = {
 				shop: 'Shop',
 				profile: 'Profile'
 			},
-			survivalHint: 'Endless waves at the Crossroads. How long can you last?',
+			survivalHint: 'Endless waves on one of three maps. How long can you last?',
 			contractsHint: 'Three-minute jobs for a quick payout.',
 			rangeHint: 'Try your guns on targets and zombies.',
 			modes: 'Game modes',
@@ -657,7 +659,24 @@ export const en = {
 			survival: 'Survival',
 			endless: 'Endless',
 			survivalDescription:
-				'Endless waves at the Crossroads, a market town gone dark. Every wave is bigger than the last, and every fifth brings Brutes. Hold the square, fall back to the church, the flats, the car park or the petrol station, and last as long as you can.',
+				'Endless waves, each bigger than the last, and every fifth brings Brutes. Pick the map, hold your ground, fall back when it breaks, and last as long as you can. Cracked walls hide rooms worth finding.',
+			arenas: {
+				survival: {
+					name: 'Old Town',
+					description:
+						'A river town at dusk: the church square and its fountain, the shops and the hotel, two bridges and a footbridge over the river, the park, the mill and Mill Road. Woods all round.'
+				},
+				'survival-glasshouse': {
+					name: 'Glasshouse',
+					description:
+						'The botanical gardens after dark: the palm house above the lake, a walk all the way round the water and bridges over it, the hedge maze, the nursery, the orangery and the rock garden.'
+				},
+				'survival-docks': {
+					name: 'Docks',
+					description:
+						"A container port at night on the water: piers and a moored barge, the quay, the dock workers' camp round the crane, the stacks, the warehouses and the gatehouse."
+				}
+			},
 			contracts: 'Contracts',
 			contractsDescription: 'Short, sharp jobs of three or four minutes, for a quick payout.'
 		},
@@ -694,13 +713,24 @@ export const en = {
 			progressKills: '{progress} / {goal}',
 			progressSeconds: '{progress} / {goal} s',
 			progressReach: 'Get there',
+			progressEscape: 'Get out, now',
+			progressMetres: '{progress} / {goal} m',
 			progressCarry: 'Bring it there',
 			progressLeft: '{progress} s left',
+			progressFound: '{progress} / {goal} found',
+			progressMended: '{progress} / {goal} mended',
+			progressDelivered: '{progress} / {goal} brought in',
+			progressPlant: 'Plant the charge',
+			progressFuse: 'Get clear: {progress} s',
+			progressTargets: '{progress} / {goal} down',
 			failedBanner: 'Objective failed — back to the checkpoint',
 			timeoutBanner: 'Out of time',
 			livesBanner: 'You died — {lives} lives left',
 			lastLifeBanner: 'You died — last life',
 			outOfLivesBanner: 'Out of lives',
+			soundBlocked: 'Sound is off: click or press a key to turn it on',
+			soundMuted: 'Sound is muted (Esc → sound settings)',
+			contractFailedBanner: 'Squad down — contract failed',
 			lives: 'Lives',
 			livesLabel: '{lives} lives left',
 			timeLeft: 'Time left',
@@ -713,6 +743,8 @@ export const en = {
 				hack: 'Hold E — work the terminal',
 				free: 'Hold E — free the survivor',
 				pickup: 'Hold E — pick it up',
+				search: 'Hold E — search it',
+				plant: 'Hold E — plant the charge',
 				trap: 'E — set off the trap',
 				cache: 'Hold E — search the cache',
 				ammo: 'Hold E — refill ammo ({price} score)',
@@ -726,6 +758,9 @@ export const en = {
 			buffBy: '{name} — from {by}',
 			threshold: 'Score bonus: +{salvage} Salvage and health',
 			resupply: 'Ammo refilled',
+			secretFound: 'Secret found: a hidden room is open',
+			noteFound: 'Note',
+			notesFound: '{found} of {total} found here',
 			ammoFree: 'Hold E — refill ammo',
 			resupplyPaid: 'Ammo refilled (−{price} score)',
 			results: {
@@ -766,6 +801,7 @@ export const en = {
 				interface: 'Interface',
 				mute: 'Mute all sound'
 			},
+			damageNumbers: 'Show damage numbers over what you hit',
 			graphics: {
 				title: 'Graphics',
 				hint: 'Applies the next time a game loads.',
@@ -788,7 +824,8 @@ export const en = {
 			controls:
 				'WASD move · mouse aim · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
 			abilities: 'Abilities and utilities',
-			ready: 'Ready'
+			ready: 'Ready',
+			jammed: 'Jammed'
 		}
 	}
 } as const

@@ -170,11 +170,17 @@ export const classesSchema = z.object({
 		maxLevel: z.number().int().min(2).max(100),
 		xpBase: z.number().positive(),
 		xpGrowth: z.number().min(1),
+		/** skill points each level gives, and from which level on each gives more */
 		pointsPerLevel: z.number().int().min(1),
+		laterPoints: z.object({ fromLevel: z.number().int().min(2), pointsPerLevel: z.number().int().min(1) }).optional(),
+		/** levels that give extra points, and how many extra */
 		bonusPointLevels: z.array(z.number().int().min(2)),
 		bonusPoints: z.number().int().min(1),
 		healthPerLevel: fraction,
+		/** points spent in a branch's earlier tiers before the next tier opens */
 		pointsPerTier: z.number().int().min(1),
+		/** what one rank of a skill costs, by tier (deeper skills cost more) */
+		rankCost: z.array(z.number().int().min(1)).length(5),
 		abilitySlots: z.array(z.object({ level: z.number().int().min(1), slots: z.number().int().min(1).max(3) })).min(1)
 	}),
 	/** combat rules that are not per class */
@@ -396,6 +402,8 @@ export const propKindId = z.enum([
 	'barrel',
 	'crate',
 	'sandbags',
+	/** a cracked stretch of wall hiding a secret room: shoot or blow it down */
+	'weakwall',
 	'door',
 	'generator',
 	'terminal',
@@ -406,7 +414,13 @@ export const propKindId = z.enum([
 	'carry',
 	'defend',
 	'nest',
-	'ammo'
+	'ammo',
+	/** a vehicle the squad escorts: it drives along its path while someone walks with it */
+	'vehicle',
+	/** somewhere to search (a wreck, a locker, a car boot, a filing cabinet): one of them has it */
+	'search',
+	/** where a demolition charge is planted; once armed the dead go for it */
+	'charge'
 ])
 
 /**
@@ -426,8 +440,10 @@ export const mapPropSchema = z.object({
 	locked: z.boolean().optional(),
 	/** defend targets: their health (default from props data) */
 	health: z.number().positive().optional(),
-	/** turrets and floodlights: the generator that powers them */
-	powerBy: id.optional()
+	/** turrets, floodlights and traps: the generator that powers them (a trap without power is dead) */
+	powerBy: id.optional(),
+	/** drawing only: the scenery model it looks like (searches, carried things, defend targets, vehicles) */
+	look: id.optional()
 })
 
 const zombieSpawn = point.extend({
@@ -449,6 +465,21 @@ export const decorSchema = z.object({
 	fire: z.number().positive().max(4).optional()
 })
 
+/** the ground textures a map or a patch of it can have */
+export const groundKind = z.enum([
+	'asphalt',
+	'concrete',
+	'dirt',
+	'grass',
+	'lawn',
+	'forest',
+	'gravel',
+	'paving',
+	'cobbles',
+	'wood',
+	'tiles'
+])
+
 export const mapSchema = z.object({
 	id,
 	name: z.string(),
@@ -457,6 +488,23 @@ export const mapSchema = z.object({
 	walls: z.array(rect),
 	/** cells that block like walls but are not drawn (under scenery: wrecks, cars, barriers) */
 	blockers: z.array(rect).optional(),
+	/**
+	 * Solid features drawn their own way over blockers: hedges (low, leafy) and shipping containers
+	 * (painted, ribbed). They block like walls.
+	 */
+	solids: z
+		.array(rect.extend({ kind: z.enum(['hedge', 'container']) }))
+		.max(4000)
+		.optional(),
+	/** water: blocks walking (players and zombies), not shots or thrown things */
+	water: z.array(rect).max(2000).optional(),
+	/** chain-link fences: like water, walked round and shot through */
+	fences: z.array(rect).max(2000).optional(),
+	/** patches of other ground drawn over the map's own (lawns in a street, gravel paths): drawing only */
+	patches: z
+		.array(rect.extend({ ground: groundKind }))
+		.max(400)
+		.optional(),
 	decor: z.array(decorSchema).max(2000).optional(),
 	playerSpawns: z.array(point).min(4),
 	zombieSpawns: z.array(zombieSpawn).min(1),
@@ -464,9 +512,10 @@ export const mapSchema = z.object({
 	/** how the place looks: the ground, the walls and the light (drawing only, no effect on play) */
 	look: z
 		.object({
-			ground: z.enum(['asphalt', 'concrete', 'dirt', 'grass']),
-			walls: z.enum(['brick', 'stone', 'metal', 'wall-concrete']),
-			light: z.enum(['dusk', 'overcast', 'night'])
+			ground: groundKind,
+			walls: z.enum(['brick', 'stone', 'metal', 'wall-concrete', 'plaster', 'corrugated', 'siding']),
+			/** the hour and the weather: night and dark (no moon, the power out) bring out lamps and torches */
+			light: z.enum(['day', 'dawn', 'dusk', 'overcast', 'fog', 'night', 'dark'])
 		})
 		.optional(),
 	/** firing-range maps: where dummies stand, how fast they heal, how many zombies may be spawned */
@@ -572,7 +621,16 @@ const objectiveBase = {
 		})
 		.optional(),
 	/** an elite who turns up when the objective starts: its type, and where (default: a spawn point) */
-	boss: z.object({ type: id, at: point.optional() }).optional()
+	boss: z
+		.object({
+			type: id,
+			at: point.optional(),
+			/** seconds into the step before it turns up (default straight away) */
+			afterSeconds: z.number().min(0).max(300).optional()
+		})
+		.optional(),
+	/** something jams the squad's kit while this step runs: no abilities (grenades and the like still work) */
+	jammed: z.boolean().optional()
 }
 
 export const objectiveSchema = z.discriminatedUnion('type', [
@@ -594,13 +652,110 @@ export const objectiveSchema = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('rescue'), survivors: z.array(id).min(1), area, ...objectiveBase }),
 	/** carry an object to an area */
 	z.object({ type: z.literal('retrieve'), item: id, area, ...objectiveBase }),
-	/** destroy every listed nest (nests keep spawning until they are gone) */
-	z.object({ type: z.literal('destroy'), props: z.array(id).min(1), ...objectiveBase }),
+	/** destroy every listed nest (nests keep spawning until they are gone); each may burst as it dies */
+	z.object({
+		type: z.literal('destroy'),
+		props: z.array(id).min(1),
+		/** zombies that crawl out of each nest as it is destroyed (default none) */
+		burst: z.number().int().positive().max(20).optional(),
+		...objectiveBase
+	}),
 	/** everyone standing reaches an area before the time runs out */
-	z.object({ type: z.literal('extract'), area, seconds: z.number().positive(), ...objectiveBase })
+	z.object({ type: z.literal('extract'), area, seconds: z.number().positive(), ...objectiveBase }),
+	/** pick things up off the ground (walk over them): `count` of them, any of the listed spots */
+	z.object({
+		type: z.literal('gather'),
+		items: z.array(point).min(1).max(16),
+		count: z.number().int().positive().optional(),
+		/** how they look: sample cases, fuel cans, papers, supply packs */
+		look: z.enum(['sample', 'fuel', 'intel', 'supplies']),
+		...objectiveBase
+	}),
+	/** take every area: each fills while someone stands in it, and drains while the dead hold it */
+	z.object({
+		type: z.literal('capture'),
+		areas: z.array(area).min(1).max(4),
+		seconds: z.number().positive(),
+		...objectiveBase
+	}),
+	/** walk a vehicle along its path: it drives while someone is near it, the dead go for it */
+	z.object({
+		type: z.literal('escort'),
+		prop: id,
+		path: z.array(point).min(2).max(24),
+		/** metres a second while it drives */
+		speed: z.number().positive().max(6),
+		/** how near someone has to be for it to drive */
+		radius: z.number().positive().max(12),
+		/** it stops dead (instead of slowing) while the dead are on it: keep it clear */
+		stops: z.boolean().optional(),
+		...objectiveBase
+	}),
+	/** search the listed spots (hold interact on each); `count` of them, picked at random, hold what is wanted */
+	z.object({
+		type: z.literal('search'),
+		props: z.array(id).min(2).max(12),
+		count: z.number().int().positive().optional(),
+		...objectiveBase
+	}),
+	/** kill marked zombies that turn up where the mission puts them */
+	z.object({
+		type: z.literal('hunt'),
+		targets: z
+			.array(
+				z.object({
+					type: id,
+					at: point,
+					/** times the type's own health */
+					health: z.number().positive().max(40).optional()
+				})
+			)
+			.min(1)
+			.max(8),
+		...objectiveBase
+	}),
+	/** plant a charge (hold interact), keep it standing while its fuse burns, and be clear when it goes */
+	z.object({
+		type: z.literal('demolish'),
+		/** the charge prop: where it is planted */
+		prop: id,
+		seconds: z.number().positive().max(120),
+		/** the blast: everything inside is hurt, players too */
+		radius: z.number().positive().max(16),
+		/** props the blast destroys outright (gates, walls, nests) */
+		destroys: z.array(id).optional(),
+		...objectiveBase
+	}),
+	/** bring damaged defend targets or vehicles back to full health (hold interact) while the dead go for them */
+	z.object({
+		type: z.literal('repair'),
+		props: z.array(id).min(1).max(6),
+		/** their health when the step starts, as a share of the full */
+		from: z.number().positive().max(0.9),
+		...objectiveBase
+	}),
+	/** carry each listed object into the area, one at a time */
+	z.object({ type: z.literal('deliver'), items: z.array(id).min(2).max(8), area, ...objectiveBase }),
+	/** get out before something spreading across the map catches you (fire, gas): it hurts behind its front */
+	z.object({
+		type: z.literal('escape'),
+		area,
+		hazard: z.object({
+			/** what it is: drawn as fire or as gas */
+			kind: z.enum(['fire', 'gas']),
+			/** where its front starts, and the way it moves */
+			from: point,
+			toward: point,
+			speed: z.number().positive().max(8),
+			/** seconds before it starts to move */
+			delaySeconds: z.number().min(0),
+			damagePerSecond: z.number().positive()
+		}),
+		...objectiveBase
+	})
 ])
 
-export const missionSchema = z.object({
+const missionFields = z.object({
 	id,
 	name: z.string().min(1),
 	zone: id,
@@ -631,7 +786,30 @@ export const missionSchema = z.object({
 	}),
 	/** hidden caches: open with interact for an item drop */
 	caches: z.array(z.object({ x: z.number(), y: z.number() })).max(16),
-	/** locked doors this mission opens (and closes behind the squad) when an objective is done */
+	/**
+	 * Notes left lying about (a diary page, a log, a letter): walk over one to read it. They tell the
+	 * story of the outbreak; finding them is for the player alone (kept in the browser).
+	 */
+	notes: z
+		.array(
+			z.object({
+				id,
+				x: z.number(),
+				y: z.number(),
+				title: z.string().min(1).max(60),
+				text: z.string().min(1).max(700),
+				/** who wrote it */
+				by: z.string().min(1).max(60)
+			})
+		)
+		.max(6)
+		.optional(),
+	/** where the squad deploys, when not at the map's own spawn (one point per player) */
+	playerSpawns: z.array(point).min(1).max(8).optional(),
+	/**
+	 * Doors this mission keeps locked until an objective is done (then opens, and may close again
+	 * behind the squad). A map's own gates start locked; any other door named here is locked too.
+	 */
 	gates: z
 		.record(
 			id,
@@ -643,7 +821,34 @@ export const missionSchema = z.object({
 			})
 		)
 		.optional(),
+	/**
+	 * Props this mission lays on its map, beside the map's own: objective props (crates to carry,
+	 * terminals, a shipment) on a map that is also played without them (Survival's maps).
+	 */
+	props: z.array(mapPropSchema).max(64).optional(),
 	objectives: z.array(objectiveSchema).min(1)
+})
+
+/**
+ * The same run on another map (contracts): what changes with the map, everything else as the
+ * mission says. Each room is given one of the mission's maps at random.
+ */
+export const missionVariantSchema = missionFields
+	.pick({
+		description: true,
+		briefing: true,
+		caches: true,
+		notes: true,
+		gates: true,
+		props: true,
+		objectives: true,
+		playerSpawns: true
+	})
+	.partial()
+	.extend({ map: id })
+
+export const missionSchema = missionFields.extend({
+	variants: z.array(missionVariantSchema).max(8).optional()
 })
 
 /** The campaign: zones in order, each with its missions in order. */
@@ -672,6 +877,17 @@ export const propsDataSchema = z.object({
 		playerDamageShare: z.number().min(0).max(1)
 	}),
 	crate: z.object({ health: z.number().positive() }),
+	weakwall: z.object({ health: z.number().positive() }),
+	vehicle: z.object({ health: z.number().positive() }),
+	search: z.object({ holdSeconds: z.number().positive() }),
+	charge: z.object({
+		plantSeconds: z.number().positive(),
+		health: z.number().positive(),
+		/** to zombies (at the middle, less toward the edge) */
+		blastDamage: z.number().positive(),
+		/** to players still inside the blast */
+		playerDamage: z.number().positive()
+	}),
 	sandbags: z.object({ health: z.number().positive() }),
 	door: z.object({
 		weldSeconds: z.number().positive(),

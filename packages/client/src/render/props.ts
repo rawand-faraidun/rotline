@@ -1,14 +1,25 @@
+import { propsDef } from '@rotline/game-data'
 import type { Prop } from '@rotline/sim'
 import { PropState } from '@rotline/sim'
 import * as THREE from 'three'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
+import { tame } from './decor.ts'
 import { outfitFor, wear } from './outfits.ts'
 import { loadSoldier, loadWeapon, soldierUrl } from './players.ts'
 
+/** lightning bolts a firing shock trap shows at once, and the jagged steps in each */
+const BOLTS = 7
+const BOLT_STEPS = 7
+/** as tall as the map's walls */
+const WEAK_WALL_HEIGHT = 3.2
+
+/** How far each vehicle model is turned so it faces along +z (the way the vehicle drives). */
+const VEHICLE_TURN: Record<string, number> = { 'scene-apc': -Math.PI / 2 }
+
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
-const MODELLED = new Set(['barrel', 'crate', 'sandbags', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
+const MODELLED = new Set(['barrel', 'crate', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 const models = new Map<string, Promise<THREE.Object3D | null>>()
 
@@ -22,6 +33,7 @@ function propModel(url: string): Promise<THREE.Object3D | null> {
 					if ((node as THREE.Mesh).isMesh) {
 						node.castShadow = true
 						node.receiveShadow = true
+						tame((node as THREE.Mesh).material)
 					}
 				})
 				return gltf.scene as THREE.Object3D
@@ -60,8 +72,18 @@ export class PropRenderer {
 	/** on a weak device props stay simple shapes */
 	private readonly models: boolean
 
-	constructor(scene: THREE.Scene, props: readonly Prop[], assets = '/assets', models = true) {
+	/** the map's wall sides and tops, for weak walls */
+	private readonly wallMaterials: [THREE.Material, THREE.Material] | null
+
+	constructor(
+		scene: THREE.Scene,
+		props: readonly Prop[],
+		assets = '/assets',
+		models = true,
+		wallMaterials: [THREE.Material, THREE.Material] | null = null
+	) {
 		this.scene = scene
+		this.wallMaterials = wallMaterials
 		this.assets = assets
 		this.models = models
 		for (const prop of props) {
@@ -82,17 +104,145 @@ export class PropRenderer {
 		size: [number, number, number],
 		top: THREE.Mesh | null
 	) {
-		if (!this.models || !MODELLED.has(prop.def.kind)) return
-		void propModel(`${this.assets}/models/props/${prop.def.kind}.glb`).then(model => {
+		if (!this.models || (!MODELLED.has(prop.def.kind) && !prop.def.look)) return
+		// the props' own models are fitted to a cube; a scenery model it is to look like is scaled (evenly)
+		// so its longer side across the ground fits the prop's
+		const look = prop.def.look
+		void propModel(`${this.assets}/models/props/${look ?? prop.def.kind}.glb`).then(model => {
 			if (!model || !root.parent) return
 			const copy = model.clone()
-			copy.scale.set(...size)
+			if (look) {
+				const box = new THREE.Box3().setFromObject(model)
+				const across = Math.max(box.max.x - box.min.x, box.max.z - box.min.z, 1e-3)
+				copy.scale.setScalar(Math.max(size[0], size[2]) / across)
+			} else copy.scale.set(...size)
 			// barrels and crates do not all face the same way
 			copy.rotation.y = ((prop.index * 2.399) % (Math.PI * 2)) * (prop.def.kind === 'barrel' ? 1 : 0)
 			root.add(copy)
 			for (const mesh of body) mesh.visible = false
-			if (top) top.position.y = size[1] + 0.06
+			// the lamp on a plain defend target's top; a scenery model has none
+			if (top && look) top.visible = false
+			else if (top) top.position.y = size[1] + 0.06
 		})
+	}
+
+	/**
+	 * Sandbags as real bags: three courses on each cell, two bags to a course, each course turned
+	 * across the one below (like a wall is laid), with a little give in every bag.
+	 */
+	private stackBags(prop: Prop, root: THREE.Group, body: THREE.Mesh, w: number, h: number) {
+		if (!this.models) return
+		void propModel(`${this.assets}/models/props/sandbags.glb`).then(model => {
+			if (!model || !root.parent) return
+			let seed = prop.index * 9301 + 49297
+			const jitter = () => {
+				seed = (seed * 9301 + 49297) % 233280
+				return seed / 233280 - 0.5
+			}
+			// every bag of the prop in one instanced draw per part of the model
+			const bags: THREE.Matrix4[] = []
+			const quaternion = new THREE.Quaternion()
+			const up = new THREE.Vector3(0, 1, 0)
+			for (let cx = 0; cx < w; cx++) {
+				for (let cy = 0; cy < h; cy++) {
+					for (let course = 0; course < 3; course++) {
+						const across = course % 2 === 1
+						for (let n = 0; n < 2; n++) {
+							const offset = (n - 0.5) * 0.48
+							quaternion.setFromAxisAngle(up, (across ? Math.PI / 2 : 0) + jitter() * 0.2)
+							bags.push(
+								new THREE.Matrix4().compose(
+									new THREE.Vector3(
+										cx - (w - 1) / 2 + (across ? offset : 0) + jitter() * 0.06,
+										course * 0.25,
+										cy - (h - 1) / 2 + (across ? 0 : offset) + jitter() * 0.06
+									),
+									quaternion,
+									new THREE.Vector3(0.95, 0.27, 0.47)
+								)
+							)
+						}
+					}
+				}
+			}
+			model.updateMatrixWorld(true)
+			model.traverse(node => {
+				const mesh = node as THREE.Mesh
+				if (!mesh.isMesh) return
+				const instanced = new THREE.InstancedMesh(mesh.geometry, mesh.material, bags.length)
+				for (const [i, bag] of bags.entries())
+					instanced.setMatrixAt(i, new THREE.Matrix4().multiplyMatrices(bag, mesh.matrixWorld))
+				instanced.castShadow = instanced.receiveShadow = true
+				instanced.computeBoundingSphere()
+				root.add(instanced)
+			})
+			body.visible = false
+		})
+	}
+
+	/** The lightning of a shock trap: flat jagged ribbons, redrawn many times a second while it fires. */
+	private lightning(root: THREE.Group): THREE.Mesh {
+		const geometry = new THREE.BufferGeometry()
+		geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(BOLTS * BOLT_STEPS * 6 * 3), 3))
+		const bolts = new THREE.Mesh(
+			geometry,
+			new THREE.MeshBasicMaterial({
+				color: 0xbfe8ff,
+				transparent: true,
+				opacity: 0.95,
+				blending: THREE.AdditiveBlending,
+				depthWrite: false,
+				side: THREE.DoubleSide
+			})
+		)
+		bolts.frustumCulled = false
+		bolts.visible = false
+		bolts.userData.drawnAt = -1
+		root.add(bolts)
+		return bolts
+	}
+
+	private strike(bolts: THREE.Mesh | undefined, active: boolean, timeSeconds: number): void {
+		if (!bolts) return
+		bolts.visible = active
+		if (!active || timeSeconds - (bolts.userData.drawnAt as number) < 0.045) return
+		bolts.userData.drawnAt = timeSeconds
+		const positions = bolts.geometry.getAttribute('position') as THREE.BufferAttribute
+		const out = positions.array as Float32Array
+		const reach = propsDef.trap.radius
+		let o = 0
+		for (let b = 0; b < BOLTS; b++) {
+			// from a post (or the plate's middle) out to a point on the ground it covers, or to the next post
+			const a0 = (Math.floor(Math.random() * 4) / 4) * Math.PI * 2 + Math.PI / 4
+			let x = b === 0 ? 0 : Math.cos(a0) * 1.05
+			let z = b === 0 ? 0 : Math.sin(a0) * 1.05
+			let y = b === 0 ? 0.1 : 0.74
+			const a1 = Math.random() * Math.PI * 2
+			const r1 = reach * (0.45 + Math.random() * 0.55)
+			const tx = Math.cos(a1) * r1
+			const tz = Math.sin(a1) * r1
+			for (let k = 0; k < BOLT_STEPS; k++) {
+				const t = (k + 1) / BOLT_STEPS
+				const jitter = k === BOLT_STEPS - 1 ? 0 : 0.35
+				const nx = x + (tx - x) / (BOLT_STEPS - k) + (Math.random() - 0.5) * jitter
+				const nz = z + (tz - z) / (BOLT_STEPS - k) + (Math.random() - 0.5) * jitter
+				const ny = y + (0.08 - y) * t + Math.random() * 0.05
+				// a flat ribbon from (x, y, z) to (nx, ny, nz), its width across the step
+				const dx = nx - x
+				const dz = nz - z
+				const length = Math.hypot(dx, dz) || 1
+				const w = (b === 0 ? 0.07 : 0.05) * (1 - t * 0.5)
+				const px = (-dz / length) * w
+				const pz = (dx / length) * w
+				out.set([x - px, y, z - pz, x + px, y, z + pz, nx + px, ny, nz + pz], o)
+				out.set([x - px, y, z - pz, nx + px, ny, nz + pz, nx - px, ny, nz - pz], o + 9)
+				o += 18
+				x = nx
+				y = ny
+				z = nz
+			}
+		}
+		positions.needsUpdate = true
 	}
 
 	private material(color: number, emissive = 0): THREE.MeshStandardMaterial {
@@ -130,7 +280,57 @@ export class PropRenderer {
 			case 'sandbags': {
 				const body = add(new THREE.Mesh(this.box, this.material(0x8a7a52)), 0.4)
 				body.scale.set(w * 0.98, 0.8, h * 0.98)
-				this.dressUp(prop, root, [body], [w, 0.8, h], null)
+				this.stackBags(prop, root, body, w, h)
+				break
+			}
+			case 'vehicle': {
+				// the vehicle to walk out (a car, the fuel tanker, the armoured carrier), its health over it
+				const look = prop.def.look ?? 'scene-car'
+				const turn = VEHICLE_TURN[look] ?? 0
+				const body = add(new THREE.Mesh(this.box, this.material(0x3a4a3e)), 0.8)
+				body.scale.set(1.8, 1.5, 4.2)
+				bar = this.bar(root, look === 'scene-car' ? 2.2 : 3.4)
+				if (this.models)
+					void propModel(`${this.assets}/models/props/${look}.glb`).then(model => {
+						if (!model || !root.parent) return
+						const copy = model.clone()
+						// scenery models come at their real size; each faces its own way
+						copy.rotation.y = turn
+						root.add(copy)
+						body.visible = false
+					})
+				root.userData.heading = 0
+				break
+			}
+			case 'weakwall': {
+				// a stretch of wall like the rest, but cracked through and patched: it gives way under fire
+				const [sides, top] = this.wallMaterials ?? [this.material(0x5d665a), this.material(0x3a3c38)]
+				const body = add(new THREE.Mesh(this.box, [sides, sides, top, top, sides, sides]), WEAK_WALL_HEIGHT / 2)
+				body.scale.set(w, WEAK_WALL_HEIGHT, h)
+				body.receiveShadow = true
+				// the map's own wall materials: the stage disposes of them
+				body.userData.shared = this.wallMaterials !== null
+				const crack = this.material(0x141614)
+				// jagged dark seams on both faces, standing a hair proud of the wall
+				const along = w >= h
+				const length = along ? w : h
+				for (let i = 0; i < 2 + Math.round(length); i++) {
+					const seam = new THREE.Mesh(this.box, crack)
+					const t = (((prop.index * 7 + i * 13) % 17) / 17 - 0.5) * (length - 0.4)
+					const y = 0.6 + (((prop.index * 5 + i * 11) % 13) / 13) * 2
+					const tilt = (((prop.index + i * 3) % 7) / 7 - 0.5) * 2.2
+					const tall = 0.9 + (i % 3) * 0.35
+					if (along) {
+						seam.scale.set(0.06, tall, h + 0.04)
+						seam.rotation.z = tilt
+						seam.position.set(t, y, 0)
+					} else {
+						seam.scale.set(w + 0.04, tall, 0.06)
+						seam.rotation.x = tilt
+						seam.position.set(0, y, t)
+					}
+					root.add(seam)
+				}
 				break
 			}
 			case 'door': {
@@ -238,9 +438,33 @@ export class PropRenderer {
 				break
 			}
 			case 'trap': {
-				glow = new THREE.MeshStandardMaterial({ color: 0x3a3a34, emissive: 0x6fb8ff, emissiveIntensity: 0 })
-				const plate = add(new THREE.Mesh(this.cylinder, glow), 0.04)
-				plate.scale.set(2.4, 0.08, 2.4)
+				// a shock trap: a steel grid plate with four coil posts round it; when it fires, lightning
+				// crawls from post to post and out over the ground it covers
+				const plate = add(new THREE.Mesh(this.cylinder, this.material(0x2c2f30)), 0.03)
+				plate.scale.set(2.4, 0.06, 2.4)
+				plate.receiveShadow = true
+				glow = new THREE.MeshStandardMaterial({ color: 0x1a2430, emissive: 0x6fc8ff, emissiveIntensity: 0.15 })
+				for (let k = 0; k < 4; k++) {
+					const a = (k / 4) * Math.PI * 2 + Math.PI / 4
+					const post = add(new THREE.Mesh(this.cylinder, this.material(0x4a4e50)), 0.35)
+					post.scale.set(0.16, 0.7, 0.16)
+					post.position.set(Math.cos(a) * 1.05, 0.35, Math.sin(a) * 1.05)
+					const cap = add(new THREE.Mesh(this.cylinder, glow), 0.74)
+					cap.scale.set(0.22, 0.1, 0.22)
+					cap.position.set(Math.cos(a) * 1.05, 0.74, Math.sin(a) * 1.05)
+				}
+				const ring = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: 0x6fc8ff, transparent: true, opacity: 0.25, depthWrite: false })
+				)
+				ring.scale.setScalar(propsDef.trap.radius)
+				ring.position.y = 0.06
+				root.add(ring)
+				root.userData.ring = ring
+				root.userData.bolts = this.lightning(root)
+				light = new THREE.PointLight(0x7fd0ff, 0, 7, 1.6)
+				light.position.y = 1
+				root.add(light)
 				break
 			}
 			case 'survivor': {
@@ -272,6 +496,57 @@ export class PropRenderer {
 				ring.position.y = 0.05
 				root.add(ring)
 				bar = this.bar(root, 2.2)
+				break
+			}
+			case 'search': {
+				// something to go through: a wreck, a locker, a car boot; a ring round it until it has been searched
+				const body = add(new THREE.Mesh(this.box, this.material(0x4a4f48)), 0.35)
+				body.scale.set(0.9, 0.7, 0.6)
+				// a car is a car's length; a crate, a locker or a bench about a metre
+				const car = prop.def.look === 'scene-car'
+				this.dressUp(prop, root, [body], car ? [1.9, 1.4, 4.3] : [1.1, 1, 1.1], null)
+				const ring = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: 0xffc02e, transparent: true, opacity: 0.6, depthWrite: false })
+				)
+				ring.scale.setScalar(1.1)
+				ring.position.y = 0.05
+				root.add(ring)
+				root.userData.ring = ring
+				root.rotation.y = (prop.index * 2.399) % (Math.PI * 2)
+				break
+			}
+			case 'charge': {
+				// where the charge goes: a red ring until it is planted, then the charge itself, blinking
+				const ring = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, opacity: 0.6, depthWrite: false })
+				)
+				ring.scale.setScalar(0.9)
+				ring.position.y = 0.05
+				root.add(ring)
+				root.userData.ring = ring
+				const pack = add(new THREE.Mesh(this.box, this.material(0x5a5a3a)), 0.18)
+				pack.scale.set(0.5, 0.3, 0.35)
+				glow = this.material(0x220000, 0xff2a1a)
+				const lamp = add(new THREE.Mesh(this.box, glow), 0.36)
+				lamp.scale.set(0.1, 0.06, 0.1)
+				root.userData.pack = pack
+				root.userData.lamp = lamp
+				if (this.models)
+					void propModel(`${this.assets}/models/props/item-c4.glb`).then(model => {
+						if (!model || !root.parent) return
+						const copy = model.clone()
+						copy.scale.setScalar(0.55)
+						copy.visible = pack.visible
+						root.userData.model = copy
+						root.add(copy)
+						pack.scale.setScalar(0.001)
+					})
+				light = new THREE.PointLight(0xff2a1a, 0, 4, 2)
+				light.position.y = 0.6
+				root.add(light)
+				bar = this.bar(root, 1.2)
 				break
 			}
 			case 'carry': {
@@ -377,8 +652,33 @@ export class PropRenderer {
 			root.position.x += (prop.x - root.position.x) * ease
 			root.position.z += (prop.y - root.position.z) * ease
 			const gone = prop.state === PropState.destroyed || prop.state === PropState.delivered
-			root.visible = !gone || prop.def.kind === 'door' || prop.def.kind === 'defend'
+			root.visible =
+				prop.state !== PropState.hidden &&
+				(!gone || prop.def.kind === 'door' || prop.def.kind === 'defend' || prop.def.kind === 'search')
 			switch (prop.def.kind) {
+				case 'search': {
+					// amber and pulsing until searched; green where it was found; nothing once gone through
+					const ring = root.userData.ring as THREE.Mesh
+					const material = ring.material as THREE.MeshBasicMaterial
+					ring.visible = prop.state !== PropState.done
+					material.color.setHex(prop.state === PropState.delivered ? 0xb8f23c : 0xffc02e)
+					material.opacity = prop.state === PropState.delivered ? 0.8 : 0.35 + 0.35 * Math.sin(timeSeconds * 3) ** 2
+					break
+				}
+				case 'charge': {
+					const armed = prop.state === PropState.active
+					;(root.userData.ring as THREE.Mesh).visible = prop.state === PropState.idle
+					;(root.userData.ring as THREE.Mesh).scale.setScalar(0.9 + 0.1 * Math.sin(timeSeconds * 4))
+					for (const part of [root.userData.pack, root.userData.lamp, root.userData.model] as THREE.Object3D[])
+						if (part) part.visible = armed
+					// blinking faster as the fuse burns down (its bar is its health)
+					const blink = Math.sin(timeSeconds * (armed ? 12 : 0)) > 0
+					if (drawn.glow) drawn.glow.emissiveIntensity = armed && blink ? 2.5 : 0.1
+					if (drawn.light) drawn.light.intensity = armed && blink ? 3 : 0
+					this.setBar(drawn.bar, armed ? prop.health / prop.maxHealth : 0)
+					if (prop.state === PropState.done) root.visible = false
+					break
+				}
 				case 'door': {
 					const slab = root.children[0] as THREE.Mesh
 					const open = prop.state === PropState.open || prop.state === PropState.destroyed
@@ -442,11 +742,25 @@ export class PropRenderer {
 					drawn.glow?.emissive.setHex(prop.powered ? 0xfff2cc : 0x000000)
 					if (drawn.light) drawn.light.intensity = prop.powered ? 40 : 0
 					break
-				case 'trap':
-					if (drawn.glow) {
-						drawn.glow.emissiveIntensity = prop.state === PropState.active ? 0.6 + 0.4 * Math.sin(timeSeconds * 30) : 0
-					}
+				case 'vehicle': {
+					this.setBar(drawn.bar, prop.health / prop.maxHealth)
+					// it faces the way it drives
+					const dx = prop.x - root.position.x
+					const dz = prop.y - root.position.z
+					if (Math.hypot(dx, dz) > 0.002) root.userData.heading = Math.atan2(dx, dz)
+					root.rotation.y += ((root.userData.heading as number) - root.rotation.y) * Math.min(1, dt * 6)
 					break
+				}
+				case 'trap': {
+					const active = prop.state === PropState.active
+					if (drawn.glow)
+						drawn.glow.emissiveIntensity = active ? 1.5 + Math.random() : 0.15 + 0.1 * Math.sin(timeSeconds * 3)
+					const ring = root.userData.ring as THREE.Mesh | undefined
+					if (ring) (ring.material as THREE.MeshBasicMaterial).opacity = active ? 0.55 : 0.12
+					if (drawn.light) drawn.light.intensity = active ? 14 + Math.random() * 18 : 0
+					this.strike(root.userData.bolts as THREE.Mesh | undefined, active, timeSeconds)
+					break
+				}
 				case 'survivor': {
 					this.setBar(drawn.bar, prop.state === PropState.idle ? prop.progress : prop.health / prop.maxHealth)
 					const person = root.userData.person as THREE.Object3D | undefined
@@ -498,7 +812,8 @@ export class PropRenderer {
 			drawn.root.traverse(node => {
 				const mesh = node as THREE.Mesh
 				// a weapon model's materials are shared with the soldiers' guns
-				if (mesh.material && !mesh.userData.shared) (mesh.material as THREE.Material).dispose()
+				if (!mesh.material || mesh.userData.shared) return
+				for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose()
 			})
 		}
 		this.box.dispose()

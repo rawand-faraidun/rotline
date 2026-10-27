@@ -1,11 +1,12 @@
 import { buffs, maps } from '@rotline/game-data'
 import type { ObjectState } from '@rotline/protocol'
-import { ObjectKind } from '@rotline/sim'
+import { createProps, Grid, ObjectKind } from '@rotline/sim'
 import { Interpolator } from './interpolate.ts'
 import { Decor } from './render/decor.ts'
 import { autoDecor } from './render/dressing.ts'
 import { Effects } from './render/effects.ts'
 import { ObjectRenderer } from './render/objects.ts'
+import { PropRenderer } from './render/props.ts'
 import { Stage } from './render/scene.ts'
 import { surroundings } from './render/surroundings.ts'
 import { ZombieRenderer } from './render/zombies.ts'
@@ -25,6 +26,9 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		'/assets',
 		true
 	)
+	// the map's props as they start (doors, turrets, cracked walls)
+	const props = createProps(map, new Grid(map))
+	const propRenderer = new PropRenderer(stage.scene, props, '/assets', true, stage.wallMaterials)
 	const view = new Interpolator().view
 	const objectRenderer = new ObjectRenderer(stage.scene, '/assets')
 	// what lies on the ground: every pickup in a row, and a sentry, a claymore, a decoy, sandbags
@@ -102,10 +106,12 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		stage.follow(at.x, at.y, at.x + 1, at.y, time - last)
 		last = time
 		effects.update(time)
-		decor.update(time)
+		decor.update(time, at.x, at.y)
+		stage.setFlashlights([{ x: at.x, y: at.y, angle: 0, on: true }])
 		if (frozen === null) for (const fire of fires) effects.burning(fire.x, fire.y, 1, time, 1 / 60)
 		zombies?.update(view, time)
 		objectRenderer.update(showObjects ? objects : [], time)
+		propRenderer.update(props, time, 1 / 60)
 		stage.render()
 	}
 	loop()

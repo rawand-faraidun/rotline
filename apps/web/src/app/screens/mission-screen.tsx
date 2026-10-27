@@ -4,10 +4,12 @@ import {
 	type GameHandle,
 	type GraphicsSetting,
 	type HudState,
+	loadDamageNumbers,
 	loadGraphicsSetting,
+	saveDamageNumbers,
 	saveGraphicsSetting
 } from '@rotline/client'
-import { missionById, player as playerDef, SURVIVAL_MAP, zombies } from '@rotline/game-data'
+import { missionById, missionFor, missionMap, player as playerDef, survivalMap, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -79,7 +81,7 @@ function Lives({ left }: { left: number }) {
 
 function Weapons({ hud }: { hud: HudState }) {
 	return (
-		<ol className="flex flex-col items-end gap-2">
+		<ol className="relative flex flex-col items-end gap-2">
 			{hud.weapons.map((weapon, slot) => (
 				<li
 					// biome-ignore lint/suspicious/noArrayIndexKey: slots are fixed positions
@@ -102,7 +104,8 @@ function Weapons({ hud }: { hud: HudState }) {
 				</li>
 			))}
 			{hud.reloading !== null && (
-				<li>
+				// above the guns, so nothing moves while it shows
+				<li className="absolute right-0 bottom-full mb-2">
 					<Badge tone="warning" className="animate-blink">
 						{t.reloading}
 					</Badge>
@@ -118,7 +121,7 @@ function Abilities({ hud }: { hud: HudState }) {
 	return (
 		<ol className="flex items-end gap-2" aria-label={t.abilities}>
 			{hud.abilities.map(ability => {
-				const ready = ability.seconds === 0
+				const ready = ability.seconds === 0 && !ability.jammed
 				return (
 					<li
 						key={ability.key}
@@ -129,15 +132,23 @@ function Abilities({ hud }: { hud: HudState }) {
 					>
 						{!ready && (
 							<span
-								className="absolute inset-x-0 bottom-0 bg-surface-raised/80"
-								style={{ height: `${Math.min(100, (ability.seconds / ability.cooldown) * 100)}%` }}
+								className={cn('absolute inset-x-0 bottom-0', ability.jammed ? 'bg-alert/30' : 'bg-surface-raised/80')}
+								style={{
+									height: ability.jammed ? '100%' : `${Math.min(100, (ability.seconds / ability.cooldown) * 100)}%`
+								}}
 								aria-hidden="true"
 							/>
 						)}
 						<span className="relative flex items-center justify-between">
 							<span className="cut-sm bg-bone px-1.5 font-bold text-rot-black text-xs">{ability.key}</span>
-							<span className={cn('font-display text-lg tabular-nums', ready ? 'text-rot-lime' : 'text-bone')}>
-								{ready ? t.ready : ability.seconds}
+							<span
+								className={cn(
+									'font-display tabular-nums',
+									ability.jammed ? 'text-alert text-sm uppercase' : 'text-lg',
+									ready ? 'text-rot-lime' : !ability.jammed && 'text-bone'
+								)}
+							>
+								{ability.jammed ? t.jammed : ready ? t.ready : ability.seconds}
 							</span>
 						</span>
 						<span className="relative truncate font-bold text-[11px] uppercase tracking-wide">{ability.name}</span>
@@ -172,12 +183,28 @@ function objectiveProgress(mission: NonNullable<HudState['mission']>): string {
 		case 'reach':
 		case 'retrieve':
 			return mission.type === 'reach' ? t.progressReach : t.progressCarry
+		case 'escape':
+			return t.progressEscape
+		case 'escort':
+			return format(t.progressMetres, values)
+		case 'capture':
+			return format(t.progressSeconds, values)
 		case 'hold':
 		case 'survive':
 		case 'defend':
 			return format(t.progressSeconds, values)
 		case 'extract':
 			return format(t.progressLeft, values)
+		case 'search':
+			return format(t.progressFound, values)
+		case 'repair':
+			return format(t.progressMended, values)
+		case 'deliver':
+			return format(t.progressDelivered, values)
+		case 'demolish':
+			return mission.progress === 0 ? t.progressPlant : format(t.progressFuse, values)
+		case 'hunt':
+			return format(t.progressTargets, values)
 		default:
 			return format(t.progressKills, values)
 	}
@@ -448,6 +475,9 @@ function Toasts({ hud }: { hud: HudState }) {
 					{toast.kind === 'threshold' && (
 						<span className="font-bold text-warning">{format(t.threshold, { salvage: toast.text })}</span>
 					)}
+					{toast.kind === 'secret' && (
+						<span className="font-bold text-warning uppercase tracking-wide">{t.secretFound}</span>
+					)}
 					{toast.kind === 'resupply' && (
 						<span className="font-bold text-rot-lime uppercase tracking-wide">
 							{toast.text === '0'
@@ -532,6 +562,25 @@ function GraphicsSettings() {
 	)
 }
 
+/** Floating damage numbers over what you hit, saved in this browser (the firing range always shows them). */
+function DamageNumberSetting({ handle }: { handle: GameHandle }) {
+	const [on, setOn] = useState(() => loadDamageNumbers())
+	return (
+		<label className="flex items-center gap-2 text-sm">
+			<input
+				type="checkbox"
+				checked={on}
+				onChange={event => {
+					setOn(event.target.checked)
+					saveDamageNumbers(event.target.checked)
+					handle.damageNumbers(event.target.checked)
+				}}
+			/>
+			{t.damageNumbers}
+		</label>
+	)
+}
+
 function PauseMenu({
 	handle,
 	range,
@@ -574,6 +623,7 @@ function PauseMenu({
 				</div>
 				<SoundSettings handle={handle} />
 				<GraphicsSettings />
+				<DamageNumberSetting handle={handle} />
 				<p className="text-muted text-xs">{t.controls}</p>
 			</Panel>
 		</div>
@@ -709,7 +759,9 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					return
 				}
 				const { ticket, path, direct } = issued
-				const map = range ? 'range' : (missionById(issued.mission?.id ?? '')?.map ?? SURVIVAL_MAP)
+				// a contract runs on the map its room picked; Survival on the arena the leader chose
+				const layout = !range && issued.mission ? missionFor(issued.mission.id, issued.room) : undefined
+				const map = range ? 'range' : layout ? missionMap(layout) : survivalMap(issued.arena)
 				// the engine and its assets load only now, never on the landing page or lobby
 				const { startGame } = await import('@rotline/client')
 				if (cancelled || !canvasRef.current) return
@@ -720,7 +772,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					url: [...(direct ? [direct] : []), `${protocol}//${location.host}${path}`],
 					ticket,
 					assets: '/assets',
-					map
+					map,
+					room: issued.room
 				})
 				setHandle(game)
 				await game.ready
@@ -875,7 +928,10 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						<p
 							className={cn(
 								'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
-								hud.banner.text === 'wipe' || hud.banner.text === 'timeout' || hud.banner.text === 'lives'
+								hud.banner.text === 'wipe' ||
+									hud.banner.text === 'timeout' ||
+									hud.banner.text === 'lives' ||
+									hud.banner.text === 'wiped'
 									? 'text-alert'
 									: hud.banner.text === 'wave'
 										? 'text-warning'
@@ -895,18 +951,45 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 											: format(t.wipeBanner, { wave: String(hud.banner.wave) })
 									: hud.banner.text === 'lives'
 										? t.outOfLivesBanner
-										: hud.banner.text === 'objective'
-											? t.objectiveBanner
-											: hud.banner.text === 'checkpoint'
-												? t.checkpointBanner
-												: hud.banner.text === 'failed'
-													? t.failedBanner
-													: hud.banner.text === 'timeout'
-														? t.timeoutBanner
-														: hud.banner.text === 'run-over'
-															? format(t.runOverBanner, { wave: String(hud.banner.wave) })
-															: t.completeBanner}
+										: hud.banner.text === 'wiped'
+											? t.contractFailedBanner
+											: hud.banner.text === 'objective'
+												? t.objectiveBanner
+												: hud.banner.text === 'checkpoint'
+													? t.checkpointBanner
+													: hud.banner.text === 'failed'
+														? t.failedBanner
+														: hud.banner.text === 'timeout'
+															? t.timeoutBanner
+															: hud.banner.text === 'run-over'
+																? format(t.runOverBanner, { wave: String(hud.banner.wave) })
+																: t.completeBanner}
 						</p>
+					)}
+
+					{hud.silence && (
+						// the game is silent: say why, so a held or muted sound is never a mystery
+						<p className="pointer-events-none absolute top-16 left-1/2 -translate-x-1/2 bg-rot-black/80 px-3 py-1 font-bold text-warning text-xs uppercase tracking-[0.2em]">
+							{hud.silence === 'blocked' ? t.soundBlocked : t.soundMuted}
+						</p>
+					)}
+
+					{hud.note && (
+						// a note lying where the player stands: read while standing on it
+						<section
+							aria-live="polite"
+							className="frame cut pointer-events-none absolute bottom-40 left-1/2 w-[min(34rem,90vw)] -translate-x-1/2 p-5 [--frame-color:var(--color-warning)] [--frame-fill:rgb(22_20_14/0.92)]"
+						>
+							<p className="flex justify-between font-bold text-[0.65rem] text-warning uppercase tracking-[0.2em]">
+								<span>{t.noteFound}</span>
+								<span>{format(t.notesFound, { found: String(hud.note.found), total: String(hud.note.total) })}</span>
+							</p>
+							<h2 className="mt-1 font-display text-2xl text-bone uppercase">{hud.note.title}</h2>
+							<p className="mt-2 whitespace-pre-line font-serif text-bone/90 text-sm italic leading-relaxed">
+								{hud.note.text}
+							</p>
+							<p className="mt-2 text-right text-muted text-xs">— {hud.note.by}</p>
+						</section>
 					)}
 
 					<div className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]">

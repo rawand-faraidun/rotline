@@ -31,12 +31,6 @@
 			"licence": "CC0 1.0"
 		},
 		{
-			"name": "Bricks 076 A",
-			"author": "ambientCG (Lennart Demes)",
-			"page": "https://ambientcg.com/view?id=Bricks076A",
-			"licence": "CC0 1.0"
-		},
-		{
 			"name": "Metal Plates 013",
 			"author": "ambientCG (Lennart Demes)",
 			"page": "https://ambientcg.com/view?id=MetalPlates013",
@@ -52,6 +46,66 @@
 			"name": "Gravel 040",
 			"author": "ambientCG (Lennart Demes)",
 			"page": "https://ambientcg.com/view?id=Gravel040",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Wood Floor 041",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=WoodFloor041",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Tiles 036",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Tiles036",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Gravel 022",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Gravel022",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Paving Stones 092",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=PavingStones092",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Ground 067",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Ground067",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Grass 004",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=Grass004",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Paving Stones 070",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=PavingStones070",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Painted Plaster 017",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=PaintedPlaster017",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Corrugated Steel 006 A",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=CorrugatedSteel006A",
+			"licence": "CC0 1.0"
+		},
+		{
+			"name": "Wood Siding 008",
+			"author": "ambientCG (Lennart Demes)",
+			"page": "https://ambientcg.com/view?id=WoodSiding008",
 			"licence": "CC0 1.0"
 		}
 	]

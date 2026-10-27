@@ -9,6 +9,9 @@
 	"crate": {
 		"health": 200
 	},
+	"weakwall": {
+		"health": 240
+	},
 	"sandbags": {
 		"health": 400
 	},
@@ -70,5 +73,17 @@
 	},
 	"interactRange": 1.6,
 	"repairPerSecond": 50,
-	"extractIdleSeconds": 15
+	"extractIdleSeconds": 15,
+	"vehicle": {
+		"health": 900
+	},
+	"search": {
+		"holdSeconds": 2.5
+	},
+	"charge": {
+		"plantSeconds": 3,
+		"health": 700,
+		"blastDamage": 2000,
+		"playerDamage": 140
+	}
 }

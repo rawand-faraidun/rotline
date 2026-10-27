@@ -6,22 +6,28 @@ import { EFFECTS_LAYER } from './post.ts'
 const TRACERS = 96
 const TRACER_SECONDS = 0.07
 
-/** How a weapon's shots look: tracer colour, thickness and life (seconds), and muzzle flash size. */
-export type ShotLook = { color: number; width: number; life: number; flash: number }
+/**
+ * How a weapon's shots look: tracer colour and thickness, how long the bright streak of each bullet is
+ * (metres) and how fast it flies (m/s), how long a full-length line lingers (life, for beams), and the
+ * muzzle flash size. Every bullet is its own streak flying down its path, so a fast gun shows a stream
+ * of rounds, one per shot.
+ */
+export type ShotLook = { color: number; width: number; life: number; flash: number; streak: number; speed: number }
 
 /** Each kind of gun draws its own shots: pellet sprays, long bright sniper streaks, orange MG tracers. */
 export const SHOT_LOOKS: Record<string, ShotLook> = {
-	pistol: { color: 0xffd9a0, width: 0.8, life: 0.05, flash: 0.7 },
-	smg: { color: 0xffe6b0, width: 0.75, life: 0.04, flash: 0.75 },
-	rifle: { color: 0xfff0b8, width: 1, life: 0.06, flash: 1 },
-	shotgun: { color: 0xffc878, width: 0.7, life: 0.06, flash: 1.5 },
-	lmg: { color: 0xff9a48, width: 1.3, life: 0.08, flash: 1.15 },
-	sniper: { color: 0xeaf4ff, width: 1.8, life: 0.22, flash: 1.5 },
-	minigun: { color: 0xff8a3a, width: 1.1, life: 0.06, flash: 1 },
-	shock: { color: 0x7fd8ff, width: 1.6, life: 0.12, flash: 0.9 },
-	launcher: { color: 0xffe2a0, width: 1, life: 0.06, flash: 1.6 },
-	flamethrower: { color: 0xffa040, width: 1, life: 0.06, flash: 0.6 },
-	chemical: { color: 0x9fe04a, width: 1, life: 0.06, flash: 0.6 }
+	pistol: { color: 0xffd9a0, width: 0.8, life: 0.05, flash: 0.7, streak: 1.6, speed: 150 },
+	smg: { color: 0xffe6b0, width: 0.75, life: 0.04, flash: 0.75, streak: 1.4, speed: 150 },
+	rifle: { color: 0xfff0b8, width: 1, life: 0.06, flash: 1, streak: 2.2, speed: 190 },
+	shotgun: { color: 0xffc878, width: 0.7, life: 0.06, flash: 1.5, streak: 1.1, speed: 140 },
+	lmg: { color: 0xff9a48, width: 1.2, life: 0.08, flash: 1.15, streak: 2.4, speed: 170 },
+	// the sniper's shot is a beam: the whole line at once, fading
+	sniper: { color: 0xeaf4ff, width: 1.8, life: 0.22, flash: 1.5, streak: 0, speed: 0 },
+	minigun: { color: 0xff8a3a, width: 1.05, life: 0.06, flash: 1, streak: 1.8, speed: 180 },
+	shock: { color: 0x7fd8ff, width: 1.6, life: 0.12, flash: 0.9, streak: 0, speed: 0 },
+	launcher: { color: 0xffe2a0, width: 1, life: 0.06, flash: 1.6, streak: 1.5, speed: 120 },
+	flamethrower: { color: 0xffa040, width: 1, life: 0.06, flash: 0.6, streak: 0, speed: 0 },
+	chemical: { color: 0x9fe04a, width: 1, life: 0.06, flash: 0.6, streak: 0, speed: 0 }
 }
 const DEFAULT_LOOK = SHOT_LOOKS.rifle as ShotLook
 const DECALS = 800
@@ -71,6 +77,8 @@ export class Effects {
 	private readonly tracers: THREE.InstancedMesh
 	private readonly tracerBorn = new Float32Array(TRACERS).fill(-1)
 	private readonly tracerLife = new Float32Array(TRACERS).fill(TRACER_SECONDS)
+	/** per tracer: start x, height, start z, direction x, direction z, path length, streak length, speed, width */
+	private readonly tracerPath = new Float32Array(TRACERS * 9)
 	private tracerHead = 0
 	private readonly decals: THREE.InstancedMesh
 	private decalHead = 0
@@ -107,7 +115,7 @@ export class Effects {
 		this.gore = gore
 		this.explosions = new Explosions(scene)
 		this.tracers = new THREE.InstancedMesh(
-			new THREE.BoxGeometry(0.035, 0.035, 1).translate(0, 0, 0.5),
+			new THREE.BoxGeometry(0.022, 0.022, 1).translate(0, 0, 0.5),
 			new THREE.MeshBasicMaterial({
 				color: 0xffffff,
 				transparent: true,
@@ -282,16 +290,41 @@ export class Effects {
 		this.tracers.setColorAt(i, this.tint.set(style.color))
 		if (this.tracers.instanceColor) this.tracers.instanceColor.needsUpdate = true
 		this.tracerHead = (i + 1) % TRACERS
-		this.quaternion.setFromAxisAngle(this.up, Math.PI / 2 - angle)
+		this.tracerBorn[i] = now
+		this.tracerLife[i] = style.speed > 0 ? (length + style.streak) / style.speed : style.life
+		this.tracerPath.set(
+			[x, height, y, Math.cos(angle), Math.sin(angle), Math.max(0.1, length), style.streak, style.speed, style.width],
+			i * 9
+		)
+		this.placeTracer(i, now)
+		this.tracers.instanceMatrix.needsUpdate = true
+	}
+
+	/** A bullet's streak where it is now: its head flying down the path, its tail behind it. */
+	private placeTracer(i: number, now: number): void {
+		const p = this.tracerPath
+		const o = i * 9
+		const [x, height, y, dx, dy, length, streak, speed, width] = [
+			p[o] as number,
+			p[o + 1] as number,
+			p[o + 2] as number,
+			p[o + 3] as number,
+			p[o + 4] as number,
+			p[o + 5] as number,
+			p[o + 6] as number,
+			p[o + 7] as number,
+			p[o + 8] as number
+		]
+		const flown = (now - (this.tracerBorn[i] as number)) * speed
+		const head = speed > 0 ? Math.min(length, flown) : length
+		const tail = speed > 0 ? Math.max(0, Math.min(length, flown - streak)) : 0
+		this.quaternion.setFromAxisAngle(this.up, Math.PI / 2 - Math.atan2(dy, dx))
 		this.matrix.compose(
-			this.position.set(x, height, y),
+			this.position.set(x + dx * tail, height, y + dy * tail),
 			this.quaternion,
-			this.scale.set(style.width, style.width, Math.max(0.1, length))
+			this.scale.set(width, width, Math.max(0.05, head - tail))
 		)
 		this.tracers.setMatrixAt(i, this.matrix)
-		this.tracerBorn[i] = now
-		this.tracerLife[i] = style.life
-		this.tracers.instanceMatrix.needsUpdate = true
 	}
 
 	muzzleFlash(x: number, y: number, angle: number, now: number, size = 1): void {
@@ -506,11 +539,12 @@ export class Effects {
 		let changed = false
 		for (let i = 0; i < TRACERS; i++) {
 			const born = this.tracerBorn[i] as number
-			if (born >= 0 && now - born > (this.tracerLife[i] as number)) {
+			if (born < 0) continue
+			changed = true
+			if (now - born > (this.tracerLife[i] as number)) {
 				this.tracers.setMatrixAt(i, this.hidden)
 				this.tracerBorn[i] = -1
-				changed = true
-			}
+			} else this.placeTracer(i, now)
 		}
 		if (changed) this.tracers.instanceMatrix.needsUpdate = true
 		this.explosions.update(now)

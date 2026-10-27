@@ -10,11 +10,15 @@ import airfieldData from '../data/maps/airfield.json' with { type: 'json' }
 import compoundData from '../data/maps/compound.json' with { type: 'json' }
 import crossroadsData from '../data/maps/crossroads.json' with { type: 'json' }
 import depotData from '../data/maps/depot.json' with { type: 'json' }
+import docksData from '../data/maps/docks.json' with { type: 'json' }
+import elmcloseData from '../data/maps/elmclose.json' with { type: 'json' }
+import glasshouseData from '../data/maps/glasshouse.json' with { type: 'json' }
 import hospitalData from '../data/maps/hospital.json' with { type: 'json' }
 import landfallData from '../data/maps/landfall.json' with { type: 'json' }
 import mansionData from '../data/maps/mansion.json' with { type: 'json' }
 import metroData from '../data/maps/metro.json' with { type: 'json' }
 import motorpoolData from '../data/maps/motorpool.json' with { type: 'json' }
+import oldtownData from '../data/maps/oldtown.json' with { type: 'json' }
 import powerplantData from '../data/maps/powerplant.json' with { type: 'json' }
 import railyardData from '../data/maps/railyard.json' with { type: 'json' }
 import rangeData from '../data/maps/range.json' with { type: 'json' }
@@ -101,7 +105,11 @@ export const maps: Record<string, MapDef> = {
 	hospital: loadMap('hospital', hospitalData),
 	mansion: loadMap('mansion', mansionData),
 	metro: loadMap('metro', metroData),
-	compound: loadMap('compound', compoundData)
+	compound: loadMap('compound', compoundData),
+	oldtown: loadMap('oldtown', oldtownData),
+	glasshouse: loadMap('glasshouse', glasshouseData),
+	docks: loadMap('docks', docksData),
+	elmclose: loadMap('elmclose', elmcloseData)
 }
 export const propsDef = parse('props', propsDataSchema, propsData)
 export const campaign = parse('campaign', campaignSchema, campaignData)
@@ -114,6 +122,37 @@ export const upgrades = parse('upgrades', upgradesSchema, upgradesData)
 export const difficulties = parse('difficulties', difficultiesSchema, difficultiesData)
 export const buffs = parse('buffs', buffsSchema, buffsData)
 export const missions = uniqueById('missions', parse('missions', z.array(missionSchema), missionsData))
+/**
+ * Each mission on each of its maps: the mission as written first, then its variants (contracts run
+ * on several maps). A variant keeps the mission's id, rules and rewards; only the place changes.
+ */
+export const missionLayouts: ReadonlyMap<string, readonly MissionDef[]> = new Map(
+	missions.map(mission => {
+		const { variants, ...base } = mission
+		// parsed data holds no keys set to undefined, so a variant's fields simply replace the mission's
+		const layouts = [mission, ...(variants ?? []).map(variant => ({ ...base, ...variant }) as MissionDef)]
+		return [mission.id, layouts] as const
+	})
+)
+const layouts = [...missionLayouts.values()].flat()
+const laidOut = new WeakMap<MissionDef, MapDef>()
+/**
+ * The map a mission (or one of its variants) plays on: with the props the mission lays on it, the
+ * doors it uses as gates locked, and its own deploy points.
+ */
+export function missionMap(mission: MissionDef): MapDef {
+	let map = laidOut.get(mission)
+	if (!map) {
+		const base = maps[mission.map] as MapDef
+		const gates = mission.gates ?? {}
+		const props = [...(base.props ?? []), ...(mission.props ?? [])].map(prop =>
+			prop.id in gates && !prop.locked ? { ...prop, locked: true } : prop
+		)
+		map = { ...base, props, playerSpawns: mission.playerSpawns ?? base.playerSpawns }
+		laidOut.set(mission, map)
+	}
+	return map
+}
 uniqueById('buffs', buffs.buffs)
 export const skillTrees: Record<ClassId, SkillTree> = {
 	assault: parse('skills/assault', skillTreeSchema, assaultTree),
@@ -180,9 +219,9 @@ for (const tierKey of ['0', '1', '2', '3'] as const) {
 	)
 }
 check(maps.range?.range !== undefined, 'maps/range: needs its range section')
-for (const mission of missions) {
-	const map = maps[mission.map]
-	check(map !== undefined, `missions/${mission.id}: unknown map ${mission.map}`)
+for (const layout of layouts) check(maps[layout.map] !== undefined, `missions/${layout.id}: unknown map ${layout.map}`)
+for (const mission of layouts) {
+	const map = missionMap(mission)
 	for (const key of Object.keys(mission.spawn.composition)) {
 		check(
 			zombies.some(zombie => zombie.id === key && !zombie.dummy),
@@ -223,17 +262,42 @@ for (const mission of missions) {
 		}
 		if (objective.type === 'rescue') for (const id of objective.survivors) needs(id, ['survivor'], 'survivor')
 		if (objective.type === 'retrieve') needs(objective.item, ['carry'], 'item')
+		if (objective.type === 'escort') needs(objective.prop, ['vehicle'], 'vehicle')
+		if (objective.type === 'gather')
+			check(
+				(objective.count ?? objective.items.length) <= objective.items.length,
+				`missions/${mission.id}: a gather objective wants more than it has`
+			)
+		if (objective.type === 'search') {
+			for (const id of objective.props) needs(id, ['search'], 'search spot')
+			check(
+				(objective.count ?? 1) < objective.props.length,
+				`missions/${mission.id}: a search must have more spots than things to find`
+			)
+		}
+		if (objective.type === 'hunt')
+			for (const target of objective.targets) {
+				check(known(target.type), `missions/${mission.id}: hunt names unknown zombie ${target.type}`)
+				check(inside(target.at.x, target.at.y), `missions/${mission.id}: a hunt target is outside the map`)
+			}
+		if (objective.type === 'demolish') {
+			needs(objective.prop, ['charge'], 'charge')
+			for (const id of objective.destroys ?? [])
+				check(propIds.has(id), `missions/${mission.id}: the blast destroys ${id}, which is not on ${mission.map}`)
+		}
+		if (objective.type === 'repair') for (const id of objective.props) needs(id, ['defend', 'vehicle'], 'prop')
+		if (objective.type === 'deliver') for (const id of objective.items) needs(id, ['carry'], 'item')
+		if (objective.type === 'escape')
+			for (const point of [objective.hazard.from, objective.hazard.toward])
+				check(inside(point.x, point.y), `missions/${mission.id}: a hazard point is outside the map`)
 		if (objective.optional)
 			check(
-				objective.type === 'kill' || objective.type === 'interact',
-				`missions/${mission.id}: optional objectives are kill or interact`
+				objective.type === 'kill' || objective.type === 'interact' || objective.type === 'destroy',
+				`missions/${mission.id}: optional objectives are kill, interact or destroy`
 			)
 	}
 	for (const [id, gate] of Object.entries(mission.gates ?? {})) {
-		check(
-			map?.props?.find(prop => prop.id === id)?.locked === true,
-			`missions/${mission.id}: gate ${id} is not a locked door`
-		)
+		check(map?.props?.find(prop => prop.id === id)?.kind === 'door', `missions/${mission.id}: gate ${id} is not a door`)
 		const step = (index: number | undefined) =>
 			index === undefined || (mission.objectives[index] !== undefined && !mission.objectives[index]?.optional)
 		check(
@@ -249,7 +313,7 @@ for (const mission of missions) {
 /** The map's walls (and blockers) and blocking props as cells: 1 wall, 2 prop; for checking positions in the data. */
 function occupancy(map: MapDef): Uint8Array {
 	const cells = new Uint8Array(map.width * map.height)
-	for (const wall of [...map.walls, ...(map.blockers ?? [])]) {
+	for (const wall of [...map.walls, ...(map.blockers ?? []), ...(map.water ?? []), ...(map.fences ?? [])]) {
 		for (let y = wall.y; y < wall.y + wall.h; y++) {
 			for (let x = wall.x; x < wall.x + wall.w; x++) {
 				if (x >= 0 && y >= 0 && x < map.width && y < map.height) cells[y * map.width + x] = 1
@@ -281,7 +345,11 @@ function checkReachable(mission: MissionDef, map: MapDef): void {
 		for (const [id, cells] of gateCells) {
 			const gate = mission.gates?.[id]
 			const open = gate !== undefined && gate.openOn < index && (gate.closeOn === undefined || gate.closeOn >= index)
-			if (!open) for (const cell of cells) blocked[cell] = 1
+			// or an earlier step blew it open
+			const blown = mission.objectives
+				.slice(0, index)
+				.some(earlier => earlier.type === 'demolish' && earlier.destroys?.includes(id))
+			if (!open && !blown) for (const cell of cells) blocked[cell] = 1
 		}
 		const reached = new Uint8Array(walls.length)
 		const first = Math.floor(start.y) * map.width + Math.floor(start.x)
@@ -319,6 +387,29 @@ function checkReachable(mission: MissionDef, map: MapDef): void {
 		if (objective.type === 'rescue')
 			for (const id of objective.survivors) check(near(id), `${where}: ${id} cannot be reached`)
 		if (objective.type === 'retrieve') check(near(objective.item), `${where}: ${objective.item} cannot be reached`)
+		if (objective.type === 'gather')
+			check(
+				objective.items.filter(at).length >= (objective.count ?? objective.items.length),
+				`${where}: not enough of its items can be reached`
+			)
+		if (objective.type === 'capture')
+			for (const area of objective.areas) check(at(area), `${where}: an area cannot be reached`)
+		const props =
+			objective.type === 'search' || objective.type === 'repair'
+				? objective.props
+				: objective.type === 'deliver'
+					? objective.items
+					: objective.type === 'demolish'
+						? [objective.prop]
+						: []
+		for (const id of props) check(near(id), `${where}: ${id} cannot be reached`)
+		if (objective.type === 'hunt')
+			for (const target of objective.targets)
+				check(at(target.at), `${where}: a hunt target stands where nobody can reach`)
+		if (objective.type === 'escort') {
+			check(near(objective.prop), `${where}: ${objective.prop} cannot be reached`)
+			for (const point of objective.path) check(at(point), `${where}: its path leaves the open ground`)
+		}
 		if (objective.checkpoint) {
 			const point = 'area' in objective ? objective.area : objective.checkpointAt
 			if (point) start = point
@@ -332,9 +423,20 @@ const NEIGHBOURS = [
 	[0, -1]
 ] as const
 
-const ON_CELLS = new Set(['barrel', 'crate', 'sandbags', 'door', 'generator', 'terminal', 'turret', 'defend', 'nest'])
-const occupied = new Map<string, Uint8Array>()
-for (const [name, map] of Object.entries(maps)) {
+const ON_CELLS = new Set([
+	'barrel',
+	'crate',
+	'sandbags',
+	'weakwall',
+	'door',
+	'generator',
+	'terminal',
+	'turret',
+	'defend',
+	'nest'
+])
+/** Checks where a map's props stand, and returns its cells with the props marked. */
+function placeProps(name: string, map: MapDef): Uint8Array {
 	const ids = new Set<string>()
 	const cells = occupancy(map)
 	check((map.props?.length ?? 0) <= 4096, `maps/${name}: at most 4096 props`)
@@ -372,20 +474,29 @@ for (const [name, map] of Object.entries(maps)) {
 			)
 		if (prop.locked) check(prop.kind === 'door', `maps/${name}: only doors can be locked`)
 	}
-	occupied.set(name, cells)
+	return cells
 }
-for (const mission of missions) {
-	const map = maps[mission.map]
-	const cells = occupied.get(mission.map)
-	if (!map || !cells) continue
+const occupied = new Map<MapDef, Uint8Array>()
+for (const [name, map] of Object.entries(maps)) occupied.set(map, placeProps(name, map))
+for (const mission of layouts) {
+	const map = missionMap(mission)
+	let cells = occupied.get(map)
+	if (!cells) {
+		cells = placeProps(`${mission.map} (with ${mission.id}'s props)`, map)
+		occupied.set(map, cells)
+	}
 	const floor = (point: { x: number; y: number }, what: string) =>
 		check(
 			cells[Math.floor(point.y) * map.width + Math.floor(point.x)] === 0,
 			`missions/${mission.id}: ${what} is not on open floor`
 		)
 	for (const [index, cache] of mission.caches.entries()) floor(cache, `cache ${index}`)
+	for (const note of mission.notes ?? []) floor(note, `note ${note.id}`)
 	for (const [index, objective] of mission.objectives.entries()) {
 		if ('area' in objective) floor(objective.area, `objective ${index}'s area`)
+		if (objective.type === 'gather') for (const item of objective.items) floor(item, `objective ${index}'s item`)
+		if (objective.type === 'capture') for (const area of objective.areas) floor(area, `objective ${index}'s area`)
+		if (objective.type === 'escort') for (const point of objective.path) floor(point, `objective ${index}'s path`)
 		if (objective.checkpointAt) floor(objective.checkpointAt, `objective ${index}'s checkpoint`)
 		check(
 			!objective.checkpoint || 'area' in objective || objective.checkpointAt !== undefined,

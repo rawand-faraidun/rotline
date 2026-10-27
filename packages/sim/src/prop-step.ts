@@ -18,6 +18,8 @@ export function stepProps(world: World): void {
 				break
 			}
 			case 'trap':
+				// a trap wired to a generator works only while it runs
+				if (prop.powerBy >= 0) prop.powered = world.props[prop.powerBy]?.state === PropState.done
 				if (prop.state === PropState.active) {
 					if (world.tick >= prop.untilTick) {
 						prop.state = PropState.idle
@@ -62,8 +64,9 @@ export function stepProps(world: World): void {
 	}
 }
 
-/** Generators and terminals keep partial work when let go; the rest start over. */
-const keepsProgress = (prop: Prop) => prop.def.kind === 'generator' || prop.def.kind === 'terminal'
+/** Generators and terminals keep partial work when let go, a vehicle the way it has driven; the rest start over. */
+const keepsProgress = (prop: Prop) =>
+	prop.def.kind === 'generator' || prop.def.kind === 'terminal' || prop.def.kind === 'vehicle'
 
 function turret(world: World, prop: Prop): void {
 	if (world.tick < prop.readyTick) return
@@ -207,11 +210,20 @@ function carried(world: World, prop: Prop): void {
 }
 
 export function drop(world: World, prop: Prop, carrier: PlayerState | undefined): void {
-	if (carrier) carrier.carrying = false
+	if (carrier) letGo(carrier)
 	prop.with = 0
 	prop.state = PropState.idle
 	prop.progress = 0
 	world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+}
+
+/** Hands free again: back to the gun held before (a downed player keeps the pistol). */
+export function letGo(carrier: PlayerState): void {
+	carrier.carrying = false
+	if (carrier.downed || carrier.slot !== 2 || carrier.previousSlot === 2) return
+	carrier.slot = carrier.previousSlot
+	carrier.previousSlot = 2
+	carrier.reloadEndTick = 0
 }
 
 /** Is a downed teammate in reach? Then interact revives them instead of working a prop. */
@@ -258,12 +270,16 @@ function usable(world: World, prop: Prop, player: PlayerState): boolean {
 		case 'terminal':
 			return allowed && prop.state === PropState.idle
 		case 'trap':
-			return prop.state === PropState.idle && tick >= prop.readyTick
+			return prop.powered && prop.state === PropState.idle && tick >= prop.readyTick
 		case 'survivor':
 			return allowed && prop.state === PropState.idle
 		case 'carry':
 			return allowed && prop.state === PropState.idle && !player.carrying
+		case 'search':
+		case 'charge':
+			return allowed && prop.state === PropState.idle
 		case 'defend':
+		case 'vehicle':
 			return prop.state !== PropState.destroyed && prop.health < prop.maxHealth
 		case 'ammo':
 			return wantsAmmo(player) && spendableScore(player) >= ammoPrice(world)
@@ -312,7 +328,11 @@ function press(world: World, prop: Prop): void {
 
 function hold(world: World, prop: Prop, player: PlayerState): void {
 	// mending: a welded door or a defend target with damage
-	if ((prop.def.kind === 'door' && prop.state === PropState.welded) || prop.def.kind === 'defend') {
+	if (
+		(prop.def.kind === 'door' && prop.state === PropState.welded) ||
+		prop.def.kind === 'defend' ||
+		prop.def.kind === 'vehicle'
+	) {
 		prop.health = Math.min(prop.maxHealth, prop.health + propsDef.repairPerSecond * DT)
 		return
 	}
@@ -346,6 +366,15 @@ function hold(world: World, prop: Prop, player: PlayerState): void {
 			prop.state = PropState.carried
 			prop.with = player.id
 			player.carrying = true
+			break
+		case 'search':
+			// searched; the mission says whether this was the one
+			prop.state = PropState.done
+			break
+		case 'charge':
+			// armed: the mission lights its fuse, and the dead come for it
+			prop.state = PropState.active
+			prop.untilTick = 0
 			break
 		case 'ammo':
 			// every gun's reserve full again; the price comes out of score earned, never out of rewards
@@ -399,9 +428,15 @@ export function damageProp(world: World, prop: Prop, amount: number, by: number)
 			break
 		case 'barrel':
 		case 'crate':
+		case 'weakwall':
 		case 'sandbags':
 		case 'defend':
+		case 'vehicle':
 		case 'nest':
+			break
+		case 'charge':
+			// only once it is armed (an empty spot is nothing to break)
+			if (prop.state !== PropState.active) return
 			break
 		case 'generator':
 			// only while it runs up; broken then, it stops and must be started again
@@ -430,7 +465,13 @@ export function damageProp(world: World, prop: Prop, amount: number, by: number)
 			playerOnly: by
 		})
 	}
-	if (prop.def.kind === 'survivor' || prop.def.kind === 'defend') world.propLost(prop)
+	if (
+		prop.def.kind === 'survivor' ||
+		prop.def.kind === 'defend' ||
+		prop.def.kind === 'vehicle' ||
+		prop.def.kind === 'charge'
+	)
+		world.propLost(prop)
 }
 
 /** Back to how it started (a restart from the checkpoint). */

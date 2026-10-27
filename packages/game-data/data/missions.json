@@ -1,10 +1,10 @@
 [
 	{
 		"id": "landfall",
-		"name": "Landfall",
+		"name": "Ground Zero",
 		"zone": "ashgate",
-		"map": "landfall",
-		"description": "The transport went down short of Ashgate. Grab the flight recorder, fight up the high street, through the checkpoint and the square, and make the helipad before the evacuation bird leaves.",
+		"map": "depot",
+		"description": "Halden's barley went to Ashgate's food depot, and in the dark it germinated. Get the mill running, take samples for Dr Vey, burn what is growing in the silos and blow the depot before the spores reach the river.",
 		"parTimeSeconds": 480,
 		"timeLimitSeconds": 720,
 		"scoreTarget": 30000,
@@ -14,327 +14,87 @@
 			"perSecond": 1.5,
 			"maxAlive": 70,
 			"composition": {
-				"drudge": 62,
-				"bolter": 14,
-				"crawler": 19,
-				"screamer": 5
+				"drudge": 55,
+				"crawler": 25,
+				"bolter": 12,
+				"swell": 8
 			}
 		},
 		"caches": [
 			{
-				"x": 39.5,
-				"y": 96.5
+				"x": 36.5,
+				"y": 59.5
 			},
 			{
-				"x": 4.5,
-				"y": 51.5
+				"x": 34.5,
+				"y": 28.5
+			},
+			{
+				"x": 9.5,
+				"y": 49.5
 			}
 		],
-		"gates": {
-			"gate-crash": {
-				"openOn": 0,
-				"closeOn": 1,
-				"side": {
-					"x": 22.5,
-					"y": 114.5
-				}
-			},
-			"gate-checkpoint": {
-				"openOn": 3,
-				"closeOn": 4,
-				"side": {
-					"x": 22.5,
-					"y": 64.5
-				}
-			},
-			"gate-pad": {
-				"openOn": 5,
-				"closeOn": 6,
-				"side": {
-					"x": 22.5,
-					"y": 22.5
-				}
-			}
-		},
 		"briefing": [
-			"Your transport went down on the approach to Ashgate. The pilot did not make it.",
-			"Recover the flight recorder from the wreck: it holds the routes for every evacuation run out of the city.",
-			"Fight up the high street, get the checkpoint gate open and clear the square. The bird lifts off the helipad in twelve minutes, with or without you."
+			"Three weeks ago Halden Agritech sprayed a blight called BRIAR on the fields round Ashgate to kill crop pests. The barley went to the food depot, the food went to the town, and the town stopped being a town.",
+			"The army has drawn a line round it: the Rotline. You are Lantern section, and your first job is where it started. The depot's silos are still full of BRIAR grain, and the mould in them is putting out spores.",
+			"Start the mill's generator so the ventilation clears the dust, take four live cultures for Dr Vey, burn the growths in the silo bay, then rig the central silo and run. Kestrel lifts off the rail apron in twelve minutes."
 		],
-		"debrief": "Bird is lifting. Good work, squad. That recorder is going to get a lot of people out.",
+		"debrief": "The depot is a column of smoke you can see from Harrow. Dr Vey has her cultures. She says now she knows what Marlowe sprayed, she can start to undo it.",
 		"objectives": [
 			{
-				"type": "retrieve",
-				"label": "Grab the flight recorder",
-				"item": "recorder",
-				"area": {
-					"x": 22.5,
-					"y": 120.5,
-					"radius": 2.5
-				},
+				"type": "interact",
+				"label": "Start the mill generator to clear the dust",
+				"props": ["generator-mill"],
 				"sections": [0],
-				"spawnScale": 0.3,
+				"spawnScale": 0.6,
 				"checkpoint": true,
+				"checkpointAt": {
+					"x": 22.5,
+					"y": 30.5
+				},
 				"radio": {
-					"speaker": "Command",
-					"start": "Rook, this is Command. Your bird is down short of Ashgate. Pull the flight recorder out of that wreck and get to the street gate before they smell the fuel.",
-					"done": "Recorder secured. The street gate is open: move."
+					"speaker": "Major Okafor",
+					"start": "Lantern, Okafor. The depot's ventilation has been dead for two weeks and the grain dust in there is explosive, choked with BRIAR mould. Get the mill generator up before anyone fires a flare.",
+					"done": "Fans are turning and the lights are on. The warehouse gate is open."
 				}
 			},
 			{
-				"type": "reach",
-				"label": "Fight up the high street",
-				"area": {
-					"x": 22.5,
-					"y": 74.5,
-					"radius": 3
-				},
+				"type": "gather",
+				"label": "Collect four live grain cultures in the warehouse",
+				"look": "sample",
+				"count": 4,
+				"items": [
+					{
+						"x": 36.5,
+						"y": 4.5
+					},
+					{
+						"x": 50.5,
+						"y": 4.5
+					},
+					{
+						"x": 44.5,
+						"y": 12.5
+					},
+					{
+						"x": 60.5,
+						"y": 23.5
+					},
+					{
+						"x": 37.5,
+						"y": 45.5
+					},
+					{
+						"x": 54.5,
+						"y": 50.5
+					}
+				],
 				"sections": [1],
 				"spawnScale": 1.0,
 				"checkpoint": true,
-				"ambush": {
-					"count": 14,
-					"composition": {
-						"drudge": 60,
-						"bolter": 20,
-						"crawler": 20
-					}
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "The high street runs straight to the army checkpoint. The pharmacy on the right still has supplies if you can get the door down.",
-					"done": "Checkpoint ahead. Its gate is dead."
-				}
-			},
-			{
-				"type": "interact",
-				"label": "Restart the gate generator",
-				"props": ["gate-generator"],
-				"sections": [1, 2],
-				"spawnScale": 1.1,
-				"radio": {
-					"speaker": "Command",
-					"start": "Gate's on its own generator. Start it up and keep them off it.",
-					"done": "Generator's up! The gate motor's taking it: hold that checkpoint."
-				}
-			},
-			{
-				"type": "hold",
-				"label": "Hold the checkpoint while the gate opens",
-				"area": {
-					"x": 22.5,
-					"y": 71.5,
-					"radius": 5
-				},
-				"seconds": 20,
-				"sections": [1, 2],
-				"spawnScale": 1.3,
-				"checkpoint": true,
-				"ambush": {
-					"count": 18,
-					"composition": {
-						"drudge": 55,
-						"bolter": 25,
-						"crawler": 20
-					}
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "Gate's grinding open. Every one of them heard that. Hold!",
-					"done": "You're through. The square is crawling."
-				}
-			},
-			{
-				"type": "destroy",
-				"label": "Burn the nests in the square",
-				"props": ["nest-west", "nest-east", "nest-north"],
-				"sections": [3],
-				"spawnScale": 0.9,
-				"checkpoint": true,
-				"ambush": {
-					"count": 10,
-					"composition": {
-						"drudge": 70,
-						"crawler": 30
-					}
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "Those growths in the square are breeding them. Burn all three or the pad will never be clear.",
-					"done": "Nests are down. Something big is coming out of the rubble."
-				},
 				"checkpointAt": {
-					"x": 22.5,
-					"y": 64.5
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Put down the Brute",
-				"count": 1,
-				"of": "brute",
-				"sections": [3],
-				"spawnScale": 0.6,
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 22.5,
-						"y": 38.5
-					}
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "Brute in the square! Stay off its line and keep shooting.",
-					"done": "It's down. The pad gate is open."
-				}
-			},
-			{
-				"type": "hold",
-				"label": "Hold the pad until the bird lands",
-				"area": {
-					"x": 22.5,
-					"y": 12.5,
-					"radius": 6
-				},
-				"seconds": 40,
-				"sections": [4],
-				"spawnScale": 1.4,
-				"checkpoint": true,
-				"ambush": {
-					"count": 20,
-					"composition": {
-						"drudge": 55,
-						"bolter": 25,
-						"crawler": 15,
-						"screamer": 5
-					}
-				},
-				"radio": {
-					"speaker": "Pilot",
-					"start": "Raven Two, forty seconds out. Keep that pad clear for me."
-				}
-			},
-			{
-				"type": "extract",
-				"label": "Get on the bird",
-				"area": {
-					"x": 22.5,
-					"y": 12.5,
-					"radius": 4
-				},
-				"seconds": 40,
-				"sections": [4],
-				"spawnScale": 1.2,
-				"radio": {
-					"speaker": "Pilot",
-					"start": "Wheels down! Everybody on, now!"
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Optional: put down 150",
-				"count": 150,
-				"optional": true
-			}
-		]
-	},
-	{
-		"id": "yard-sweep",
-		"name": "Rail Yard",
-		"zone": "ashgate",
-		"map": "railyard",
-		"description": "The convoy needs the rail yard's points thrown to get through. Find the switch keys in the wrecked station, burn the nests in the container stacks, get the crane gate open, throw the points in the signal box and hold the road until the trucks arrive.",
-		"briefing": [
-			"A freight train jumped the rails at the edge of Ashgate and the yard behind it is crawling.",
-			"The convoy can only get through on the north road, and only if the points are thrown in the signal box. The stationmaster's switch keys are somewhere in the wreck of the station.",
-			"Move north section by section; the gates lock behind you. The convoy waits eleven minutes."
-		],
-		"debrief": "Points thrown, convoy through. That yard was the last way out of the east side.",
-		"parTimeSeconds": 480,
-		"timeLimitSeconds": 660,
-		"scoreTarget": 32000,
-		"enemyLevel": 3,
-		"recommendedLevel": 3,
-		"spawn": {
-			"perSecond": 1.6,
-			"maxAlive": 80,
-			"composition": {
-				"drudge": 56,
-				"bolter": 18,
-				"crawler": 16,
-				"swell": 6,
-				"screamer": 4
-			}
-		},
-		"caches": [
-			{
-				"x": 50.5,
-				"y": 104.5
-			},
-			{
-				"x": 50.5,
-				"y": 89.5
-			},
-			{
-				"x": 44.5,
-				"y": 40.5
-			}
-		],
-		"gates": {
-			"gate-platform": {
-				"openOn": 0,
-				"closeOn": 1,
-				"side": {
-					"x": 27.5,
-					"y": 95.5
-				}
-			},
-			"gate-signals": {
-				"openOn": 3,
-				"closeOn": 4,
-				"side": {
-					"x": 27.5,
-					"y": 55.5
-				}
-			},
-			"gate-road": {
-				"openOn": 5,
-				"closeOn": 6,
-				"side": {
-					"x": 27.5,
-					"y": 24.5
-				}
-			}
-		},
-		"objectives": [
-			{
-				"type": "retrieve",
-				"label": "Find the switch keys",
-				"item": "switch-keys",
-				"area": {
-					"x": 27.5,
-					"y": 101.5,
-					"radius": 2.5
-				},
-				"sections": [0],
-				"spawnScale": 0.5,
-				"checkpoint": true,
-				"radio": {
-					"speaker": "Convoy",
-					"start": "Rook, Convoy. The stationmaster kept the switch keys in his office, west side of the platform. Get them and bring them to the yard gate.",
-					"done": "Keys on the gate. It's open: into the stacks."
-				}
-			},
-			{
-				"type": "destroy",
-				"label": "Burn the nests in the stacks",
-				"props": ["nest-stacks-west", "nest-stacks-centre", "nest-stacks-east"],
-				"sections": [1],
-				"spawnScale": 0.9,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 27.5,
-					"y": 94.5
+					"x": 34.5,
+					"y": 31.5
 				},
 				"ambush": {
 					"count": 12,
@@ -344,124 +104,430 @@
 					}
 				},
 				"radio": {
-					"speaker": "Convoy",
-					"start": "Three nests between the containers. Burn them or they'll fill the yard behind you.",
-					"done": "Nests are down. The north gate runs off the crane generator."
+					"speaker": "Dr Vey",
+					"start": "Dr Vey. I need those cultures intact: if I don't know exactly which variant Marlowe sprayed, I can't make anything to stop it. Four canisters, from the processing chutes.",
+					"done": "Four cultures. That's it. That's what they sprayed."
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Start the crane generator",
-				"props": ["crane-generator"],
-				"sections": [1],
-				"spawnScale": 1.1,
-				"radio": {
-					"speaker": "Convoy",
-					"start": "Generator's by the north gate. Start it up and keep them off it while it runs up."
-				}
-			},
-			{
-				"type": "hold",
-				"label": "Hold the gate while it grinds open",
-				"area": {
-					"x": 27.5,
-					"y": 62.5,
-					"radius": 5
-				},
-				"seconds": 25,
-				"sections": [1],
-				"spawnScale": 1.4,
+				"type": "destroy",
+				"label": "Burn the three growths in the silo bay",
+				"burst": 6,
+				"props": ["nest-silo-1", "nest-silo-2", "nest-silo-3"],
+				"sections": [2],
+				"spawnScale": 0.9,
 				"checkpoint": true,
+				"checkpointAt": {
+					"x": 66.5,
+					"y": 31.5
+				},
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"swell": 40,
+						"drudge": 60
+					}
+				},
+				"radio": {
+					"speaker": "Wren",
+					"start": "Wren. Those aren't grain sacks in the silo bay any more, they're breathing. Each one's full of crawlers. Light them up and be ready when they split.",
+					"done": "That's the last of them. The bay's clear."
+				}
+			},
+			{
+				"type": "demolish",
+				"label": "Rig the central silo and get clear",
+				"prop": "charge-silo",
+				"seconds": 35,
+				"radius": 12,
+				"sections": [1, 2],
+				"spawnScale": 1.4,
 				"ambush": {
 					"count": 16,
 					"composition": {
-						"drudge": 55,
-						"bolter": 30,
-						"screamer": 15
+						"bolter": 70,
+						"drudge": 30
 					}
 				},
 				"radio": {
-					"speaker": "Convoy",
-					"start": "Gate's moving. Hold the ground in front of it!",
-					"done": "Through! The signal box is on the east side."
+					"speaker": "Major Okafor",
+					"start": "Thermite on the central silo's pressure junction. Keep the dead off it for thirty-five seconds, then be out of that red ring: the whole silo is going up.",
+					"done": "There she goes!"
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Throw the points in the signal box",
-				"props": ["points-terminal"],
+				"type": "escape",
+				"label": "Outrun the firestorm to the rail dock",
+				"area": {
+					"x": 89.5,
+					"y": 42.5,
+					"radius": 4
+				},
+				"hazard": {
+					"kind": "fire",
+					"from": {
+						"x": 18,
+						"y": 32
+					},
+					"toward": {
+						"x": 95,
+						"y": 32
+					},
+					"speed": 1.6,
+					"delaySeconds": 6,
+					"damagePerSecond": 25
+				},
 				"sections": [2],
 				"spawnScale": 1.0,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 27.5,
-					"y": 55.5
-				},
 				"radio": {
-					"speaker": "Convoy",
-					"start": "Signal box, east side. Get the door open and throw the points from the panel.",
-					"done": "Points thrown. Something big just woke up in the turntable pit."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Put down the Brute",
-				"count": 1,
-				"of": "brute",
-				"sections": [2],
-				"spawnScale": 0.6,
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 14.5,
-						"y": 43.5
-					}
-				},
-				"radio": {
-					"speaker": "Convoy",
-					"start": "Brute coming out of the turntable! Keep moving and keep shooting.",
-					"done": "It's down. Road gate's open."
-				}
-			},
-			{
-				"type": "hold",
-				"label": "Hold the road until the convoy arrives",
-				"area": {
-					"x": 27.5,
-					"y": 12.5,
-					"radius": 6
-				},
-				"seconds": 35,
-				"sections": [3],
-				"spawnScale": 1.4,
-				"checkpoint": true,
-				"ambush": {
-					"count": 18,
-					"composition": {
-						"drudge": 55,
-						"bolter": 25,
-						"crawler": 20
-					}
-				},
-				"radio": {
-					"speaker": "Convoy",
-					"start": "Thirty-five seconds out. Keep that road clear!"
+					"speaker": "Wren",
+					"start": "The dust caught! The whole milling floor is burning and it's coming east. Rail dock, now!",
+					"done": "You're out of it."
 				}
 			},
 			{
 				"type": "extract",
-				"label": "Get on the trucks",
+				"label": "Board Kestrel's transport on the apron",
 				"area": {
-					"x": 27.5,
-					"y": 8.5,
+					"x": 76.5,
+					"y": 58.5,
 					"radius": 4
 				},
-				"seconds": 40,
-				"sections": [3],
-				"spawnScale": 1.2,
+				"seconds": 45,
+				"sections": [2],
+				"spawnScale": 1.4,
 				"radio": {
-					"speaker": "Convoy",
-					"start": "Trucks are here. Everybody on!"
+					"speaker": "Kestrel",
+					"start": "Kestrel. I'm down on the apron south of the dock. Forty-five seconds and I'm gone with or without you!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 180",
+				"count": 180,
+				"optional": true
+			},
+			{
+				"type": "destroy",
+				"label": "Optional: burn the depot's own nests",
+				"burst": 3,
+				"props": ["nest-warehouse", "nest-yard"],
+				"optional": true
+			}
+		],
+		"gates": {
+			"gate-west": {
+				"openOn": 0
+			},
+			"gate-east": {
+				"openOn": 1
+			}
+		},
+		"props": [
+			{
+				"id": "generator-mill",
+				"kind": "generator",
+				"x": 24,
+				"y": 20,
+				"w": 2,
+				"h": 2
+			},
+			{
+				"id": "mill-light-yard",
+				"kind": "floodlight",
+				"x": 14.5,
+				"y": 16.5,
+				"powerBy": "generator-mill"
+			},
+			{
+				"id": "mill-light-gate",
+				"kind": "floodlight",
+				"x": 28.5,
+				"y": 27.5,
+				"powerBy": "generator-mill"
+			},
+			{
+				"id": "nest-silo-1",
+				"kind": "nest",
+				"x": 72,
+				"y": 16,
+				"w": 2,
+				"h": 2
+			},
+			{
+				"id": "nest-silo-2",
+				"kind": "nest",
+				"x": 80,
+				"y": 44,
+				"w": 2,
+				"h": 2
+			},
+			{
+				"id": "nest-silo-3",
+				"kind": "nest",
+				"x": 91,
+				"y": 50,
+				"w": 2,
+				"h": 2
+			},
+			{
+				"id": "charge-silo",
+				"kind": "charge",
+				"x": 47.5,
+				"y": 31.5
+			}
+		],
+		"notes": [
+			{
+				"id": "dispatch",
+				"x": 12.5,
+				"y": 27.5,
+				"title": "Dispatch sheet",
+				"by": "Depot foreman",
+				"text": "Barley, Halden trial fields, 40 tonnes, into silos 1 to 6. Halden rep says no turning, no airing, straight to the mill. Lads say it smells sweet, like bread. Lads say the silo doors are warm to touch. I've told them it's the sun."
+			},
+			{
+				"id": "sample-log",
+				"x": 38.5,
+				"y": 30.5,
+				"title": "Quality log, last page",
+				"by": "Halden Agritech QA",
+				"text": "Batch 14: germination in storage. Hyphae through 80% of the grain. Spore load beyond scale. Recommend incineration. (Second hand:) Recommendation declined by the Ministry. Batch released to the mill."
+			},
+			{
+				"id": "rail-note",
+				"x": 88.5,
+				"y": 24.5,
+				"title": "Chalked on a rail wagon",
+				"by": "unsigned",
+				"text": "DON'T OPEN. Wagon 6 is full of the stuff and it's moving. We stopped loading. The driver went to find the foreman and didn't come back. If you're reading this, the road gate is quicker."
+			}
+		]
+	},
+	{
+		"id": "yard-sweep",
+		"name": "Dead River",
+		"zone": "ashgate",
+		"map": "oldtown",
+		"description": "Old Town is cut off, and the evacuation has no fuel. Free the mechanics in the church crypt, get the stranded tanker running and walk it to the river while the drawbridge comes down.",
+		"briefing": [
+			"The evacuation out of Ashgate runs on diesel, and the last full tanker is stranded in Old Town's square, north of the river. Its crew bricked themselves into the church crypt when the town turned.",
+			"Break the crypt wall, get the mechanics to the tanker and keep the dead off it while they fix the steering. Then walk it down to the stone bridge: it crawls, and it stops dead the moment one of them gets a hand on it.",
+			"The bridge is raised. Its winch is on the north bank. Brutes have been seen crossing the shallows. South of the river, a pack of Screamers is roosting on the petrol station forecourt, among the pumps."
+		],
+		"debrief": "The tanker is over the river and the evacuation has its fuel. Old Town's petrol station is a crater. Hollis says that is one way to take out a nest.",
+		"parTimeSeconds": 540,
+		"timeLimitSeconds": 720,
+		"scoreTarget": 34000,
+		"enemyLevel": 3,
+		"recommendedLevel": 3,
+		"spawn": {
+			"perSecond": 1.7,
+			"maxAlive": 90,
+			"composition": {
+				"drudge": 55,
+				"bolter": 20,
+				"crawler": 15,
+				"swell": 6,
+				"screamer": 4
+			}
+		},
+		"caches": [
+			{
+				"x": 99.5,
+				"y": 88.5
+			},
+			{
+				"x": 68.5,
+				"y": 18.5
+			},
+			{
+				"x": 94.5,
+				"y": 24.5
+			}
+		],
+		"objectives": [
+			{
+				"type": "rescue",
+				"label": "Break into the crypt and bring the mechanics to the tanker",
+				"survivors": ["mechanic-1", "mechanic-2"],
+				"area": {
+					"x": 50.5,
+					"y": 28.5,
+					"radius": 4
+				},
+				"spawnScale": 0.8,
+				"checkpoint": true,
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"drudge": 70,
+						"crawler": 30
+					}
+				},
+				"radio": {
+					"speaker": "Tom",
+					"start": "This is Tom, tanker crew! We're bricked into the crypt under the church, me and Elena. Knock the wall through at the back of the nave. The tanker's fine, it's the steering.",
+					"done": "We're at the tanker. Elena's under it already."
+				}
+			},
+			{
+				"type": "repair",
+				"label": "Keep them off the tanker while the steering is fixed",
+				"props": ["tanker"],
+				"from": 0.2,
+				"spawnScale": 1.2,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 52.5,
+					"y": 27.5
+				},
+				"ambush": {
+					"count": 19,
+					"composition": {
+						"drudge": 80,
+						"bolter": 20
+					}
+				},
+				"radio": {
+					"speaker": "Tom",
+					"start": "Hold E on her and patch what you can while Elena does the steering. They can smell the diesel, here they come!",
+					"done": "She steers! Get in front of her, we're going to the bridge."
+				}
+			},
+			{
+				"type": "escort",
+				"label": "Walk the tanker down to the stone bridge",
+				"prop": "tanker",
+				"speed": 1.9,
+				"radius": 7.5,
+				"stops": true,
+				"path": [
+					{
+						"x": 46.5,
+						"y": 29
+					},
+					{
+						"x": 46.5,
+						"y": 51
+					},
+					{
+						"x": 82.5,
+						"y": 53
+					},
+					{
+						"x": 82.5,
+						"y": 54.5
+					}
+				],
+				"spawnScale": 1.4,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 82.5,
+					"y": 50.5
+				},
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"drudge": 60,
+						"crawler": 40
+					}
+				},
+				"radio": {
+					"speaker": "Tom",
+					"start": "She goes at a walk and only with you round her. One of them gets a hand on the tank and she stops dead. Keep her clean!",
+					"done": "We're at the bridgehead. The bridge is up."
+				}
+			},
+			{
+				"type": "defend",
+				"label": "Hold the bridge winch while the drawbridge comes down",
+				"prop": "winch-console",
+				"seconds": 50,
+				"spawnScale": 1.5,
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"drudge": 50,
+						"bolter": 35,
+						"screamer": 15
+					}
+				},
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 70.5,
+						"y": 66.5
+					},
+					"afterSeconds": 25
+				},
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "Okafor. The winch is grinding and every one of them heard it. Fifty seconds. And there's a Brute crossing the shallows straight for the console: whoever has the big gun, hold that bridgehead!",
+					"done": "Bridge is down. Tanker's rolling over."
+				}
+			},
+			{
+				"type": "hunt",
+				"label": "Kill the Screamers roosting on the petrol station forecourt",
+				"targets": [
+					{
+						"type": "screamer",
+						"at": {
+							"x": 99.5,
+							"y": 72.5
+						},
+						"health": 3
+					},
+					{
+						"type": "screamer",
+						"at": {
+							"x": 92.5,
+							"y": 77.5
+						},
+						"health": 3
+					},
+					{
+						"type": "screamer",
+						"at": {
+							"x": 104.5,
+							"y": 73.5
+						},
+						"health": 3
+					}
+				],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 82.5,
+					"y": 64.5
+				},
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"drudge": 60,
+						"crawler": 40
+					}
+				},
+				"radio": {
+					"speaker": "Wren",
+					"start": "Wren. Three Screamers on the petrol station forecourt, and every scream brings another street. They're sitting among the fuel barrels. Your call.",
+					"done": "Forecourt's quiet. Well. It's on fire, but it's quiet."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Fall back through the park gates",
+				"area": {
+					"x": 28.5,
+					"y": 90.5,
+					"radius": 4
+				},
+				"seconds": 50,
+				"spawnScale": 1.4,
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "Trucks are at the park gates, south-west. Fifty seconds, Lantern."
 				}
 			},
 			{
@@ -469,21 +535,107 @@
 				"label": "Optional: put down 150",
 				"count": 150,
 				"optional": true
+			},
+			{
+				"type": "interact",
+				"label": "Optional: crack the old mill's strongroom safe",
+				"props": ["mill-safe"],
+				"optional": true
+			}
+		],
+		"gates": {
+			"drawbridge": {
+				"openOn": 3
+			}
+		},
+		"props": [
+			{
+				"id": "tanker",
+				"kind": "vehicle",
+				"look": "scene-tanker",
+				"x": 46.5,
+				"y": 29,
+				"health": 1600
+			},
+			{
+				"id": "winch-console",
+				"kind": "defend",
+				"x": 87,
+				"y": 53,
+				"w": 2,
+				"h": 2,
+				"health": 1400,
+				"look": "scene-machine"
+			},
+			{
+				"id": "drawbridge",
+				"kind": "door",
+				"x": 80,
+				"y": 57,
+				"w": 6,
+				"h": 1,
+				"closed": true
+			},
+			{
+				"id": "mill-safe",
+				"kind": "terminal",
+				"x": 46,
+				"y": 65,
+				"w": 1,
+				"h": 1
+			},
+			{
+				"id": "mechanic-1",
+				"kind": "survivor",
+				"x": 57.5,
+				"y": 6.5
+			},
+			{
+				"id": "mechanic-2",
+				"kind": "survivor",
+				"x": 63.5,
+				"y": 6.5
+			}
+		],
+		"notes": [
+			{
+				"id": "crypt",
+				"x": 55.5,
+				"y": 6.5,
+				"title": "On the crypt wall",
+				"by": "Elena Brook, tanker crew",
+				"text": "Day 2 under the church. Tom says the steering rack went when we hit the fountain. 9,000 litres of clean diesel sitting in the square and nobody to drive it. If the army comes, the bridge winch is on the north bank. Somebody raised it to keep them out. It didn't."
+			},
+			{
+				"id": "mill-ledger",
+				"x": 47.5,
+				"y": 70.5,
+				"title": "Mill ledger",
+				"by": "Old Town Milling Co.",
+				"text": "Halden contract: grind the trial barley here, no other grain on the stones that week. Flour to the Harrow ring road supermarket, free of charge. \"Promotional.\" The miller's cough has not gone. Neither has the smell."
+			},
+			{
+				"id": "forecourt",
+				"x": 100.5,
+				"y": 79.5,
+				"title": "Petrol station till roll",
+				"by": "Night attendant",
+				"text": "They come for the lights. I turned the forecourt lights off and they still come. Something on the roof screams and they all come running. I've got the barrels lined up round the pumps. One match. If you see this, I didn't get to light it."
 			}
 		]
 	},
 	{
 		"id": "power-out",
-		"name": "Blackout",
+		"name": "Blackout Protocol",
 		"zone": "ashgate",
 		"map": "powerplant",
-		"description": "Ashgate's power plant went dark. Get through the fence on the backup generator, restart the three generators in the transformer yard and keep the transformer alive, reroute the grid from the control room, and get out past the cooling towers.",
+		"description": "Ashgate's power plant has tripped, and the quarantine wards in Harrow have gone dark. Find the breaker keycard, restart the switchyard, hold the capacitor ring with your kit jammed and run before the substation goes up.",
 		"briefing": [
-			"The plant that keeps Ashgate's lights and pumps running has gone dark, and the dark is where they nest.",
-			"The fence gate runs off a backup generator. Inside, three generators feed the transformer and the yard's turrets: restart them, then keep the transformer standing while the grid comes back.",
-			"The grid is rerouted from the control room. The exit road is past the cooling towers. Thirteen minutes before the district's reserve runs out."
+			"Dr Vey has eleven patients in Harrow General who caught BRIAR and did not turn: the first her serum kept alive. They are on machines. The machines run off Ashgate's power plant, and the plant has gone dark.",
+			"There are no lights inside. Use your weapon lights. The breaker keycard is somewhere in the supervisors' offices by the gate. Each generator you restart in the switchyard lights a floodlight and wakes a turret.",
+			"The capacitor ring has to be held while it charges, and its field kills every battery near it: your kit will be dead. Something big has been seen in the turbine hall. Bielak, the last engineer, is on the radio."
 		],
-		"debrief": "Grid's back. Half of Ashgate just got its lights on. Nice work.",
+		"debrief": "Harrow General's wards are lit again. Eleven patients, eleven heartbeats. The substation is a crater. Bielak says he never liked it anyway.",
 		"parTimeSeconds": 600,
 		"timeLimitSeconds": 780,
 		"scoreTarget": 38000,
@@ -493,10 +645,10 @@
 			"perSecond": 1.8,
 			"maxAlive": 100,
 			"composition": {
-				"drudge": 52,
+				"drudge": 50,
 				"bolter": 22,
-				"swell": 12,
-				"crawler": 10,
+				"crawler": 14,
+				"swell": 10,
 				"screamer": 4
 			}
 		},
@@ -510,79 +662,42 @@
 				"y": 34.5
 			},
 			{
-				"x": 50.5,
-				"y": 13.5
+				"x": 55.5,
+				"y": 3.5
+			},
+			{
+				"x": 52.5,
+				"y": 125.5
 			}
 		],
-		"gates": {
-			"gate-fence": {
-				"openOn": 1,
-				"closeOn": 2,
-				"side": {
-					"x": 29.5,
-					"y": 100.5
-				}
-			},
-			"gate-control": {
-				"openOn": 4,
-				"closeOn": 5,
-				"side": {
-					"x": 29.5,
-					"y": 60.5
-				}
-			},
-			"gate-towers": {
-				"openOn": 6,
-				"closeOn": 7,
-				"side": {
-					"x": 29.5,
-					"y": 24.5
-				}
-			}
-		},
 		"objectives": [
 			{
-				"type": "reach",
-				"label": "Get to the plant fence",
-				"area": {
-					"x": 29.5,
-					"y": 108.5,
-					"radius": 4
-				},
+				"type": "search",
+				"label": "Search the supervisors' offices for the breaker keycard",
+				"props": ["desk-1", "desk-2", "desk-3", "desk-4"],
 				"sections": [0],
-				"spawnScale": 0.6,
-				"radio": {
-					"speaker": "Engineer",
-					"start": "Plant's dead and so is half the city. Get me to the fence."
-				}
-			},
-			{
-				"type": "interact",
-				"label": "Start the backup generator",
-				"props": ["backup-generator"],
-				"sections": [0],
-				"spawnScale": 1.2,
+				"spawnScale": 0.7,
 				"checkpoint": true,
 				"checkpointAt": {
 					"x": 29.5,
 					"y": 108.5
 				},
 				"ambush": {
-					"count": 12,
+					"count": 8,
 					"composition": {
-						"drudge": 70,
-						"crawler": 30
+						"crawler": 70,
+						"drudge": 30
 					}
 				},
 				"radio": {
-					"speaker": "Engineer",
-					"start": "The gate runs off the backup generator, west of it. Start it and hold them off while it runs up.",
-					"done": "Gate's open. Into the yard."
+					"speaker": "Wren",
+					"start": "Wren. Pitch black in there. Keep your lights up: I can hear clicking in the ceiling ducts. The keycard's in one of the supervisors' desks.",
+					"done": "Got it. The fence gate is open."
 				}
 			},
 			{
 				"type": "interact",
-				"label": "Restart the three generators",
+				"label": "Restart the three generators in the switchyard",
 				"props": ["generator-west", "generator-east", "generator-north"],
 				"sections": [1],
 				"spawnScale": 1.0,
@@ -592,41 +707,24 @@
 					"y": 100.5
 				},
 				"radio": {
-					"speaker": "Engineer",
-					"start": "Three generators: west, east and north. Each one wakes a turret.",
-					"done": "All three running. The transformer's coming up."
+					"speaker": "Bielak",
+					"start": "Bielak, shift engineer, the last one. Three generators in the yard. Every one you start lights a floodlight and wakes a turret.",
+					"done": "All three. Look at that yard light up!"
 				}
 			},
 			{
-				"type": "destroy",
-				"label": "Burn the nests in the yard",
-				"props": ["nest-yard-west", "nest-yard-east"],
-				"sections": [1],
-				"spawnScale": 0.8,
-				"ambush": {
-					"count": 10,
-					"composition": {
-						"crawler": 60,
-						"drudge": 40
-					}
+				"type": "hold",
+				"label": "Hold the capacitor ring while it charges",
+				"area": {
+					"x": 29.5,
+					"y": 88.5,
+					"radius": 5
 				},
-				"radio": {
-					"speaker": "Engineer",
-					"start": "Two nests in the corners. Burn them before we bring the transformer up."
-				}
-			},
-			{
-				"type": "defend",
-				"label": "Keep the transformer running",
-				"prop": "transformer",
-				"seconds": 70,
+				"seconds": 40,
+				"jammed": true,
 				"sections": [1],
 				"spawnScale": 1.7,
 				"checkpoint": true,
-				"checkpointAt": {
-					"x": 29.5,
-					"y": 90.5
-				},
 				"ambush": {
 					"count": 20,
 					"composition": {
@@ -636,61 +734,105 @@
 					}
 				},
 				"radio": {
-					"speaker": "Engineer",
-					"start": "Seventy seconds while it charges. Everything in the yard is coming for it!",
-					"done": "Transformer's live. The control building is open."
+					"speaker": "Bielak",
+					"start": "The ring is charging, and the field off it fries anything with a battery: your kit is dead till it's done. Guns and grenades. Forty seconds!",
+					"done": "Charged! The control gate is open. And something just tore a turbine off its mount."
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Reroute the grid from the control room",
-				"props": ["grid-terminal"],
+				"type": "hunt",
+				"label": "Put down the arc-burnt Brute in the turbine hall",
+				"targets": [
+					{
+						"type": "brute",
+						"at": {
+							"x": 20.5,
+							"y": 44.5
+						},
+						"health": 2.5
+					},
+					{
+						"type": "bolter",
+						"at": {
+							"x": 10.5,
+							"y": 33.5
+						}
+					},
+					{
+						"type": "bolter",
+						"at": {
+							"x": 30.5,
+							"y": 33.5
+						}
+					},
+					{
+						"type": "bolter",
+						"at": {
+							"x": 10.5,
+							"y": 58.5
+						}
+					},
+					{
+						"type": "bolter",
+						"at": {
+							"x": 30.5,
+							"y": 58.5
+						}
+					},
+					{
+						"type": "bolter",
+						"at": {
+							"x": 15.5,
+							"y": 52.5
+						}
+					},
+					{
+						"type": "bolter",
+						"at": {
+							"x": 33.5,
+							"y": 45.5
+						}
+					}
+				],
 				"sections": [2],
-				"spawnScale": 1.1,
+				"spawnScale": 0.8,
 				"checkpoint": true,
 				"checkpointAt": {
 					"x": 29.5,
-					"y": 60.5
+					"y": 61.5
 				},
 				"radio": {
-					"speaker": "Engineer",
-					"start": "Control room, north-east corner of the building. Open the door and work the panel.",
-					"done": "Grid rerouted. Something's moving in the turbine hall."
+					"speaker": "Bielak",
+					"start": "It was a fitter. It got into the switchgear and it's been sparking ever since. It's got a pack running with it. Big gun, its back, keep moving.",
+					"done": "It's down. And the substation's gone critical behind you!"
 				}
 			},
 			{
-				"type": "kill",
-				"label": "Put down the Brute in the turbine hall",
-				"count": 1,
-				"of": "brute",
-				"sections": [2],
-				"spawnScale": 0.6,
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 29.5,
-						"y": 42.5
-					}
-				},
-				"radio": {
-					"speaker": "Scout",
-					"start": "Brute in the turbine hall, between you and the north door!",
-					"done": "It's down. The tower gate is open."
-				}
-			},
-			{
-				"type": "extract",
-				"label": "Out past the cooling towers",
+				"type": "escape",
+				"label": "Outrun the arc flash past the cooling towers",
 				"area": {
 					"x": 29.5,
-					"y": 6.5,
-					"radius": 4
+					"y": 9.5,
+					"radius": 5
 				},
-				"seconds": 75,
-				"sections": [3],
-				"spawnScale": 1.5,
+				"hazard": {
+					"kind": "fire",
+					"from": {
+						"x": 29.5,
+						"y": 104
+					},
+					"toward": {
+						"x": 29.5,
+						"y": 2
+					},
+					"speed": 1.8,
+					"delaySeconds": 4,
+					"damagePerSecond": 30
+				},
+				"sections": [2, 3],
+				"spawnScale": 1.2,
 				"ambush": {
-					"count": 16,
+					"count": 12,
 					"composition": {
 						"drudge": 55,
 						"bolter": 30,
@@ -698,8 +840,25 @@
 					}
 				},
 				"radio": {
-					"speaker": "Command",
-					"start": "Road's clear past the towers. Everyone out before the whole district wakes up."
+					"speaker": "Bielak",
+					"start": "The substation is rupturing and the whole yard is on fire, and it's coming through the hall! Out past the cooling towers!",
+					"done": "You're clear. That was close."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Make the highway outpost",
+				"area": {
+					"x": 52.5,
+					"y": 4.5,
+					"radius": 4
+				},
+				"seconds": 45,
+				"sections": [3],
+				"spawnScale": 1.5,
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "Okafor. Trucks at the highway outpost, north-east corner. Forty-five seconds."
 				}
 			},
 			{
@@ -707,67 +866,137 @@
 				"label": "Optional: thin them out",
 				"count": 180,
 				"optional": true
+			},
+			{
+				"type": "destroy",
+				"label": "Optional: burn the nests in the switchyard",
+				"burst": 3,
+				"props": ["nest-yard-west", "nest-yard-east"],
+				"optional": true
+			}
+		],
+		"gates": {
+			"gate-fence": {
+				"openOn": 0,
+				"closeOn": 1,
+				"side": {
+					"x": 29.5,
+					"y": 100.5
+				}
+			},
+			"gate-control": {
+				"openOn": 2
+			},
+			"gate-towers": {
+				"openOn": 3
+			}
+		},
+		"props": [
+			{
+				"id": "desk-1",
+				"kind": "search",
+				"look": "scene-desk",
+				"x": 5.5,
+				"y": 110.5
+			},
+			{
+				"id": "desk-2",
+				"kind": "search",
+				"look": "scene-desk",
+				"x": 10.5,
+				"y": 112.5
+			},
+			{
+				"id": "desk-3",
+				"kind": "search",
+				"look": "scene-desk",
+				"x": 17.5,
+				"y": 110.5
+			},
+			{
+				"id": "desk-4",
+				"kind": "search",
+				"look": "scene-desk",
+				"x": 20.5,
+				"y": 112.5
+			}
+		],
+		"notes": [
+			{
+				"id": "shift-log",
+				"x": 13.5,
+				"y": 112.5,
+				"title": "Shift log, night 9",
+				"by": "T. Bielak, shift engineer",
+				"text": "Cooling water intake clogged again. Pulled it up: not weed. White threads, warm to the touch, growing back as you cut them. Halden's contract says the plant feeds their Harrow site first, always, even over the hospital. Day shift didn't come in. Night shift is me."
+			},
+			{
+				"id": "memo",
+				"x": 52.5,
+				"y": 50.5,
+				"title": "Memo pinned in the control room",
+				"by": "Halden Agritech facilities",
+				"text": "PRIORITY SUPPLY. In any shortfall, load shedding is to follow the Halden schedule: Halden Harrow site, Ministry, Harrow General, residential. This instruction supersedes local emergency procedure. Questions to Minister Marlowe's office."
+			},
+			{
+				"id": "guardpost",
+				"x": 52.5,
+				"y": 125.5,
+				"title": "Under the guard's chair",
+				"by": "Ola, night guard",
+				"text": "Bricked the door myself. Got biscuits, water, the radio. Heard the army say they're drawing a line round the whole district and calling it the Rotline. Funny name for a cemetery. If the lights come on again, someone came for us. Leave the biscuits."
 			}
 		]
 	},
 	{
 		"id": "survivors",
-		"name": "Holdouts",
+		"name": "The Crossroads",
 		"zone": "ashgate",
-		"map": "depot",
-		"description": "Two depot workers are holed up in the food depot. Break in, find them on the cameras, burn the nests, and walk them to the truck on the dock before the horde closes the roads.",
-		"parTimeSeconds": 660,
-		"scoreTarget": 64000,
+		"map": "crossroads",
+		"description": "The evacuation train is crossing Ashgate's outer ring with Mila Pryce aboard, and the dead are pouring in down all four streets. Wake the miniguns, haul the ammunition, hold the square and keep the radio relay alive.",
+		"parTimeSeconds": 540,
+		"scoreTarget": 60000,
 		"enemyLevel": 6,
 		"recommendedLevel": 6,
 		"spawn": {
-			"perSecond": 2.0,
-			"maxAlive": 120,
+			"perSecond": 2.2,
+			"maxAlive": 130,
 			"composition": {
-				"drudge": 50,
-				"bolter": 25,
-				"swell": 13,
-				"crawler": 12
+				"drudge": 55,
+				"bolter": 22,
+				"crawler": 12,
+				"swell": 8,
+				"screamer": 3
 			}
 		},
 		"caches": [
 			{
-				"x": 36.5,
-				"y": 55.5
+				"x": 6.5,
+				"y": 12.5
 			},
 			{
-				"x": 93.5,
-				"y": 61.5
+				"x": 84.5,
+				"y": 8.5
+			},
+			{
+				"x": 80.5,
+				"y": 59.5
+			},
+			{
+				"x": 6.5,
+				"y": 84.5
 			}
 		],
-		"gates": {
-			"gate-west": {
-				"openOn": 0,
-				"closeOn": 1,
-				"side": {
-					"x": 44.5,
-					"y": 32.5
-				}
-			},
-			"gate-east": {
-				"openOn": 2,
-				"closeOn": 3,
-				"side": {
-					"x": 78.5,
-					"y": 32.5
-				}
-			}
-		},
 		"objectives": [
 			{
-				"type": "kill",
-				"label": "Break into the depot",
-				"count": 25,
-				"sections": [0],
+				"type": "interact",
+				"label": "Start the generators that wake the square's miniguns",
+				"props": ["generator-church", "generator-garage"],
+				"spawnScale": 0.9,
 				"checkpoint": true,
 				"checkpointAt": {
-					"x": 28.5,
-					"y": 32.5
+					"x": 40.5,
+					"y": 45.5
 				},
 				"ambush": {
 					"count": 10,
@@ -777,126 +1006,206 @@
 					}
 				},
 				"radio": {
-					"speaker": "Command",
-					"start": "The truck lot's full of them. Clear it and get the west gate open."
+					"speaker": "Major Okafor",
+					"start": "Lantern, Okafor. Those miniguns are your lifeline. Church courtyard and the lot behind the garage: get both generators running.",
+					"done": "Both guns are up and tracking. Here comes the first of them."
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Find them on the office cameras",
-				"props": ["office-terminal"],
-				"sections": [1],
+				"type": "deliver",
+				"label": "Haul the three ammunition crates from the pharmacy",
+				"area": {
+					"x": 40.5,
+					"y": 45.5,
+					"radius": 4
+				},
+				"items": ["ammo-crate-1", "ammo-crate-2", "ammo-crate-3"],
+				"spawnScale": 1.1,
 				"checkpoint": true,
 				"checkpointAt": {
-					"x": 44.5,
-					"y": 32.5
+					"x": 40.5,
+					"y": 45.5
 				},
-				"radio": {
-					"speaker": "Command",
-					"start": "The office terminal still has the camera feeds. Find out where they are.",
-					"done": "Got them. One in the cold room, one up by the north stairs."
-				}
-			},
-			{
-				"type": "destroy",
-				"label": "Burn the nests in the warehouse",
-				"props": ["nest-warehouse", "nest-yard"],
-				"sections": [1],
 				"ambush": {
 					"count": 12,
 					"composition": {
-						"crawler": 50,
-						"bolter": 50
+						"drudge": 60,
+						"bolter": 40
 					}
 				},
 				"radio": {
-					"speaker": "Scout",
-					"start": "Two nests between you and them. Burn them or you'll never get them out.",
-					"done": "Nests are gone. Go get them."
-				},
-				"spawnScale": 0.9
-			},
-			{
-				"type": "rescue",
-				"label": "Walk the survivors to the truck",
-				"survivors": ["survivor-a", "survivor-b"],
-				"area": {
-					"x": 80,
-					"y": 32,
-					"radius": 4
-				},
-				"sections": [1, 2],
-				"checkpoint": true,
-				"ambush": {
-					"count": 8,
-					"composition": {
-						"screamer": 20,
-						"drudge": 80
-					}
-				},
-				"radio": {
-					"speaker": "Survivor",
-					"start": "Is someone there? Please, we can hear them on the roof...",
-					"done": "We're with you. Thank you, thank you."
+					"speaker": "Sgt Briggs",
+					"start": "Briggs. Three crates of ammunition in the pharmacy on the east street. They're heavy: whoever carries one has a pistol and nothing else. The rest of you, walk with them.",
+					"done": "That's all three. Now we can hold."
 				}
 			},
 			{
-				"type": "kill",
-				"label": "Put down the Brute on the dock",
-				"count": 1,
-				"of": "brute",
-				"sections": [2],
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 88,
-						"y": 20
+				"type": "hold",
+				"label": "Hold the square against the north surge",
+				"area": {
+					"x": 40.5,
+					"y": 45.5,
+					"radius": 6
+				},
+				"seconds": 60,
+				"spawnScale": 1.8,
+				"checkpoint": true,
+				"ambush": {
+					"count": 35,
+					"composition": {
+						"drudge": 70,
+						"bolter": 30
 					}
 				},
 				"radio": {
-					"speaker": "Scout",
-					"start": "There's a Brute on the loading dock, right by the truck. It has to go."
+					"speaker": "Wren",
+					"start": "Wren, on the flats. They're coming down the north street like a river. Hold the sandbags! Weld the shop doors if you want them in the minigun's lanes.",
+					"done": "Surge is broken. The train's halfway."
+				}
+			},
+			{
+				"type": "repair",
+				"label": "Patch up the radio relay in the square",
+				"props": ["radio-relay"],
+				"from": 0.15,
+				"spawnScale": 1.3,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 40.5,
+					"y": 45.5
+				},
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"bolter": 50,
+						"drudge": 50
+					}
+				},
+				"radio": {
+					"speaker": "Kestrel",
+					"start": "Kestrel. I can't find my corridor without that relay, and it's in pieces. Fix it and I'll get you out of there.",
+					"done": "Relay's up. I hear you. Hold it till the train is through."
+				}
+			},
+			{
+				"type": "defend",
+				"label": "Keep the relay standing while the train gets through",
+				"prop": "radio-relay",
+				"seconds": 50,
+				"spawnScale": 1.6,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 44.5,
+						"y": 84.5
+					}
+				},
+				"ambush": {
+					"count": 1,
+					"composition": {
+						"brute": 1
+					}
+				},
+				"radio": {
+					"speaker": "Wren",
+					"start": "Two Brutes, south and west streets, both coming for the relay! Shock traps on the corners, use them!",
+					"done": "Train's through! Every carriage!"
 				}
 			},
 			{
 				"type": "extract",
-				"label": "Everyone on the truck",
+				"label": "Fall back to the armoured carrier on the north street",
 				"area": {
-					"x": 80,
-					"y": 6,
+					"x": 44.5,
+					"y": 3.5,
 					"radius": 4
 				},
-				"seconds": 90,
-				"sections": [2],
-				"spawnScale": 1.5,
+				"seconds": 40,
+				"spawnScale": 1.6,
 				"radio": {
-					"speaker": "Command",
-					"start": "Truck's running. Everyone aboard, now!"
+					"speaker": "Sgt Briggs",
+					"start": "Carrier's at the top of the north street. Forty seconds, then we roll."
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Optional: crack the armoury safe",
-				"props": ["armoury-safe"],
+				"type": "kill",
+				"label": "Optional: put down 250",
+				"count": 250,
 				"optional": true
 			}
 		],
 		"briefing": [
-			"Two workers have been holed up in the old food depot for nine days. Their radio went quiet this morning.",
-			"Break in from the truck lot, find them on the office cameras, burn the nests in the warehouse and walk them to the truck on the far dock.",
-			"The roads out close in fifteen minutes. Nobody gets left behind."
+			"Every survivor the Rotline found is on one train, crawling round Ashgate's outer ring. Among them is Mila Pryce, nine, bitten three weeks ago and never turned. Dr Vey says Mila's blood may be the whole cure.",
+			"The line runs past the Crossroads, and everything dead in Ashgate is coming down the four streets toward the noise. Hold the square. Two miniguns face the north and south streets, wired to generators in the church courtyard and behind the garage.",
+			"There is ammunition in the looted pharmacy, and a radio relay in the square that Kestrel needs to find her corridor. Two Brutes are coming in from the south and west. Give the train five minutes."
 		],
-		"debrief": "Truck's rolling with everyone on it. Nine days. They made it.",
-		"timeLimitSeconds": 900
+		"debrief": "The train is through, every carriage. Mila waved at the window. The Crossroads is a wall of bodies four deep. Sgt Briggs says the motor pool is next, and it is worse.",
+		"timeLimitSeconds": 720,
+		"props": [
+			{
+				"id": "radio-relay",
+				"kind": "defend",
+				"x": 37,
+				"y": 43,
+				"w": 1,
+				"h": 1,
+				"health": 1200,
+				"look": "item-radio"
+			},
+			{
+				"id": "ammo-crate-1",
+				"kind": "carry",
+				"x": 58.5,
+				"y": 24.5
+			},
+			{
+				"id": "ammo-crate-2",
+				"kind": "carry",
+				"x": 62.5,
+				"y": 28.5
+			},
+			{
+				"id": "ammo-crate-3",
+				"kind": "carry",
+				"x": 68.5,
+				"y": 30.5
+			}
+		],
+		"notes": [
+			{
+				"id": "timetable",
+				"x": 40.5,
+				"y": 30.5,
+				"title": "Railway notice",
+				"by": "Ashgate & District Railway",
+				"text": "Evacuation service. One train. All carriages. Passengers will not be inspected (by order of Major Okafor, over the Ministry's objection). Bring nothing. Children first. Dogs if they are quiet."
+			},
+			{
+				"id": "pharmacist",
+				"x": 62.5,
+				"y": 30.5,
+				"title": "Note on the pharmacy counter",
+				"by": "J. Patel, pharmacist",
+				"text": "The army took the morphine and left the ammunition. Funny world. Three crates in the back for whoever holds the square. I gave the last of the antibiotics to the Pryce girl's mum. Half the town says the child should be shot. The other half says she's why we'll live."
+			},
+			{
+				"id": "church",
+				"x": 12.5,
+				"y": 24.5,
+				"title": "Pew card",
+				"by": "Rev. A. Mills",
+				"text": "Rang the bell to call people in. It called the dead in. Rang it again to call the army. It called more dead. Not ringing it a third time. The generator in the yard works the lights and the guns on the square. God forgive us, we are grateful for the guns."
+			}
+		]
 	},
 	{
 		"id": "yard-stand",
-		"name": "Breakout",
+		"name": "Iron Maw",
 		"zone": "ashgate",
 		"map": "motorpool",
-		"description": "Hold the motor pool while the last evacuation column loads up, wake its turrets, break the waves and the Brutes, then break out through the north gate.",
+		"description": "The army's line at the motor pool collapsed when its own column turned inside the wire. Retake the depots, get the armoured carrier running, drive it to the north gate and blow your way out of Ashgate.",
 		"parTimeSeconds": 600,
-		"scoreTarget": 60000,
+		"scoreTarget": 62000,
 		"enemyLevel": 7,
 		"recommendedLevel": 7,
 		"spawn": {
@@ -919,34 +1228,31 @@
 				"y": 66.5
 			},
 			{
-				"x": 5.5,
-				"y": 15.5
+				"x": 14.5,
+				"y": 11.5
+			},
+			{
+				"x": 7.5,
+				"y": 6.5
 			}
 		],
 		"objectives": [
 			{
-				"type": "hold",
-				"label": "Hold the centre",
-				"area": {
-					"x": 32,
-					"y": 49,
-					"radius": 6
-				},
-				"seconds": 60,
-				"sections": [0],
-				"checkpoint": true,
-				"ambush": {
-					"count": 12
-				},
-				"radio": {
-					"speaker": "Sergeant",
-					"start": "Column's loading. Hold the centre of the yard and draw them onto us."
-				}
-			},
-			{
-				"type": "interact",
-				"label": "Start the generators for the turrets",
-				"props": ["generator-west", "generator-east"],
+				"type": "capture",
+				"label": "Take back the fuel depot and the watchtower",
+				"seconds": 10,
+				"areas": [
+					{
+						"x": 8.5,
+						"y": 32.5,
+						"radius": 3
+					},
+					{
+						"x": 52.5,
+						"y": 32.5,
+						"radius": 3
+					}
+				],
 				"sections": [0],
 				"spawnScale": 1.1,
 				"checkpoint": true,
@@ -954,90 +1260,73 @@
 					"x": 32,
 					"y": 49
 				},
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"drudge": 60,
+						"bolter": 40
+					}
+				},
 				"radio": {
-					"speaker": "Sergeant",
-					"start": "Generators west and east. Get them running and the turrets wake up.",
-					"done": "Turrets are up. Here comes the next lot."
+					"speaker": "Sgt Briggs",
+					"start": "Briggs. The fuel depot on the west side and the watchtower on the east. Stand in each till my lads have them. They'll try to take them back.",
+					"done": "Both ours. Now the carrier."
 				}
 			},
 			{
-				"type": "kill",
-				"label": "Break the second wave",
-				"count": 80,
+				"type": "repair",
+				"label": "Get the armoured carrier running",
+				"props": ["siege-apc"],
+				"from": 0.25,
 				"sections": [0],
-				"spawnScale": 1.4,
+				"spawnScale": 1.3,
 				"checkpoint": true,
 				"checkpointAt": {
 					"x": 32,
 					"y": 49
 				},
 				"ambush": {
-					"count": 16,
+					"count": 18,
 					"composition": {
-						"screamer": 15,
-						"bolter": 45,
-						"drudge": 40
+						"drudge": 60,
+						"bolter": 25,
+						"swell": 15
 					}
 				},
 				"radio": {
-					"speaker": "Sergeant",
-					"start": "Second wave, and they brought screamers. Kill the screamers first!"
+					"speaker": "Sgt Briggs",
+					"start": "The carrier in the middle has its engine half out. Hold E on her and get her going, and don't let them chew the tyres off while you do.",
+					"done": "She's running. Just about."
 				}
 			},
 			{
-				"type": "kill",
-				"label": "Put down the Brutes",
-				"count": 2,
-				"of": "brute",
+				"type": "escort",
+				"label": "Walk the carrier to the north gate",
+				"prop": "siege-apc",
+				"speed": 1.7,
+				"radius": 8,
+				"stops": true,
+				"path": [
+					{
+						"x": 34.5,
+						"y": 47.5
+					},
+					{
+						"x": 31.5,
+						"y": 45
+					},
+					{
+						"x": 31.5,
+						"y": 22
+					}
+				],
 				"sections": [0],
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 32,
-						"y": 79
-					}
-				},
-				"ambush": {
-					"count": 1,
-					"composition": {
-						"brute": 1
-					}
-				},
-				"radio": {
-					"speaker": "Scout",
-					"start": "Two Brutes coming through the south fence!",
-					"done": "Both down. Unbelievable."
-				}
-			},
-			{
-				"type": "hold",
-				"label": "Hold the centre again",
-				"area": {
-					"x": 32,
-					"y": 49,
-					"radius": 6
-				},
-				"seconds": 90,
-				"sections": [0],
-				"spawnScale": 1.8,
-				"checkpoint": true,
-				"radio": {
-					"speaker": "Sergeant",
-					"start": "Last trucks are loading. Ninety more seconds!",
-					"done": "Column's out. North gate's open!"
-				}
-			},
-			{
-				"type": "extract",
-				"label": "Out through the north gate",
-				"area": {
-					"x": 32,
-					"y": 5,
-					"radius": 4
-				},
-				"seconds": 90,
-				"sections": [1],
 				"spawnScale": 1.5,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 30.5
+				},
 				"ambush": {
 					"count": 14,
 					"composition": {
@@ -1047,8 +1336,74 @@
 					}
 				},
 				"radio": {
-					"speaker": "Command",
-					"start": "Road north is yours. Everyone out, now!"
+					"speaker": "Sgt Briggs",
+					"start": "She goes at a walk and stops dead if they get on her. Keep her clean all the way to the gate.",
+					"done": "At the gate. Get the charge off her."
+				}
+			},
+			{
+				"type": "demolish",
+				"label": "Blow the north gate with the carrier's charge",
+				"prop": "gate-charge",
+				"seconds": 25,
+				"radius": 12,
+				"destroys": ["gate-north"],
+				"sections": [0],
+				"spawnScale": 1.7,
+				"ambush": {
+					"count": 20,
+					"composition": {
+						"drudge": 50,
+						"bolter": 40,
+						"swell": 10
+					}
+				},
+				"radio": {
+					"speaker": "Sgt Briggs",
+					"start": "Charge on the gate. Twenty-five seconds and it'll be loud. Keep them off it and get back past the red!",
+					"done": "Gate's gone! And look what was waiting behind it."
+				}
+			},
+			{
+				"type": "hunt",
+				"label": "Put down the commander in his armour",
+				"targets": [
+					{
+						"type": "brute",
+						"at": {
+							"x": 32.5,
+							"y": 8.5
+						},
+						"health": 4
+					}
+				],
+				"sections": [1],
+				"spawnScale": 0.8,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 24.5
+				},
+				"radio": {
+					"speaker": "Wren",
+					"start": "That's the column commander. Still in his plate. Shoot past it: his back, his legs, anything it doesn't cover.",
+					"done": "He's down. Road's open."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Out through the breached gate",
+				"area": {
+					"x": 31.5,
+					"y": 4.5,
+					"radius": 4
+				},
+				"seconds": 40,
+				"sections": [1],
+				"spawnScale": 1.5,
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "Okafor. Everyone through the gate and onto the road. The fire teams go in behind you."
 				}
 			},
 			{
@@ -1056,39 +1411,78 @@
 				"label": "Optional: put down 250",
 				"count": 250,
 				"optional": true
+			},
+			{
+				"type": "interact",
+				"label": "Optional: start the generators that wake the turrets",
+				"props": ["generator-west", "generator-east"],
+				"optional": true
 			}
 		],
 		"briefing": [
-			"The last evacuation column is loading up in the army motor pool, and the noise is pulling in everything for miles.",
-			"Hold the centre while they load. Two generators can wake the yard's turrets. Brutes have been seen in the area.",
-			"When the last truck is gone the north gate opens. Fourteen minutes, then the roads are theirs."
+			"This is the end of Ashgate. The motor pool was the army's last fortified line, and it fell from inside: the column's own crews turned in their trucks. The north gate is welded shut behind them.",
+			"Take back the fuel depot and the watchtower, then get the armoured carrier in the middle of the yard running. It is the only thing left with a breaching charge.",
+			"Walk it to the north gate (it stops dead if they climb on it), blow the gate and put down the commander, who is still wearing his armour. After that, the order is to burn the town."
 		],
-		"debrief": "Column's clear and the motor pool is theirs now. That was the hardest stand yet.",
+		"debrief": "The gate is scrap and the column is out. Ashgate is burning behind you. The Rotline is Harrow's problem now. So are you.",
 		"timeLimitSeconds": 840,
-		"gates": {
-			"gate-north": {
-				"openOn": 4,
-				"side": {
-					"x": 31.5,
-					"y": 15.5
-				}
+		"props": [
+			{
+				"id": "siege-apc",
+				"kind": "vehicle",
+				"look": "scene-apc",
+				"x": 34.5,
+				"y": 47.5,
+				"health": 1800
+			},
+			{
+				"id": "gate-charge",
+				"kind": "charge",
+				"x": 35.5,
+				"y": 20.5
 			}
-		}
+		],
+		"notes": [
+			{
+				"id": "requisition",
+				"x": 52.5,
+				"y": 66.5,
+				"title": "Requisition, stamped DENIED",
+				"by": "Sgt H. Briggs",
+				"text": "Request: 400 litres diesel, 12 trucks, medical kit for 300 civilians. Denied: fuel and vehicles are reserved for Halden Agritech evacuation (Ministry order 14). Briggs' note in the margin: we are taking them anyway. Court-martial me in Harrow."
+			},
+			{
+				"id": "letter",
+				"x": 8.5,
+				"y": 68.5,
+				"title": "An unsent letter",
+				"by": "Pte Danny Moss",
+				"text": "Mum. The column turned last night. Our own lads, in the trucks. The commander locked the north gate so nothing could get out, and then he was one of the things that couldn't get out. The carrier still runs. Nobody wants to go near it."
+			},
+			{
+				"id": "bunker",
+				"x": 8.5,
+				"y": 6.5,
+				"title": "Orders, in the quartermaster's bunker",
+				"by": "Ministry of Reconstruction",
+				"text": "In the event the Rotline cannot be held at Ashgate, all Halden Agritech material is to be destroyed in place and the town denied to the infection by fire. Civilian evacuation is not to delay this order. Signed, E. Marlowe."
+			}
+		]
 	},
 	{
 		"id": "airlift",
-		"name": "Airlift",
+		"name": "Ghost Fleet",
 		"zone": "harrow",
-		"map": "airfield",
-		"description": "A transport is down on Harrow's airfield with its ramps broken. Hold the cargo bay while the crew fixes them, keep the hydraulics alive, then clear the apron for take-off.",
+		"map": "docks",
+		"description": "Before Harrow's harbour was sealed, Halden loaded a barge with dry spore powder for export. Find the manifest, get the crane crews out, seal the north road and sink the barge at its pier.",
 		"briefing": [
-			"The last transport out of Harrow put down on the airfield with both ramps jammed open, and every dead thing for miles heard it land.",
-			"Hold the cargo bay while the crew works. They'll open the side bays and the jumpseat room as they get to them; there's kit in both.",
-			"Something big is coming across the apron. It doesn't get near the plane."
+			"Harrow, the city past the Rotline. Its harbour was quarantined a week ago, but not before Halden Agritech loaded an export barge at Pier 2 with three containers of dried BRIAR spores. Destination: not declared.",
+			"The manifest drive is in one of the customs containers in the sorting yard. Two crane operators have been pinned on their gantries since the harbour fell.",
+			"The crane can drop a container across the north road and cut off half of what is coming. Then charge the barge's bilge valves and get off the pier. Something enormous has been seen on the main quay."
 		],
-		"debrief": "Wheels up. Nobody left on the tarmac.",
-		"parTimeSeconds": 480,
-		"timeLimitSeconds": 600,
+		"debrief": "The barge is on the bottom of the harbour with its cargo, and the manifest is on its way to Dr Vey. It names a buyer: the Ministry. Okafor read it twice.",
+		"parTimeSeconds": 540,
+		"timeLimitSeconds": 720,
 		"scoreTarget": 46000,
 		"enemyLevel": 8,
 		"recommendedLevel": 8,
@@ -1097,127 +1491,61 @@
 			"maxAlive": 120,
 			"composition": {
 				"drudge": 48,
-				"bolter": 24,
-				"swell": 12,
-				"crawler": 12,
+				"bolter": 22,
+				"crawler": 18,
+				"swell": 8,
 				"screamer": 4
 			}
 		},
 		"caches": [
 			{
-				"x": 40.5,
-				"y": 21.5
+				"x": 6.5,
+				"y": 60.5
 			},
 			{
-				"x": 24.5,
+				"x": 88.5,
+				"y": 8.5
+			},
+			{
+				"x": 8.5,
 				"y": 36.5
-			},
-			{
-				"x": 15.5,
-				"y": 24.5
 			}
 		],
-		"gates": {
-			"gate-bay-north": {
-				"openOn": 1
-			},
-			"gate-bay-south": {
-				"openOn": 1
-			},
-			"gate-jumpseat": {
-				"openOn": 2
-			}
-		},
 		"objectives": [
 			{
-				"type": "hold",
-				"label": "Hold the cargo bay",
+				"type": "search",
+				"label": "Search the customs containers for the manifest drive",
+				"props": ["container-1", "container-2", "container-3", "container-4", "container-5"],
+				"spawnScale": 0.9,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 45.5,
+					"y": 50.5
+				},
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"crawler": 50,
+						"drudge": 50
+					}
+				},
+				"radio": {
+					"speaker": "Wren",
+					"start": "Wren. The containers are stacked four high: it's an echo chamber. Watch the corners between the rows. The customs ones have the yellow tape.",
+					"done": "Drive's in the bag."
+				}
+			},
+			{
+				"type": "rescue",
+				"label": "Get the crane operators down and back to the camp",
+				"survivors": ["operator-1", "operator-2"],
 				"area": {
-					"x": 34,
-					"y": 29,
-					"radius": 6
+					"x": 45.5,
+					"y": 50.5,
+					"radius": 4
 				},
-				"seconds": 70,
+				"spawnScale": 1.1,
 				"checkpoint": true,
-				"spawnScale": 1.2,
-				"ambush": {
-					"count": 14,
-					"composition": {
-						"drudge": 70,
-						"bolter": 30
-					}
-				},
-				"radio": {
-					"speaker": "Pilot",
-					"start": "Both ramps are jammed open. Hold the bay while my crew gets to work!",
-					"done": "First ramp's moving. Need power for the rest."
-				}
-			},
-			{
-				"type": "interact",
-				"label": "Start the power unit on the apron",
-				"props": ["apu"],
-				"spawnScale": 1.0,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 40.5,
-					"y": 29.5
-				},
-				"radio": {
-					"speaker": "Pilot",
-					"start": "The ground power unit's on the apron, off the tail. Get it running and the ramp turrets wake up.",
-					"done": "Power's on. Side bays are open, grab what's in them."
-				}
-			},
-			{
-				"type": "defend",
-				"label": "Keep the ramp hydraulics running",
-				"prop": "ramp-hydraulics",
-				"seconds": 80,
-				"spawnScale": 1.6,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 40.5,
-					"y": 29.5
-				},
-				"ambush": {
-					"count": 18,
-					"composition": {
-						"screamer": 15,
-						"bolter": 40,
-						"drudge": 45
-					}
-				},
-				"radio": {
-					"speaker": "Pilot",
-					"start": "Hydraulics are between the ramps and they're going for them. Eighty seconds!",
-					"done": "Ramps are up. Jumpseat room's open, there's a med kit in there."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Clear the apron for take-off",
-				"count": 1,
-				"of": "brute",
-				"spawnScale": 0.6,
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 64.5,
-						"y": 28.5
-					}
-				},
-				"radio": {
-					"speaker": "Tower",
-					"start": "Big one on the apron, right where you need to roll. Put it down!",
-					"done": "Apron's clear."
-				}
-			},
-			{
-				"type": "survive",
-				"label": "Hold on while the engines spin up",
-				"seconds": 40,
-				"spawnScale": 2.0,
 				"ambush": {
 					"count": 14,
 					"composition": {
@@ -1226,23 +1554,101 @@
 					}
 				},
 				"radio": {
-					"speaker": "Pilot",
-					"start": "Engines spinning up. Forty seconds!"
+					"speaker": "Dan",
+					"start": "Dan, crane two, and Sarah's on crane three. We've been up here four days. The ladder's thick with them. Clear the bottom and we'll come down.",
+					"done": "We're down. I can run the crane from the console if you hold it."
+				}
+			},
+			{
+				"type": "defend",
+				"label": "Hold the crane console while it drops a container across the north road",
+				"prop": "crane-console",
+				"seconds": 45,
+				"spawnScale": 1.6,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 62.5,
+					"y": 50.5
+				},
+				"ambush": {
+					"count": 18,
+					"composition": {
+						"drudge": 50,
+						"bolter": 35,
+						"swell": 15
+					}
+				},
+				"radio": {
+					"speaker": "Dan",
+					"start": "Lifting now. Forty-five seconds to swing it over the north road, and the whole yard can hear the motor. Keep them off me!",
+					"done": "Container's down! North road's shut."
+				}
+			},
+			{
+				"type": "demolish",
+				"label": "Charge the barge's bilge valves and get off the pier",
+				"prop": "barge-charge",
+				"seconds": 35,
+				"radius": 14,
+				"spawnScale": 1.4,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 45.5,
+					"y": 66.5
+				},
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"crawler": 40,
+						"drudge": 40,
+						"bolter": 20
+					}
+				},
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "Okafor. Charge on the valves, then off the pier: the blast reaches fourteen metres and the pier is narrow. Thirty-five seconds.",
+					"done": "She's going down. Good riddance."
+				}
+			},
+			{
+				"type": "hunt",
+				"label": "Put down the colossus on the main quay",
+				"targets": [
+					{
+						"type": "brute",
+						"at": {
+							"x": 40.5,
+							"y": 70.5
+						},
+						"health": 3
+					}
+				],
+				"spawnScale": 0.8,
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"crawler": 100
+					}
+				},
+				"radio": {
+					"speaker": "Wren",
+					"start": "The big one on the quay just watched its barge sink, and it's angry. Crawlers all round it.",
+					"done": "It's in the water. Harbour master's pad, go."
 				}
 			},
 			{
 				"type": "extract",
-				"label": "Everyone aboard",
+				"label": "Get to Kestrel at the harbour master's office",
 				"area": {
-					"x": 34,
-					"y": 29,
-					"radius": 5
+					"x": 12.5,
+					"y": 48.5,
+					"radius": 4
 				},
-				"seconds": 40,
+				"seconds": 45,
 				"spawnScale": 1.5,
 				"radio": {
-					"speaker": "Pilot",
-					"start": "Nose up in forty. Get in the bay!"
+					"speaker": "Kestrel",
+					"start": "Kestrel. Down outside the harbour master's office. Forty-five seconds!"
 				}
 			},
 			{
@@ -1251,22 +1657,113 @@
 				"count": 200,
 				"optional": true
 			}
+		],
+		"props": [
+			{
+				"id": "crane-console",
+				"kind": "defend",
+				"x": 66,
+				"y": 46,
+				"w": 2,
+				"h": 2,
+				"health": 1300,
+				"look": "scene-utility"
+			},
+			{
+				"id": "barge-charge",
+				"kind": "charge",
+				"x": 51.5,
+				"y": 83.5
+			},
+			{
+				"id": "container-1",
+				"kind": "search",
+				"look": "scene-military-crate",
+				"x": 14.5,
+				"y": 12.5
+			},
+			{
+				"id": "container-2",
+				"kind": "search",
+				"look": "scene-military-crate",
+				"x": 26.5,
+				"y": 17.5
+			},
+			{
+				"id": "container-3",
+				"kind": "search",
+				"look": "scene-military-crate",
+				"x": 45.5,
+				"y": 12.5
+			},
+			{
+				"id": "container-4",
+				"kind": "search",
+				"look": "scene-military-crate",
+				"x": 58.5,
+				"y": 20.5
+			},
+			{
+				"id": "container-5",
+				"kind": "search",
+				"look": "scene-military-crate",
+				"x": 26.5,
+				"y": 26.5
+			},
+			{
+				"id": "operator-1",
+				"kind": "survivor",
+				"x": 86.5,
+				"y": 62.5
+			},
+			{
+				"id": "operator-2",
+				"kind": "survivor",
+				"x": 80.5,
+				"y": 70.5
+			}
+		],
+		"notes": [
+			{
+				"id": "manifest",
+				"x": 30.5,
+				"y": 20.5,
+				"title": "Customs slip",
+				"by": "Harrow Port Authority",
+				"text": "Halden Agritech. 3 × 40ft, \"agricultural powder\". Export licence: Ministry of Reconstruction, signed E. Marlowe. Destination field left blank. Inspection waived. The inspector has been told to take a week off."
+			},
+			{
+				"id": "crane",
+				"x": 86.5,
+				"y": 60.5,
+				"title": "Scratched into a crane cab",
+				"by": "Sarah Kaye, crane three",
+				"text": "Day 4. Dan's on two, I can see his torch. They climb the ladders but they fall off. We dropped a container on twenty of them on day 1. Could do it again if anyone held the console."
+			},
+			{
+				"id": "harbour",
+				"x": 13.5,
+				"y": 58.5,
+				"title": "Harbour master's log",
+				"by": "Capt. R. Imrie",
+				"text": "Barge loaded at Pier 2 under armed guard. I asked what was in it. The guard said seed. Seed does not need a guard. Barge did not sail: the crew turned at the moorings. Sealed my strongroom. Left the key on the hook. Nobody will need it now."
+			}
 		]
 	},
 	{
 		"id": "hive",
-		"name": "Hive",
+		"name": "The Glass Labyrinth",
 		"zone": "harrow",
-		"map": "supermarket",
-		"description": "The supermarket on the ring road has become a nest. Burn the pods in the car park, the nests among the aisles, then the egg in the loading yard and whatever hatches from it.",
+		"map": "glasshouse",
+		"description": "Harrow's botanical gardens were Halden's open-air test ground, and where patient zero caught it. Take the lake pumps, search the hedge maze, hold the gazebo and blow your way into the palm house for what is nesting in its dome.",
 		"briefing": [
-			"The supermarket on Harrow's ring road went quiet a week ago. Now it breathes.",
-			"Pods all over the car park, nests in the aisles. Burn every one: while they stand, the dead keep coming.",
-			"Behind the shop, in the loading yard, there's an egg the size of a van. Burn its brood, then whatever comes out."
+			"Harrow's Victorian gardens were commandeered by Halden Agritech for open-air trials of BRIAR. The plants are dead. The gardener, Arthur Penn, was the first person it ever turned: patient zero.",
+			"Halden dumped its runoff in the lake. Take back the three drainage pumps before it soaks the gardens, then search the coolers in the hedge maze for their test data. The maze is all blind corners: bring something short and loud.",
+			"Hold the gazebo on the island while the data uploads. The palm house is barred: blow its south door. Something has been screaming from inside the dome for a week."
 		],
-		"debrief": "Hive's burnt out. Harrow's ring road is ours again.",
-		"parTimeSeconds": 540,
-		"timeLimitSeconds": 720,
+		"debrief": "The palm house is glass on the gravel and the thing in its dome is dead. Halden's test data names every trial they ran. The last line reads: subject PENN, transferred to project LANTERN.",
+		"parTimeSeconds": 600,
+		"timeLimitSeconds": 780,
 		"scoreTarget": 50000,
 		"enemyLevel": 9,
 		"recommendedLevel": 9,
@@ -1276,162 +1773,178 @@
 			"composition": {
 				"drudge": 45,
 				"crawler": 25,
-				"bolter": 18,
-				"swell": 8,
+				"bolter": 16,
+				"swell": 10,
 				"screamer": 4
 			}
 		},
 		"caches": [
 			{
-				"x": 56.5,
-				"y": 56.5
+				"x": 99.5,
+				"y": 86.5
 			},
 			{
-				"x": 17.5,
-				"y": 37.5
+				"x": 100.5,
+				"y": 20.5
 			},
 			{
-				"x": 45.5,
-				"y": 3.5
+				"x": 8.5,
+				"y": 86.5
 			}
 		],
-		"gates": {
-			"gate-entrance": {
-				"openOn": 0,
-				"closeOn": 1,
-				"side": {
-					"x": 31.5,
-					"y": 67.5
-				}
-			},
-			"gate-loading": {
-				"openOn": 2,
-				"closeOn": 3,
-				"side": {
-					"x": 31.5,
-					"y": 27.5
-				}
-			}
-		},
 		"objectives": [
 			{
-				"type": "destroy",
-				"label": "Burn the pods in the car park",
-				"props": ["pod-west", "pod-east", "pod-trolleys"],
-				"sections": [0],
-				"spawnScale": 0.8,
-				"ambush": {
-					"count": 10,
-					"composition": {
-						"crawler": 60,
-						"drudge": 40
+				"type": "capture",
+				"label": "Take the three lake drainage pumps",
+				"seconds": 12,
+				"areas": [
+					{
+						"x": 28.5,
+						"y": 58.5,
+						"radius": 3
+					},
+					{
+						"x": 54.5,
+						"y": 45.5,
+						"radius": 3
+					},
+					{
+						"x": 80.5,
+						"y": 57.5,
+						"radius": 3
 					}
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "Pods all over the car park. Burn them, then we'll get the doors open.",
-					"done": "Car park's clear. The front doors are giving way."
-				}
-			},
-			{
-				"type": "reach",
-				"label": "Into the supermarket",
-				"area": {
-					"x": 31.5,
-					"y": 66.5,
-					"radius": 3
-				},
-				"sections": [0, 1],
-				"checkpoint": true,
-				"radio": {
-					"speaker": "Command",
-					"start": "Get inside before the doors fall on you."
-				}
-			},
-			{
-				"type": "destroy",
-				"label": "Burn the nests among the aisles",
-				"props": ["nest-aisles-west", "nest-aisles-east", "nest-deli", "nest-freezers"],
-				"sections": [1],
+				],
 				"spawnScale": 1.0,
 				"checkpoint": true,
 				"checkpointAt": {
-					"x": 31.5,
-					"y": 60.5
+					"x": 54.5,
+					"y": 76.5
 				},
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"drudge": 60,
+						"crawler": 40
+					}
+				},
+				"radio": {
+					"speaker": "Dr Vey",
+					"start": "Dr Vey. Halden dumped its runoff in that lake. If the pumps stay flooded the whole garden soaks. West shore, north shore, east shore: stand on each till it runs.",
+					"done": "All three pumps running. The water's going down."
+				}
+			},
+			{
+				"type": "search",
+				"label": "Search the research coolers in the hedge maze",
+				"props": ["cooler-1", "cooler-2", "cooler-3", "cooler-4"],
+				"spawnScale": 1.1,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 30.5,
+					"y": 42.5
+				},
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"crawler": 60,
+						"bolter": 40
+					}
+				},
+				"radio": {
+					"speaker": "Wren",
+					"start": "Wren. The maze is all blind corners and they're in the hedges. Shotguns, flamers, anything short. The coolers are from the research tents.",
+					"done": "Got the telemetry."
+				}
+			},
+			{
+				"type": "hold",
+				"label": "Hold the island gazebo while the data uploads",
+				"area": {
+					"x": 53.5,
+					"y": 60.5,
+					"radius": 3.5
+				},
+				"seconds": 45,
+				"spawnScale": 1.4,
+				"checkpoint": true,
+				"ambush": {
+					"count": 20,
+					"composition": {
+						"swell": 40,
+						"drudge": 60
+					}
+				},
+				"radio": {
+					"speaker": "Dr Vey",
+					"start": "Get on the island. The gazebo has the only signal in the garden, and it takes forty-five seconds to send. Swells coming down the causeway: pop them early and they take their friends with them.",
+					"done": "Sent. All of it."
+				}
+			},
+			{
+				"type": "demolish",
+				"label": "Blow the palm house's barred south door",
+				"prop": "palm-charge",
+				"seconds": 20,
+				"radius": 8,
+				"destroys": ["palm-door-south"],
+				"spawnScale": 1.4,
 				"ambush": {
 					"count": 14,
 					"composition": {
-						"crawler": 40,
-						"bolter": 30,
-						"drudge": 30
+						"crawler": 50,
+						"drudge": 50
 					}
 				},
 				"radio": {
-					"speaker": "Scout",
-					"start": "Four nests: the west aisles, the east aisles, behind the deli and in the freezers.",
-					"done": "That's the last one. Loading doors are open."
+					"speaker": "Major Okafor",
+					"start": "Okafor. The palm house is barred from the inside. Charge on the south door, twenty seconds, then stand back.",
+					"done": "Door's gone. Listen to that."
 				}
 			},
 			{
-				"type": "destroy",
-				"label": "Burn the brood round the egg",
-				"props": ["egg-west", "egg-east", "egg-north"],
-				"sections": [2],
-				"spawnScale": 1.2,
+				"type": "hunt",
+				"label": "Kill the Screamer nesting in the dome",
+				"targets": [
+					{
+						"type": "screamer",
+						"at": {
+							"x": 54.5,
+							"y": 29.5
+						},
+						"health": 5
+					}
+				],
+				"spawnScale": 1.0,
 				"checkpoint": true,
 				"checkpointAt": {
-					"x": 31.5,
-					"y": 26.5
+					"x": 54.5,
+					"y": 44.5
 				},
 				"ambush": {
-					"count": 16,
+					"count": 10,
 					"composition": {
-						"crawler": 50,
-						"drudge": 30,
-						"swell": 20
+						"crawler": 100
 					}
 				},
 				"radio": {
-					"speaker": "Scout",
-					"start": "Three smaller eggs round the big one. Burn them first.",
-					"done": "Brood's gone. The big one's cracking open!"
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Kill what hatches",
-				"count": 1,
-				"of": "brute",
-				"sections": [2],
-				"spawnScale": 0.8,
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 31.5,
-						"y": 15.5
-					}
-				},
-				"radio": {
-					"speaker": "Scout",
-					"start": "It's out! Put it down!",
-					"done": "It's dead. Van's on its way."
+					"speaker": "Wren",
+					"start": "It's up in the dome among the palms, and every scream brings crawlers out of the beds. Kill it and the garden goes quiet.",
+					"done": "It's dead. The garden's quiet."
 				}
 			},
 			{
 				"type": "extract",
-				"label": "Out through the yard gate",
+				"label": "Back out through the main gate",
 				"area": {
-					"x": 31.5,
-					"y": 3.5,
+					"x": 54.5,
+					"y": 90.5,
 					"radius": 4
 				},
 				"seconds": 40,
-				"sections": [2],
-				"spawnScale": 1.6,
+				"spawnScale": 1.5,
 				"radio": {
-					"speaker": "Command",
-					"start": "Van's at the yard gate. Everyone on!"
+					"speaker": "Kestrel",
+					"start": "Kestrel. Down at the main gate. Forty seconds."
 				}
 			},
 			{
@@ -1439,23 +1952,145 @@
 				"label": "Optional: put down 200",
 				"count": 200,
 				"optional": true
+			},
+			{
+				"type": "interact",
+				"label": "Optional: start the boiler room generator to power the promenade traps",
+				"props": ["boiler-generator"],
+				"optional": true
+			}
+		],
+		"playerSpawns": [
+			{
+				"x": 50.5,
+				"y": 90.5
+			},
+			{
+				"x": 53.5,
+				"y": 90.5
+			},
+			{
+				"x": 56.5,
+				"y": 90.5
+			},
+			{
+				"x": 59.5,
+				"y": 90.5
+			}
+		],
+		"gates": {
+			"palm-door-south": {
+				"openOn": 3
+			},
+			"palm-door-north": {
+				"openOn": 3
+			},
+			"palm-door-west": {
+				"openOn": 3
+			},
+			"palm-door-east": {
+				"openOn": 3
+			}
+		},
+		"props": [
+			{
+				"id": "palm-charge",
+				"kind": "charge",
+				"x": 54.5,
+				"y": 42.5
+			},
+			{
+				"id": "boiler-generator",
+				"kind": "generator",
+				"x": 92,
+				"y": 8,
+				"w": 2,
+				"h": 2
+			},
+			{
+				"id": "promenade-trap-west",
+				"kind": "trap",
+				"x": 30.5,
+				"y": 44.5,
+				"powerBy": "boiler-generator"
+			},
+			{
+				"id": "promenade-trap-east",
+				"kind": "trap",
+				"x": 78.5,
+				"y": 44.5,
+				"powerBy": "boiler-generator"
+			},
+			{
+				"id": "cooler-1",
+				"kind": "search",
+				"look": "scene-fridge",
+				"x": 10.5,
+				"y": 11.5
+			},
+			{
+				"id": "cooler-2",
+				"kind": "search",
+				"look": "scene-fridge",
+				"x": 20.5,
+				"y": 18.5
+			},
+			{
+				"id": "cooler-3",
+				"kind": "search",
+				"look": "scene-fridge",
+				"x": 13.5,
+				"y": 30.5
+			},
+			{
+				"id": "cooler-4",
+				"kind": "search",
+				"look": "scene-fridge",
+				"x": 27.5,
+				"y": 36.5
+			}
+		],
+		"notes": [
+			{
+				"id": "gardener",
+				"x": 8.5,
+				"y": 82.5,
+				"title": "In the gardener's cottage",
+				"by": "A. Penn, head gardener",
+				"text": "The Halden men sprayed the beds again. Told me to wear the mask. Masks are for the rose dust, I said, I've been at this forty years. Hands itching tonight. Spots on the backs of them, white, like mildew. Minister's coming Tuesday to see the trial. I'll wash before."
+			},
+			{
+				"id": "trial-board",
+				"x": 18.5,
+				"y": 26.5,
+				"title": "A whiteboard in the maze",
+				"by": "Halden field team",
+				"text": "TRIAL 7: aerosol, 40 m spread, wind SW. Plots A to D dead by day 3. Wildlife: rats, crows, one fox, mobile after death. (Below, in another pen:) Gardener exposed. Do NOT inform Dr Vey. Minister informed."
+			},
+			{
+				"id": "boiler",
+				"x": 94.5,
+				"y": 12.5,
+				"title": "Boiler room notice",
+				"by": "Gardens maintenance",
+				"text": "The old boiler generator still works the promenade lights and the electric fence round the lake walk. Start it for the evening events. Do not start it if there are visitors on the fence. (Scrawled:) There are no visitors any more."
 			}
 		]
 	},
 	{
 		"id": "lifeline",
-		"name": "Lifeline",
+		"name": "Contagion Ward",
 		"zone": "harrow",
 		"map": "hospital",
-		"description": "Harrow General has lost power and its patients are on borrowed batteries. Clear the atrium, then work down each corridor to its switch room, one after another.",
+		"description": "Harrow General's containment wing holds the original blood samples from patient zero, and its generators are failing. Clear the atrium, take the samples, save the ICU's air, hold the isolation ward and get out ahead of the purge gas.",
 		"briefing": [
-			"Harrow General is still holding: its doors keep the dead out, but the power's gone and the backup batteries won't last.",
-			"Four switch rooms, each at the end of its own corridor off the atrium. The corridors open one at a time, once the atrium is clear.",
-			"The last team in didn't make it past the atrium. Their kit is still on the floor."
+			"Harrow General: the hospital whose wards Blackout kept alive. Its containment wing holds the blood drawn from Arthur Penn, patient zero, before Halden took him away. Dr Vey needs it unmutated.",
+			"The backup generators are failing and the morgue doors have given way. Clear the atrium, collect four frozen samples from the pathology labs, then mend the ICU's air scrubber before the ward suffocates.",
+			"Isolation Ward 3 has to be held while it decontaminates: the mist jams your kit. When it finishes, the wing vents purge gas down the south corridor. Be ahead of it."
 		],
-		"debrief": "Lights are on in Harrow General. Everyone on the wards made it.",
-		"parTimeSeconds": 660,
-		"timeLimitSeconds": 900,
+		"debrief": "Penn's samples are in Dr Vey's cold box and every patient on the ward is breathing. In the bottom of the sample case was a Ministry seal and one word: LANTERN.",
+		"parTimeSeconds": 600,
+		"timeLimitSeconds": 840,
 		"scoreTarget": 56000,
 		"enemyLevel": 10,
 		"recommendedLevel": 10,
@@ -1488,25 +2123,11 @@
 				"y": 11.5
 			}
 		],
-		"gates": {
-			"gate-alpha": {
-				"openOn": 0
-			},
-			"gate-bravo": {
-				"openOn": 2
-			},
-			"gate-charlie": {
-				"openOn": 4
-			},
-			"gate-delta": {
-				"openOn": 6
-			}
-		},
 		"objectives": [
 			{
 				"type": "kill",
-				"label": "Clear the atrium",
-				"count": 25,
+				"label": "Clear the triage atrium",
+				"count": 45,
 				"sections": [0],
 				"checkpoint": true,
 				"checkpointAt": {
@@ -1514,45 +2135,52 @@
 					"y": 39.5
 				},
 				"ambush": {
-					"count": 12,
+					"count": 16,
 					"composition": {
-						"drudge": 70,
-						"crawler": 30
+						"drudge": 60,
+						"crawler": 30,
+						"screamer": 10
 					}
 				},
 				"radio": {
-					"speaker": "Doctor",
-					"start": "They're coming out of the walls in the atrium. Clear it and the first corridor opens.",
-					"done": "Corridor Alpha's open, north side."
+					"speaker": "Dr Vey",
+					"start": "Dr Vey. The atrium is full of them, and there are Screamers among them: kill those first, before they wake the wings.",
+					"done": "Atrium's clear. North corridor's open."
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Throw switch Alpha",
-				"props": ["switch-alpha"],
+				"type": "gather",
+				"label": "Collect four frozen samples from the pathology labs",
+				"look": "sample",
+				"count": 4,
+				"items": [
+					{
+						"x": 6.5,
+						"y": 5.5
+					},
+					{
+						"x": 12.5,
+						"y": 9.5
+					},
+					{
+						"x": 28.5,
+						"y": 10.5
+					},
+					{
+						"x": 22.5,
+						"y": 16.5
+					},
+					{
+						"x": 33.5,
+						"y": 20.5
+					}
+				],
 				"sections": [1],
-				"spawnScale": 1.0,
+				"spawnScale": 1.2,
 				"checkpoint": true,
 				"checkpointAt": {
 					"x": 33.5,
 					"y": 24.5
-				},
-				"radio": {
-					"speaker": "Doctor",
-					"start": "Alpha's at the far end, past the ward. Throw it and come back.",
-					"done": "Alpha's in. They're in the atrium again."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Clear the atrium again",
-				"count": 30,
-				"sections": [0],
-				"spawnScale": 1.2,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 39.5,
-					"y": 39.5
 				},
 				"ambush": {
 					"count": 14,
@@ -1562,136 +2190,91 @@
 					}
 				},
 				"radio": {
-					"speaker": "Doctor",
-					"start": "Clear them out and I'll open Bravo, east side.",
-					"done": "Bravo's open."
+					"speaker": "Dr Vey",
+					"start": "Those vials hold Penn's blood from before it mutated. Keep them cold. Four will do.",
+					"done": "Four samples. The east corridor is open."
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Throw switch Bravo",
-				"props": ["switch-bravo"],
+				"type": "repair",
+				"label": "Mend the ICU's air scrubber",
+				"props": ["icu-scrubber"],
+				"from": 0.2,
 				"sections": [2],
-				"spawnScale": 1.1,
+				"spawnScale": 1.3,
 				"checkpoint": true,
 				"checkpointAt": {
 					"x": 55.5,
 					"y": 39.5
 				},
-				"radio": {
-					"speaker": "Doctor",
-					"start": "Bravo's room is up the corridor and round the corner.",
-					"done": "Two down. Here they come again."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Hold the atrium",
-				"count": 35,
-				"sections": [0],
-				"spawnScale": 1.4,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 39.5,
-					"y": 39.5
-				},
 				"ambush": {
 					"count": 16,
 					"composition": {
-						"screamer": 15,
-						"bolter": 40,
-						"drudge": 45
+						"bolter": 70,
+						"drudge": 30
 					}
 				},
 				"radio": {
-					"speaker": "Doctor",
-					"start": "Screamers in that lot! Kill them first. Charlie opens after, south side.",
-					"done": "Charlie's open."
+					"speaker": "Sr Malik",
+					"start": "Sister Malik, ICU. The scrubber is failing and my patients are breathing what the dead breathe out. Hold E on it. They're coming up the lift shafts!",
+					"done": "Air's clean. The south corridor is open."
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Throw switch Charlie",
-				"props": ["switch-charlie"],
+				"type": "hold",
+				"label": "Hold Isolation Ward 3 while it decontaminates",
+				"area": {
+					"x": 10.5,
+					"y": 66.5,
+					"radius": 5
+				},
+				"seconds": 45,
+				"jammed": true,
 				"sections": [3],
-				"spawnScale": 1.2,
+				"spawnScale": 1.6,
 				"checkpoint": true,
-				"checkpointAt": {
-					"x": 45.5,
-					"y": 55.5
-				},
-				"radio": {
-					"speaker": "Doctor",
-					"start": "Charlie's down the long corridor, the far west room. There's a store behind the boxes in the east ward.",
-					"done": "Three. One to go."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Clear the atrium one more time",
-				"count": 40,
-				"sections": [0],
-				"spawnScale": 1.5,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 39.5,
-					"y": 39.5
-				},
 				"ambush": {
 					"count": 18,
 					"composition": {
+						"crawler": 40,
 						"drudge": 40,
-						"bolter": 30,
-						"swell": 30
+						"swell": 20
 					}
 				},
 				"radio": {
-					"speaker": "Doctor",
-					"start": "Last lot before Delta. North-east door.",
-					"done": "Delta's open."
+					"speaker": "Dr Vey",
+					"start": "The decontamination mist jams anything electronic: no kit for forty-five seconds. And when it's done, the wing purges.",
+					"done": "Done. Now go: the purge is starting!"
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Throw switch Delta",
-				"props": ["switch-delta"],
-				"sections": [4],
-				"spawnScale": 1.3,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 47.5,
-					"y": 24.5
+				"type": "escape",
+				"label": "Get up the south corridor ahead of the purge gas",
+				"area": {
+					"x": 39.5,
+					"y": 39.5,
+					"radius": 4
 				},
+				"hazard": {
+					"kind": "gas",
+					"from": {
+						"x": 40,
+						"y": 78
+					},
+					"toward": {
+						"x": 40,
+						"y": 30
+					},
+					"speed": 1.4,
+					"delaySeconds": 6,
+					"damagePerSecond": 26
+				},
+				"sections": [0, 3],
+				"spawnScale": 1.2,
 				"radio": {
-					"speaker": "Doctor",
-					"start": "Delta's at the end of the north-east corridor.",
-					"done": "Power's back! Something big just walked into the atrium..."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Put down the Brutes in the atrium",
-				"count": 2,
-				"of": "brute",
-				"sections": [0],
-				"spawnScale": 1.0,
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 39.5,
-						"y": 30.5
-					}
-				},
-				"ambush": {
-					"count": 1,
-					"composition": {
-						"brute": 1
-					}
-				},
-				"radio": {
-					"speaker": "Doctor",
-					"start": "Two of them in the atrium! Keep them off the wards!",
-					"done": "Both down. Ambulance bay, now."
+					"speaker": "Dr Vey",
+					"start": "Gas in the south wing! Up the corridor, through the atrium, don't stop!",
+					"done": "You're ahead of it."
 				}
 			},
 			{
@@ -1702,12 +2285,12 @@
 					"y": 39.5,
 					"radius": 4
 				},
-				"seconds": 45,
+				"seconds": 40,
 				"sections": [0],
 				"spawnScale": 1.4,
 				"radio": {
-					"speaker": "Command",
-					"start": "Ambulance bay, everyone. Forty-five seconds."
+					"speaker": "Major Okafor",
+					"start": "Okafor. Ambulance bay, everyone. Forty seconds."
 				}
 			},
 			{
@@ -1715,23 +2298,103 @@
 				"label": "Optional: put down 250",
 				"count": 250,
 				"optional": true
+			},
+			{
+				"type": "destroy",
+				"label": "Optional: burn the nests in the morgue",
+				"burst": 3,
+				"props": ["morgue-nest-1", "morgue-nest-2", "morgue-nest-3"],
+				"optional": true
+			}
+		],
+		"gates": {
+			"gate-alpha": {
+				"openOn": 0
+			},
+			"gate-bravo": {
+				"openOn": 1
+			},
+			"gate-charlie": {
+				"openOn": 2
+			}
+		},
+		"props": [
+			{
+				"id": "icu-scrubber",
+				"kind": "defend",
+				"x": 72,
+				"y": 28,
+				"w": 2,
+				"h": 2,
+				"health": 1100,
+				"look": "scene-aircon"
+			},
+			{
+				"id": "morgue-nest-1",
+				"kind": "nest",
+				"x": 55,
+				"y": 30,
+				"w": 2,
+				"h": 2
+			},
+			{
+				"id": "morgue-nest-2",
+				"kind": "nest",
+				"x": 58,
+				"y": 33,
+				"w": 2,
+				"h": 2
+			},
+			{
+				"id": "morgue-nest-3",
+				"kind": "nest",
+				"x": 61,
+				"y": 33,
+				"w": 2,
+				"h": 2
+			}
+		],
+		"notes": [
+			{
+				"id": "nurse",
+				"x": 16.5,
+				"y": 40.5,
+				"title": "Night nurse's notes",
+				"by": "Sr. Joan Malik",
+				"text": "Bed 4 sat up and asked for tea. Bed 4 has had BRIAR for nineteen days. Dr Vey's serum, third dose. The lesions are drying. I have been nursing for thirty years and I sat down in the corridor and laughed."
+			},
+			{
+				"id": "patient-zero",
+				"x": 58.5,
+				"y": 32.5,
+				"title": "Patient file, sealed",
+				"by": "Harrow General records",
+				"text": "Patient zero. Arthur Penn, 61, gardener, Harrow Botanical Gardens. Admitted with lesions after handling a test crop. Blood drawn and frozen. Transferred to Halden custody, project LANTERN, by order of Minister Marlowe. Not to be discussed with Dr Vey."
+			},
+			{
+				"id": "last-team",
+				"x": 40.5,
+				"y": 40.5,
+				"title": "A dog-eared notebook",
+				"by": "Cpl. Ines Taft, Beacon section",
+				"text": "Beacon section, atrium. Lights out at 0200. Something in the walls. If you're the next team: they come from the ducts, not the doors. Keep your backs to the pillars. Tell my sister I said the thing I never said."
 			}
 		]
 	},
 	{
 		"id": "minister",
-		"name": "The Minister",
+		"name": "The Traitor's Fall",
 		"zone": "harrow",
 		"map": "mansion",
-		"description": "The minister is shut in the safe room of a mansion on Harrow's hill. Clear the house, override the lock, walk the minister to the helipad on the lawn and hold it until the chopper lands.",
+		"description": "Minister Edwin Marlowe signed BRIAR's field trials, and he holds the codes to Halden's sealed lab. He is locked in the safe room of his sealed house. Blow the doors, put down his guards, find the override and drag him to the helipad.",
 		"briefing": [
-			"The minister for reconstruction locked themselves in the safe room of their house on the hill when the dead came up the drive.",
-			"The house is a maze of rooms and dead ends. Clear it, override the safe room lock from the kitchen, and walk the minister out to the helipad.",
-			"There's a generator in the garden that wakes the helipad's turrets. Nine minutes before the chopper has to turn back."
+			"Edwin Marlowe, Minister for Reconstruction, approved BRIAR's field trials a year ahead of Dr Vey's safety tests and ran something called LANTERN behind her back. He is the only man alive with the codes to Halden's sealed lab under the metro.",
+			"He sealed his house on the hill when the dead came up the drive. Every door is barred. His private guards turned inside, in their vests. The safe room override is hidden somewhere in the study, the library or the cellar.",
+			"Blow the front doors, find the override, walk him to the helipad on the lawn and light the pad's four corners for Kestrel. Something big lives in the hedges. Nine minutes before the chopper turns back."
 		],
-		"debrief": "Minister's aboard. They'll be thanking you on the radio for a week.",
-		"parTimeSeconds": 450,
-		"timeLimitSeconds": 570,
+		"debrief": "Marlowe is aboard and he gave up the codes before the skids left the grass. He didn't say sorry. Okafor didn't ask him to.",
+		"parTimeSeconds": 480,
+		"timeLimitSeconds": 600,
 		"scoreTarget": 52000,
 		"enemyLevel": 11,
 		"recommendedLevel": 11,
@@ -1758,36 +2421,71 @@
 			{
 				"x": 12.5,
 				"y": 71.5
+			},
+			{
+				"x": 7.5,
+				"y": 84.5
 			}
 		],
-		"gates": {
-			"safe-room-door": {
-				"openOn": 2
-			}
-		},
 		"objectives": [
 			{
-				"type": "reach",
-				"label": "Get inside the house",
-				"area": {
-					"x": 35.5,
-					"y": 50.5,
-					"radius": 3
-				},
+				"type": "demolish",
+				"label": "Blow the barred front doors",
+				"prop": "gate-charge",
+				"seconds": 18,
+				"radius": 8,
+				"destroys": ["front-doors"],
 				"sections": [0],
-				"spawnScale": 0.8,
-				"checkpoint": true,
+				"spawnScale": 1.0,
+				"ambush": {
+					"count": 12,
+					"composition": {
+						"drudge": 60,
+						"crawler": 40
+					}
+				},
 				"radio": {
-					"speaker": "Minister",
-					"start": "Hello? Is someone out there? They're in the house, I can hear them in the halls..."
+					"speaker": "Major Okafor",
+					"start": "Okafor. Every door in that house is barred from inside. Charge on the front doors, eighteen seconds, and it will wake everything in there.",
+					"done": "You're in. So is the noise."
 				}
 			},
 			{
-				"type": "kill",
-				"label": "Clear the halls",
-				"count": 30,
+				"type": "hunt",
+				"label": "Put down the minister's guards",
+				"targets": [
+					{
+						"type": "drudge",
+						"at": {
+							"x": 35.5,
+							"y": 25.5
+						},
+						"health": 4
+					},
+					{
+						"type": "drudge",
+						"at": {
+							"x": 30.5,
+							"y": 40.5
+						},
+						"health": 4
+					},
+					{
+						"type": "drudge",
+						"at": {
+							"x": 40.5,
+							"y": 48.5
+						},
+						"health": 4
+					}
+				],
 				"sections": [1],
 				"spawnScale": 1.1,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 35.5,
+					"y": 54.5
+				},
 				"ambush": {
 					"count": 12,
 					"composition": {
@@ -1796,26 +2494,26 @@
 					}
 				},
 				"radio": {
-					"speaker": "Command",
-					"start": "Clear the house before you open that safe room. Watch the dead ends.",
-					"done": "Halls are clear."
+					"speaker": "Marlowe",
+					"start": "Stay back! I'm sealed in with enough food for a year! The government authorised BRIAR, you have no jurisdiction here! My guards will... my guards...",
+					"done": "Is anyone there? Are they gone?"
 				}
 			},
 			{
-				"type": "interact",
-				"label": "Override the safe room lock",
-				"props": ["safe-room-lock"],
+				"type": "search",
+				"label": "Find the safe room override: study, library or cellar",
+				"props": ["study-desk", "cellar-safe", "library-shelf"],
 				"sections": [1],
 				"spawnScale": 1.0,
 				"checkpoint": true,
 				"checkpointAt": {
-					"x": 53.5,
-					"y": 40.5
+					"x": 35.5,
+					"y": 46.5
 				},
 				"radio": {
-					"speaker": "Minister",
-					"start": "The override is in the kitchen, by the door. Please hurry.",
-					"done": "It's open! Get me out of here!"
+					"speaker": "Marlowe",
+					"start": "The override? It's... it's hidden. The study, or the library. Or the cellar. I don't remember which! I had people for that!",
+					"done": "The door! It's opening!"
 				}
 			},
 			{
@@ -1838,53 +2536,59 @@
 					}
 				},
 				"radio": {
-					"speaker": "Minister",
-					"start": "Stay close to me. Please, stay close.",
+					"speaker": "Marlowe",
+					"start": "Stay close to me. You don't understand, LANTERN was meant to save people. It was meant to...",
 					"done": "Is that the chopper? Tell me that's the chopper."
 				}
 			},
 			{
-				"type": "hold",
-				"label": "Hold the helipad until the chopper lands",
-				"area": {
-					"x": 57.5,
-					"y": 76.5,
-					"radius": 5
-				},
-				"seconds": 45,
+				"type": "capture",
+				"label": "Light the four corners of the pad",
+				"seconds": 9,
+				"areas": [
+					{
+						"x": 52.5,
+						"y": 72.5,
+						"radius": 2
+					},
+					{
+						"x": 62.5,
+						"y": 72.5,
+						"radius": 2
+					},
+					{
+						"x": 52.5,
+						"y": 80.5,
+						"radius": 2
+					},
+					{
+						"x": 62.5,
+						"y": 80.5,
+						"radius": 2
+					}
+				],
 				"sections": [0, 2],
 				"spawnScale": 1.7,
 				"ambush": {
 					"count": 16,
 					"composition": {
-						"screamer": 15,
-						"drudge": 50,
-						"bolter": 35
+						"bolter": 50,
+						"swell": 20,
+						"drudge": 30
 					}
 				},
-				"radio": {
-					"speaker": "Pilot",
-					"start": "Forty-five seconds out. Keep that pad clear!"
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Put down the Brute on the lawn",
-				"count": 1,
-				"of": "brute",
-				"sections": [0],
-				"spawnScale": 0.8,
 				"boss": {
 					"type": "brute",
 					"at": {
 						"x": 35.5,
 						"y": 80.5
-					}
+					},
+					"afterSeconds": 15
 				},
 				"radio": {
-					"speaker": "Pilot",
-					"start": "I'm not setting down with that thing on the lawn!",
-					"done": "Lawn's clear. Coming in."
+					"speaker": "Kestrel",
+					"start": "Kestrel. I can't see the pad in this fog. Landing lights on posts at each corner: stand at each one till it comes on. And something big is coming through the hedges!",
+					"done": "I see four lights. Coming round."
 				}
 			},
 			{
@@ -1895,12 +2599,12 @@
 					"y": 76.5,
 					"radius": 4
 				},
-				"seconds": 30,
+				"seconds": 35,
 				"sections": [0],
 				"spawnScale": 1.5,
 				"radio": {
-					"speaker": "Pilot",
-					"start": "On the skids. Thirty seconds!"
+					"speaker": "Kestrel",
+					"start": "On the skids. Thirty-five seconds!"
 				}
 			},
 			{
@@ -1909,22 +2613,112 @@
 				"count": 200,
 				"optional": true
 			}
+		],
+		"gates": {
+			"front-doors": {
+				"openOn": 0
+			},
+			"side-door-west": {
+				"openOn": 0
+			},
+			"side-door-east": {
+				"openOn": 0
+			},
+			"terrace-doors": {
+				"openOn": 0
+			},
+			"safe-room-door": {
+				"openOn": 2
+			}
+		},
+		"props": [
+			{
+				"id": "front-doors",
+				"kind": "door",
+				"x": 33,
+				"y": 57,
+				"w": 5,
+				"h": 1,
+				"closed": true
+			},
+			{
+				"id": "side-door-east",
+				"kind": "door",
+				"x": 63,
+				"y": 52,
+				"w": 1,
+				"h": 2,
+				"closed": true
+			},
+			{
+				"id": "gate-charge",
+				"kind": "charge",
+				"x": 35.5,
+				"y": 59.5
+			},
+			{
+				"id": "study-desk",
+				"kind": "search",
+				"look": "scene-desk",
+				"x": 12.5,
+				"y": 24.5
+			},
+			{
+				"id": "cellar-safe",
+				"kind": "search",
+				"look": "scene-utility",
+				"x": 58.5,
+				"y": 49.5
+			},
+			{
+				"id": "library-shelf",
+				"kind": "search",
+				"look": "scene-bookshelf",
+				"x": 14.5,
+				"y": 41.5
+			}
+		],
+		"notes": [
+			{
+				"id": "letter",
+				"x": 15.5,
+				"y": 24.5,
+				"title": "A letter on the study desk",
+				"by": "E. Marlowe, unsent",
+				"text": "Sana is right that BRIAR is not ready. She is wrong that it matters. The fields were sprayed; the Treasury has its harvest figures. LANTERN will contain any spread: a serum we can make ourselves, without her. If it fails, Ashgate is small. Ashgate can be burned."
+			},
+			{
+				"id": "diary",
+				"x": 58.5,
+				"y": 24.5,
+				"title": "Diary, last page",
+				"by": "E. Marlowe",
+				"text": "Day 7 in the safe room. LANTERN did not work. Penn turned in the lab and they could not stop him. The child, the Pryce child, is the answer. Sana has her. Sana has always had the answer. I gave the codes to no one. I will give them to whoever opens this door."
+			},
+			{
+				"id": "gardener",
+				"x": 7.5,
+				"y": 84.5,
+				"title": "In the gardener's bothy",
+				"by": "Tom, under-gardener",
+				"text": "Mr Penn from the Glasshouse came here last spring with cuttings from the trial crop, said the minister wanted them in the rose beds. Roses died. Then the hedges. Something lives in the hedges now. It's big, and it waits."
+			}
 		]
 	},
 	{
 		"id": "cure",
-		"name": "Cure",
+		"name": "Terminus",
 		"zone": "harrow",
 		"map": "metro",
-		"description": "A cure is waiting in a lab at the end of Harrow's metro line. Fight down through the station, through a stopped train and the blast door, find which lab holds it, and carry it to the evacuation pad.",
+		"description": "Dr Vey has worked out the cure from Mila Pryce's blood, and it can only be made in Halden's sealed lab at the end of the metro. Take Marlowe's codes down through the burning tunnel, make the cure and carry it to the surface before the bombers reach Harrow.",
 		"briefing": [
-			"The research labs at the end of the metro line say they have it: a cure. Then they stopped answering.",
-			"Down through the station, onto the platforms, and through the stopped train: the hall is blocked past it. The tunnel's power opens the blast door to the labs.",
-			"Six labs. The index terminal will say which one. Carry it to the pad on the roof yard. Eleven minutes before the city's bombed flat."
+			"This is it. Dr Vey has the cultures from the depot, Penn's blood from the hospital and Mila's from the train. With Marlowe's codes, Halden's synthesiser in Sub-Level 4 can make the cure.",
+			"The way down is through the dark station and a stalled train in the tunnel, and the train is on fire. The lab's airlock purges slowly and its jammer kills your kit while it does.",
+			"Start the synthesiser from both consoles and keep it alive while it runs: everything down there will come for it. Then carry the canister up to the roof pad. The government has given up on Harrow. Bombers are over the city in thirteen minutes."
 		],
-		"debrief": "The cure's on the bird. Whatever happens now, it was worth it.",
-		"parTimeSeconds": 540,
-		"timeLimitSeconds": 690,
+		"debrief": "The cure is on the bird, and so is Dr Vey. Mila is waiting at the airfield. Behind you, Harrow lights up white. The Rotline is broken. So is the rot.",
+		"parTimeSeconds": 660,
+		"timeLimitSeconds": 780,
 		"scoreTarget": 60000,
 		"enemyLevel": 12,
 		"recommendedLevel": 12,
@@ -1951,6 +2745,227 @@
 			{
 				"x": 20.5,
 				"y": 18.5
+			},
+			{
+				"x": 5.5,
+				"y": 133.5
+			}
+		],
+		"objectives": [
+			{
+				"type": "capture",
+				"label": "Take both stairheads at the station entrance",
+				"seconds": 10,
+				"areas": [
+					{
+						"x": 20.5,
+						"y": 125.5,
+						"radius": 2.5
+					},
+					{
+						"x": 43.5,
+						"y": 125.5,
+						"radius": 2.5
+					}
+				],
+				"sections": [0],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 120.5
+				},
+				"ambush": {
+					"count": 10,
+					"composition": {
+						"drudge": 70,
+						"bolter": 30
+					}
+				},
+				"radio": {
+					"speaker": "Kestrel",
+					"start": "Kestrel. Dropping you by the stadium. Two stairheads down into the station: take both and hold them till the street gives up.",
+					"done": "Station doors are open. No going back up after this."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Open the track gates from the station master's booth",
+				"props": ["ticket-terminal"],
+				"sections": [1],
+				"spawnScale": 1.1,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 112.5
+				},
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "Okafor. The track gates are run from the booth on the west side of the hall. It's dark down there. Lights on.",
+					"done": "Gates are up. Down you go."
+				}
+			},
+			{
+				"type": "escape",
+				"label": "Through the stalled train before the fire takes the tunnel",
+				"area": {
+					"x": 30.5,
+					"y": 45.5,
+					"radius": 4
+				},
+				"hazard": {
+					"kind": "fire",
+					"from": {
+						"x": 31.5,
+						"y": 86
+					},
+					"toward": {
+						"x": 31.5,
+						"y": 37
+					},
+					"speed": 1.5,
+					"delaySeconds": 6,
+					"damagePerSecond": 30
+				},
+				"sections": [2],
+				"spawnScale": 1.2,
+				"checkpoint": true,
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"crawler": 50,
+						"drudge": 50
+					}
+				},
+				"radio": {
+					"speaker": "Dr Vey",
+					"start": "The dead train's fuel is burning and the fire is coming up the platform behind you! Through the carriages and out the far end!",
+					"done": "You're through. The fire's settling."
+				}
+			},
+			{
+				"type": "hold",
+				"label": "Hold the airlock while it purges",
+				"area": {
+					"x": 31.5,
+					"y": 39.5,
+					"radius": 5
+				},
+				"seconds": 45,
+				"jammed": true,
+				"sections": [2],
+				"spawnScale": 1.5,
+				"checkpoint": true,
+				"ambush": {
+					"count": 16,
+					"composition": {
+						"bolter": 60,
+						"drudge": 40
+					}
+				},
+				"radio": {
+					"speaker": "Dr Vey",
+					"start": "Marlowe's codes are in. The airlock purges slowly and the lab's jammer is on: your kit is dead for forty-five seconds. Barricades you placed before still stand.",
+					"done": "Airlock's open. Sub-Level 4."
+				}
+			},
+			{
+				"type": "interact",
+				"label": "Start the synthesiser from both consoles",
+				"props": ["synth-console-1", "synth-console-2"],
+				"sections": [3],
+				"spawnScale": 1.0,
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 31.5,
+					"y": 33.5
+				},
+				"radio": {
+					"speaker": "Dr Vey",
+					"start": "Two consoles, one in a west lab, one in an east lab. Mila's bloodwork goes in, the cure comes out. Start them both.",
+					"done": "It's running! Lab four is open: the synthesiser's in there, and they know."
+				}
+			},
+			{
+				"type": "defend",
+				"label": "Keep the synthesiser running",
+				"prop": "bio-synthesizer",
+				"seconds": 60,
+				"sections": [3],
+				"spawnScale": 1.7,
+				"boss": {
+					"type": "brute",
+					"at": {
+						"x": 31.5,
+						"y": 22.5
+					}
+				},
+				"ambush": {
+					"count": 1,
+					"composition": {
+						"brute": 1
+					}
+				},
+				"radio": {
+					"speaker": "Dr Vey",
+					"start": "Sixty seconds. If it stops, we start again. Two Brutes in the corridor! Hold E on it if they get through!",
+					"done": "Done! It works. Edwin's blight can be reversed!"
+				}
+			},
+			{
+				"type": "retrieve",
+				"label": "Carry the cure up to the roof pad",
+				"item": "cure",
+				"area": {
+					"x": 31.5,
+					"y": 6.5,
+					"radius": 3
+				},
+				"sections": [3],
+				"spawnScale": 1.4,
+				"checkpoint": true,
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"screamer": 15,
+						"drudge": 50,
+						"bolter": 35
+					}
+				},
+				"radio": {
+					"speaker": "Dr Vey",
+					"start": "The canister on the bench. Every dose there is. Whoever carries it has a pistol and nothing else, so the rest of you, walk with them.",
+					"done": "Cure's on the pad."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Everyone on the bird",
+				"area": {
+					"x": 31.5,
+					"y": 6.5,
+					"radius": 4
+				},
+				"seconds": 45,
+				"sections": [3],
+				"spawnScale": 1.7,
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "Okafor. Bombers are at the perimeter. Forty-five seconds to payload, Lantern. Get off that roof!"
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 200",
+				"count": 200,
+				"optional": true
+			},
+			{
+				"type": "destroy",
+				"label": "Optional: burn the brood nest in the dead train",
+				"burst": 4,
+				"props": ["nest-dead-train"],
+				"optional": true
 			}
 		],
 		"gates": {
@@ -1982,175 +2997,58 @@
 				"openOn": 4
 			}
 		},
-		"objectives": [
+		"props": [
 			{
-				"type": "kill",
-				"label": "Clear the station entrance",
-				"count": 30,
-				"sections": [0],
-				"spawnScale": 1.0,
-				"ambush": {
-					"count": 10,
-					"composition": {
-						"drudge": 70,
-						"bolter": 30
-					}
-				},
-				"radio": {
-					"speaker": "Pilot",
-					"start": "Dropping you by the stadium. Clear the entrance and the station's yours.",
-					"done": "Station doors are open. No going back up after this."
-				}
+				"id": "synth-console-1",
+				"kind": "terminal",
+				"x": 5,
+				"y": 24,
+				"w": 2,
+				"h": 1
 			},
 			{
-				"type": "interact",
-				"label": "Open the platform gates from the ticket office",
-				"props": ["ticket-terminal"],
-				"sections": [1],
-				"spawnScale": 1.1,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 31.5,
-					"y": 112.5
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "The platform gates are run from the ticket office, west side of the hall.",
-					"done": "Gates are up. Down you go."
-				}
+				"id": "synth-console-2",
+				"kind": "terminal",
+				"x": 49,
+				"y": 29,
+				"w": 2,
+				"h": 1
 			},
 			{
-				"type": "reach",
-				"label": "Through the train to the far platform",
-				"area": {
-					"x": 30.5,
-					"y": 45.5,
-					"radius": 4
-				},
-				"sections": [2],
-				"spawnScale": 1.2,
-				"checkpoint": true,
-				"ambush": {
-					"count": 14,
-					"composition": {
-						"crawler": 50,
-						"drudge": 50
-					}
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "The hall's fallen in halfway. The way on is through the stopped train on the west track.",
-					"done": "You're through."
-				}
+				"id": "bio-synthesizer",
+				"kind": "defend",
+				"x": 52,
+				"y": 15,
+				"w": 2,
+				"h": 2,
+				"health": 1500,
+				"look": "scene-machine"
+			}
+		],
+		"notes": [
+			{
+				"id": "ticket-office",
+				"x": 8.5,
+				"y": 108.5,
+				"title": "Station announcement script",
+				"by": "Harrow Metro control",
+				"text": "This station is closed by order of the Ministry. Halden Agritech personnel only beyond this point. Passengers are asked to make their way to the surface. (Scrawled across it:) THERE IS NO SURFACE LEFT"
 			},
 			{
-				"type": "interact",
-				"label": "Power the blast door",
-				"props": ["tunnel-power"],
-				"sections": [2],
-				"spawnScale": 1.3,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 30.5,
-					"y": 45.5
-				},
-				"ambush": {
-					"count": 12,
-					"composition": {
-						"bolter": 60,
-						"drudge": 40
-					}
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "The tunnel's generator runs the blast door. Start it and hold while it runs up.",
-					"done": "Blast door's open. Labs ahead."
-				}
+				"id": "staffroom",
+				"x": 6.5,
+				"y": 133.5,
+				"title": "Staff room noticeboard",
+				"by": "Station staff",
+				"text": "Lights out at 2300 every night now. Halden says the trains carry \"seed stock\" to the lab at the end of the line. We've stopped asking. Kettle's broken. Somebody bricked the door from the outside. Not funny, Gary."
 			},
 			{
-				"type": "interact",
-				"label": "Find which lab has the cure",
-				"props": ["lab-index"],
-				"sections": [3],
-				"spawnScale": 1.0,
-				"checkpoint": true,
-				"checkpointAt": {
-					"x": 31.5,
-					"y": 33.5
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "Index terminal's by the blast door. It'll say which lab.",
-					"done": "Lab four, east side. Its door's open now."
-				}
-			},
-			{
-				"type": "retrieve",
-				"label": "Carry the cure to the pad",
-				"item": "cure",
-				"area": {
-					"x": 31.5,
-					"y": 6.5,
-					"radius": 3
-				},
-				"sections": [3],
-				"spawnScale": 1.3,
-				"checkpoint": true,
-				"ambush": {
-					"count": 14,
-					"composition": {
-						"screamer": 15,
-						"drudge": 50,
-						"bolter": 35
-					}
-				},
-				"radio": {
-					"speaker": "Command",
-					"start": "Get it out of lab four and up to the pad. Don't drop it.",
-					"done": "Cure's on the pad."
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Put down the Brute on the pad",
-				"count": 1,
-				"of": "brute",
-				"sections": [3],
-				"spawnScale": 0.8,
-				"boss": {
-					"type": "brute",
-					"at": {
-						"x": 44.5,
-						"y": 6.5
-					}
-				},
-				"radio": {
-					"speaker": "Pilot",
-					"start": "There's something huge on the roof yard! I can't land!",
-					"done": "It's down. Coming in."
-				}
-			},
-			{
-				"type": "extract",
-				"label": "Everyone on the bird",
-				"area": {
-					"x": 31.5,
-					"y": 6.5,
-					"radius": 4
-				},
-				"seconds": 45,
-				"sections": [3],
-				"spawnScale": 1.6,
-				"radio": {
-					"speaker": "Pilot",
-					"start": "Forty-five seconds, then the bombers are over the city!"
-				}
-			},
-			{
-				"type": "kill",
-				"label": "Optional: put down 200",
-				"count": 200,
-				"optional": true
+				"id": "vey-journal",
+				"x": 45.5,
+				"y": 22.5,
+				"title": "Lab journal, last entry",
+				"by": "Dr Sana Vey",
+				"text": "Mila's antibodies bind BRIAR's coat protein and the whole thing falls apart, like pulling one thread out of a jumper. I made this. I can unmake it. If you are reading this and I am not here, start the synthesiser and take the canister. Tell Mila she saved everyone."
 			}
 		]
 	},
@@ -2158,9 +3056,9 @@
 		"id": "hotspot",
 		"name": "Hotspot",
 		"zone": "contracts",
-		"map": "yard",
-		"description": "Three minutes in the old freight yard with the nests awake. Kill as many as you can, as fast as you can.",
-		"briefing": ["The old freight yard is boiling over. Three minutes: kill everything that moves."],
+		"map": "depot",
+		"description": "Three minutes in the old food depot with the nests awake. Kill as many as you can, as fast as you can.",
+		"briefing": ["The food depot is boiling over. Three minutes: kill everything that moves."],
 		"debrief": "Time. Count the bodies.",
 		"parTimeSeconds": 185,
 		"timeLimitSeconds": 200,
@@ -2179,8 +3077,8 @@
 		},
 		"caches": [
 			{
-				"x": 4,
-				"y": 44
+				"x": 93.5,
+				"y": 61.5
 			}
 		],
 		"objectives": [
@@ -2212,7 +3110,53 @@
 			"seconds": 15,
 			"step": 5,
 			"maxSeconds": 30
-		}
+		},
+		"variants": [
+			{
+				"map": "crossroads",
+				"description": "Three minutes at the Crossroads, the old market town, with the nests awake. Kill as many as you can, as fast as you can.",
+				"briefing": ["The Crossroads is boiling over. Three minutes: kill everything that moves."],
+				"caches": [
+					{
+						"x": 33.5,
+						"y": 27.5
+					}
+				]
+			},
+			{
+				"map": "docks",
+				"description": "Three minutes among the container stacks with the nests awake. Kill as many as you can, as fast as you can.",
+				"briefing": ["The docks are boiling over. Three minutes: kill everything that moves."],
+				"caches": [
+					{
+						"x": 89.5,
+						"y": 39.5
+					}
+				]
+			},
+			{
+				"map": "glasshouse",
+				"description": "Three minutes in the botanical gardens with the nests awake. Kill as many as you can, as fast as you can.",
+				"briefing": ["The gardens are boiling over. Three minutes: kill everything that moves."],
+				"caches": [
+					{
+						"x": 92.5,
+						"y": 27.5
+					}
+				]
+			},
+			{
+				"map": "oldtown",
+				"description": "Three minutes in the old town with the nests awake. Kill as many as you can, as fast as you can.",
+				"briefing": ["The old town is boiling over. Three minutes: kill everything that moves."],
+				"caches": [
+					{
+						"x": 104.5,
+						"y": 79.5
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "supply-run",
@@ -2301,7 +3245,181 @@
 			"seconds": 15,
 			"step": 5,
 			"maxSeconds": 30
-		}
+		},
+		"variants": [
+			{
+				"map": "docks",
+				"description": "Three supply crates were left around the docks when the port fell. Carry each one back to the dock workers' camp by the crane.",
+				"briefing": [
+					"The port was a supply depot before it fell, and three crates are still lying about.",
+					"Carry them to the dock workers' camp round the crane. Carrying slows you down: travel light."
+				],
+				"caches": [
+					{
+						"x": 89.5,
+						"y": 39.5
+					}
+				],
+				"props": [
+					{
+						"id": "crate-warehouse",
+						"kind": "carry",
+						"x": 80.5,
+						"y": 10.5
+					},
+					{
+						"id": "crate-gatehouse",
+						"kind": "carry",
+						"x": 8.5,
+						"y": 37.5
+					},
+					{
+						"id": "crate-pier",
+						"kind": "carry",
+						"x": 21.5,
+						"y": 82.5
+					}
+				],
+				"objectives": [
+					{
+						"type": "retrieve",
+						"label": "Bring the crate from the north warehouse",
+						"item": "crate-warehouse",
+						"area": {
+							"x": 40.5,
+							"y": 50.5,
+							"radius": 3
+						},
+						"radio": {
+							"speaker": "Quartermaster",
+							"start": "First crate's in the north warehouse."
+						}
+					},
+					{
+						"type": "retrieve",
+						"label": "Bring the crate from the gatehouse",
+						"item": "crate-gatehouse",
+						"area": {
+							"x": 40.5,
+							"y": 50.5,
+							"radius": 3
+						},
+						"radio": {
+							"speaker": "Quartermaster",
+							"start": "Next one's in the gatehouse, west by the road."
+						}
+					},
+					{
+						"type": "retrieve",
+						"label": "Bring the crate from the west pier",
+						"item": "crate-pier",
+						"area": {
+							"x": 40.5,
+							"y": 50.5,
+							"radius": 3
+						},
+						"spawnScale": 1.4,
+						"radio": {
+							"speaker": "Quartermaster",
+							"start": "Last one's out on the west pier.",
+							"done": "That's all three."
+						}
+					},
+					{
+						"type": "kill",
+						"label": "Optional: put down 80",
+						"count": 80,
+						"optional": true
+					}
+				]
+			},
+			{
+				"map": "oldtown",
+				"description": "Three supply crates are stashed around the old town. Carry each one back to the fountain in the square.",
+				"briefing": [
+					"The town's relief stores were split up when it was overrun. Three crates are worth the trip.",
+					"Carry them to the fountain in the square. Carrying slows you down: travel light."
+				],
+				"caches": [
+					{
+						"x": 40.5,
+						"y": 36.5
+					}
+				],
+				"props": [
+					{
+						"id": "crate-church",
+						"kind": "carry",
+						"x": 66.5,
+						"y": 19.5
+					},
+					{
+						"id": "crate-hotel",
+						"kind": "carry",
+						"x": 94.5,
+						"y": 25.5
+					},
+					{
+						"id": "crate-mill",
+						"kind": "carry",
+						"x": 54.5,
+						"y": 72.5
+					}
+				],
+				"objectives": [
+					{
+						"type": "retrieve",
+						"label": "Bring the crate from the church",
+						"item": "crate-church",
+						"area": {
+							"x": 61.5,
+							"y": 30.5,
+							"radius": 3
+						},
+						"radio": {
+							"speaker": "Quartermaster",
+							"start": "First crate's in the church, north of the square."
+						}
+					},
+					{
+						"type": "retrieve",
+						"label": "Bring the crate from the hotel",
+						"item": "crate-hotel",
+						"area": {
+							"x": 61.5,
+							"y": 30.5,
+							"radius": 3
+						},
+						"radio": {
+							"speaker": "Quartermaster",
+							"start": "Next one's in the hotel, east of the square."
+						}
+					},
+					{
+						"type": "retrieve",
+						"label": "Bring the crate from the mill",
+						"item": "crate-mill",
+						"area": {
+							"x": 61.5,
+							"y": 30.5,
+							"radius": 3
+						},
+						"spawnScale": 1.4,
+						"radio": {
+							"speaker": "Quartermaster",
+							"start": "Last one's over the river, in the mill.",
+							"done": "That's all three."
+						}
+					},
+					{
+						"type": "kill",
+						"label": "Optional: put down 80",
+						"count": 80,
+						"optional": true
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "data-grab",
@@ -2371,7 +3489,171 @@
 			"seconds": 15,
 			"step": 5,
 			"maxSeconds": 30
-		}
+		},
+		"variants": [
+			{
+				"map": "glasshouse",
+				"description": "Four terminals in the botanical gardens' research rooms still hold the samples data. Pull it from every one, then get to the main gate.",
+				"briefing": [
+					"The gardens grew the first test crops for the cure. Four terminals still hold the data: the orangery, both ends of the nursery's glasshouse and the gazebo on the lake's island."
+				],
+				"caches": [
+					{
+						"x": 92.5,
+						"y": 27.5
+					}
+				],
+				"props": [
+					{
+						"id": "terminal-orangery",
+						"kind": "terminal",
+						"x": 84,
+						"y": 26,
+						"w": 2,
+						"h": 1
+					},
+					{
+						"id": "terminal-nursery",
+						"kind": "terminal",
+						"x": 7,
+						"y": 48,
+						"w": 2,
+						"h": 1
+					},
+					{
+						"id": "terminal-potting",
+						"kind": "terminal",
+						"x": 7,
+						"y": 71,
+						"w": 2,
+						"h": 1
+					},
+					{
+						"id": "terminal-gazebo",
+						"kind": "terminal",
+						"x": 52,
+						"y": 60,
+						"w": 2,
+						"h": 1
+					}
+				],
+				"objectives": [
+					{
+						"type": "interact",
+						"label": "Pull the data from all four terminals",
+						"props": ["terminal-orangery", "terminal-nursery", "terminal-potting", "terminal-gazebo"],
+						"spawnScale": 1.1,
+						"radio": {
+							"speaker": "Command",
+							"start": "Four terminals. Work them in any order.",
+							"done": "Got it all. To the truck."
+						}
+					},
+					{
+						"type": "extract",
+						"label": "Get to the main gate",
+						"area": {
+							"x": 54.5,
+							"y": 91.5,
+							"radius": 4
+						},
+						"seconds": 30,
+						"spawnScale": 1.5,
+						"radio": {
+							"speaker": "Command",
+							"start": "Truck's at the gate. Thirty seconds."
+						}
+					},
+					{
+						"type": "kill",
+						"label": "Optional: put down 80",
+						"count": 80,
+						"optional": true
+					}
+				]
+			},
+			{
+				"map": "docks",
+				"description": "Four terminals around the port still hold the shipping manifests. Pull the data from every one, then get to the quay.",
+				"briefing": [
+					"The port's manifests show where the army's last shipments went. Pull them from all four: the harbour office, both warehouses and the camp by the crane."
+				],
+				"caches": [
+					{
+						"x": 89.5,
+						"y": 39.5
+					}
+				],
+				"props": [
+					{
+						"id": "terminal-harbour",
+						"kind": "terminal",
+						"x": 17,
+						"y": 55,
+						"w": 2,
+						"h": 1
+					},
+					{
+						"id": "terminal-warehouse-south",
+						"kind": "terminal",
+						"x": 88,
+						"y": 27,
+						"w": 2,
+						"h": 1
+					},
+					{
+						"id": "terminal-warehouse",
+						"kind": "terminal",
+						"x": 75,
+						"y": 6,
+						"w": 2,
+						"h": 1
+					},
+					{
+						"id": "terminal-camp",
+						"kind": "terminal",
+						"x": 49,
+						"y": 44,
+						"w": 2,
+						"h": 1
+					}
+				],
+				"objectives": [
+					{
+						"type": "interact",
+						"label": "Pull the data from all four terminals",
+						"props": ["terminal-harbour", "terminal-warehouse-south", "terminal-warehouse", "terminal-camp"],
+						"spawnScale": 1.1,
+						"radio": {
+							"speaker": "Command",
+							"start": "Four terminals. Work them in any order.",
+							"done": "Got it all. To the truck."
+						}
+					},
+					{
+						"type": "extract",
+						"label": "Get to the boat at the west pier",
+						"area": {
+							"x": 21.5,
+							"y": 80.5,
+							"radius": 3
+						},
+						"seconds": 30,
+						"spawnScale": 1.5,
+						"radio": {
+							"speaker": "Command",
+							"start": "Boat's at the quay. Thirty seconds."
+						}
+					},
+					{
+						"type": "kill",
+						"label": "Optional: put down 80",
+						"count": 80,
+						"optional": true
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "shipment",
@@ -2435,6 +3717,108 @@
 			"seconds": 15,
 			"step": 5,
 			"maxSeconds": 30
-		}
+		},
+		"variants": [
+			{
+				"map": "oldtown",
+				"description": "A weapons shipment is sitting in the old town's square. Keep it in one piece until the convoy collects it.",
+				"briefing": [
+					"A weapons shipment is on pallets in the town square and the dead are all over it. The convoy needs two and a half minutes."
+				],
+				"caches": [
+					{
+						"x": 104.5,
+						"y": 79.5
+					}
+				],
+				"props": [
+					{
+						"id": "shipment",
+						"kind": "defend",
+						"x": 56,
+						"y": 24,
+						"w": 4,
+						"h": 2
+					}
+				],
+				"objectives": [
+					{
+						"type": "defend",
+						"label": "Keep the shipment in one piece",
+						"prop": "shipment",
+						"seconds": 150,
+						"spawnScale": 1.3,
+						"ambush": {
+							"count": 16,
+							"composition": {
+								"drudge": 60,
+								"bolter": 40
+							}
+						},
+						"radio": {
+							"speaker": "Convoy",
+							"start": "Two and a half minutes out. Don't let them tear it open!",
+							"done": "Convoy's here. Shipment's safe."
+						}
+					},
+					{
+						"type": "kill",
+						"label": "Optional: put down 100",
+						"count": 100,
+						"optional": true
+					}
+				]
+			},
+			{
+				"map": "glasshouse",
+				"description": "A weapons shipment is sitting on the orangery's terrace in the botanical gardens. Keep it in one piece until the convoy collects it.",
+				"briefing": [
+					"A weapons shipment is on pallets on the orangery terrace and the dead are all over it. The convoy needs two and a half minutes."
+				],
+				"caches": [
+					{
+						"x": 92.5,
+						"y": 27.5
+					}
+				],
+				"props": [
+					{
+						"id": "shipment",
+						"kind": "defend",
+						"x": 89,
+						"y": 33,
+						"w": 4,
+						"h": 2
+					}
+				],
+				"objectives": [
+					{
+						"type": "defend",
+						"label": "Keep the shipment in one piece",
+						"prop": "shipment",
+						"seconds": 150,
+						"spawnScale": 1.3,
+						"ambush": {
+							"count": 16,
+							"composition": {
+								"drudge": 60,
+								"bolter": 40
+							}
+						},
+						"radio": {
+							"speaker": "Convoy",
+							"start": "Two and a half minutes out. Don't let them tear it open!",
+							"done": "Convoy's here. Shipment's safe."
+						}
+					},
+					{
+						"type": "kill",
+						"label": "Optional: put down 100",
+						"count": 100,
+						"optional": true
+					}
+				]
+			}
+		]
 	}
 ]

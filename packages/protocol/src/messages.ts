@@ -22,7 +22,9 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 11
+export const PROTOCOL_VERSION = 13
+
+const FAIL_REASONS = ['time', 'lives', 'wiped'] as const
 
 export const ClientMessage = { hello: 1, input: 2, pong: 3, range: 4, pause: 5 } as const
 
@@ -332,6 +334,12 @@ export type MissionFrame = {
 	caches: number
 	/** whole seconds left on a timed mission's clock; null without a time limit */
 	timeLeft: number | null
+	/** gather: bit n set once item n is picked up */
+	picked: number
+	/** capture: how full each area is, 0..1 */
+	areas: number[]
+	/** seconds since the current objective started (an escape's hazard moves from then) */
+	objectiveSeconds: number
 }
 
 export type OtherPlayer = {
@@ -369,7 +377,16 @@ export type ObjectState = {
 }
 
 /** Zombie status bits, for drawing (stunned zombies sparkle, marked ones glow red, ...). */
-export const ZombieStatus = { stunned: 1, slowed: 2, marked: 4, poisoned: 8, taunted: 16, burning: 32 } as const
+export const ZombieStatus = {
+	stunned: 1,
+	slowed: 2,
+	marked: 4,
+	poisoned: 8,
+	taunted: 16,
+	burning: 32,
+	/** a target a hunt objective wants dead */
+	hunted: 64
+} as const
 
 /** The decoded non-zombie part of a snapshot; zombies are applied straight into a ZombieTable. */
 export type SnapshotFrame = {
@@ -488,7 +505,8 @@ export class SnapshotEncoder {
 					(s.reloadEndTick !== 0 ? 2 : 0) |
 					(s.downed ? 4 : 0) |
 					(s.free ? 8 : 0) |
-					(s.carrying ? 16 : 0)
+					(s.carrying ? 16 : 0) |
+					(s.jammed ? 32 : 0)
 			)
 			w.u32(s.bleedoutTick).u8(s.downs).u16(Math.round(s.reviveProgress))
 			w.u8(s.slot).u8(s.previousSlot).u32(s.respawnTick).u32(s.safeUntilTick)
@@ -520,6 +538,13 @@ export class SnapshotEncoder {
 			w.u16(caches)
 			const left = mission ? timeLeft(world, mission) : null
 			w.u16(left === null ? NO_LIMIT : Math.min(NO_LIMIT - 1, left))
+			w.u16(mission?.picked ?? 0)
+			const objective = mission ? currentObjective(mission) : null
+			const full = objective?.type === 'capture' ? Math.round(objective.seconds * TICK_RATE) : 1
+			const areas = objective?.type === 'capture' ? (mission?.areaTicks ?? []) : []
+			w.u8(areas.length)
+			for (const held of areas) w.u8(Math.min(255, Math.round((held / full) * 255)))
+			w.u16(mission ? Math.min(0xffff, Math.round(((world.tick - mission.objectiveTick) / TICK_RATE) * 10)) : 0)
 		}
 
 		// everyone else, quantised
@@ -658,7 +683,8 @@ export class SnapshotEncoder {
 			const i = prop.index
 			const health =
 				prop.maxHealth > 0 ? Math.max(0, Math.min(255, Math.round((prop.health / prop.maxHealth) * 255))) : 255
-			const progress = Math.round(prop.progress * 255)
+			// a hold's 0..1 (a vehicle's progress is metres driven, which clients read from where it is)
+			const progress = Math.round(Math.min(1, prop.progress) * 255)
 			// state, plus powered (turrets and lights) and cooling down (traps) as flag bits
 			const cooling = prop.def.kind === 'trap' && world.tick < prop.readyTick
 			const state = prop.state | (prop.powered ? 0x80 : 0) | (cooling ? 0x40 : 0)
@@ -757,7 +783,8 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			overwatchShots,
 			minigunSteps,
 			free: (flags & 8) !== 0,
-			carrying: (flags & 16) !== 0
+			carrying: (flags & 16) !== 0,
+			jammed: (flags & 32) !== 0
 		}
 	}
 	const mission: MissionFrame = {
@@ -772,7 +799,10 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		chain: r.u16(),
 		chainLeft: r.u8() / 255,
 		caches: r.u16(),
-		timeLeft: nullableSeconds(r.u16())
+		timeLeft: nullableSeconds(r.u16()),
+		picked: r.u16(),
+		areas: Array.from({ length: r.u8() }, () => r.u8() / 255),
+		objectiveSeconds: r.u16() / 10
 	}
 	const others: OtherPlayer[] = []
 	const otherCount = r.u8()
@@ -904,7 +934,8 @@ const EMPTY_SELF: SelfState = {
 	overwatchShots: 0,
 	minigunSteps: 0,
 	free: false,
-	carrying: false
+	carrying: false,
+	jammed: false
 }
 
 const secondsUntil = (world: World, until: number) =>
@@ -918,7 +949,8 @@ function zombieStatus(world: World, i: number): number {
 		((world.markUntil[i] as number) > tick ? ZombieStatus.marked : 0) |
 		((world.poisonUntil[i] as number) > tick ? ZombieStatus.poisoned : 0) |
 		((world.tauntUntil[i] as number) > tick ? ZombieStatus.taunted : 0) |
-		((world.burnUntil[i] as number) > tick ? ZombieStatus.burning : 0)
+		((world.burnUntil[i] as number) > tick ? ZombieStatus.burning : 0) |
+		(world.hunted[i] === 1 ? ZombieStatus.hunted : 0)
 	)
 }
 
@@ -1032,7 +1064,7 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 			case 'mission-complete':
 				break
 			case 'mission-failed':
-				w.u8(event.reason === 'lives' ? 1 : 0)
+				w.u8(event.reason === 'lives' ? 1 : event.reason === 'wiped' ? 2 : 0)
 				break
 			case 'item-found':
 				w.u8(event.player).u8(event.item)
@@ -1149,7 +1181,7 @@ export function readEvents(r: Reader): SimEvent[] {
 				events.push({ type: 'mission-complete' })
 				break
 			case EventType['mission-failed']:
-				events.push({ type: 'mission-failed', reason: r.u8() === 1 ? 'lives' : 'time' })
+				events.push({ type: 'mission-failed', reason: FAIL_REASONS[r.u8()] ?? 'time' })
 				break
 			case EventType['item-found']:
 				events.push({ type: 'item-found', player: r.u8(), item: r.u8() })

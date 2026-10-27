@@ -16,12 +16,10 @@
 		},
 		{
 			"kind": "sandbags",
-			"source": "compost_bags",
-			"name": "Compost Bags",
-			"author": "James Ray Cock",
-			"triangles": 800,
-			"tint": [0.72, 0.66, 0.5],
-			"nodes": ["compost_bags_floorstacked", "compost_bags_floor"]
+			"uid": "8560a93adc7d4c8781d45bac09ddf7b9",
+			"name": "Sandbag",
+			"author": "capus.design",
+			"triangles": 1200
 		},
 		{
 			"kind": "generator",
@@ -218,7 +216,7 @@
 			"kind": "scene-hydrant",
 			"source": "fire_hydrant",
 			"name": "Fire Hydrant",
-			"author": "Gonçalo Felício",
+			"author": "Gon\u00e7alo Fel\u00edcio",
 			"triangles": 1500
 		},
 		{
@@ -377,6 +375,385 @@
 			"name": "Military crate",
 			"author": "Noahouou",
 			"triangles": 2500
+		},
+		{
+			"kind": "scene-tree",
+			"uid": "3dc59560f2d24345bdbe65c44636453b",
+			"name": "Oak tree",
+			"author": "massive-graphisme",
+			"triangles": 7200,
+			"size": 5.5
+		},
+		{
+			"kind": "scene-birch",
+			"uid": "aa842dffd9654d33b8b91170ce83c172",
+			"name": "Birch tree",
+			"author": "evolveduk",
+			"triangles": 7500,
+			"size": 6
+		},
+		{
+			"kind": "scene-palm",
+			"uid": "917c18d6b2d04d33950dea6e20bc074f",
+			"name": "Realistic Palm Tree 4 Free",
+			"author": "Next Spring",
+			"triangles": 8100,
+			"size": 5
+		},
+		{
+			"kind": "scene-bush",
+			"source": "shrub_03",
+			"name": "Shrub 03",
+			"author": "Rico Cilliers",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-bush2",
+			"source": "shrub_04",
+			"name": "Shrub 04",
+			"author": "Rico Cilliers",
+			"triangles": 3000
+		},
+		{
+			"kind": "scene-flowers",
+			"source": "shrub_01",
+			"name": "Shrub 01",
+			"author": "Rico Cilliers",
+			"triangles": 3500
+		},
+		{
+			"kind": "scene-fern",
+			"source": "fern_02",
+			"name": "Fern 02",
+			"author": "Rob Tuytel, Rico Cilliers",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-potted",
+			"source": "potted_plant_02",
+			"name": "Potted Plant 02",
+			"author": "Rico Cilliers",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-planter2",
+			"source": "planter_box_03",
+			"name": "Planter Box 03",
+			"author": "James Ray Cock",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-gnome",
+			"source": "garden_gnome",
+			"name": "Garden Gnome",
+			"author": "Bhargav Kubal",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-cat-statue",
+			"source": "concrete_cat_statue",
+			"name": "Concrete Cat Statue",
+			"author": "Rico Cilliers, Riley Queen",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-gate",
+			"source": "large_iron_gate",
+			"name": "Large Iron Gate",
+			"author": "Josh Dean",
+			"triangles": 4000
+		},
+		{
+			"kind": "scene-rock",
+			"source": "rock_moss_set_01",
+			"name": "Rock Moss Set 01",
+			"author": "Kless Gyzen",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-boulder",
+			"source": "rock_09",
+			"name": "Rock 09",
+			"author": "Jenelle van Heerden",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-stump",
+			"source": "tree_stump_01",
+			"name": "Tree Stump 01",
+			"author": "Rob Tuytel",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-sofa",
+			"source": "Sofa_01",
+			"name": "Sofa 01",
+			"author": "Kirill Sannikov",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-armchair",
+			"source": "ArmChair_01",
+			"name": "Arm Chair 01",
+			"author": "Kirill Sannikov",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-table",
+			"source": "round_wooden_table_01",
+			"name": "Round Wooden Table 01",
+			"author": "Ulan Cabanilla",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-bookshelf",
+			"source": "wooden_bookshelf_worn",
+			"name": "Wooden Bookshelf Worn",
+			"author": "Ulan Cabanilla",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-shelves",
+			"source": "steel_frame_shelves_01",
+			"name": "Steel Frame Shelves 01",
+			"author": "James Ray Cock",
+			"triangles": 2500,
+			"size": 2.14
+		},
+		{
+			"kind": "scene-rack",
+			"source": "worn_metal_rack",
+			"name": "Worn Metal Rack",
+			"author": "Luca B",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-tool-cart",
+			"source": "tool_cart",
+			"name": "Tool Cart",
+			"author": "Savva Zakharov",
+			"triangles": 3000
+		},
+		{
+			"kind": "scene-welding",
+			"source": "portable_welding_cart",
+			"name": "Portable Welding Cart",
+			"author": "Georgii Gorbunov",
+			"triangles": 3000
+		},
+		{
+			"kind": "scene-wheelchair",
+			"source": "wheelchair_01",
+			"name": "Wheelchair 01",
+			"author": "Garreth Dean",
+			"triangles": 2500
+		},
+		{
+			"kind": "scene-lifebuoy",
+			"source": "lifebuoy",
+			"name": "Lifebuoy",
+			"author": "Hank Kaamura",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-lpg",
+			"source": "small_lpg_tank",
+			"name": "Small Lpg Tank",
+			"author": "Ulan Cabanilla",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-ladder",
+			"source": "wooden_ladder",
+			"name": "Wooden Ladder",
+			"author": "Miroslav Turura",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-seating",
+			"source": "modular_street_seating",
+			"name": "Modular Street Seating",
+			"author": "Stuart Attenborrow",
+			"triangles": 3000,
+			"error": 0.2
+		},
+		{
+			"kind": "scene-tv",
+			"source": "Television_01",
+			"name": "Television 01",
+			"author": "Gabriel Radi\u0107",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-chair",
+			"source": "plastic_monobloc_chair_01",
+			"name": "Plastic Monobloc Chair 01",
+			"author": "Kuutti Siitonen",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-wine-barrel",
+			"source": "wine_barrel_01",
+			"name": "Wine Barrel 01",
+			"author": "James Ray Cock",
+			"triangles": 2000
+		},
+		{
+			"kind": "scene-crate2",
+			"source": "wooden_crate_02",
+			"name": "Wooden Crate 02",
+			"author": "James Ray Cock, Jurita Burger",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-sprinkler",
+			"source": "garden_sprinkler_01",
+			"name": "Garden Sprinkler 01",
+			"author": "Amal Kumar",
+			"triangles": 1000
+		},
+		{
+			"kind": "scene-watering-can",
+			"source": "watering_can_metal_01",
+			"name": "Watering Can Metal 01",
+			"author": "Charles Nderitu",
+			"triangles": 1500
+		},
+		{
+			"kind": "scene-turbine",
+			"uid": "9516f30128144715b34423902040619e",
+			"name": "Turbine Dynamo",
+			"author": "al0sral0",
+			"triangles": 7200,
+			"size": 7.5
+		},
+		{
+			"kind": "scene-transformer",
+			"uid": "13124cf4ef264a2eabe79b92679d6d49",
+			"name": "Old Soviet Transformer Low-Poly",
+			"author": "MrUnity",
+			"triangles": 2600,
+			"size": 3.2
+		},
+		{
+			"kind": "scene-oil-tank",
+			"uid": "2771d6fa8d2d4582b3d8d551fd83dbcc",
+			"name": "old oil tank .1",
+			"author": "Kwon_Hyuk",
+			"triangles": 6000,
+			"size": 6
+		},
+		{
+			"kind": "scene-machine",
+			"uid": "e1aa6b17ff2a4f7d9b7be67756e12848",
+			"name": "Rusted factory machine",
+			"author": "Mark Bai",
+			"triangles": 6000,
+			"size": 3
+		},
+		{
+			"kind": "scene-diesel",
+			"uid": "7a0b72c7d01944a8aafab59d44eb120e",
+			"name": "Diesel generator",
+			"author": "epilogueronin",
+			"triangles": 6000,
+			"size": 3.5
+		},
+		{
+			"kind": "scene-storage-tanks",
+			"uid": "bd3ac97071104b64bc388a155b64f79e",
+			"name": "Large Industrial Storage Tanks",
+			"author": "Duane's Mind",
+			"triangles": 7000,
+			"size": 12
+		},
+		{
+			"kind": "scene-hospital-bed",
+			"uid": "f8c13a19e84343e7b644c19f7b9488d3",
+			"name": "Hospital Bed",
+			"author": "loxfear",
+			"triangles": 4000,
+			"size": 2.2
+		},
+		{
+			"kind": "scene-bed",
+			"uid": "210be84bcb5449f5a9f66a923c8ae307",
+			"name": "Old Bed",
+			"author": "donnichols",
+			"triangles": 4000,
+			"size": 2.1
+		},
+		{
+			"kind": "scene-desk",
+			"uid": "18abda12d33b4231aa13f92a291c717e",
+			"name": "Office Desk_7_MB",
+			"author": "Mehdi Shahsavan",
+			"triangles": 2800,
+			"size": 1.6
+		},
+		{
+			"kind": "scene-office-chair",
+			"uid": "675f34f7304e4d92812a41e9750539aa",
+			"name": "Office Chair Modern",
+			"author": "thethieme",
+			"triangles": 1300,
+			"size": 1.1
+		},
+		{
+			"kind": "scene-kitchen",
+			"uid": "e46deaab889548948a31e4264de61e5a",
+			"name": "Kitchen Counter",
+			"author": "FordVFX",
+			"triangles": 3000,
+			"size": 2.4
+		},
+		{
+			"kind": "scene-fridge",
+			"uid": "02db5309fbb24c3888841b483c85f485",
+			"name": "Retro Display Fridge",
+			"author": "Coozy",
+			"triangles": 1500,
+			"size": 2.0
+		},
+		{
+			"kind": "scene-shop-shelf",
+			"uid": "268d2e8292c34448b2d05b7e432749e2",
+			"name": "MetalShopShelf",
+			"author": "Jazavac",
+			"triangles": 1100,
+			"size": 2.0
+		},
+		{
+			"kind": "scene-vending",
+			"uid": "d0b81fdb4e514859bfcc95165144e8c7",
+			"name": "Outdoor Vending Machines",
+			"author": "Caboose3d",
+			"triangles": 1300,
+			"size": 2.4
+		},
+		{
+			"kind": "scene-metal-table",
+			"uid": "92a14c8d231b4812bc7b97d03da6ddd9",
+			"name": "Old Metal Table (Low Poly)",
+			"author": "Berk Gedik",
+			"triangles": 900,
+			"size": 1.6
+		},
+		{
+			"kind": "scene-tanker",
+			"uid": "d1a986c5d7f34d9eb027e612502c4874",
+			"name": "M978 HEMTT",
+			"author": "42manako",
+			"triangles": 9000,
+			"size": 9.5
+		},
+		{
+			"kind": "scene-apc",
+			"uid": "f470fbdb206f4837aaf6dbee2d081707",
+			"name": "AT105E Saxon APC",
+			"author": "42manako",
+			"triangles": 6000,
+			"size": 5.3
 		}
 	]
 }

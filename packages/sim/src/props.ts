@@ -18,7 +18,11 @@ export const PropKind: Record<PropKindId, number> = {
 	carry: 11,
 	defend: 12,
 	nest: 13,
-	ammo: 14
+	ammo: 14,
+	weakwall: 15,
+	vehicle: 16,
+	search: 17,
+	charge: 18
 }
 
 /** What a prop is doing. Not every state applies to every kind. */
@@ -39,7 +43,9 @@ export const PropState = {
 	/** a survivor who reached safety, an object delivered */
 	delivered: 9,
 	/** a mission gate: closed and impossible to open until the mission opens it */
-	locked: 10
+	locked: 10,
+	/** not in this mission: a carried object, survivor, vehicle, search spot or charge no step uses */
+	hidden: 11
 } as const
 
 /** Grid cell value for cells a prop blocks (the map's own walls are 1, barricades 2). */
@@ -86,6 +92,7 @@ const cellsOf = (def: MapProp, width: number): number[] => {
 const CELL_KINDS = new Set<PropKindId>([
 	'barrel',
 	'crate',
+	'weakwall',
 	'sandbags',
 	'door',
 	'generator',
@@ -111,6 +118,8 @@ function startHealth(def: MapProp): number {
 			return propsDef.barrel.health
 		case 'crate':
 			return propsDef.crate.health
+		case 'weakwall':
+			return propsDef.weakwall.health
 		case 'sandbags':
 			return propsDef.sandbags.health
 		case 'door':
@@ -121,6 +130,10 @@ function startHealth(def: MapProp): number {
 			return propsDef.generator.health
 		case 'defend':
 			return def.health ?? propsDef.defend.health
+		case 'vehicle':
+			return def.health ?? propsDef.vehicle.health
+		case 'charge':
+			return propsDef.charge.health
 		case 'nest':
 			return def.health ?? propsDef.nest.health
 		default:
@@ -159,8 +172,9 @@ export function createProps(map: MapDef, grid: Grid): Prop[] {
 	const byId = new Map(props.map(prop => [prop.def.id, prop.index]))
 	for (const prop of props) {
 		if (prop.def.powerBy) prop.powerBy = byId.get(prop.def.powerBy) ?? -1
-		// a turret or light with no generator is always on
-		if ((prop.def.kind === 'turret' || prop.def.kind === 'floodlight') && prop.powerBy < 0) prop.powered = true
+		// a turret, light or trap with no generator is always on
+		if ((prop.def.kind === 'turret' || prop.def.kind === 'floodlight' || prop.def.kind === 'trap') && prop.powerBy < 0)
+			prop.powered = true
 		applyCells(grid, prop)
 	}
 	return props
@@ -191,6 +205,7 @@ export function setPropState(grid: Grid, prop: Prop, state: number): void {
 
 /** How far a player may be from a prop's edge to work it. */
 export function reach(prop: Prop, player: PlayerState): number {
+	if (prop.def.kind === 'vehicle') return Math.max(0, Math.hypot(player.x - prop.x, player.y - prop.y) - 1.1)
 	const halfW = prop.cells.length > 0 ? (prop.def.w ?? 1) / 2 : 0
 	const halfH = prop.cells.length > 0 ? (prop.def.h ?? 1) / 2 : 0
 	const dx = Math.max(0, Math.abs(player.x - prop.x) - halfW)
@@ -215,6 +230,10 @@ export function holdSeconds(prop: Prop): number {
 			return propsDef.carry.pickupSeconds
 		case 'ammo':
 			return propsDef.ammo.holdSeconds
+		case 'search':
+			return propsDef.search.holdSeconds
+		case 'charge':
+			return propsDef.charge.plantSeconds
 		default:
 			return 0
 	}

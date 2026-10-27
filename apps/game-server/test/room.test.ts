@@ -168,11 +168,13 @@ describe('mission rooms', () => {
 		const mission = room.world.mission
 		const a = room.world.players.get(1)
 		if (!mission || !a) throw new Error('no mission')
-		expect(room.world.map.id).toBe('railyard')
+		expect(room.world.map.id).toBe('oldtown')
 		a.foundItems.push(tierOne)
-		// the switch keys reach the gate: a checkpoint, which reports everything including the item
-		const keys = room.world.propById.get('switch-keys')
-		if (keys) keys.state = PropState.delivered
+		// the mechanics reach their tanker: a checkpoint, which reports everything including the item
+		for (const id of ['mechanic-1', 'mechanic-2']) {
+			const mechanic = room.world.propById.get(id)
+			if (mechanic) mechanic.state = PropState.delivered
+		}
 		play(room, 2)
 		expect(mission.index).toBe(1)
 		expect(mission.checkpointIndex).toBe(1)
@@ -186,11 +188,10 @@ describe('mission rooms', () => {
 			Math.floor((economy.rewards.objective.salvage + (a2?.score ?? 0) / economy.rewards.scorePerSalvage) * scale)
 		)
 		expect(forA[0]?.xp).toBeGreaterThanOrEqual(Math.floor(economy.rewards.objective.xp * scale))
-		// the nests burn out: the next checkpoint reports only what came since
-		for (const id of ['nest-stacks-west', 'nest-stacks-centre', 'nest-stacks-east']) {
-			const nest = room.world.propById.get(id)
-			if (nest) nest.state = PropState.destroyed
-		}
+		// the tanker is mended: the next checkpoint reports only what came since
+		play(room, 1)
+		const tanker = room.world.propById.get('tanker')
+		if (tanker) tanker.health = tanker.maxHealth
 		play(room, 2)
 		expect(mission.checkpointIndex).toBe(2)
 		const later = reports.filter(report => report.userId === 'user-a')
@@ -208,7 +209,8 @@ describe('mission rooms', () => {
 		const room = missionRoom(reports, sent)
 		const mission = room.world.mission
 		if (!mission) throw new Error('no mission')
-		mission.index = mission.def.objectives.length - 1
+		// the last step that counts kills, one kill short
+		mission.index = mission.def.objectives.findLastIndex(objective => objective.type === 'kill')
 		mission.progress = 40 * 30 - 1
 		play(room, 3)
 		expect(room.completedAt).toBeGreaterThan(0)

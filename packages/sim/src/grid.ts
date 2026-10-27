@@ -1,6 +1,9 @@
 import type { MapDef } from '@rotline/game-data'
 
-/** The map as a 1 m occupancy grid. Walls are whole cells: 1 for the map, 2 for barricades. */
+/** a cell of water: nobody walks through it, shots and thrown things cross it */
+export const WATER_CELL = 4
+
+/** The map as a 1 m occupancy grid. Walls are whole cells: 1 for the map, 2 for barricades, 3 for props, 4 for water. */
 export class Grid {
 	readonly width: number
 	readonly height: number
@@ -15,6 +18,14 @@ export class Grid {
 			for (let y = wall.y; y < wall.y + wall.h; y++) {
 				for (let x = wall.x; x < wall.x + wall.w; x++) {
 					if (x >= 0 && y >= 0 && x < this.width && y < this.height) this.walls[y * this.width + x] = 1
+				}
+			}
+		}
+		// water and fences: nobody walks through, shots and thrown things cross
+		for (const pool of [...(map.water ?? []), ...(map.fences ?? [])]) {
+			for (let y = pool.y; y < pool.y + pool.h; y++) {
+				for (let x = pool.x; x < pool.x + pool.w; x++) {
+					if (x >= 0 && y >= 0 && x < this.width && y < this.height) this.walls[y * this.width + x] = WATER_CELL
 				}
 			}
 		}
@@ -72,7 +83,7 @@ export class Grid {
 		return lo
 	}
 
-	/** Distance along a ray until it enters a wall cell, up to maxDistance (grid traversal). */
+	/** Distance along a ray until it enters a wall cell, up to maxDistance (grid traversal); water is crossed. */
 	rayToWall(x: number, y: number, dirX: number, dirY: number, maxDistance: number): number {
 		let cx = Math.floor(x)
 		let cy = Math.floor(y)
@@ -93,9 +104,9 @@ export class Grid {
 				sideY += deltaY
 				cy += stepY
 			}
-			if (cx < 0 || cy < 0 || cx >= this.width || cy >= this.height || this.walls[cy * this.width + cx] !== 0) {
-				return Math.min(distance, maxDistance)
-			}
+			if (cx < 0 || cy < 0 || cx >= this.width || cy >= this.height) return Math.min(distance, maxDistance)
+			const cell = this.walls[cy * this.width + cx] as number
+			if (cell !== 0 && cell !== WATER_CELL) return Math.min(distance, maxDistance)
 		}
 		return maxDistance
 	}

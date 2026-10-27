@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto'
 import { createRequire } from 'node:module'
-import { missionById } from '@rotline/game-data'
+import { isSurvival, missionById, SURVIVAL, type SurvivalId } from '@rotline/game-data'
 import {
 	KickReason,
 	PROTOCOL_VERSION,
@@ -318,6 +318,8 @@ export class GameServer {
 			return
 		}
 		const mission = payload.mode === 'squad' ? (payload.mission ?? null) : null
+		// Survival's arena: none for missions and the range
+		const arena = payload.mode === 'squad' && !mission ? survivalArena(payload.arena) : null
 		// a squad holds a place in one room at a time
 		if (payload.mode === 'squad' && this.valkey) {
 			data.admitting = true
@@ -339,9 +341,12 @@ export class GameServer {
 				this.kick(socket, KickReason.roomFull)
 				return
 			}
-			// a mission this server does not know (game data out of step) is refused before any room exists
-			if (mission && !missionById(mission.id)) {
-				this.log.error({ room: payload.room, mission: mission.id }, 'ticket names an unknown mission')
+			// a mission or arena this server does not know (game data out of step) is refused before any room exists
+			if ((mission && !missionById(mission.id)) || (payload.arena !== undefined && !isSurvival(payload.arena))) {
+				this.log.error(
+					{ room: payload.room, mission: mission?.id, arena: payload.arena },
+					'ticket names an unknown mission'
+				)
 				this.kick(socket, KickReason.badTicket)
 				return
 			}
@@ -358,7 +363,8 @@ export class GameServer {
 					)
 				},
 				mission,
-				randomInt(2 ** 31)
+				randomInt(2 ** 31),
+				arena
 			)
 			this.rooms.set(payload.room, room)
 			this.log.info({ room: room.id, mode: room.mode, mission: room.missionRoom }, 'room created')
@@ -369,6 +375,7 @@ export class GameServer {
 			room.mode !== payload.mode ||
 			room.missionRoom?.id !== mission?.id ||
 			room.missionRoom?.difficulty !== mission?.difficulty ||
+			room.arena !== arena ||
 			(room.completedAt > 0 && !room.has(payload.sub))
 		) {
 			this.kick(socket, KickReason.badTicket)
@@ -483,3 +490,6 @@ export class GameServer {
 		].join('\n')
 	}
 }
+
+/** The arena a Survival ticket names (the first when it names none). */
+const survivalArena = (arena: string | undefined): SurvivalId => (isSurvival(arena) ? arena : SURVIVAL)

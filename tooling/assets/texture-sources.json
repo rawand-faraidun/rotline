@@ -61,6 +61,86 @@
 			"size": 512,
 			"saturation": 0.5,
 			"brightness": 0.85
+		},
+		{
+			"id": "wood",
+			"source": "WoodFloor041",
+			"name": "Wood Floor 041",
+			"size": 512,
+			"saturation": 0.7,
+			"brightness": 0.8
+		},
+		{
+			"id": "tiles",
+			"source": "Tiles036",
+			"name": "Tiles 036",
+			"size": 512,
+			"saturation": 0.6,
+			"brightness": 0.8
+		},
+		{
+			"id": "gravel",
+			"source": "Gravel022",
+			"name": "Gravel 022",
+			"size": 512,
+			"saturation": 0.6,
+			"brightness": 0.8
+		},
+		{
+			"id": "paving",
+			"source": "PavingStones092",
+			"name": "Paving Stones 092",
+			"size": 1024,
+			"saturation": 0.6,
+			"brightness": 0.8
+		},
+		{
+			"id": "forest",
+			"source": "Ground067",
+			"name": "Ground 067",
+			"size": 512,
+			"saturation": 0.6,
+			"brightness": 0.75
+		},
+		{
+			"id": "lawn",
+			"source": "Grass004",
+			"name": "Grass 004",
+			"size": 1024,
+			"saturation": 0.55,
+			"brightness": 0.7
+		},
+		{
+			"id": "cobbles",
+			"source": "PavingStones070",
+			"name": "Paving Stones 070",
+			"size": 1024,
+			"saturation": 0.6,
+			"brightness": 0.75
+		},
+		{
+			"id": "plaster",
+			"source": "PaintedPlaster017",
+			"name": "Painted Plaster 017",
+			"size": 512,
+			"saturation": 0.6,
+			"brightness": 0.8
+		},
+		{
+			"id": "corrugated",
+			"source": "CorrugatedSteel006A",
+			"name": "Corrugated Steel 006 A",
+			"size": 512,
+			"saturation": 0.7,
+			"brightness": 0.85
+		},
+		{
+			"id": "siding",
+			"source": "WoodSiding008",
+			"name": "Wood Siding 008",
+			"size": 512,
+			"saturation": 0.6,
+			"brightness": 0.8
 		}
 	]
 }

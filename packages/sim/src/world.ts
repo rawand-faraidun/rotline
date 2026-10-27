@@ -41,9 +41,11 @@ import {
 	createMission,
 	enemyScale,
 	failMission,
+	hideUnusedProps,
 	isActive,
 	type MissionSetup,
 	type MissionState,
+	MissionStatus,
 	maybeDropBuff,
 	openCaches,
 	pickUpBuffs,
@@ -91,8 +93,8 @@ export type SimEvent =
 	| { type: 'run-over'; wave: number }
 	| { type: 'checkpoint'; index: number }
 	| { type: 'mission-complete' }
-	/** the run is lost: the clock ran out, or a player alone used their last life */
-	| { type: 'mission-failed'; reason: 'time' | 'lives' }
+	/** the run is lost: the clock ran out, a player alone used their last life, or a contract's squad went down */
+	| { type: 'mission-failed'; reason: 'time' | 'lives' | 'wiped' }
 	/** an item (index into game-data items) found by one player; drops are per player */
 	| { type: 'item-found'; player: number; item: number }
 	| { type: 'cache'; player: number; index: number }
@@ -194,6 +196,8 @@ export const THROWN = 255
 const OVERWATCH_PIERCE = abilityById.get('overwatch')?.params.pierce ?? 0
 /** a zombie set alight burns for this long after the flame, each second for this share of the flame's damage */
 const BURN_TICKS = 3 * TICK_RATE
+/** Missions in this zone are contracts: no lives, a wipe loses them. */
+const CONTRACT_ZONE = 'contracts'
 /** A zombie pressing on without moving this many ticks steps sideways to get round what holds it. */
 const STUCK_TICKS = Math.round(0.5 * TICK_RATE)
 const BURN_SHARE = 0.5
@@ -221,6 +225,8 @@ const VIEW_UP = 11
 const VIEW_DOWN = 8
 /** never closer than this to a player, even when every spawn point is on screen */
 const SPAWN_CLEARANCE = 8
+/** room a zombie needs where it climbs out: the widest of them (a Brute) fits */
+const SPAWN_ROOM = 0.75
 
 /** Zombie animation state, sent to clients. */
 export const ZombieState = { moving: 0, attacking: 1 } as const
@@ -253,8 +259,10 @@ function targetable(prop: Prop): boolean {
 		case 'survivor':
 			return prop.state === PropState.idle || prop.state === PropState.following
 		case 'defend':
+		case 'vehicle':
 			return prop.state !== PropState.destroyed
 		case 'generator':
+		case 'charge':
 			return prop.state === PropState.active
 		default:
 			return false
@@ -263,6 +271,8 @@ function targetable(prop: Prop): boolean {
 
 /** Distance from (x, y) to a prop's edge (its centre for props on a point). */
 function edgeDistance(prop: Prop, x: number, y: number): number {
+	// a vehicle is a body about two metres across whichever way it faces
+	if (prop.def.kind === 'vehicle') return Math.max(0, Math.hypot(x - prop.x, y - prop.y) - 1.1)
 	const halfW = prop.cells.length > 0 ? (prop.def.w ?? 1) / 2 : 0.3
 	const halfH = prop.cells.length > 0 ? (prop.def.h ?? 1) / 2 : 0.3
 	return Math.hypot(Math.max(0, Math.abs(x - prop.x) - halfW), Math.max(0, Math.abs(y - prop.y) - halfH))
@@ -300,6 +310,8 @@ export class World {
 	readonly slowUntil = new Uint32Array(MAX_ZOMBIES)
 	readonly slowAmount = new Float32Array(MAX_ZOMBIES)
 	readonly markUntil = new Uint32Array(MAX_ZOMBIES)
+	/** 1 for a zombie a hunt objective wants dead (drawn marked, counted when it dies) */
+	readonly hunted = new Uint8Array(MAX_ZOMBIES)
 	readonly markAmount = new Float32Array(MAX_ZOMBIES)
 	readonly poisonUntil = new Uint32Array(MAX_ZOMBIES)
 	readonly poisonPerTick = new Float32Array(MAX_ZOMBIES)
@@ -429,6 +441,7 @@ export class World {
 		}
 		const spawn = options.map.playerSpawns[0]
 		this.mission = options.mission ? createMission(options.mission, 0, spawn?.x ?? 1, spawn?.y ?? 1) : null
+		if (this.mission) hideUnusedProps(this.props, this.mission.def)
 		const scale = this.mission ? enemyScale(this.mission) : { health: 1, damage: 1 }
 		this.healthScale = scale.health
 		this.damageScale = scale.damage
@@ -544,6 +557,11 @@ export class World {
 	/** A zombie's body radius, by slot. */
 	readonly zombieRadius = (index: number): number => (zombieDefs[this.type[index] as number] as ZombieDef).radius
 
+	/** The mission is won or lost, or the Survival run has ended: the results are on screen. */
+	get over(): boolean {
+		return this.finished || (this.mission !== null && this.mission.status !== MissionStatus.active)
+	}
+
 	/** Missions and Survival keep score and drop buffs; the firing range does neither. */
 	get scoring(): boolean {
 		return this.mission !== null || this.survival
@@ -589,7 +607,8 @@ export class World {
 		for (const state of this.players.values()) {
 			if (!state.alive && this.tick >= state.respawnTick) this.respawn(state)
 			const input = inputs.get(state.id)
-			if (input) this.applyInput(state, input)
+			// once the mission is over or the run has ended, nobody moves or shoots
+			if (input && !this.over) this.applyInput(state, input)
 			const interacting = (state.heldButtons & Button.interact) !== 0
 			state.interactTicks = interacting ? state.interactTicks + 1 : 0
 			// a press is latched per input, so one made during a catch-up input still counts
@@ -729,7 +748,7 @@ export class World {
 	}
 
 	/** Damage to a player after armour, damage reduction and resistance; melee has no damage type. */
-	private hurt(state: PlayerState, raw: number, type: DamageType | null): void {
+	hurt(state: PlayerState, raw: number, type: DamageType | null): void {
 		if (!state.alive || state.downed || raw <= 0 || this.tick < state.safeUntilTick) return
 		// in the firing range nobody goes down: health simply comes back
 		if (this.range && damageTaken(state.stats, raw, type) >= state.health) {
@@ -828,8 +847,13 @@ export class World {
 	 * counts deaths: the fallen wait to be revived, or for the next checkpoint or round.
 	 */
 	get livesLeft(): number | null {
-		if (this.players.size !== 1 || this.range) return null
+		if (this.players.size !== 1 || !this.campaignMission) return null
 		return Math.max(0, playerDef.soloLives - this.soloDeaths)
+	}
+
+	/** A campaign mission (not a contract, not Survival): the only kind where a player alone has lives. */
+	private get campaignMission(): boolean {
+		return this.mission !== null && this.mission.def.zone !== CONTRACT_ZONE
 	}
 
 	/**
@@ -839,15 +863,18 @@ export class World {
 	private wipe(reason: 'death' | 'failed'): void {
 		if (this.finished) return
 		const solo = this.players.size === 1
-		if (solo && reason === 'death') this.soloDeaths++
-		const outOfLives = solo && this.soloDeaths >= playerDef.soloLives
-		if (this.mission && outOfLives) {
-			failMission(this, this.mission, 'lives')
+		if (solo && reason === 'death' && this.campaignMission) this.soloDeaths++
+		// a campaign mission alone has lives; a contract is lost the moment the squad is down
+		const lost =
+			this.mission !== null &&
+			reason === 'death' &&
+			(this.campaignMission ? solo && this.soloDeaths >= playerDef.soloLives : true)
+		if (this.mission && lost) {
+			failMission(this, this.mission, this.campaignMission ? 'lives' : 'wiped')
 			return
 		}
-		// Survival: a wipe ends the run in a squad, and alone at the last life (before that, alone, the
-		// round starts again)
-		if (this.survival && (!solo || outOfLives || reason !== 'death')) {
+		// Survival: a wipe ends the run
+		if (this.survival) {
 			for (const state of this.players.values()) {
 				state.downed = false
 				state.alive = false
@@ -938,7 +965,14 @@ export class World {
 		if (!prop) return
 		const kind = prop.def.kind
 		// doors too: a closed or welded door can always be shot open (never a mission gate)
-		if (kind === 'barrel' || kind === 'crate' || kind === 'sandbags' || kind === 'door' || kind === 'nest')
+		if (
+			kind === 'barrel' ||
+			kind === 'crate' ||
+			kind === 'weakwall' ||
+			kind === 'sandbags' ||
+			kind === 'door' ||
+			kind === 'nest'
+		)
 			damageProp(this, prop, damage, by)
 	}
 
@@ -1137,7 +1171,15 @@ export class World {
 		if (damage > 0 && this.props.length > 0) {
 			for (const prop of this.props) {
 				const kind = prop.def.kind
-				if (kind !== 'barrel' && kind !== 'crate' && kind !== 'sandbags' && kind !== 'door' && kind !== 'nest') continue
+				if (
+					kind !== 'barrel' &&
+					kind !== 'crate' &&
+					kind !== 'weakwall' &&
+					kind !== 'sandbags' &&
+					kind !== 'door' &&
+					kind !== 'nest'
+				)
+					continue
 				const d = Math.hypot(prop.x - x, prop.y - y)
 				if (d < radius + 0.5) damageProp(this, prop, damage * (1 - (1 - EDGE_DAMAGE) * Math.min(1, d / radius)), owner)
 			}
@@ -1355,7 +1397,7 @@ export class World {
 		}
 		if (this.scoring) maybeDropBuff(this, x, y, def.elite ? buffDefs.drop.eliteChance : buffDefs.drop.chancePerKill)
 		if (this.mission) {
-			countKill(this, this.type[index] as number)
+			countKill(this, this.type[index] as number, this.hunted[index] === 1)
 			// elites may drop an item, rolled for each player taking part, on their own
 			if (def.elite) {
 				for (const state of this.players.values()) {
@@ -1589,6 +1631,7 @@ export class World {
 		this.stunUntil[index] = 0
 		this.slowUntil[index] = 0
 		this.markUntil[index] = 0
+		this.hunted[index] = 0
 		this.poisonUntil[index] = 0
 		this.burnUntil[index] = 0
 		this.tauntUntil[index] = 0
@@ -1640,7 +1683,8 @@ export class World {
 		if (!point || (hidden.length === 0 && bestDistance < SPAWN_CLEARANCE)) return null
 		const x = point.x + (this.rng.next() - 0.5) * 1.5
 		const y = point.y + (this.rng.next() - 0.5) * 1.5
-		return this.grid.isWall(x, y) ? point : { x, y }
+		// the jitter never puts a body half inside a wall, a tree or a car (it would be stuck there)
+		return this.grid.circleHitsWall(x, y, SPAWN_ROOM) ? point : { x, y }
 	}
 	private readonly hiddenPoints: { x: number; y: number }[] = []
 

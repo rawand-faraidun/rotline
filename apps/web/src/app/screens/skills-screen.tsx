@@ -6,6 +6,7 @@ import {
 	classes,
 	economy,
 	pointsAtLevel,
+	rankCost,
 	type SkillNode,
 	skillTrees,
 	unlockedAbilities
@@ -137,13 +138,15 @@ export function SkillsScreen() {
 				<div className="grid content-start gap-4 md:grid-cols-3 xl:min-h-0 xl:overflow-y-auto xl:pr-1 xl:pb-6">
 					{tree.branches.map(branch => {
 						const spentIn = (tier: number) =>
-							branch.nodes.filter(node => node.tier < tier).reduce((sum, node) => sum + (entry.skills[node.id] ?? 0), 0)
+							branch.nodes
+								.filter(node => node.tier < tier)
+								.reduce((sum, node) => sum + (entry.skills[node.id] ?? 0) * rankCost(node.id), 0)
 						return (
 							<Panel key={branch.id} className="gap-3 p-4">
 								<PanelHeader>
 									<PanelTitle className="text-xl">{branch.name}</PanelTitle>
 									<span className="font-bold text-muted text-sm tabular-nums">
-										{branch.nodes.reduce((sum, node) => sum + (entry.skills[node.id] ?? 0), 0)}
+										{branch.nodes.reduce((sum, node) => sum + (entry.skills[node.id] ?? 0) * rankCost(node.id), 0)}
 									</span>
 								</PanelHeader>
 								{TIERS.map(tier => {
@@ -151,7 +154,12 @@ export function SkillsScreen() {
 									return (
 										<div key={tier} className={cn('flex flex-col gap-1.5', need > 0 && 'opacity-45')}>
 											<span className="flex justify-between font-bold text-[0.65rem] text-muted uppercase tracking-[0.2em]">
-												<span>{format(t.tier, { tier: String(tier) })}</span>
+												<span>
+													{format(t.tier, { tier: String(tier) })} ·{' '}
+													{format(classes.progression.rankCost[tier - 1] === 1 ? t.costOne : t.cost, {
+														points: String(classes.progression.rankCost[tier - 1])
+													})}
+												</span>
 												{need > 0 && <span>{format(t.tierLocked, { points: String(need) })}</span>}
 											</span>
 											<div className="grid grid-cols-2 gap-1.5">
@@ -237,6 +245,11 @@ export function SkillsScreen() {
 									))}
 								</ul>
 								{selectedNode.maxRank > 1 && <p className="text-muted text-xs">{t.perRank}</p>}
+								<p className="text-muted text-xs">
+									{format(rankCost(selectedNode.id) === 1 ? t.costOne : t.cost, {
+										points: String(rankCost(selectedNode.id))
+									})}
+								</p>
 								<p className="font-bold text-muted text-sm">
 									{format(t.rank, {
 										rank: String(entry.skills[selectedNode.id] ?? 0),

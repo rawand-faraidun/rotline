@@ -44,6 +44,19 @@ export class Minimap {
 		ctx.fillRect(0, 0, this.base.width, this.base.height)
 		ctx.fillStyle = '#7d8676'
 		for (const wall of map.walls) ctx.fillRect(wall.x * SCALE, wall.y * SCALE, wall.w * SCALE, wall.h * SCALE)
+		// hedges and containers in their own colours, the scenery's blockers faintly
+		ctx.fillStyle = '#3a4537'
+		for (const block of map.blockers ?? [])
+			ctx.fillRect(block.x * SCALE, block.y * SCALE, block.w * SCALE, block.h * SCALE)
+		ctx.fillStyle = '#24404a'
+		for (const pool of map.water ?? []) ctx.fillRect(pool.x * SCALE, pool.y * SCALE, pool.w * SCALE, pool.h * SCALE)
+		ctx.fillStyle = '#5a6458'
+		for (const fence of map.fences ?? [])
+			ctx.fillRect(fence.x * SCALE, fence.y * SCALE, fence.w * SCALE, fence.h * SCALE)
+		for (const solid of map.solids ?? []) {
+			ctx.fillStyle = solid.kind === 'hedge' ? '#3f6a32' : '#8a6a4a'
+			ctx.fillRect(solid.x * SCALE, solid.y * SCALE, solid.w * SCALE, solid.h * SCALE)
+		}
 	}
 
 	draw(canvas: HTMLCanvasElement, mode: MinimapMode, frame: MinimapFrame): void {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	abilities,
 	economy,
+	fromLayout,
 	items,
 	maps,
 	skillNodes,
@@ -96,5 +97,19 @@ describe('economy sheet', () => {
 		const { readFileSync } = await import('node:fs')
 		const { economySheet } = await import('../src/economy-sheet.ts')
 		expect(readFileSync(new URL('../economy.csv', import.meta.url), 'utf8')).toBe(economySheet())
+	})
+})
+
+describe('map layouts', () => {
+	it('joins touching weak-wall cells into one stretch, a row first, else a column', () => {
+		const map = fromLayout({
+			id: 'weak',
+			name: 'Weak',
+			layout: ['#######', '#hhh..#', '#....h#', '#P...h#', '#######']
+		})
+		expect(map.props).toEqual([
+			{ id: 'weakwall-1-1', kind: 'weakwall', x: 1, y: 1, w: 3 },
+			{ id: 'weakwall-5-2', kind: 'weakwall', x: 5, y: 2, h: 2 }
+		])
 	})
 })

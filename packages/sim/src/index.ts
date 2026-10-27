@@ -1,6 +1,6 @@
 export { barricadeCells } from './abilities.ts'
 export * from './constants.ts'
-export { Grid } from './grid.ts'
+export { Grid, WATER_CELL } from './grid.ts'
 export * from './input.ts'
 export {
 	applyBuff,
@@ -8,10 +8,12 @@ export {
 	chainMultiplier,
 	currentObjective,
 	enemyScale,
+	hazardFront,
 	type MissionSetup,
 	type MissionState,
 	MissionStatus,
 	objectiveGoal,
+	objectiveProps,
 	scoreThreshold,
 	timeLeft
 } from './mission.ts'

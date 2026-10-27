@@ -11,6 +11,87 @@ import { type Building, OUTSIDE, surroundings } from './surroundings.ts'
 const CAMERA_HEIGHT = 19
 /** walls stand this tall (metres): buildings and yard walls, not kerbs */
 const WALL_HEIGHT = 3.2
+/** clipped hedges: over a zombie's head, under the camera's line */
+const HEDGE_HEIGHT = 1.9
+/** a shipping container, a little over its real 2.6 m so it reads beside the walls */
+const CONTAINER_HEIGHT = 2.9
+/** faded container liveries: rust red, navy, green, orange, grey, teal */
+const CONTAINER_COLOURS = [0x9a3b2a, 0x2c4a7a, 0x3d6b3a, 0xc0702a, 0x8a8f92, 0x2f7a78]
+/** ground patches that need toning down (the photos are much paler than the rest of the ground) */
+const PATCH_TINT: Partial<Record<string, number>> = { tiles: 0x9c9c96, paving: 0xc4c0b8, concrete: 0xc8c8c2 }
+/** a container's length (a 20-foot box) and width in metres */
+const CONTAINER_LENGTH = 6
+const CONTAINER_WIDTH = 2
+
+/**
+ * A block of container cells as single containers: rows two metres wide along the block's longer
+ * side, cut into six-metre boxes, each a hair smaller than its cells so the seams between show.
+ */
+function splitContainers(block: { x: number; y: number; w: number; h: number }) {
+	const along = block.w >= block.h
+	const length = along ? block.w : block.h
+	const across = along ? block.h : block.w
+	const boxes: { x: number; y: number; w: number; h: number }[] = []
+	for (let a = 0; a < across; a += CONTAINER_WIDTH) {
+		const width = Math.min(CONTAINER_WIDTH, across - a)
+		const count = Math.max(1, Math.round(length / CONTAINER_LENGTH))
+		for (let i = 0; i < count; i++) {
+			const start = (length / count) * i
+			const size = length / count
+			const gap = 0.06
+			boxes.push(
+				along
+					? { x: block.x + start + gap, y: block.y + a + gap, w: size - gap * 2, h: width - gap * 2 }
+					: { x: block.x + a + gap, y: block.y + start + gap, w: width - gap * 2, h: size - gap * 2 }
+			)
+		}
+	}
+	return boxes
+}
+
+/** A tiling normal map of soft ripples, drawn once. */
+function rippleTexture(): THREE.Texture {
+	const size = 128
+	const data = new Uint8Array(size * size * 4)
+	const height = (x: number, y: number) =>
+		Math.sin((x / size) * Math.PI * 2 * 3 + Math.sin((y / size) * Math.PI * 2 * 2) * 1.5) * 0.5 +
+		Math.sin((y / size) * Math.PI * 2 * 5 + Math.cos((x / size) * Math.PI * 2 * 2)) * 0.35
+	for (let y = 0; y < size; y++) {
+		for (let x = 0; x < size; x++) {
+			const dx = height(x + 1, y) - height(x - 1, y)
+			const dy = height(x, y + 1) - height(x, y - 1)
+			const i = (y * size + x) * 4
+			data[i] = Math.round((0.5 - dx * 0.5) * 255)
+			data[i + 1] = Math.round((0.5 - dy * 0.5) * 255)
+			data[i + 2] = 255
+			data[i + 3] = 255
+		}
+	}
+	const texture = new THREE.DataTexture(data, size, size)
+	texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+	texture.needsUpdate = true
+	return texture
+}
+
+let ribs: THREE.Texture | null = null
+/** Corrugated steel: light and dark ribs, multiplied by each container's paint. */
+function ribTexture(): THREE.Texture {
+	if (ribs) return ribs
+	const canvas = document.createElement('canvas')
+	canvas.width = 64
+	canvas.height = 8
+	const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+	for (let x = 0; x < 64; x++) {
+		const shade = 0.72 + 0.28 * Math.sin((x / 64) * Math.PI * 2 * 4) ** 2
+		const v = Math.round(255 * shade)
+		ctx.fillStyle = `rgb(${v},${v},${v})`
+		ctx.fillRect(x, 0, 1, 8)
+	}
+	ribs = new THREE.CanvasTexture(canvas)
+	ribs.wrapS = ribs.wrapT = THREE.RepeatWrapping
+	ribs.colorSpace = THREE.SRGBColorSpace
+	return ribs
+}
 const CAMERA_BACK = 6
 /** How far the camera leans toward where the player aims, in metres. */
 const AIM_LEAN = 3
@@ -111,12 +192,93 @@ function groundTexture(): THREE.CanvasTexture {
 	return texture
 }
 
-/** Light for each kind of place: sky and ground fill, the sun (colour, strength, height), fog. */
+/**
+ * Light for each kind of place: sky and ground fill, the sun or moon (colour, strength, height), fog
+ * colour and how near it starts, and whether lamps burn and weapon lights are on.
+ */
 const LIGHTS = {
-	dusk: { sky: 0xaeb0c0, ground: 0x2a2620, fill: 1.4, sun: 0xffc8a0, strength: 2.6, height: 22, fog: 0x15130f },
-	overcast: { sky: 0xc4ccd2, ground: 0x2a3129, fill: 1.5, sun: 0xeef2f0, strength: 1.6, height: 34, fog: 0x0d100e },
-	night: { sky: 0x6f80a8, ground: 0x111418, fill: 0.85, sun: 0xa8bce0, strength: 1.1, height: 30, fog: 0x07090c }
+	day: {
+		sky: 0xd8e2ec,
+		ground: 0x3a3a30,
+		fill: 1.55,
+		sun: 0xfff2dc,
+		strength: 2.9,
+		height: 40,
+		fog: 0x1a1d1c,
+		near: 55,
+		dark: false
+	},
+	dawn: {
+		sky: 0xd8b8c4,
+		ground: 0x2e2622,
+		fill: 1.35,
+		sun: 0xffb48a,
+		strength: 2.4,
+		height: 16,
+		fog: 0x1c1416,
+		near: 45,
+		dark: false
+	},
+	dusk: {
+		sky: 0xaeb0c0,
+		ground: 0x2a2620,
+		fill: 1.4,
+		sun: 0xffc8a0,
+		strength: 2.6,
+		height: 22,
+		fog: 0x15130f,
+		near: 50,
+		dark: false
+	},
+	overcast: {
+		sky: 0xc4ccd2,
+		ground: 0x2a3129,
+		fill: 1.5,
+		sun: 0xeef2f0,
+		strength: 1.6,
+		height: 34,
+		fog: 0x0d100e,
+		near: 50,
+		dark: false
+	},
+	fog: {
+		sky: 0xb4bcc0,
+		ground: 0x2c302e,
+		fill: 1.45,
+		sun: 0xdde4e6,
+		strength: 1.2,
+		height: 34,
+		fog: 0x4a5052,
+		near: 14,
+		dark: false
+	},
+	// a moonlit night: dim but readable, the lamps and the weapon lights do the rest
+	night: {
+		sky: 0x7a8cb6,
+		ground: 0x1b2028,
+		fill: 1.15,
+		sun: 0xb4c6ea,
+		strength: 1.45,
+		height: 30,
+		fog: 0x07090c,
+		near: 45,
+		dark: true
+	},
+	// no moon, the power out: only lamps, fires and torches
+	dark: {
+		sky: 0x4a5878,
+		ground: 0x0e1116,
+		fill: 0.72,
+		sun: 0x8898b8,
+		strength: 0.6,
+		height: 30,
+		fog: 0x030405,
+		near: 30,
+		dark: true
+	}
 } as const
+/** weapon lights: one per player, the nearest teammates first */
+const FLASHLIGHTS = 4
 
 /** A box's five visible faces with texture coordinates in metres (so textures never stretch), merged. */
 function wallGeometry(walls: readonly { x: number; y: number; w: number; h: number }[], height: number, tile: number) {
@@ -239,7 +401,9 @@ function dress(
 	base: string,
 	repeat: number | null,
 	tint = 0xffffff,
-	detail = true
+	detail = true,
+	/** ground: never glossy (the photos' roughness maps make lawns and tarmac shine under lamps) */
+	matte = false
 ): void {
 	const loader = new THREE.TextureLoader()
 	const load = (name: string, apply: (texture: THREE.Texture) => void, colour = false) =>
@@ -270,6 +434,7 @@ function dress(
 	load('normal', texture => {
 		material.normalMap = texture
 	})
+	if (matte) return
 	load('rough', texture => {
 		material.roughnessMap = texture
 		material.roughness = 1
@@ -281,6 +446,8 @@ export class Stage {
 	readonly scene = new THREE.Scene()
 	readonly camera: THREE.PerspectiveCamera
 	readonly ground: THREE.Mesh
+	/** the walls' sides and tops, shared with the weak walls so a cracked one matches the rest */
+	readonly wallMaterials: [THREE.Material, THREE.Material]
 	/** what this device can draw: `low` skips shadows, texture detail and prop models */
 	readonly quality: Quality
 	private readonly sun: THREE.DirectionalLight
@@ -295,6 +462,9 @@ export class Stage {
 	private readonly canvas: HTMLCanvasElement
 	private post: PostProcessing | null = null
 	private readonly playerLight: THREE.PointLight
+	/** night and dark maps: lamps burn and every soldier carries a weapon light */
+	readonly dark: boolean
+	private readonly flashlights: THREE.SpotLight[] = []
 	/** the pixel ratio the quality calls for, and the share of it drawn now (lowered when frames run slow) */
 	private basePixelRatio = 1
 	private resolution = 1
@@ -330,7 +500,8 @@ export class Stage {
 		// a little brighter than neutral: the fight on the ground has to read, even at dusk
 		this.renderer.toneMappingExposure = 1.35
 		this.scene.background = new THREE.Color(light.fog)
-		this.scene.fog = new THREE.Fog(light.fog, 50, 90)
+		this.scene.fog = new THREE.Fog(light.fog, light.near, light.near + 40)
+		this.dark = light.dark
 
 		this.camera = new THREE.PerspectiveCamera(38, 1, 1, 200)
 		this.camera.layers.enable(EFFECTS_LAYER)
@@ -349,8 +520,27 @@ export class Stage {
 		this.scene.add(face)
 		// a soft light carried with the player (a weapon light, glow of the screen in SAS-like games):
 		// the soldier and what is close always read, whatever the hour
-		this.playerLight = new THREE.PointLight(0xfff0dc, look.light === 'overcast' ? 14 : 28, 12, 1.4)
+		// in the dark the glow is faint (the weapon light shows the way); by day it only lifts the soldier
+		this.playerLight = new THREE.PointLight(
+			0xfff0dc,
+			light.dark ? 4 : look.light === 'overcast' || look.light === 'day' || look.light === 'fog' ? 12 : 22,
+			light.dark ? 5 : 12,
+			1.4
+		)
 		this.scene.add(this.playerLight)
+		// weapon lights: a cone from each soldier's gun along the aim (yours casts shadows on a graphics card)
+		if (light.dark) {
+			const count = this.quality === 'low' ? 1 : FLASHLIGHTS
+			for (let i = 0; i < count; i++) {
+				const torch = new THREE.SpotLight(0xfff4e0, i === 0 ? 90 : 60, i === 0 ? 24 : 18, 0.36, 0.45, 1.2)
+				torch.castShadow = i === 0 && high
+				torch.shadow.mapSize.set(512, 512)
+				torch.shadow.bias = -0.002
+				torch.visible = false
+				this.scene.add(torch, torch.target)
+				this.flashlights.push(torch)
+			}
+		}
 
 		// the plain ground shows at once; the real material replaces it when it has loaded
 		const texture = groundTexture()
@@ -361,11 +551,13 @@ export class Stage {
 		const groundGeometry = new THREE.PlaneGeometry(groundWidth, groundDepth)
 		const uv = groundGeometry.getAttribute('uv') as THREE.BufferAttribute
 		for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * groundWidth) / 4, (uv.getY(i) * groundDepth) / 4)
-		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4, detailed)
+		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4, detailed, true)
 		this.ground = new THREE.Mesh(groundGeometry, groundMaterial)
 		this.ground.rotation.x = -Math.PI / 2
 		this.ground.position.set(map.width / 2, 0, map.height / 2)
 		this.ground.receiveShadow = true
+		// drawn before the patches of other ground laid over it
+		this.ground.renderOrder = -30
 		this.scene.add(this.ground)
 
 		const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
@@ -374,10 +566,15 @@ export class Stage {
 		// the tops of walls and blocks read as rooftops from above: dark gravel, not more brick
 		const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3c38, roughness: 0.95 })
 		dress(roofMaterial, `${assets}/textures/roof`, null, 0xc8c8c2, detailed)
+		this.wallMaterials = [wallMaterial, roofMaterial]
 		const walls = new THREE.Mesh(wallGeometry(map.walls, WALL_HEIGHT, 2), [wallMaterial, roofMaterial])
 		walls.name = 'walls'
 		walls.castShadow = walls.receiveShadow = true
 		this.scene.add(walls)
+		this.addSolids(map, assets, detailed)
+		this.addPatches(map, assets, detailed)
+		this.addWater(map)
+		this.addFences(map)
 		// the town beyond the border: buildings of a few heights, in the map's wall material and another
 		const other = look.walls === 'brick' ? 'wall-concrete' : 'brick'
 		const otherMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
@@ -396,6 +593,240 @@ export class Stage {
 		}
 		if (high) this.post = new PostProcessing(this.renderer, this.scene, this.camera)
 		this.resize()
+	}
+
+	/**
+	 * Hedges (low, leafy, clipped flat on top) and shipping containers (ribbed steel in a few faded
+	 * liveries, picked by where each stands so every client paints them alike).
+	 */
+	private addSolids(map: MapDef, assets: string, detailed: boolean): void {
+		const solids = map.solids ?? []
+		if (solids.length === 0) return
+		const hedges = solids.filter(solid => solid.kind === 'hedge')
+		if (hedges.length > 0) {
+			const leaves = new THREE.MeshStandardMaterial({ color: 0x3f5a2c, roughness: 1 })
+			dress(leaves, `${assets}/textures/grass`, null, 0x5d7a3e, detailed)
+			const top = new THREE.MeshStandardMaterial({ color: 0x4a6a32, roughness: 1 })
+			dress(top, `${assets}/textures/grass`, null, 0x6e8c48, detailed)
+			const mesh = new THREE.Mesh(wallGeometry(hedges, HEDGE_HEIGHT, 1), [leaves, top])
+			mesh.name = 'hedges'
+			mesh.castShadow = mesh.receiveShadow = true
+			this.scene.add(mesh)
+		}
+		const containers = solids.filter(solid => solid.kind === 'container').flatMap(splitContainers)
+		if (containers.length === 0) return
+		const ribs = ribTexture()
+		for (const [index, colour] of CONTAINER_COLOURS.entries()) {
+			const group = containers.filter(
+				box => Math.abs(Math.round(box.x * 7 + box.y * 13 + box.w * 3)) % CONTAINER_COLOURS.length === index
+			)
+			if (group.length === 0) continue
+			const paint = new THREE.MeshStandardMaterial({ color: colour, map: ribs, roughness: 0.6, metalness: 0.15 })
+			const roof = new THREE.MeshStandardMaterial({
+				color: new THREE.Color(colour).multiplyScalar(0.8),
+				map: ribs,
+				roughness: 0.7,
+				metalness: 0.1
+			})
+			const mesh = new THREE.Mesh(wallGeometry(group, CONTAINER_HEIGHT, 1), [paint, roof])
+			mesh.name = 'containers'
+			mesh.castShadow = mesh.receiveShadow = true
+			this.scene.add(mesh)
+		}
+	}
+
+	/** Lawns, gravel and the like laid over the ground, a hair above it, one mesh per kind of ground. */
+	private addPatches(map: MapDef, assets: string, detailed: boolean): void {
+		const patches = map.patches ?? []
+		// a patch lies over the ones listed before it that it overlaps: a tiled floor on a lawn on the ground
+		const layer = patches.map(() => 1)
+		for (const [i, patch] of patches.entries()) {
+			for (let j = 0; j < i; j++) {
+				const other = patches[j] as (typeof patches)[number]
+				if (
+					patch.x < other.x + other.w &&
+					other.x < patch.x + patch.w &&
+					patch.y < other.y + other.h &&
+					other.y < patch.y + patch.h
+				)
+					layer[i] = Math.max(layer[i] as number, (layer[j] as number) + 1)
+			}
+		}
+		// Patches lie flat on the ground and write no depth: the order they are drawn in decides which
+		// shows (the ground first, then each layer), so nothing on them (blood, marks) fights them for depth.
+		const materials = new Map<string, THREE.MeshStandardMaterial>()
+		const groups = new Map<string, number[]>()
+		for (const [i, patch] of patches.entries()) {
+			const key = `${patch.ground}:${Math.min(8, layer[i] as number)}`
+			groups.set(key, [...(groups.get(key) ?? []), i])
+		}
+		for (const [key, members] of groups) {
+			const [ground = 'grass', level = '1'] = key.split(':')
+			const positions: number[] = []
+			const uvs: number[] = []
+			const indices: number[] = []
+			for (const i of members) {
+				const patch = patches[i] as (typeof patches)[number]
+				const base = positions.length / 3
+				const [x0, x1, z0, z1] = [patch.x, patch.x + patch.w, patch.y, patch.y + patch.h]
+				positions.push(x0, 0.002, z0, x1, 0.002, z0, x1, 0.002, z1, x0, 0.002, z1)
+				// the same 4 m tiling as the ground, anchored to the map so neighbouring patches meet
+				uvs.push(x0 / 4, -z0 / 4, x1 / 4, -z0 / 4, x1 / 4, -z1 / 4, x0 / 4, -z1 / 4)
+				indices.push(base, base + 2, base + 1, base, base + 3, base + 2)
+			}
+			const geometry = new THREE.BufferGeometry()
+			geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+			geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
+			geometry.setAttribute(
+				'normal',
+				new THREE.Float32BufferAttribute(
+					positions.map((_, i) => (i % 3 === 1 ? 1 : 0)),
+					3
+				)
+			)
+			geometry.setIndex(indices)
+			let material = materials.get(ground)
+			if (!material) {
+				material = new THREE.MeshStandardMaterial({
+					roughness: 0.95,
+					depthWrite: false,
+					polygonOffset: true,
+					polygonOffsetFactor: -2,
+					polygonOffsetUnits: -2
+				})
+				// pale floors (tiles, paving) toned down to sit with the rest of the ground
+				dress(material, `${assets}/textures/${ground}`, null, PATCH_TINT[ground] ?? 0xdcdcd4, detailed, true)
+				materials.set(ground, material)
+			}
+			const mesh = new THREE.Mesh(geometry, material)
+			mesh.receiveShadow = true
+			mesh.renderOrder = -20 + Number(level)
+			mesh.name = `patches-${key}`
+			this.scene.add(mesh)
+		}
+	}
+
+	/**
+	 * Chain-link fences: steel posts every two and a half metres, a top rail, and wire mesh between
+	 * (a see-through texture) along the middle of each run of fence cells.
+	 */
+	private addFences(map: MapDef): void {
+		const runs = map.fences ?? []
+		if (runs.length === 0) return
+		const canvas = document.createElement('canvas')
+		canvas.width = canvas.height = 64
+		const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+		ctx.strokeStyle = 'rgba(150,156,160,1)'
+		ctx.lineWidth = 4
+		for (let k = -64; k < 128; k += 16) {
+			ctx.beginPath()
+			ctx.moveTo(k, 0)
+			ctx.lineTo(k + 64, 64)
+			ctx.moveTo(k + 64, 0)
+			ctx.lineTo(k, 64)
+			ctx.stroke()
+		}
+		const wire = new THREE.CanvasTexture(canvas)
+		wire.wrapS = wire.wrapT = THREE.RepeatWrapping
+		wire.colorSpace = THREE.SRGBColorSpace
+		const mesh = new THREE.MeshStandardMaterial({
+			map: wire,
+			transparent: true,
+			alphaTest: 0.3,
+			side: THREE.DoubleSide,
+			roughness: 0.6,
+			metalness: 0.3
+		})
+		const steel = new THREE.MeshStandardMaterial({ color: 0x6a6e70, roughness: 0.5, metalness: 0.4 })
+		const height = 2.2
+		const posts: THREE.Matrix4[] = []
+		const rails: THREE.Matrix4[] = []
+		const panels = new THREE.Group()
+		for (const run of runs) {
+			const along = run.w >= run.h
+			const length = along ? run.w : run.h
+			const cx = run.x + run.w / 2
+			const cz = run.y + run.h / 2
+			const panel = new THREE.Mesh(new THREE.PlaneGeometry(length, height), mesh)
+			const uv = panel.geometry.getAttribute('uv') as THREE.BufferAttribute
+			for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * length) / 0.5, (uv.getY(i) * height) / 0.5)
+			panel.position.set(cx, height / 2, cz)
+			if (!along) panel.rotation.y = Math.PI / 2
+			panel.castShadow = true
+			panels.add(panel)
+			rails.push(
+				new THREE.Matrix4().compose(
+					new THREE.Vector3(cx, height, cz),
+					new THREE.Quaternion(),
+					new THREE.Vector3(along ? length : 0.06, 0.06, along ? 0.06 : length)
+				)
+			)
+			const count = Math.max(1, Math.round(length / 2.5))
+			for (let k = 0; k <= count; k++) {
+				const t = (k / count) * length
+				posts.push(new THREE.Matrix4().makeTranslation(along ? run.x + t : cx, height / 2, along ? cz : run.y + t))
+			}
+		}
+		const postMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.05, height, 6), steel, posts.length)
+		for (const [i, matrix] of posts.entries()) postMesh.setMatrixAt(i, matrix)
+		const railMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), steel, rails.length)
+		for (const [i, matrix] of rails.entries()) railMesh.setMatrixAt(i, matrix)
+		postMesh.castShadow = railMesh.castShadow = true
+		panels.name = 'fences'
+		this.scene.add(panels, postMesh, railMesh)
+	}
+
+	/** the water's ripples, moved on every frame */
+	private waterNormals: THREE.Texture | null = null
+
+	/**
+	 * Water: dark, still and glossy, catching the lights, with ripples drifting across it and a stone
+	 * edge where it meets the ground. Drawing only; the grid keeps people out of it.
+	 */
+	private addWater(map: MapDef): void {
+		const pools = map.water ?? []
+		if (pools.length === 0) return
+		const normals = rippleTexture()
+		this.waterNormals = normals
+		const surface = new THREE.MeshStandardMaterial({
+			color: 0x2e4a4c,
+			emissive: 0x0b1718,
+			roughness: 0.16,
+			metalness: 0,
+			normalMap: normals,
+			normalScale: new THREE.Vector2(0.7, 0.7)
+		})
+		const kerb = new THREE.MeshStandardMaterial({ color: 0x6d6a62, roughness: 0.9 })
+		for (const pool of pools) {
+			const water = new THREE.Mesh(new THREE.PlaneGeometry(pool.w, pool.h), surface)
+			water.rotation.x = -Math.PI / 2
+			water.position.set(pool.x + pool.w / 2, 0.03, pool.y + pool.h / 2)
+			const uv = water.geometry.getAttribute('uv') as THREE.BufferAttribute
+			for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * pool.w) / 6, (uv.getY(i) * pool.h) / 6)
+			water.receiveShadow = true
+			water.name = 'water'
+			this.scene.add(water)
+		}
+		// a low kerb round the outline (only where water meets dry cells, so a canal of pieces looks like one)
+		const wet = new Set<number>()
+		for (const pool of pools)
+			for (let y = pool.y; y < pool.y + pool.h; y++)
+				for (let x = pool.x; x < pool.x + pool.w; x++) wet.add(y * map.width + x)
+		const edges: { x: number; y: number; w: number; h: number }[] = []
+		for (const cell of wet) {
+			const x = cell % map.width
+			const y = Math.floor(cell / map.width)
+			if (y > 0 && !wet.has(cell - map.width)) edges.push({ x, y, w: 1, h: 0.15 })
+			if (y < map.height - 1 && !wet.has(cell + map.width)) edges.push({ x, y: y + 0.85, w: 1, h: 0.15 })
+			if (x > 0 && !wet.has(cell - 1)) edges.push({ x, y, w: 0.15, h: 1 })
+			if (x < map.width - 1 && !wet.has(cell + 1)) edges.push({ x: x + 0.85, y, w: 0.15, h: 1 })
+		}
+		if (edges.length > 0) {
+			const mesh = new THREE.Mesh(wallGeometry(edges, 0.18, 1), [kerb, kerb])
+			mesh.receiveShadow = true
+			mesh.name = 'water-kerb'
+			this.scene.add(mesh)
+		}
 	}
 
 	resize(): void {
@@ -431,6 +862,22 @@ export class Stage {
 			localStorage.setItem(ZOOM_KEY, this.zoom.toFixed(3))
 		} catch {
 			// not kept: it still applies now
+		}
+	}
+
+	/**
+	 * Points the weapon lights: one per soldier (yours first), from the gun along the aim. Teammates
+	 * beyond the available lights go without.
+	 */
+	setFlashlights(soldiers: readonly { x: number; y: number; angle: number; on: boolean }[]): void {
+		for (const [i, torch] of this.flashlights.entries()) {
+			const soldier = soldiers[i]
+			torch.visible = soldier?.on === true
+			if (!soldier?.on) continue
+			const dx = Math.cos(soldier.angle)
+			const dy = Math.sin(soldier.angle)
+			torch.position.set(soldier.x + dx * 0.45, 1.35, soldier.y + dy * 0.45)
+			torch.target.position.set(soldier.x + dx * 12, 0, soldier.y + dy * 12)
 		}
 	}
 
@@ -526,6 +973,7 @@ export class Stage {
 	}
 
 	render(): void {
+		if (this.waterNormals) this.waterNormals.offset.set(performance.now() * 0.000012, performance.now() * 0.000007)
 		if (this.post) this.post.render(performance.now() / 1000)
 		else this.renderer.render(this.scene, this.camera)
 	}

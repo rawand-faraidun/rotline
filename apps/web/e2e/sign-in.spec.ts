@@ -57,12 +57,12 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	const recruit = page.getByRole('button', { name: /^recruit/i })
 	await recruit.click()
 	await expect(recruit).toHaveAttribute('aria-pressed', 'true')
-	// the campaign starts with Landfall; the next mission is locked
-	await expect(page.getByRole('dialog').getByRole('button', { name: /landfall/i })).toHaveAttribute(
+	// the campaign starts with Ground Zero; the next mission is locked
+	await expect(page.getByRole('dialog').getByRole('button', { name: /ground zero/i })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	)
-	await expect(page.getByRole('dialog').getByRole('button', { name: /rail yard/i })).toBeDisabled()
+	await expect(page.getByRole('dialog').getByRole('button', { name: /dead river/i })).toBeDisabled()
 	// the game modes sit apart from the campaign, and every contract is open from the start
 	await page.getByRole('tab', { name: /game modes/i }).click()
 	await expect(page.getByRole('dialog').getByRole('button', { name: /hotspot/i })).toBeEnabled()
@@ -72,8 +72,8 @@ test('a new player signs in, enlists and reaches the lobby', async ({ page }) =>
 	// deploy into a solo mission: the engine loads, the HUD appears, firing spends ammunition
 	await page.getByRole('button', { name: /^deploy$/i }).click()
 	await expect(page).toHaveURL(/\/play\/mission$/)
-	await expect(page.getByText(/objective 1 of 8/i)).toBeVisible({ timeout: 45_000 })
-	await expect(page.getByText(/^grab the flight recorder$/i)).toBeVisible()
+	await expect(page.getByText(/objective 1 of 6/i)).toBeVisible({ timeout: 45_000 })
+	await expect(page.getByText(/^start the mill generator to clear the dust$/i)).toBeVisible()
 	await expect(page.getByText(/^multiplier$/i)).toBeVisible()
 	const magazine = page.locator('li', { hasText: 'Vector' }).locator('[data-slot="magazine"]')
 	await expect(magazine).toHaveText('32')

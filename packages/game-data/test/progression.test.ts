@@ -4,11 +4,14 @@ import {
 	allocationProblem,
 	allSkillPoints,
 	discardValue,
+	fitSkills,
 	levelFromXp,
 	perkLevelsReached,
 	perkOptions,
 	pointsAtLevel,
+	rankCost,
 	skillTrees,
+	spentPoints,
 	unlockedAbilities,
 	upgradeCost,
 	upgradeTotal,
@@ -28,11 +31,13 @@ describe('class levels', () => {
 		expect(levelFromXp(1e12)).toMatchObject({ level: 50, next: null })
 	})
 
-	it('grants one point per level and two at every tenth: 55 at level 50', () => {
+	it('grants one point a level, two a level from 21, and one more at every tenth: 85 at level 50', () => {
 		expect(pointsAtLevel(1)).toBe(1)
 		expect(pointsAtLevel(9)).toBe(9)
 		expect(pointsAtLevel(10)).toBe(11)
-		expect(pointsAtLevel(50)).toBe(55)
+		expect(pointsAtLevel(20)).toBe(22)
+		expect(pointsAtLevel(21)).toBe(24)
+		expect(pointsAtLevel(50)).toBe(85)
 	})
 
 	it('opens a third ability slot at level 20', () => {
@@ -63,6 +68,23 @@ describe('skill allocation', () => {
 		)
 		expect(validateSkills('assault', everything, 50)).toBe('points')
 		expect(validateSkills('assault', everything, 1, allSkillPoints('assault'))).toBeNull()
+	})
+
+	it('prices deeper skills higher: 1 point in tiers 1 and 2, 2 in tiers 3 and 4, 3 at the top', () => {
+		const byTier = (tier: number) =>
+			skillTrees.assault.branches[0]?.nodes.find(node => node.tier === tier)?.id as string
+		expect([1, 2, 3, 4, 5].map(tier => rankCost(byTier(tier)))).toEqual([1, 1, 2, 2, 3])
+		expect(spentPoints({ [byTier(1)]: 1, [byTier(3)]: 1, [byTier(5)]: 1 })).toBe(6)
+		// the whole tree costs more than a level 50 has, so a build is a choice
+		expect(allSkillPoints('assault')).toBeGreaterThan(pointsAtLevel(50))
+	})
+
+	it('cuts an allocation saved under older rules back to one that fits, deepest ranks first', () => {
+		const tierTwo = { ...tierOne, 'run-and-gun': 1, 'second-breath': 1 }
+		expect(fitSkills('assault', tierTwo, 5)).toEqual(tierOne)
+		expect(fitSkills('assault', tierTwo, 7)).toEqual(tierTwo)
+		expect(fitSkills('assault', { ...tierOne, nope: 3, 'fleet-foot': 9 }, 99)).toEqual(tierOne)
+		expect(validateSkills('assault', fitSkills('assault', tierTwo, 3), 1, 3)).toBeNull()
 	})
 
 	it('opens tier 2 after five points in tier 1', () => {

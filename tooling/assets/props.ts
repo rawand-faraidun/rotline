@@ -14,6 +14,7 @@ import {
 	getBounds,
 	join as joinPrimitives,
 	meshopt,
+	metalRough,
 	prune,
 	simplify,
 	textureCompress,
@@ -41,6 +42,8 @@ type PropSource = {
 	tint?: [number, number, number]
 	/** keep only these mesh nodes (for files holding several variants) */
 	nodes?: string[]
+	/** how far simplifying may move the surface (share of the model's size; 0.05 unless given) */
+	error?: number
 }
 const { props } = JSON.parse(readFileSync(join(here, 'prop-sources.json'), 'utf8')) as { props: PropSource[] }
 mkdirSync(out, { recursive: true })
@@ -73,6 +76,8 @@ const credits: { name: string; author: string; page: string; licence: string }[]
 for (const prop of props) {
 	const document = await io.read(prop.uid ? await sketchfabModel(prop.uid) : await fetchModel(prop.source ?? ''))
 	const root = document.getRoot()
+	// older models keep their colour in the specular-glossiness extension: carry it over first
+	await document.transform(metalRough())
 	plainMaterials(document)
 	if (prop.nodes) {
 		const keep = prop.nodes
@@ -101,7 +106,7 @@ for (const prop of props) {
 		)
 	if (triangles > prop.triangles)
 		await document.transform(
-			simplify({ simplifier: MeshoptSimplifier, ratio: prop.triangles / triangles, error: 0.05 })
+			simplify({ simplifier: MeshoptSimplifier, ratio: prop.triangles / triangles, error: prop.error ?? 0.05 })
 		)
 	// game props into a 1 m cube (centred on the ground, every side 1 m long); scenery keeps its
 	// real size in metres, only centred on the ground

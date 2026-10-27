@@ -260,6 +260,7 @@ describe('server messages', () => {
 			{ type: 'mission-complete' },
 			{ type: 'mission-failed', reason: 'time' },
 			{ type: 'mission-failed', reason: 'lives' },
+			{ type: 'mission-failed', reason: 'wiped' },
 			{ type: 'item-found', player: 2, item: 11 },
 			{ type: 'cache', player: 2, index: 1 },
 			{ type: 'buff', player: 1, buff: 3 },
@@ -296,9 +297,9 @@ describe('snapshots', () => {
 		expect(frame.tick).toBe(world.tick - 1)
 		// a squad counts no lives; alone, the lives left come along
 		expect(frame.livesLeft).toBeNull()
+		// outside a campaign mission nobody has lives, even alone
 		world.removePlayer(2)
-		world.soloDeaths = 1
-		expect(decode(new SnapshotEncoder(1).write(new Writer(), world), new ZombieTable()).livesLeft).toBe(2)
+		expect(decode(new SnapshotEncoder(1).write(new Writer(), world), new ZombieTable()).livesLeft).toBeNull()
 		world.addPlayer(2)
 		expect(frame.self.x).toBe(me.x)
 		expect(frame.self.y).toBe(me.y)
@@ -468,6 +469,18 @@ describe('snapshots', () => {
 })
 
 describe('missions in snapshots', () => {
+	it('carries the lives left of a player alone in a campaign mission', () => {
+		const mission = missionById('landfall') as MissionDef
+		const world = new World({
+			seed: 2,
+			map: maps.landfall as NonNullable<typeof maps.landfall>,
+			mission: { mission: { ...mission, spawn: { ...mission.spawn, perSecond: 0 } }, difficulty: 'veteran' }
+		})
+		world.addPlayer(1)
+		world.soloDeaths = 1
+		expect(decode(new SnapshotEncoder(1).write(new Writer(), world), new ZombieTable()).livesLeft).toBe(2)
+	})
+
 	it('carries the objective, team buffs, the own score and chain, and buffs on the ground', () => {
 		const base = missionById('yard-sweep') as MissionDef
 		// an untimed kill run on the yard
@@ -523,6 +536,38 @@ describe('missions in snapshots', () => {
 		// health is relative to the scaled maximum, not the base one
 		expect((table.health[zombie] as number) / 255).toBeCloseTo(0.5, 1)
 		expect(frame.others[0]?.healthPercent).toBe(1)
+	})
+
+	it('carries what a gather or capture objective has done, and how long it has run', () => {
+		const base = missionById('yard-sweep') as MissionDef
+		const mission: MissionDef = {
+			...base,
+			gates: undefined,
+			spawn: { ...base.spawn, perSecond: 0 },
+			objectives: [
+				{
+					type: 'capture',
+					label: 'Take',
+					seconds: 10,
+					areas: [
+						{ x: 30, y: 30, radius: 2 },
+						{ x: 40, y: 30, radius: 2 }
+					]
+				}
+			]
+		}
+		const world = new World({ seed: 2, map: yard, mission: { mission, difficulty: 'veteran' } })
+		world.addPlayer(1)
+		for (let n = 0; n < 45; n++) world.step(new Map())
+		if (!world.mission) throw new Error()
+		world.mission.areaTicks = [150, 0]
+		world.mission.picked = 0b101
+		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), new ZombieTable())
+		expect(frame.mission.picked).toBe(0b101)
+		expect(frame.mission.areas).toHaveLength(2)
+		expect(frame.mission.areas[0]).toBeCloseTo(0.5, 1)
+		expect(frame.mission.areas[1]).toBe(0)
+		expect(frame.mission.objectiveSeconds).toBeCloseTo(1.5, 1)
 	})
 })
 

@@ -23,7 +23,7 @@ import { zValidator } from '@hono/zod-validator'
 import { type Context, Hono, type Next } from 'hono'
 import { z } from 'zod'
 import type { AppEnv, Services } from '../context.ts'
-import { grantStarterKit } from '../lib/build.ts'
+import { fitSavedSkills, grantStarterKit } from '../lib/build.ts'
 import { changeSalvage, lockPlayer, NotEnoughSalvage, type Tx } from '../lib/ledger.ts'
 
 /** A rule the request broke; turned into a 409 with this code. */
@@ -42,6 +42,7 @@ const itemId = z.string().regex(/^[a-z0-9-]+$/)
 /** Everything the lobby, skills, armory and shop screens show, in one read. */
 export async function progressView(db: Database, playerId: string, inMission: boolean) {
 	await ensureStarterKit(db, playerId)
+	await fitSavedSkills(db, playerId)
 	const player = await db.player.findUnique({
 		where: { userId: playerId },
 		include: {

@@ -1,3 +1,4 @@
+import type { MissionDef } from '@rotline/game-data'
 /** What the HUD shows. The game writes it; React reads it through `subscribe` + `getSnapshot`. */
 export type HudState = {
 	/** 'over': the mission is complete and the room has closed; the game is paused while 'paused' */
@@ -31,7 +32,17 @@ export type HudState = {
 	}[]
 	/** short announcements: new wave, squad wiped, objective done, checkpoint, mission complete */
 	banner: {
-		text: 'wave' | 'wipe' | 'objective' | 'checkpoint' | 'complete' | 'run-over' | 'failed' | 'timeout' | 'lives'
+		text:
+			| 'wave'
+			| 'wipe'
+			| 'objective'
+			| 'checkpoint'
+			| 'complete'
+			| 'run-over'
+			| 'failed'
+			| 'timeout'
+			| 'lives'
+			| 'wiped'
 		wave: number
 		at: number
 	} | null
@@ -46,6 +57,10 @@ export type HudState = {
 	 * angle toward it; metres away. Null when the objective is not a place.
 	 */
 	waypoint: { x: number; y: number; onScreen: boolean; angle: number; distance: number } | null
+	/** why the game is silent, if it is: the browser holds sound until a click or key, or it is muted */
+	silence: 'blocked' | 'muted' | null
+	/** a note the player is standing on, open to read; with how many of this mission's they have found */
+	note: { title: string; text: string; by: string; found: number; total: number } | null
 	/** lives left playing alone (the run is lost at none), or null in a squad */
 	livesLeft: number | null
 	/** teammates out of view: where their arrow sits at the screen's edge (0..1), pointing at them */
@@ -62,7 +77,8 @@ export type HudState = {
 	/** the results screen, once the mission is complete */
 	results: Results | null
 	/** equipped abilities: name, key and seconds until ready (0 = ready) */
-	abilities: { name: string; key: string; seconds: number; cooldown: number }[]
+	/** `jammed`: a mission step has knocked the squad's kit out, whatever the cooldown says */
+	abilities: { name: string; key: string; seconds: number; cooldown: number; jammed: boolean }[]
 	/** utilities: name, key and charges left (null = unlimited, in the firing range) */
 	utilities: { name: string; key: string; charges: number | null }[]
 	/** firing range: damage per second over the last three seconds */
@@ -82,6 +98,8 @@ export type InteractAction =
 	| 'hack'
 	| 'free'
 	| 'pickup'
+	| 'search'
+	| 'plant'
 	| 'trap'
 	| 'cache'
 	/** an ammo station: refill (the player can pay) or its price (they cannot yet) */
@@ -101,7 +119,7 @@ export type MissionHud = {
 	step: number
 	count: number
 	label: string
-	type: 'kill' | 'reach' | 'hold' | 'survive' | 'interact' | 'defend' | 'rescue' | 'retrieve' | 'destroy' | 'extract'
+	type: MissionDef['objectives'][number]['type']
 	/** kills, things done, or seconds (extract: seconds left) */
 	progress: number
 	goal: number
@@ -112,7 +130,7 @@ export type MissionHud = {
 
 export type Toast = {
 	id: number
-	kind: 'item' | 'buff' | 'threshold' | 'resupply'
+	kind: 'item' | 'buff' | 'threshold' | 'resupply' | 'secret'
 	/** the item or buff name, or the Salvage paid for a threshold */
 	text: string
 	/** who picked a buff up (teammates' pickups help everyone) */
@@ -156,6 +174,8 @@ export const initialHud: HudState = {
 	waypoint: null,
 	allies: [],
 	livesLeft: null,
+	silence: null,
+	note: null,
 	chain: 0,
 	multiplier: 1,
 	chainLeft: 0,

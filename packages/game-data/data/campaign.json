@@ -3,13 +3,13 @@
 		{
 			"id": "ashgate",
 			"name": "Ashgate",
-			"description": "The town where it started. The first mutations, the first survivors, and the road out.",
+			"description": "The town where it started: Halden's blight in the grain, the Rotline drawn round it, and the girl who never turned.",
 			"missions": ["landfall", "yard-sweep", "power-out", "survivors", "yard-stand"]
 		},
 		{
 			"id": "harrow",
 			"name": "Harrow",
-			"description": "The city past Ashgate: its airfield, its hospital, the houses on the hill and the metro under it all.",
+			"description": "The city past the Rotline: its harbour, its gardens, its hospital, the minister on the hill and the sealed lab under it all, where the cure is made.",
 			"missions": ["airlift", "hive", "lifeline", "minister", "cure"]
 		}
 	],

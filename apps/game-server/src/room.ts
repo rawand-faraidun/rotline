@@ -9,8 +9,11 @@ import {
 	type MissionDef,
 	maps,
 	masteryFor,
-	missionById,
-	SURVIVAL_MAP,
+	missionFor,
+	missionMap,
+	SURVIVAL,
+	type SurvivalId,
+	survivalMap,
 	zombieIndex,
 	zombies
 } from '@rotline/game-data'
@@ -162,6 +165,8 @@ export class Room {
 	/** something paid the players who played this tick; their "played" marks are cleared after it */
 	private paidThisTick = false
 	private readonly onReward: RewardSink
+	/** Survival's arena every ticket to this room must name; null for missions and the range */
+	readonly arena: SurvivalId | null
 	/** the mission and difficulty every ticket to this room must name; null for Survival and the range */
 	readonly missionRoom: MissionRoom | null
 	private readonly missionDef: MissionDef | null
@@ -176,7 +181,8 @@ export class Room {
 		flowPhase: number,
 		onReward: RewardSink = () => {},
 		mission: MissionRoom | null = null,
-		lootSeed = seed
+		lootSeed = seed,
+		arena: SurvivalId | null = null
 	) {
 		this.id = id
 		this.onReward = onReward
@@ -184,10 +190,14 @@ export class Room {
 		const range = mode === 'range'
 		// the firing range is solo and earns nothing
 		this.capacity = range ? 1 : 4
-		this.missionDef = !range && mission ? (missionById(mission.id) ?? null) : null
+		// a contract plays on the map this room's id picks from its maps
+		this.missionDef = !range && mission ? (missionFor(mission.id, id) ?? null) : null
 		this.missionRoom = this.missionDef && mission ? mission : null
+		this.arena = !range && !this.missionRoom ? (arena ?? SURVIVAL) : null
 		this.rewardScale = this.missionRoom ? difficultyDef(this.missionRoom.difficulty).rewards : 1
-		const map = (range ? maps.range : maps[this.missionDef?.map ?? SURVIVAL_MAP]) as NonNullable<typeof maps.yard>
+		const map = (
+			range ? maps.range : this.missionDef ? missionMap(this.missionDef) : maps[survivalMap(this.arena)]
+		) as NonNullable<typeof maps.yard>
 		this.world = new World({
 			seed,
 			lootSeed,
