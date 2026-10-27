@@ -13,6 +13,7 @@ export {
 	type MissionState,
 	MissionStatus,
 	objectiveGoal,
+	objectiveProps,
 	scoreThreshold,
 	timeLeft
 } from './mission.ts'

@@ -87,6 +87,12 @@ export function minimumSeconds(mission: MissionDef): number {
 		// one area at a time for a squad of one; a squad may split, so only the longest counts
 		if (objective.type === 'capture') seconds += objective.seconds
 		if (objective.type === 'escort') seconds += pathLength(objective.path) / objective.speed
+		if (objective.type === 'search') seconds += propsDef.search.holdSeconds
+		if (objective.type === 'demolish') seconds += propsDef.charge.plantSeconds + objective.seconds
+		// one of them mended by a full squad at once (the others side by side)
+		if (objective.type === 'repair')
+			seconds += ((1 - objective.from) * propsDef.defend.health) / propsDef.repairPerSecond / 4
+		if (objective.type === 'deliver') seconds += propsDef.carry.pickupSeconds * objective.items.length
 	}
 	return Math.floor(seconds)
 }

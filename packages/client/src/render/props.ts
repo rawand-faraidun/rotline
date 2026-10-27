@@ -101,16 +101,25 @@ export class PropRenderer {
 		size: [number, number, number],
 		top: THREE.Mesh | null
 	) {
-		if (!this.models || !MODELLED.has(prop.def.kind)) return
-		void propModel(`${this.assets}/models/props/${prop.def.kind}.glb`).then(model => {
+		if (!this.models || (!MODELLED.has(prop.def.kind) && !prop.def.look)) return
+		// the props' own models are fitted to a cube; a scenery model it is to look like is scaled (evenly)
+		// so its longer side across the ground fits the prop's
+		const look = prop.def.look
+		void propModel(`${this.assets}/models/props/${look ?? prop.def.kind}.glb`).then(model => {
 			if (!model || !root.parent) return
 			const copy = model.clone()
-			copy.scale.set(...size)
+			if (look) {
+				const box = new THREE.Box3().setFromObject(model)
+				const across = Math.max(box.max.x - box.min.x, box.max.z - box.min.z, 1e-3)
+				copy.scale.setScalar(Math.max(size[0], size[2]) / across)
+			} else copy.scale.set(...size)
 			// barrels and crates do not all face the same way
 			copy.rotation.y = ((prop.index * 2.399) % (Math.PI * 2)) * (prop.def.kind === 'barrel' ? 1 : 0)
 			root.add(copy)
 			for (const mesh of body) mesh.visible = false
-			if (top) top.position.y = size[1] + 0.06
+			// the lamp on a plain defend target's top; a scenery model has none
+			if (top && look) top.visible = false
+			else if (top) top.position.y = size[1] + 0.06
 		})
 	}
 
@@ -233,6 +242,33 @@ export class PropRenderer {
 		positions.needsUpdate = true
 	}
 
+	/** The rail yard's shunting engine: a long yellow hood, a cab at one end, buffers and wheels. */
+	private shunter(root: THREE.Group): void {
+		const paint = this.material(0xd9a400)
+		const dark = this.material(0x22241f)
+		const glass = this.material(0x1a2a30, 0x22343a)
+		const part = (material: THREE.Material, w: number, h: number, d: number, x: number, y: number, z: number) => {
+			const mesh = new THREE.Mesh(this.box, material)
+			mesh.scale.set(w, h, d)
+			mesh.position.set(x, y, z)
+			mesh.castShadow = true
+			root.add(mesh)
+			return mesh
+		}
+		part(dark, 2.3, 0.35, 6.4, 0, 0.45, 0)
+		part(paint, 1.7, 1.3, 4.2, 0, 1.25, -0.9)
+		part(paint, 2.2, 2.2, 1.9, 0, 1.7, 2.1)
+		part(glass, 2.25, 0.6, 1.6, 0, 2.3, 2.1)
+		part(dark, 2.3, 0.15, 2.1, 0, 2.85, 2.1)
+		// warning stripes on both ends, buffers, and a light on the cab
+		for (const z of [-3.15, 3.15]) {
+			part(this.material(0x111111), 2.2, 0.5, 0.08, 0, 0.75, z)
+			for (const x of [-0.8, 0.8]) part(dark, 0.25, 0.25, 0.3, x, 0.75, z + Math.sign(z) * 0.15)
+		}
+		for (const z of [-2.2, -0.8, 0.8, 2.2]) for (const x of [-1, 1]) part(dark, 0.18, 0.7, 0.7, x, 0.35, z)
+		part(this.material(0x332200, 0xffd27a), 0.4, 0.2, 0.1, 0, 2.6, 3.06)
+	}
+
 	private material(color: number, emissive = 0): THREE.MeshStandardMaterial {
 		return new THREE.MeshStandardMaterial({ color, roughness: 0.85, emissive, emissiveIntensity: emissive ? 0.8 : 0 })
 	}
@@ -272,11 +308,14 @@ export class PropRenderer {
 				break
 			}
 			case 'vehicle': {
-				// the vehicle to walk out: a battered car or van, its health over it
+				// the vehicle to walk out: a battered car or van (or the yard's shunting engine), its health over it
 				const body = add(new THREE.Mesh(this.box, this.material(0x3a4a3e)), 0.8)
 				body.scale.set(1.8, 1.5, 4.2)
-				bar = this.bar(root, 2.2)
-				if (this.models)
+				bar = this.bar(root, prop.def.look === 'shunter' ? 3.2 : 2.2)
+				if (prop.def.look === 'shunter') {
+					body.visible = false
+					this.shunter(root)
+				} else if (this.models)
 					void propModel(`${this.assets}/models/props/scene-car.glb`).then(model => {
 						if (!model || !root.parent) return
 						const copy = model.clone()
@@ -483,6 +522,57 @@ export class PropRenderer {
 				bar = this.bar(root, 2.2)
 				break
 			}
+			case 'search': {
+				// something to go through: a wreck, a locker, a car boot; a ring round it until it has been searched
+				const body = add(new THREE.Mesh(this.box, this.material(0x4a4f48)), 0.35)
+				body.scale.set(0.9, 0.7, 0.6)
+				// a car is a car's length; a crate, a locker or a bench about a metre
+				const car = prop.def.look === 'scene-car'
+				this.dressUp(prop, root, [body], car ? [1.9, 1.4, 4.3] : [1.1, 1, 1.1], null)
+				const ring = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: 0xffc02e, transparent: true, opacity: 0.6, depthWrite: false })
+				)
+				ring.scale.setScalar(1.1)
+				ring.position.y = 0.05
+				root.add(ring)
+				root.userData.ring = ring
+				root.rotation.y = (prop.index * 2.399) % (Math.PI * 2)
+				break
+			}
+			case 'charge': {
+				// where the charge goes: a red ring until it is planted, then the charge itself, blinking
+				const ring = new THREE.Mesh(
+					this.ring,
+					new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, opacity: 0.6, depthWrite: false })
+				)
+				ring.scale.setScalar(0.9)
+				ring.position.y = 0.05
+				root.add(ring)
+				root.userData.ring = ring
+				const pack = add(new THREE.Mesh(this.box, this.material(0x5a5a3a)), 0.18)
+				pack.scale.set(0.5, 0.3, 0.35)
+				glow = this.material(0x220000, 0xff2a1a)
+				const lamp = add(new THREE.Mesh(this.box, glow), 0.36)
+				lamp.scale.set(0.1, 0.06, 0.1)
+				root.userData.pack = pack
+				root.userData.lamp = lamp
+				if (this.models)
+					void propModel(`${this.assets}/models/props/item-c4.glb`).then(model => {
+						if (!model || !root.parent) return
+						const copy = model.clone()
+						copy.scale.setScalar(0.55)
+						copy.visible = pack.visible
+						root.userData.model = copy
+						root.add(copy)
+						pack.scale.setScalar(0.001)
+					})
+				light = new THREE.PointLight(0xff2a1a, 0, 4, 2)
+				light.position.y = 0.6
+				root.add(light)
+				bar = this.bar(root, 1.2)
+				break
+			}
 			case 'carry': {
 				glow = this.material(0xffc02e, 0xffc02e)
 				const body = add(new THREE.Mesh(this.box, glow), 0.35)
@@ -586,8 +676,33 @@ export class PropRenderer {
 			root.position.x += (prop.x - root.position.x) * ease
 			root.position.z += (prop.y - root.position.z) * ease
 			const gone = prop.state === PropState.destroyed || prop.state === PropState.delivered
-			root.visible = !gone || prop.def.kind === 'door' || prop.def.kind === 'defend'
+			root.visible =
+				prop.state !== PropState.hidden &&
+				(!gone || prop.def.kind === 'door' || prop.def.kind === 'defend' || prop.def.kind === 'search')
 			switch (prop.def.kind) {
+				case 'search': {
+					// amber and pulsing until searched; green where it was found; nothing once gone through
+					const ring = root.userData.ring as THREE.Mesh
+					const material = ring.material as THREE.MeshBasicMaterial
+					ring.visible = prop.state !== PropState.done
+					material.color.setHex(prop.state === PropState.delivered ? 0xb8f23c : 0xffc02e)
+					material.opacity = prop.state === PropState.delivered ? 0.8 : 0.35 + 0.35 * Math.sin(timeSeconds * 3) ** 2
+					break
+				}
+				case 'charge': {
+					const armed = prop.state === PropState.active
+					;(root.userData.ring as THREE.Mesh).visible = prop.state === PropState.idle
+					;(root.userData.ring as THREE.Mesh).scale.setScalar(0.9 + 0.1 * Math.sin(timeSeconds * 4))
+					for (const part of [root.userData.pack, root.userData.lamp, root.userData.model] as THREE.Object3D[])
+						if (part) part.visible = armed
+					// blinking faster as the fuse burns down (its bar is its health)
+					const blink = Math.sin(timeSeconds * (armed ? 12 : 0)) > 0
+					if (drawn.glow) drawn.glow.emissiveIntensity = armed && blink ? 2.5 : 0.1
+					if (drawn.light) drawn.light.intensity = armed && blink ? 3 : 0
+					this.setBar(drawn.bar, armed ? prop.health / prop.maxHealth : 0)
+					if (prop.state === PropState.done) root.visible = false
+					break
+				}
 				case 'door': {
 					const slab = root.children[0] as THREE.Mesh
 					const open = prop.state === PropState.open || prop.state === PropState.destroyed

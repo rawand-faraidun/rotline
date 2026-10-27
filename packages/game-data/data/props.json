@@ -76,5 +76,14 @@
 	"extractIdleSeconds": 15,
 	"vehicle": {
 		"health": 900
+	},
+	"search": {
+		"holdSeconds": 2.5
+	},
+	"charge": {
+		"plantSeconds": 3,
+		"health": 700,
+		"blastDamage": 2000,
+		"playerDamage": 140
 	}
 }

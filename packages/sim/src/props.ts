@@ -20,7 +20,9 @@ export const PropKind: Record<PropKindId, number> = {
 	nest: 13,
 	ammo: 14,
 	weakwall: 15,
-	vehicle: 16
+	vehicle: 16,
+	search: 17,
+	charge: 18
 }
 
 /** What a prop is doing. Not every state applies to every kind. */
@@ -41,7 +43,9 @@ export const PropState = {
 	/** a survivor who reached safety, an object delivered */
 	delivered: 9,
 	/** a mission gate: closed and impossible to open until the mission opens it */
-	locked: 10
+	locked: 10,
+	/** not in this mission: a carried object, survivor, vehicle, search spot or charge no step uses */
+	hidden: 11
 } as const
 
 /** Grid cell value for cells a prop blocks (the map's own walls are 1, barricades 2). */
@@ -128,6 +132,8 @@ function startHealth(def: MapProp): number {
 			return def.health ?? propsDef.defend.health
 		case 'vehicle':
 			return def.health ?? propsDef.vehicle.health
+		case 'charge':
+			return propsDef.charge.health
 		case 'nest':
 			return def.health ?? propsDef.nest.health
 		default:
@@ -223,6 +229,10 @@ export function holdSeconds(prop: Prop): number {
 			return propsDef.carry.pickupSeconds
 		case 'ammo':
 			return propsDef.ammo.holdSeconds
+		case 'search':
+			return propsDef.search.holdSeconds
+		case 'charge':
+			return propsDef.charge.plantSeconds
 		default:
 			return 0
 	}

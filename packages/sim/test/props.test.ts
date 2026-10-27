@@ -578,6 +578,217 @@ describe('campaign objectives', () => {
 		world.step(new Map())
 		expect(world.mission?.index).toBe(1)
 	})
+
+	const wait: MissionDef['objectives'][number] = { type: 'survive', label: 'Wait', seconds: 60 }
+
+	it('searches spots until the one that holds it is found, and hides what no step uses', () => {
+		const spots = ['s1', 's2', 's3', 's4']
+		const map = room([
+			...spots.map((id, n) => ({ id, kind: 'search' as const, x: 5 + n * 3, y: 6 })),
+			{ id: 'spare', kind: 'carry', x: 20, y: 15 }
+		])
+		const world = mission(map, { objectives: [{ type: 'search', label: 'Search', props: spots }, wait] })
+		expect(world.propById.get('spare')?.state).toBe(PropState.hidden)
+		const player = world.addPlayer(1)
+		world.step(new Map())
+		const searchTicks = Math.round(propsDef.search.holdSeconds * TICK_RATE) + 2
+		for (const [n, id] of spots.entries()) {
+			if (world.mission?.index !== 0) break
+			player.x = 5 + n * 3
+			player.y = 7
+			steps(world, searchTicks, () => hold())
+			const spot = world.propById.get(id)
+			expect([PropState.done, PropState.delivered]).toContain(spot?.state)
+		}
+		expect(world.mission?.index).toBe(1)
+		expect(spots.filter(id => world.propById.get(id)?.state === PropState.delivered)).toHaveLength(1)
+	})
+
+	it('hunts the marked zombies it brings in, and only those count', () => {
+		const world = mission(room([]), {
+			objectives: [
+				{
+					type: 'hunt',
+					label: 'Hunt',
+					targets: [
+						{ type: 'screamer', at: { x: 24, y: 5 }, health: 3 },
+						{ type: 'screamer', at: { x: 24, y: 15 } }
+					]
+				},
+				wait
+			]
+		})
+		world.addPlayer(1)
+		world.step(new Map())
+		const marked = [...world.hunted.keys()].filter(i => world.hunted[i] === 1 && world.alive[i] === 1)
+		expect(marked).toHaveLength(2)
+		const tough = marked.find(i => (world.y[i] as number) < 10) as number
+		const screamer = zombieIndex('screamer')
+		expect(world.maxHealth[tough]).toBeGreaterThan(world.maxHealth[marked.find(i => i !== tough) as number] as number)
+		// an unmarked one of the same kind does not count
+		world.damageZombie(world.spawnZombie(screamer, { x: 20, y: 10 }), 1e9, 1)
+		world.step(new Map())
+		expect(world.mission?.progress).toBe(0)
+		for (const i of marked) world.damageZombie(i, 1e9, 1)
+		world.step(new Map())
+		expect(world.mission?.index).toBe(1)
+	})
+
+	it('plants a charge, burns its fuse and blows the gate it was set against, hurting whoever stayed', () => {
+		const map = room([
+			{ id: 'gate', kind: 'door', x: 15, y: 9, w: 1, h: 3, locked: true },
+			{ id: 'charge', kind: 'charge', x: 14, y: 10.5 }
+		])
+		const world = mission(map, {
+			objectives: [
+				{ type: 'demolish', label: 'Blow it', prop: 'charge', seconds: 2, radius: 5, destroys: ['gate'] },
+				{ type: 'reach', label: 'Through', area: { x: 22, y: 10, radius: 2 } },
+				wait
+			]
+		})
+		const planter = world.addPlayer(1)
+		const stayer = world.addPlayer(2)
+		planter.x = 13
+		planter.y = 10.5
+		stayer.x = 12
+		stayer.y = 10.5
+		steps(world, Math.round(propsDef.charge.plantSeconds * TICK_RATE) + 2, () => hold())
+		const charge = world.propById.get('charge')
+		expect(charge?.state).toBe(PropState.active)
+		expect(world.targetProps).toContain(charge)
+		planter.x = 4
+		planter.y = 4
+		const health = stayer.health
+		steps(world, 2 * TICK_RATE + 2)
+		expect(charge?.state).toBe(PropState.done)
+		expect(world.propById.get('gate')?.state).toBe(PropState.destroyed)
+		expect(world.grid.isWall(15.5, 10.5)).toBe(false)
+		expect(stayer.health).toBeLessThan(health)
+		expect(world.mission?.index).toBe(1)
+	})
+
+	it('fails a demolition when the dead tear the charge off', () => {
+		const map = room([{ id: 'charge', kind: 'charge', x: 22, y: 10.5 }])
+		const world = mission(map, {
+			objectives: [
+				{ type: 'reach', label: 'Go', area: { x: 6, y: 10, radius: 3 }, checkpoint: true },
+				{ type: 'demolish', label: 'Blow it', prop: 'charge', seconds: 60, radius: 5 }
+			]
+		})
+		world.addPlayer(1)
+		steps(world, 2)
+		const charge = world.propById.get('charge')
+		if (!charge) throw new Error()
+		charge.state = PropState.active
+		damageProp(world, charge, 1e6, 0)
+		expect(world.events.some(event => event.type === 'failed')).toBe(true)
+		expect(charge.state).toBe(PropState.idle)
+	})
+
+	it('repairs damaged targets from where the step leaves them, and they stay mended', () => {
+		const map = room([
+			{ id: 'pump', kind: 'defend', x: 8, y: 5, w: 2, h: 2, health: 200 },
+			{ id: 'van', kind: 'vehicle', x: 20, y: 15, health: 200 }
+		])
+		const world = mission(map, {
+			objectives: [{ type: 'repair', label: 'Mend', props: ['pump', 'van'], from: 0.5 }, wait]
+		})
+		const player = world.addPlayer(1)
+		world.step(new Map())
+		const pump = world.propById.get('pump')
+		const van = world.propById.get('van')
+		expect(pump?.health).toBe(100)
+		player.x = 9
+		player.y = 7.8
+		steps(world, Math.round((100 / propsDef.repairPerSecond) * TICK_RATE) + 2, () => hold())
+		expect(world.mission?.progress).toBe(1)
+		expect(world.targetProps).not.toContain(pump)
+		if (van) van.health = van.maxHealth
+		world.step(new Map())
+		expect(world.mission?.index).toBe(1)
+	})
+
+	it('delivers every listed object, one at a time', () => {
+		const map = room([
+			{ id: 'box-a', kind: 'carry', x: 5, y: 13 },
+			{ id: 'box-b', kind: 'carry', x: 8, y: 13 }
+		])
+		const world = mission(map, {
+			objectives: [{ type: 'deliver', label: 'Load', items: ['box-a', 'box-b'], area: { x: 6, y: 5, radius: 2 } }, wait]
+		})
+		const player = world.addPlayer(1)
+		const pickup = Math.round(propsDef.carry.pickupSeconds * TICK_RATE) + 2
+		for (const x of [5, 8]) {
+			player.x = x
+			player.y = 13
+			world.step(new Map())
+			steps(world, pickup, () => hold())
+			expect(player.carrying).toBe(true)
+			player.x = 6
+			player.y = 5
+			world.step(new Map())
+		}
+		expect(world.mission?.index).toBe(1)
+	})
+
+	it('jams abilities while a jammed step runs, and lets them go after', () => {
+		const world = mission(room([]), {
+			objectives: [{ type: 'reach', label: 'Go', area: { x: 22, y: 10, radius: 2 }, jammed: true }, wait]
+		})
+		const player = world.addPlayer(1)
+		world.step(new Map())
+		expect(player.jammed).toBe(true)
+		player.x = 22
+		player.y = 10
+		world.step(new Map())
+		world.step(new Map())
+		expect(player.jammed).toBe(false)
+	})
+
+	it('stops an escort dead while the dead are on it, and bursts nests as they die', () => {
+		const map = room([
+			{ id: 'van', kind: 'vehicle', x: 4, y: 10 },
+			{ id: 'nest', kind: 'nest', x: 24, y: 4, w: 2, h: 2 }
+		])
+		const world = mission(map, {
+			objectives: [
+				{
+					type: 'escort',
+					label: 'Van',
+					prop: 'van',
+					speed: 4,
+					radius: 6,
+					stops: true,
+					path: [
+						{ x: 4, y: 10 },
+						{ x: 12, y: 10 }
+					]
+				},
+				{ type: 'destroy', label: 'Burn', props: ['nest'], burst: 4 },
+				wait
+			]
+		})
+		const player = world.addPlayer(1)
+		player.x = 4
+		player.y = 12
+		const zombie = world.spawnZombie(drudge, { x: 5, y: 10 })
+		world.stunUntil[zombie] = 1e6
+		steps(world, TICK_RATE)
+		const van = world.propById.get('van')
+		expect(van?.x).toBe(4)
+		world.damageZombie(zombie, 1e9, 1)
+		for (let i = 0; i < 6 * TICK_RATE && world.mission?.index === 0; i++) {
+			if (van) player.x = van.x
+			world.step(new Map())
+		}
+		expect(world.mission?.index).toBe(1)
+		const before = world.aliveCount
+		const nest = world.propById.get('nest')
+		if (nest) damageProp(world, nest, 1e6, 1)
+		world.step(new Map())
+		expect(world.aliveCount).toBeGreaterThanOrEqual(before + 4)
+		expect(world.mission?.index).toBe(2)
+	})
 })
 
 describe('more prop rules', () => {

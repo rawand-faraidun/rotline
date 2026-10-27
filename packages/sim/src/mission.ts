@@ -65,6 +65,15 @@ export type MissionState = {
 	areaTicks: number[]
 	/** the tick the current objective started (or restarted): an escape's hazard moves from it */
 	objectiveTick: number
+	/** search: bit n set when spot n holds what is wanted, and once it has been found there */
+	hits: number
+	found: number
+	/** hunt: marked zombies killed */
+	huntKilled: number
+	/** repair: bit n set once prop n is back to full health */
+	repaired: number
+	/** nests (by prop index) that have burst since they were last whole */
+	spilled: Set<number>
 }
 
 /** A player counts as playing (for objective score and drops) if they acted this recently. */
@@ -120,7 +129,12 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 		poolTotal: total,
 		picked: 0,
 		areaTicks: [],
-		objectiveTick: startTick
+		objectiveTick: startTick,
+		hits: 0,
+		found: 0,
+		huntKilled: 0,
+		repaired: 0,
+		spilled: new Set()
 	}
 }
 
@@ -164,6 +178,56 @@ export function objectiveGoal(objective: ObjectiveDef | null): number {
 			return Math.round(pathLength(objective.path))
 		case 'escape':
 			return 1
+		case 'search':
+			return objective.count ?? 1
+		case 'hunt':
+			return objective.targets.length
+		case 'demolish':
+			// planted, then the fuse burning down
+			return 1 + Math.round(objective.seconds * TICK_RATE)
+		case 'repair':
+			return objective.props.length
+		case 'deliver':
+			return objective.items.length
+	}
+}
+
+/** Kinds of prop that only exist for a step that uses them; a mission's others are hidden. */
+const STEP_PROPS = new Set(['carry', 'survivor', 'vehicle', 'search', 'charge'])
+
+/** The props each objective works with, by id. */
+export function objectiveProps(objective: ObjectiveDef): readonly string[] {
+	switch (objective.type) {
+		case 'interact':
+		case 'destroy':
+		case 'search':
+		case 'repair':
+			return objective.props
+		case 'defend':
+		case 'escort':
+		case 'demolish':
+			return [objective.prop]
+		case 'rescue':
+			return objective.survivors
+		case 'retrieve':
+			return [objective.item]
+		case 'deliver':
+			return objective.items
+		default:
+			return []
+	}
+}
+
+/**
+ * Carried objects, survivors, vehicles, search spots and charges no step of this mission uses are
+ * not there (a map serves several missions): hidden for good, and nothing works them.
+ */
+export function hideUnusedProps(props: readonly Prop[], def: MissionDef): void {
+	const used = new Set(def.objectives.flatMap(objective => objectiveProps(objective)))
+	for (const prop of props) {
+		if (!STEP_PROPS.has(prop.def.kind) || used.has(prop.def.id)) continue
+		prop.state = PropState.hidden
+		prop.home.state = PropState.hidden
 	}
 }
 
@@ -201,20 +265,21 @@ export function updateTargets(world: World): void {
 	if (!objective) return
 	if (mission.targetsFor !== mission.index) {
 		mission.targetsFor = mission.index
+		// what the dead go for: survivors, what is defended or repaired, a vehicle, an armed charge
 		const ids =
 			objective.type === 'rescue'
 				? objective.survivors
-				: objective.type === 'defend' || objective.type === 'escort'
+				: objective.type === 'defend' || objective.type === 'escort' || objective.type === 'demolish'
 					? [objective.prop]
-					: objective.type === 'interact'
+					: objective.type === 'interact' || objective.type === 'repair'
 						? objective.props
 						: []
 		world.targetProps = ids.flatMap(id => world.propById.get(id) ?? [])
 		// what may be worked now: this objective's props and any optional objective's
 		const workable = new Set<Prop>(world.targetProps)
-		if (objective.type === 'retrieve') {
-			const item = world.propById.get(objective.item)
-			if (item) workable.add(item)
+		for (const id of objectiveProps(objective)) {
+			const prop = world.propById.get(id)
+			if (prop) workable.add(prop)
 		}
 		for (const other of mission.def.objectives) {
 			if (!other.optional || other.type !== 'interact') continue
@@ -242,6 +307,7 @@ export function timeLeft(world: World, mission: MissionState): number | null {
 /** The mission is lost (the clock ran out, or a player alone used their last life); what was earned is kept. */
 export function failMission(world: World, mission: MissionState, reason: 'time' | 'lives' | 'wiped' = 'time'): void {
 	mission.status = MissionStatus.failed
+	jam(world, false)
 	mission.completedTick = world.tick
 	world.events.push({ type: 'mission-failed', reason })
 	world.finish()
@@ -258,6 +324,7 @@ export function stepMission(world: World): void {
 	}
 	const objective = currentObjective(mission)
 	if (!objective) return
+	jam(world, objective.jammed === true)
 
 	// the spawn director: a steady stream, scaled by the objective, difficulty and squad size
 	const squad = Math.max(1, Math.min(4, world.players.size))
@@ -289,6 +356,12 @@ export function stepMission(world: World): void {
 		if (world.aliveCount >= maxAlive) mission.spawnAccumulator = Math.min(mission.spawnAccumulator, 1)
 	}
 
+	// nests that burst as they die: the current step's and the optional ones'
+	for (const [index, other] of mission.def.objectives.entries()) {
+		if (other.type === 'destroy' && other.burst && (other.optional || index === mission.index))
+			burstNests(world, mission, other.props, other.burst)
+	}
+
 	switch (objective.type) {
 		case 'reach':
 			if (anyoneIn(world, objective.area)) mission.progress = 1
@@ -306,9 +379,6 @@ export function stepMission(world: World): void {
 			break
 		case 'interact':
 			mission.progress = countDone(world, objective.props)
-			break
-		case 'destroy':
-			mission.progress = countDestroyed(world, objective.props)
 			break
 		case 'defend':
 			// losing the target fails the objective (World.propLost)
@@ -332,6 +402,24 @@ export function stepMission(world: World): void {
 		case 'escape':
 			burnBehind(world, mission, objective.hazard)
 			if (everyoneIn(world, objective.area)) mission.progress = 1
+			break
+		case 'search':
+			mission.progress = search(world, mission, objective.props)
+			break
+		case 'hunt':
+			mission.progress = mission.huntKilled
+			break
+		case 'demolish':
+			mission.progress = demolish(world, objective)
+			break
+		case 'repair':
+			mission.progress = repair(world, mission, objective.props)
+			break
+		case 'deliver':
+			mission.progress = objective.items.filter(id => deliverItem(world, id, objective.area)).length
+			break
+		case 'destroy':
+			mission.progress = countDestroyed(world, objective.props)
 			break
 		case 'extract':
 			if (standing(world)) mission.progress++
@@ -358,6 +446,39 @@ function startObjective(world: World, mission: MissionState, objective: Objectiv
 	mission.picked = 0
 	mission.areaTicks = objective.type === 'capture' ? objective.areas.map(() => 0) : []
 	mission.objectiveTick = world.tick
+	mission.found = 0
+	mission.hits = 0
+	mission.huntKilled = 0
+	mission.repaired = 0
+	if (objective.type === 'search') {
+		// which spots hold it: picked now, so nobody can know before the step (and anew after a wipe)
+		const order = objective.props.map((_, index) => index)
+		for (let i = order.length - 1; i > 0; i--) {
+			const j = world.rng.int(i + 1)
+			;[order[i], order[j]] = [order[j] as number, order[i] as number]
+		}
+		for (const index of order.slice(0, objective.count ?? 1)) mission.hits |= 1 << index
+	}
+	if (objective.type === 'hunt') {
+		for (let i = 0; i < MAX_ZOMBIES; i++) world.hunted[i] = 0
+		for (const target of objective.targets) {
+			// where the mission puts it, unless someone stands right there: then it walks in from out of sight
+			const clear = world.nearestPlayerDistance(target.at.x, target.at.y) > 10
+			const type = zombieIndex(target.type)
+			let index = world.spawnZombie(type, clear ? target.at : (world.pickSpawnPoint() ?? target.at))
+			if (index < 0) index = world.spawnZombie(type, target.at)
+			if (index < 0) continue
+			world.hunted[index] = 1
+			world.health[index] = (world.health[index] as number) * (target.health ?? 1)
+			world.maxHealth[index] = world.health[index] as number
+		}
+	}
+	if (objective.type === 'repair') {
+		for (const id of objective.props) {
+			const prop = world.propById.get(id)
+			if (prop && prop.state !== PropState.destroyed) prop.health = prop.maxHealth * objective.from
+		}
+	}
 	if (objective.ambush) {
 		let total = 0
 		const composition = objective.ambush.composition ?? mission.def.spawn.composition
@@ -377,6 +498,92 @@ function startObjective(world: World, mission: MissionState, objective: Objectiv
 	}
 }
 
+/** A step jams the squad's kit, or lets it go. */
+function jam(world: World, jammed: boolean): void {
+	for (const state of world.players.values()) state.jammed = jammed
+}
+
+const bits = (value: number): number => {
+	let count = 0
+	for (let rest = value; rest; rest &= rest - 1) count++
+	return count
+}
+
+/** Searched spots that held it are found (and shown as found). Returns how many are. */
+function search(world: World, mission: MissionState, ids: readonly string[]): number {
+	for (const [index, id] of ids.entries()) {
+		const bit = 1 << index
+		const prop = world.propById.get(id)
+		if (!prop || prop.state !== PropState.done || mission.found & bit || !(mission.hits & bit)) continue
+		mission.found |= bit
+		prop.state = PropState.delivered
+		world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+	}
+	return bits(mission.found)
+}
+
+/**
+ * A planted charge burns its fuse while the dead try to tear it off; then it goes up, killing what is
+ * near, hurting anyone still inside, and taking the props it was set against with it.
+ */
+function demolish(world: World, objective: Extract<ObjectiveDef, { type: 'demolish' }>): number {
+	const charge = world.propById.get(objective.prop)
+	if (!charge) return 0
+	const fuse = Math.round(objective.seconds * TICK_RATE)
+	if (charge.state === PropState.done) return 1 + fuse
+	if (charge.state !== PropState.active) return 0
+	if (charge.untilTick === 0) charge.untilTick = world.tick + fuse
+	if (world.tick < charge.untilTick) return 1 + fuse - (charge.untilTick - world.tick)
+	charge.state = PropState.done
+	world.events.push({ type: 'prop', index: charge.index, state: charge.state })
+	world.blast(charge.x, charge.y, objective.radius, propsDef.charge.blastDamage, 'explosive', 0, {
+		playerDamage: propsDef.charge.playerDamage
+	})
+	for (const id of objective.destroys ?? []) {
+		const prop = world.propById.get(id)
+		if (!prop || prop.state === PropState.destroyed) continue
+		prop.health = 0
+		setPropState(world.grid, prop, PropState.destroyed)
+		world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+	}
+	world.propsChanged = true
+	return 1 + fuse
+}
+
+/** Props brought back to full health stay mended (and the dead lose interest). Returns how many are. */
+function repair(world: World, mission: MissionState, ids: readonly string[]): number {
+	for (const [index, id] of ids.entries()) {
+		const bit = 1 << index
+		const prop = world.propById.get(id)
+		if (!prop || mission.repaired & bit || prop.health < prop.maxHealth - 1e-6) continue
+		mission.repaired |= bit
+		world.targetProps = world.targetProps.filter(other => other !== prop)
+		world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+	}
+	return bits(mission.repaired)
+}
+
+/** Nests torn open spill what was growing in them. */
+function burstNests(world: World, mission: MissionState, ids: readonly string[], count: number): void {
+	const crawler = zombieIndex('crawler')
+	for (const id of ids) {
+		const prop = world.propById.get(id)
+		if (!prop) continue
+		// a nest put back (a restart from a checkpoint) can burst again
+		if (prop.state !== PropState.destroyed) {
+			mission.spilled.delete(prop.index)
+			continue
+		}
+		if (mission.spilled.has(prop.index)) continue
+		mission.spilled.add(prop.index)
+		for (let n = 0; n < count; n++) {
+			const angle = (n / count) * Math.PI * 2
+			const at = world.freeSpotNear(prop.x + Math.cos(angle) * 1.4, prop.y + Math.sin(angle) * 1.4, 0.4)
+			world.spawnZombie(crawler, at)
+		}
+	}
+}
+
 /** Items lying where a standing player walks over them are picked up. Returns how many are. */
 function gather(world: World, mission: MissionState, items: readonly { x: number; y: number }[]): number {
 	for (const state of world.players.values()) {
@@ -387,9 +594,7 @@ function gather(world: World, mission: MissionState, items: readonly { x: number
 			mission.picked |= 1 << index
 		}
 	}
-	let count = 0
-	for (let bits = mission.picked; bits; bits &= bits - 1) count++
-	return count
+	return bits(mission.picked)
 }
 
 /**
@@ -441,7 +646,7 @@ function escort(world: World, objective: Extract<ObjectiveDef, { type: 'escort' 
 			if (world.alive[i] && Math.hypot((world.x[i] as number) - prop.x, (world.y[i] as number) - prop.y) < 1.8)
 				crowded = true
 		}
-		prop.progress += objective.speed * DT * (crowded ? 0.5 : 1)
+		prop.progress += objective.speed * DT * (crowded ? (objective.stops ? 0 : 0.5) : 1)
 	}
 	// where that is along the path
 	let left = prop.progress
@@ -590,11 +795,12 @@ function stepOptional(world: World, mission: MissionState): void {
 	}
 }
 
-/** A kill by a player counts toward a kill objective. */
-export function countKill(world: World, type: number): void {
+/** A kill by a player counts toward a kill objective; a marked one toward a hunt. */
+export function countKill(world: World, type: number, hunted = false): void {
 	const mission = world.mission
 	if (!mission || mission.status !== MissionStatus.active) return
 	mission.kills++
+	if (hunted && currentObjective(mission)?.type === 'hunt') mission.huntKilled++
 	const objective = currentObjective(mission)
 	// a kill objective may count one kind only (put down the Brute)
 	if (objective?.type === 'kill' && (!objective.of || zombieIndex(objective.of) === type)) mission.progress++
@@ -636,6 +842,7 @@ function completeObjective(world: World, mission: MissionState, objective: Objec
 	mission.progress = 0
 	if (mission.index >= mission.def.objectives.length) {
 		mission.status = MissionStatus.complete
+		jam(world, false)
 		mission.completedTick = world.tick
 		// the final objective always drops an item for every player taking part (never lost to the cap)
 		for (const state of world.players.values()) if (isActive(world, state)) rollItem(world, state, true)
@@ -688,17 +895,7 @@ export function wipeMission(world: World, mission: MissionState): void {
 	// what the objectives from the checkpoint on use goes back to how it was
 	for (const [index, objective] of mission.def.objectives.entries()) {
 		if (index < mission.checkpointIndex || objective.optional) continue
-		const ids =
-			objective.type === 'interact' || objective.type === 'destroy'
-				? objective.props
-				: objective.type === 'defend' || objective.type === 'escort'
-					? [objective.prop]
-					: objective.type === 'rescue'
-						? objective.survivors
-						: objective.type === 'retrieve'
-							? [objective.item]
-							: []
-		for (const id of ids) {
+		for (const id of objectiveProps(objective)) {
 			const prop = world.propById.get(id)
 			if (prop) resetProp(world, prop)
 		}

@@ -261,6 +261,25 @@ for (const mission of layouts) {
 				(objective.count ?? objective.items.length) <= objective.items.length,
 				`missions/${mission.id}: a gather objective wants more than it has`
 			)
+		if (objective.type === 'search') {
+			for (const id of objective.props) needs(id, ['search'], 'search spot')
+			check(
+				(objective.count ?? 1) < objective.props.length,
+				`missions/${mission.id}: a search must have more spots than things to find`
+			)
+		}
+		if (objective.type === 'hunt')
+			for (const target of objective.targets) {
+				check(known(target.type), `missions/${mission.id}: hunt names unknown zombie ${target.type}`)
+				check(inside(target.at.x, target.at.y), `missions/${mission.id}: a hunt target is outside the map`)
+			}
+		if (objective.type === 'demolish') {
+			needs(objective.prop, ['charge'], 'charge')
+			for (const id of objective.destroys ?? [])
+				check(propIds.has(id), `missions/${mission.id}: the blast destroys ${id}, which is not on ${mission.map}`)
+		}
+		if (objective.type === 'repair') for (const id of objective.props) needs(id, ['defend', 'vehicle'], 'prop')
+		if (objective.type === 'deliver') for (const id of objective.items) needs(id, ['carry'], 'item')
 		if (objective.type === 'escape')
 			for (const point of [objective.hazard.from, objective.hazard.toward])
 				check(inside(point.x, point.y), `missions/${mission.id}: a hazard point is outside the map`)
@@ -322,7 +341,11 @@ function checkReachable(mission: MissionDef, map: MapDef): void {
 		for (const [id, cells] of gateCells) {
 			const gate = mission.gates?.[id]
 			const open = gate !== undefined && gate.openOn < index && (gate.closeOn === undefined || gate.closeOn >= index)
-			if (!open) for (const cell of cells) blocked[cell] = 1
+			// or an earlier step blew it open
+			const blown = mission.objectives
+				.slice(0, index)
+				.some(earlier => earlier.type === 'demolish' && earlier.destroys?.includes(id))
+			if (!open && !blown) for (const cell of cells) blocked[cell] = 1
 		}
 		const reached = new Uint8Array(walls.length)
 		const first = Math.floor(start.y) * map.width + Math.floor(start.x)
@@ -367,6 +390,18 @@ function checkReachable(mission: MissionDef, map: MapDef): void {
 			)
 		if (objective.type === 'capture')
 			for (const area of objective.areas) check(at(area), `${where}: an area cannot be reached`)
+		const props =
+			objective.type === 'search' || objective.type === 'repair'
+				? objective.props
+				: objective.type === 'deliver'
+					? objective.items
+					: objective.type === 'demolish'
+						? [objective.prop]
+						: []
+		for (const id of props) check(near(id), `${where}: ${id} cannot be reached`)
+		if (objective.type === 'hunt')
+			for (const target of objective.targets)
+				check(at(target.at), `${where}: a hunt target stands where nobody can reach`)
 		if (objective.type === 'escort') {
 			check(near(objective.prop), `${where}: ${objective.prop} cannot be reached`)
 			for (const point of objective.path) check(at(point), `${where}: its path leaves the open ground`)

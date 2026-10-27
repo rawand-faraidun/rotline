@@ -13,7 +13,10 @@ export function objectiveTarget(
 	objective: Objective,
 	props: readonly Prop[],
 	from: Point,
-	state: { picked: number; areas: readonly number[] } = { picked: 0, areas: [] }
+	state: { picked: number; areas: readonly number[]; hunted?: readonly Point[]; carrying?: boolean } = {
+		picked: 0,
+		areas: []
+	}
 ): Point | null {
 	const byId = (id: string) => props.find(prop => prop.def.id === id)
 	const nearest = (ids: readonly string[], wanted: (prop: Prop) => boolean): Point | null => {
@@ -51,7 +54,24 @@ export function objectiveTarget(
 		case 'escape':
 			return objective.area
 		case 'escort':
+		case 'demolish':
 			return nearest([objective.prop], () => true)
+		case 'search':
+			return nearest(objective.props, prop => prop.state === PropState.idle)
+		case 'repair':
+			return nearest(objective.props, prop => prop.state !== PropState.destroyed && prop.health < prop.maxHealth)
+		case 'deliver':
+			// the area while carrying, else the nearest still lying about
+			return state.carrying
+				? objective.area
+				: (nearest(objective.items, prop => prop.state === PropState.idle) ?? objective.area)
+		case 'hunt': {
+			let best: Point | null = null
+			for (const spot of state.hunted ?? [])
+				if (!best || Math.hypot(spot.x - from.x, spot.y - from.y) < Math.hypot(best.x - from.x, best.y - from.y))
+					best = spot
+			return best
+		}
 		case 'gather':
 		case 'capture': {
 			// the nearest item still lying there, or the nearest area not yet taken

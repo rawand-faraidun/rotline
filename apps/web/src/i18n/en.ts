@@ -717,6 +717,12 @@ export const en = {
 			progressMetres: '{progress} / {goal} m',
 			progressCarry: 'Bring it there',
 			progressLeft: '{progress} s left',
+			progressFound: '{progress} / {goal} found',
+			progressMended: '{progress} / {goal} mended',
+			progressDelivered: '{progress} / {goal} brought in',
+			progressPlant: 'Plant the charge',
+			progressFuse: 'Get clear: {progress} s',
+			progressTargets: '{progress} / {goal} down',
 			failedBanner: 'Objective failed — back to the checkpoint',
 			timeoutBanner: 'Out of time',
 			livesBanner: 'You died — {lives} lives left',
@@ -737,6 +743,8 @@ export const en = {
 				hack: 'Hold E — work the terminal',
 				free: 'Hold E — free the survivor',
 				pickup: 'Hold E — pick it up',
+				search: 'Hold E — search it',
+				plant: 'Hold E — plant the charge',
 				trap: 'E — set off the trap',
 				cache: 'Hold E — search the cache',
 				ammo: 'Hold E — refill ammo ({price} score)',
@@ -816,7 +824,8 @@ export const en = {
 			controls:
 				'WASD move · mouse aim · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
 			abilities: 'Abilities and utilities',
-			ready: 'Ready'
+			ready: 'Ready',
+			jammed: 'Jammed'
 		}
 	}
 } as const

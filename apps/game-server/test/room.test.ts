@@ -1,6 +1,6 @@
 import { difficultyDef, economy, items, starterBuild, zombieIndex, zombies } from '@rotline/game-data'
 import { KickReason, RangeAction, Reader, readServerHeader } from '@rotline/protocol'
-import { angleToAim, Button, PropState } from '@rotline/sim'
+import { angleToAim, Button } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
 import { type Connection, Room } from '../src/room.ts'
 
@@ -170,9 +170,9 @@ describe('mission rooms', () => {
 		if (!mission || !a) throw new Error('no mission')
 		expect(room.world.map.id).toBe('railyard')
 		a.foundItems.push(tierOne)
-		// the switch keys reach the gate: a checkpoint, which reports everything including the item
-		const keys = room.world.propById.get('switch-keys')
-		if (keys) keys.state = PropState.delivered
+		// the stationmaster with the switch keys goes down: a checkpoint, which reports everything including the item
+		play(room, 1)
+		mission.huntKilled = 1
 		play(room, 2)
 		expect(mission.index).toBe(1)
 		expect(mission.checkpointIndex).toBe(1)
@@ -186,8 +186,9 @@ describe('mission rooms', () => {
 			Math.floor((economy.rewards.objective.salvage + (a2?.score ?? 0) / economy.rewards.scorePerSalvage) * scale)
 		)
 		expect(forA[0]?.xp).toBeGreaterThanOrEqual(Math.floor(economy.rewards.objective.xp * scale))
-		// the lanes are taken: the next checkpoint reports only what came since
-		mission.areaTicks = mission.areaTicks.map(() => 12 * 30)
+		// the shunter is through the stacks: the next checkpoint reports only what came since
+		const shunter = room.world.propById.get('shunter')
+		if (shunter) shunter.progress = 1000
 		play(room, 2)
 		expect(mission.checkpointIndex).toBe(2)
 		const later = reports.filter(report => report.userId === 'user-a')

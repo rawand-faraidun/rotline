@@ -13,6 +13,8 @@ const sweep = missionById('yard-sweep') as MissionDef
 const tierOne = items.filter(item => item.tier === 1).map(item => item.id)
 const rewardKey = loadPrivateKey(process.env.GAME_REWARD_PRIVATE_KEY ?? '')
 
+/** every optional objective of the mission done (gold needs them all) */
+const optionals = sweep.objectives.filter(objective => objective.optional).length
 const result = (timeMs: number, score = 0, difficulty: 'veteran' | 'nightmare' = 'veteran') => ({
 	missionId: sweep.id,
 	difficulty,
@@ -21,7 +23,7 @@ const result = (timeMs: number, score = 0, difficulty: 'veteran' | 'nightmare' =
 	score,
 	downs: 0,
 	squad: 1,
-	optionalDone: 1
+	optionalDone: optionals
 })
 
 async function party(jar: Awaited<ReturnType<typeof enlist>>['jar'], path: string, body: unknown) {
@@ -178,7 +180,7 @@ describe('missions', () => {
 		// faster than the timed objectives, more score than the time allows, unknown optional objectives
 		expect(plausibleResult(result(10_000))).toBe(false)
 		expect(plausibleResult(result(200_000, 1e9))).toBe(false)
-		expect(plausibleResult({ ...result(200_000), optionalDone: 2 })).toBe(false)
+		expect(plausibleResult({ ...result(200_000), optionalDone: optionals + 1 })).toBe(false)
 
 		const { id } = await enlist('Sol')
 		const stream = `rewards-test-${crypto.randomUUID()}`

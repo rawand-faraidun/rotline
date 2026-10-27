@@ -264,6 +264,9 @@ function usable(world: World, prop: Prop, player: PlayerState): boolean {
 			return allowed && prop.state === PropState.idle
 		case 'carry':
 			return allowed && prop.state === PropState.idle && !player.carrying
+		case 'search':
+		case 'charge':
+			return allowed && prop.state === PropState.idle
 		case 'defend':
 		case 'vehicle':
 			return prop.state !== PropState.destroyed && prop.health < prop.maxHealth
@@ -353,6 +356,15 @@ function hold(world: World, prop: Prop, player: PlayerState): void {
 			prop.with = player.id
 			player.carrying = true
 			break
+		case 'search':
+			// searched; the mission says whether this was the one
+			prop.state = PropState.done
+			break
+		case 'charge':
+			// armed: the mission lights its fuse, and the dead come for it
+			prop.state = PropState.active
+			prop.untilTick = 0
+			break
 		case 'ammo':
 			// every gun's reserve full again; the price comes out of score earned, never out of rewards
 			player.scoreSpent += ammoPrice(world)
@@ -411,6 +423,10 @@ export function damageProp(world: World, prop: Prop, amount: number, by: number)
 		case 'vehicle':
 		case 'nest':
 			break
+		case 'charge':
+			// only once it is armed (an empty spot is nothing to break)
+			if (prop.state !== PropState.active) return
+			break
 		case 'generator':
 			// only while it runs up; broken then, it stops and must be started again
 			if (prop.state !== PropState.active) return
@@ -438,7 +454,13 @@ export function damageProp(world: World, prop: Prop, amount: number, by: number)
 			playerOnly: by
 		})
 	}
-	if (prop.def.kind === 'survivor' || prop.def.kind === 'defend' || prop.def.kind === 'vehicle') world.propLost(prop)
+	if (
+		prop.def.kind === 'survivor' ||
+		prop.def.kind === 'defend' ||
+		prop.def.kind === 'vehicle' ||
+		prop.def.kind === 'charge'
+	)
+		world.propLost(prop)
 }
 
 /** Back to how it started (a restart from the checkpoint). */

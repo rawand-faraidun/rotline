@@ -77,7 +77,8 @@ export type HudState = {
 	/** the results screen, once the mission is complete */
 	results: Results | null
 	/** equipped abilities: name, key and seconds until ready (0 = ready) */
-	abilities: { name: string; key: string; seconds: number; cooldown: number }[]
+	/** `jammed`: a mission step has knocked the squad's kit out, whatever the cooldown says */
+	abilities: { name: string; key: string; seconds: number; cooldown: number; jammed: boolean }[]
 	/** utilities: name, key and charges left (null = unlimited, in the firing range) */
 	utilities: { name: string; key: string; charges: number | null }[]
 	/** firing range: damage per second over the last three seconds */
@@ -97,6 +98,8 @@ export type InteractAction =
 	| 'hack'
 	| 'free'
 	| 'pickup'
+	| 'search'
+	| 'plant'
 	| 'trap'
 	| 'cache'
 	/** an ammo station: refill (the player can pay) or its price (they cannot yet) */

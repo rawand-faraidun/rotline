@@ -41,6 +41,7 @@ import {
 	createMission,
 	enemyScale,
 	failMission,
+	hideUnusedProps,
 	isActive,
 	type MissionSetup,
 	type MissionState,
@@ -261,6 +262,7 @@ function targetable(prop: Prop): boolean {
 		case 'vehicle':
 			return prop.state !== PropState.destroyed
 		case 'generator':
+		case 'charge':
 			return prop.state === PropState.active
 		default:
 			return false
@@ -308,6 +310,8 @@ export class World {
 	readonly slowUntil = new Uint32Array(MAX_ZOMBIES)
 	readonly slowAmount = new Float32Array(MAX_ZOMBIES)
 	readonly markUntil = new Uint32Array(MAX_ZOMBIES)
+	/** 1 for a zombie a hunt objective wants dead (drawn marked, counted when it dies) */
+	readonly hunted = new Uint8Array(MAX_ZOMBIES)
 	readonly markAmount = new Float32Array(MAX_ZOMBIES)
 	readonly poisonUntil = new Uint32Array(MAX_ZOMBIES)
 	readonly poisonPerTick = new Float32Array(MAX_ZOMBIES)
@@ -437,6 +441,7 @@ export class World {
 		}
 		const spawn = options.map.playerSpawns[0]
 		this.mission = options.mission ? createMission(options.mission, 0, spawn?.x ?? 1, spawn?.y ?? 1) : null
+		if (this.mission) hideUnusedProps(this.props, this.mission.def)
 		const scale = this.mission ? enemyScale(this.mission) : { health: 1, damage: 1 }
 		this.healthScale = scale.health
 		this.damageScale = scale.damage
@@ -1392,7 +1397,7 @@ export class World {
 		}
 		if (this.scoring) maybeDropBuff(this, x, y, def.elite ? buffDefs.drop.eliteChance : buffDefs.drop.chancePerKill)
 		if (this.mission) {
-			countKill(this, this.type[index] as number)
+			countKill(this, this.type[index] as number, this.hunted[index] === 1)
 			// elites may drop an item, rolled for each player taking part, on their own
 			if (def.elite) {
 				for (const state of this.players.values()) {
@@ -1626,6 +1631,7 @@ export class World {
 		this.stunUntil[index] = 0
 		this.slowUntil[index] = 0
 		this.markUntil[index] = 0
+		this.hunted[index] = 0
 		this.poisonUntil[index] = 0
 		this.burnUntil[index] = 0
 		this.tauntUntil[index] = 0

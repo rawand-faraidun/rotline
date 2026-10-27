@@ -36,6 +36,7 @@ import {
 	createProps,
 	Grid,
 	ObjectKind,
+	objectiveProps,
 	type PlayerInput,
 	type PlayerState,
 	type Prop,
@@ -430,14 +431,21 @@ export function startGame(options: GameOptions): GameHandle {
 					step: mission.objectives.slice(0, progress.objective + 1).filter(objective => !objective.optional).length,
 					label: objective?.label ?? missionHud.label,
 					type: objective?.type ?? missionHud.type,
-					// extraction counts down
+					// extraction and a charge's fuse count down (a charge not yet planted shows 0)
 					progress:
-						objective?.type === 'extract'
+						objective?.type === 'extract' || (objective?.type === 'demolish' && progress.progress > 0)
 							? Math.max(0, Math.ceil((progress.goal - progress.progress) / TICK_RATE))
+							: objective?.type === 'demolish'
+								? 0
+								: timed
+									? Math.floor(progress.progress / TICK_RATE)
+									: progress.progress,
+					goal:
+						objective?.type === 'demolish'
+							? Math.round((progress.goal - 1) / TICK_RATE)
 							: timed
-								? Math.floor(progress.progress / TICK_RATE)
-								: progress.progress,
-					goal: timed ? Math.round(progress.goal / TICK_RATE) : progress.goal,
+								? Math.round(progress.goal / TICK_RATE)
+								: progress.goal,
 					complete: progress.status === 2,
 					timeLeft: progress.timeLeft
 				}
@@ -856,7 +864,8 @@ export function startGame(options: GameOptions): GameHandle {
 						name: def?.name ?? id,
 						key: ABILITY_KEYS[slot] ?? '',
 						seconds: Math.ceil(left),
-						cooldown: (def?.cooldownSeconds ?? 1) * state.stats.abilityCooldown
+						cooldown: (def?.cooldownSeconds ?? 1) * state.stats.abilityCooldown,
+						jammed: state.jammed
 					}
 				}),
 				utilities: state.stats.utilities.flatMap((utility, slot) =>
@@ -886,10 +895,7 @@ export function startGame(options: GameOptions): GameHandle {
 		workableKey = missionHud.objective
 		const ids = new Set<string>()
 		const add = (objective: MissionDef['objectives'][number] | undefined) => {
-			if (!objective) return
-			if (objective.type === 'interact') for (const id of objective.props) ids.add(id)
-			if (objective.type === 'rescue') for (const id of objective.survivors) ids.add(id)
-			if (objective.type === 'retrieve') ids.add(objective.item)
+			if (objective) for (const id of objectiveProps(objective)) ids.add(id)
 		}
 		add(mission.objectives[missionHud.objective])
 		for (const objective of mission.objectives) if (objective.optional) add(objective)
@@ -1075,7 +1081,8 @@ export function startGame(options: GameOptions): GameHandle {
 				objectiveState.areas,
 				objectiveState.seconds + (paused ? 0 : (performance.now() - objectiveState.at) / 1000),
 				now / 1000,
-				props
+				props,
+				drawn
 			)
 			// a note underfoot opens to read; it counts as found from then on
 			const notes = mission?.notes ?? []
@@ -1106,8 +1113,22 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 			// where the objective is: a marker on screen, or an arrow at the edge pointing to it
 			const current = mission && missionHud && !missionHud.complete ? mission.objectives[missionHud.objective] : null
+			// a hunt's marked zombies in view, or where they were last put when none is
+			const hunted: { x: number; y: number }[] = []
+			if (current?.type === 'hunt') {
+				const view = interpolator.view
+				for (let n = 0; n < view.count; n++)
+					if ((view.status[n] as number) & ZombieStatus.hunted)
+						hunted.push({ x: view.x[n] as number, y: view.y[n] as number })
+				if (hunted.length === 0) hunted.push(...current.targets.map(target => target.at))
+			}
 			const target = current
-				? objectiveTarget(current, props, drawn, { picked: objectiveState.picked, areas: objectiveState.areas })
+				? objectiveTarget(current, props, drawn, {
+						picked: objectiveState.picked,
+						areas: objectiveState.areas,
+						hunted,
+						carrying: own.carrying
+					})
 				: null
 			if (target) {
 				waypointVector.set(target.x, 0.6, target.y).project(stage.camera)
@@ -1178,7 +1199,7 @@ export function startGame(options: GameOptions): GameHandle {
 						)
 			}
 			// every elite in sight carries its own bar over its head; the toughest one's is also at the top
-			eliteBars.update(interpolator.view, stage.camera)
+			eliteBars.update(interpolator.view, stage.camera, now / 1000)
 			{
 				const view = interpolator.view
 				let boss: { name: string; health: number } | null = null
@@ -1364,6 +1385,10 @@ function propAction(prop: Prop, carrying: boolean, tick: number, workable: Set<s
 			return allowed && prop.state === PropState.idle ? 'free' : null
 		case 'carry':
 			return allowed && prop.state === PropState.idle && !carrying ? 'pickup' : null
+		case 'search':
+			return allowed && prop.state === PropState.idle ? 'search' : null
+		case 'charge':
+			return allowed && prop.state === PropState.idle ? 'plant' : null
 		case 'defend':
 		case 'vehicle':
 			return prop.state !== PropState.destroyed && prop.health < prop.maxHealth ? 'repair' : null

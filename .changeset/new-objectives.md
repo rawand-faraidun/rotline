@@ -3,7 +3,9 @@
 "@rotline/game-server": minor
 ---
 
-- **New kinds of objective, and every campaign mission plays differently:** outrun a wall of fire or gas sweeping across the map (Landfall's high street, Blackout's turbine hall, the Hive's yard, the gas in Cure's train), pick things up off the ground (sample cases, diesel cans, patient files, the minister's papers, supply crates), take and hold areas while the dead try to take them back (Rail Yard's lanes, Breakout's loading bays, Lifeline's nurses' stations, the Minister's landing lights, Cure's stairheads), and walk a vehicle to safety while it crawls along only when you stay with it (Holdouts' minibus, Breakout's last truck). Fewer generators, fewer Brutes, and the nests that are left are optional.
+- **Every campaign mission rebuilt around new things to do:** search a wreck, car boots or lab benches for what you need (it is somewhere else each run); hunt down marked Screamers, a turned stationmaster, a Bolter pack or the minister's bodyguards; plant a charge, keep the dead off it while the fuse burns and get clear before it blows (the Hive's egg, the minister's safe room); repair a transformer, a truck or an oxygen plant while they try to tear it apart; carry cold boxes aboard one at a time; walk a shunter or a truck that stops dead the moment one of them gets hold of it; take and hold areas; outrun a line of fire or a bank of gas. Some steps jam your kit (no abilities, guns only). Fewer generators and Brutes, and the nests left over are optional and burst when they die.
+- **Every mission's radio, briefing and story rewritten** to match what you now do in it.
+- **The fire and the gas look like fire and gas:** a burning line with smoke rolling back over the scorched ground, and it no longer starts on top of you.
 - **The game stops when it ends:** you can no longer walk about after a mission is won or lost.
 - **Every Brute has its own health bar** over its head, so two at once are easy to tell apart.
 - **Reloading no longer shifts the weapon list:** the reload sign sits over the weapon.

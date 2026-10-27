@@ -416,7 +416,11 @@ export const propKindId = z.enum([
 	'nest',
 	'ammo',
 	/** a vehicle the squad escorts: it drives along its path while someone walks with it */
-	'vehicle'
+	'vehicle',
+	/** somewhere to search (a wreck, a locker, a car boot, a filing cabinet): one of them has it */
+	'search',
+	/** where a demolition charge is planted; once armed the dead go for it */
+	'charge'
 ])
 
 /**
@@ -437,7 +441,9 @@ export const mapPropSchema = z.object({
 	/** defend targets: their health (default from props data) */
 	health: z.number().positive().optional(),
 	/** turrets and floodlights: the generator that powers them */
-	powerBy: id.optional()
+	powerBy: id.optional(),
+	/** drawing only: the scenery model it looks like (searches, carried things, defend targets, vehicles) */
+	look: id.optional()
 })
 
 const zombieSpawn = point.extend({
@@ -615,7 +621,9 @@ const objectiveBase = {
 		})
 		.optional(),
 	/** an elite who turns up when the objective starts: its type, and where (default: a spawn point) */
-	boss: z.object({ type: id, at: point.optional() }).optional()
+	boss: z.object({ type: id, at: point.optional() }).optional(),
+	/** something jams the squad's kit while this step runs: no abilities (grenades and the like still work) */
+	jammed: z.boolean().optional()
 }
 
 export const objectiveSchema = z.discriminatedUnion('type', [
@@ -637,8 +645,14 @@ export const objectiveSchema = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('rescue'), survivors: z.array(id).min(1), area, ...objectiveBase }),
 	/** carry an object to an area */
 	z.object({ type: z.literal('retrieve'), item: id, area, ...objectiveBase }),
-	/** destroy every listed nest (nests keep spawning until they are gone) */
-	z.object({ type: z.literal('destroy'), props: z.array(id).min(1), ...objectiveBase }),
+	/** destroy every listed nest (nests keep spawning until they are gone); each may burst as it dies */
+	z.object({
+		type: z.literal('destroy'),
+		props: z.array(id).min(1),
+		/** zombies that crawl out of each nest as it is destroyed (default none) */
+		burst: z.number().int().positive().max(20).optional(),
+		...objectiveBase
+	}),
 	/** everyone standing reaches an area before the time runs out */
 	z.object({ type: z.literal('extract'), area, seconds: z.number().positive(), ...objectiveBase }),
 	/** pick things up off the ground (walk over them): `count` of them, any of the listed spots */
@@ -666,8 +680,55 @@ export const objectiveSchema = z.discriminatedUnion('type', [
 		speed: z.number().positive().max(6),
 		/** how near someone has to be for it to drive */
 		radius: z.number().positive().max(12),
+		/** it stops dead (instead of slowing) while the dead are on it: keep it clear */
+		stops: z.boolean().optional(),
 		...objectiveBase
 	}),
+	/** search the listed spots (hold interact on each); `count` of them, picked at random, hold what is wanted */
+	z.object({
+		type: z.literal('search'),
+		props: z.array(id).min(2).max(12),
+		count: z.number().int().positive().optional(),
+		...objectiveBase
+	}),
+	/** kill marked zombies that turn up where the mission puts them */
+	z.object({
+		type: z.literal('hunt'),
+		targets: z
+			.array(
+				z.object({
+					type: id,
+					at: point,
+					/** times the type's own health */
+					health: z.number().positive().max(40).optional()
+				})
+			)
+			.min(1)
+			.max(8),
+		...objectiveBase
+	}),
+	/** plant a charge (hold interact), keep it standing while its fuse burns, and be clear when it goes */
+	z.object({
+		type: z.literal('demolish'),
+		/** the charge prop: where it is planted */
+		prop: id,
+		seconds: z.number().positive().max(120),
+		/** the blast: everything inside is hurt, players too */
+		radius: z.number().positive().max(16),
+		/** props the blast destroys outright (gates, walls, nests) */
+		destroys: z.array(id).optional(),
+		...objectiveBase
+	}),
+	/** bring damaged defend targets or vehicles back to full health (hold interact) while the dead go for them */
+	z.object({
+		type: z.literal('repair'),
+		props: z.array(id).min(1).max(6),
+		/** their health when the step starts, as a share of the full */
+		from: z.number().positive().max(0.9),
+		...objectiveBase
+	}),
+	/** carry each listed object into the area, one at a time */
+	z.object({ type: z.literal('deliver'), items: z.array(id).min(2).max(8), area, ...objectiveBase }),
 	/** get out before something spreading across the map catches you (fire, gas): it hurts behind its front */
 	z.object({
 		type: z.literal('escape'),
@@ -797,6 +858,15 @@ export const propsDataSchema = z.object({
 	crate: z.object({ health: z.number().positive() }),
 	weakwall: z.object({ health: z.number().positive() }),
 	vehicle: z.object({ health: z.number().positive() }),
+	search: z.object({ holdSeconds: z.number().positive() }),
+	charge: z.object({
+		plantSeconds: z.number().positive(),
+		health: z.number().positive(),
+		/** to zombies (at the middle, less toward the edge) */
+		blastDamage: z.number().positive(),
+		/** to players still inside the blast */
+		playerDamage: z.number().positive()
+	}),
 	sandbags: z.object({ health: z.number().positive() }),
 	door: z.object({
 		weldSeconds: z.number().positive(),

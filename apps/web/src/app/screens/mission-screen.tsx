@@ -121,7 +121,7 @@ function Abilities({ hud }: { hud: HudState }) {
 	return (
 		<ol className="flex items-end gap-2" aria-label={t.abilities}>
 			{hud.abilities.map(ability => {
-				const ready = ability.seconds === 0
+				const ready = ability.seconds === 0 && !ability.jammed
 				return (
 					<li
 						key={ability.key}
@@ -132,15 +132,23 @@ function Abilities({ hud }: { hud: HudState }) {
 					>
 						{!ready && (
 							<span
-								className="absolute inset-x-0 bottom-0 bg-surface-raised/80"
-								style={{ height: `${Math.min(100, (ability.seconds / ability.cooldown) * 100)}%` }}
+								className={cn('absolute inset-x-0 bottom-0', ability.jammed ? 'bg-alert/30' : 'bg-surface-raised/80')}
+								style={{
+									height: ability.jammed ? '100%' : `${Math.min(100, (ability.seconds / ability.cooldown) * 100)}%`
+								}}
 								aria-hidden="true"
 							/>
 						)}
 						<span className="relative flex items-center justify-between">
 							<span className="cut-sm bg-bone px-1.5 font-bold text-rot-black text-xs">{ability.key}</span>
-							<span className={cn('font-display text-lg tabular-nums', ready ? 'text-rot-lime' : 'text-bone')}>
-								{ready ? t.ready : ability.seconds}
+							<span
+								className={cn(
+									'font-display tabular-nums',
+									ability.jammed ? 'text-alert text-sm uppercase' : 'text-lg',
+									ready ? 'text-rot-lime' : !ability.jammed && 'text-bone'
+								)}
+							>
+								{ability.jammed ? t.jammed : ready ? t.ready : ability.seconds}
 							</span>
 						</span>
 						<span className="relative truncate font-bold text-[11px] uppercase tracking-wide">{ability.name}</span>
@@ -187,6 +195,16 @@ function objectiveProgress(mission: NonNullable<HudState['mission']>): string {
 			return format(t.progressSeconds, values)
 		case 'extract':
 			return format(t.progressLeft, values)
+		case 'search':
+			return format(t.progressFound, values)
+		case 'repair':
+			return format(t.progressMended, values)
+		case 'deliver':
+			return format(t.progressDelivered, values)
+		case 'demolish':
+			return mission.progress === 0 ? t.progressPlant : format(t.progressFuse, values)
+		case 'hunt':
+			return format(t.progressTargets, values)
 		default:
 			return format(t.progressKills, values)
 	}

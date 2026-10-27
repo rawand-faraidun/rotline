@@ -80,6 +80,8 @@ export type PlayerState = {
 	free: boolean
 	/** carrying a mission object: slower (predicted, so the server's word arrives in snapshots) */
 	carrying: boolean
+	/** a mission step jams the squad's kit: no abilities (the client sets it from the objective too) */
+	jammed: boolean
 	// server only (not predicted): capstones and buffs from teammates
 	/** Second Wind: half damage until this tick */
 	guardUntil: number
@@ -180,6 +182,7 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 		minigunSteps: 0,
 		free: false,
 		carrying: false,
+		jammed: false,
 		guardUntil: 0,
 		immuneUntil: 0,
 		lastRitesUsed: false,
@@ -350,7 +353,7 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	// cooldown is not lost if client and server disagree by a tick); utilities need a fresh press
 	if (!state.downed) {
 		const ready = state.abilityReady
-		for (let slot = 0; slot < 3; slot++) {
+		for (let slot = 0; slot < 3 && !state.jammed; slot++) {
 			const id = state.stats.abilities[slot]
 			if (!id || !(input.buttons & (ABILITY_BUTTONS[slot] as number)) || tick < (ready[slot] as number)) continue
 			const cooldown = (abilityById.get(id)?.cooldownSeconds ?? 0) * state.stats.abilityCooldown

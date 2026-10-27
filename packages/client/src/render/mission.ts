@@ -1,6 +1,7 @@
 import type { MissionDef } from '@rotline/game-data'
-import { hazardFront, type Prop } from '@rotline/sim'
+import { hazardFront, type Prop, PropState } from '@rotline/sim'
 import * as THREE from 'three'
+import { EFFECTS_LAYER } from './post.ts'
 
 /** How the things a gather objective scatters look: size, colour and the glow round them. */
 const GATHER_LOOKS: Record<
@@ -11,30 +12,6 @@ const GATHER_LOOKS: Record<
 	fuel: { size: [0.46, 0.62, 0.28], color: 0xa02a1a, glow: 0xffa040 },
 	intel: { size: [0.5, 0.1, 0.64], color: 0xe8dfc8, glow: 0xffe6a0 },
 	supplies: { size: [0.7, 0.5, 0.56], color: 0x4a5a3a, glow: 0xb8f23c }
-}
-
-/** Rising tongues of fire (or a green fog of gas) on a strip that scrolls upward. */
-function flameTexture(fire: boolean): THREE.CanvasTexture {
-	const canvas = document.createElement('canvas')
-	canvas.width = 256
-	canvas.height = 128
-	const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
-	for (let n = 0; n < 90; n++) {
-		const x = Math.random() * 256
-		const y = 40 + Math.random() * 88
-		const r = 10 + Math.random() * 26
-		const g = ctx.createRadialGradient(x, y, 0, x, y, r)
-		g.addColorStop(0, fire ? 'rgba(255,200,90,0.8)' : 'rgba(170,230,90,0.55)')
-		g.addColorStop(0.5, fire ? 'rgba(255,90,20,0.45)' : 'rgba(90,150,40,0.3)')
-		g.addColorStop(1, 'rgba(0,0,0,0)')
-		ctx.fillStyle = g
-		ctx.fillRect(x - r, y - r, r * 2, r * 2)
-	}
-	const texture = new THREE.CanvasTexture(canvas)
-	texture.wrapS = texture.wrapT = THREE.RepeatWrapping
-	texture.repeat.set(80, 1)
-	texture.colorSpace = THREE.SRGBColorSpace
-	return texture
 }
 
 /** A soft round blob for flame and gas particles. */
@@ -51,10 +28,14 @@ function puffTexture(): THREE.CanvasTexture {
 	return new THREE.CanvasTexture(canvas)
 }
 
-/** Flames (or puffs of gas) along a hazard's front: how many, how wide the band is, how deep behind it. */
-const PUFFS = 360
-const PUFF_SPAN = 60
-const PUFF_DEPTH = 5
+/**
+ * A hazard's front is drawn round where the player is: this many flames (or rolling puffs of gas) and
+ * puffs of smoke, over this many metres along it and this deep behind it.
+ */
+const FLAMES = 2400
+const SMOKE = 160
+const FRONT_SPAN = 26
+const FRONT_DEPTH = 1.8
 
 /**
  * Mission markers from the mission's data: a ring where the current objective wants the squad,
@@ -142,7 +123,8 @@ export class MissionMarkers {
 		areas: readonly number[],
 		seconds: number,
 		timeSeconds: number,
-		props: readonly Prop[]
+		props: readonly Prop[],
+		focus: { x: number; y: number }
 	): void {
 		if (index !== this.shownObjective) {
 			this.pieces.get(this.shownObjective)?.removeFromParent()
@@ -188,41 +170,96 @@ export class MissionMarkers {
 			;(ring.material as THREE.MeshBasicMaterial).opacity = 0.3 + 0.25 * Math.sin(timeSeconds * 3) ** 2
 			const road = group.children[1] as THREE.Line
 			;(road.material as THREE.LineDashedMaterial).opacity = 0.35 + 0.2 * Math.sin(timeSeconds * 2) ** 2
+		} else if (objective.type === 'demolish') {
+			// the blast's reach round an armed charge: get out of the red
+			const charge = props.find(prop => prop.def.id === objective.prop)
+			const armed = charge?.state === PropState.active
+			const [ring, fill] = group.children as [THREE.Mesh, THREE.Mesh]
+			ring.visible = fill.visible = armed
+			if (charge && armed) {
+				ring.position.set(charge.x, 0.08, charge.y)
+				fill.position.set(charge.x, 0.07, charge.y)
+				;(ring.material as THREE.MeshBasicMaterial).opacity = 0.5 + 0.4 * Math.sin(timeSeconds * 10) ** 2
+				;(fill.material as THREE.MeshBasicMaterial).opacity = 0.08 + 0.06 * Math.sin(timeSeconds * 10) ** 2
+			}
 		} else if (objective.type === 'escape') {
 			const front = hazardFront(objective.hazard, seconds)
-			const [strip, behind, puffs] = group.children as [THREE.Mesh, THREE.Mesh, THREE.Points]
+			const [behind, glow, flames, smoke, ...lights] = group.children as [
+				THREE.Mesh,
+				THREE.Mesh,
+				THREE.Points,
+				THREE.Points,
+				...THREE.PointLight[]
+			]
+			const fire = objective.hazard.kind === 'fire'
 			// the planes' depth runs along the way the front moves
 			const heading = Math.atan2(front.dx, front.dy)
-			strip.position.set(front.x, 0.14, front.y)
-			strip.rotation.y = heading
 			behind.position.set(front.x - front.dx * 60, 0.1, front.y - front.dy * 60)
 			behind.rotation.y = heading
-			const texture = (strip.material as THREE.MeshBasicMaterial).map
-			if (texture) texture.offset.y = -timeSeconds * 0.9
-			// flames lick up along the front and die back behind it; gas rolls and thins
-			const fire = objective.hazard.kind === 'fire'
-			const seeds = puffs.userData.seeds as Float32Array
-			const position = puffs.geometry.getAttribute('position') as THREE.BufferAttribute
-			const color = puffs.geometry.getAttribute('color') as THREE.BufferAttribute
+			// the ground burning just behind the front, flickering
+			glow.position.set(front.x - front.dx * 1.2, 0.12, front.y - front.dy * 1.2)
+			glow.rotation.y = heading
+			;(glow.material as THREE.MeshBasicMaterial).opacity =
+				0.45 + 0.15 * Math.sin(timeSeconds * 11) * Math.sin(timeSeconds * 4.3)
+			// drawn along the stretch of the front nearest the player
 			const across = { x: front.dy, y: -front.dx }
-			for (let n = 0; n < PUFFS; n++) {
-				const side = ((seeds[n * 3] as number) - 0.5) * PUFF_SPAN * 2
-				const back = (((seeds[n * 3 + 1] as number) * PUFF_DEPTH + timeSeconds * (fire ? 1.4 : 0.6)) % PUFF_DEPTH) - 0.6
-				const phase = seeds[n * 3 + 2] as number
-				const rise = fire ? 0.3 + Math.abs(Math.sin(timeSeconds * 5 + phase * 20)) * 0.9 : 0.4 + phase * 0.5
+			const along = (focus.x - front.x) * across.x + (focus.y - front.y) * across.y
+			const cx = front.x + across.x * along
+			const cy = front.y + across.y * along
+			const seeds = flames.userData.seeds as Float32Array
+			const position = flames.geometry.getAttribute('position') as THREE.BufferAttribute
+			const color = flames.geometry.getAttribute('color') as THREE.BufferAttribute
+			for (let n = 0; n < FLAMES; n++) {
+				const s0 = seeds[n * 4] as number
+				const s1 = seeds[n * 4 + 1] as number
+				const s2 = seeds[n * 4 + 2] as number
+				const s3 = seeds[n * 4 + 3] as number
+				// each flame rises over its own short life and narrows; gas rolls low and slow
+				const life = (timeSeconds * (fire ? 1.3 + s2 : 0.35 + s2 * 0.3) + s3 * 9) % 1
+				// flames burn in clumps along the front (tongues with darker gaps between), gas evenly
+				const clump = Math.floor(s0 * 70)
+				const side = fire
+					? (clump / 70 - 0.5) * FRONT_SPAN * 2 + Math.sin(timeSeconds * 0.8 + clump) * 0.5 + (s3 - 0.5) * 1.1
+					: (s0 - 0.5) * FRONT_SPAN * 2 + Math.sin(timeSeconds * 2 + s3 * 30) * 0.3
+				const back = s1 * s1 * FRONT_DEPTH
+				const height = fire ? life * (0.8 + 1.8 * (1 - back / FRONT_DEPTH)) * (0.5 + s2) : 0.3 + life * 1.2
 				position.setXYZ(
 					n,
-					front.x + across.x * side - front.dx * back,
-					rise,
-					front.y + across.y * side - front.dy * back
+					cx + across.x * side - front.dx * (back - (fire ? 0 : life * 1.5)),
+					height,
+					cy + across.y * side - front.dy * (back - (fire ? 0 : life * 1.5))
 				)
-				const strength =
-					Math.max(0, 1 - Math.max(0, back) / PUFF_DEPTH) * (0.6 + 0.4 * Math.sin(timeSeconds * 9 + phase * 40))
-				if (fire) color.setXYZ(n, 1 * strength, (0.45 + phase * 0.3) * strength, 0.12 * strength)
-				else color.setXYZ(n, 0.35 * strength, 0.6 * strength, 0.15 * strength)
+				const strength = (1 - life) * (fire ? 0.55 : 0.5) * (1 - (back / FRONT_DEPTH) * 0.5)
+				// white-yellow at the root of a flame, orange, then a dull red as it dies
+				if (fire)
+					color.setXYZ(n, strength, (0.12 + (1 - life) ** 2 * 0.55) * strength, (1 - life) ** 4 * 0.2 * strength)
+				else color.setXYZ(n, 0.32 * strength, 0.62 * strength, 0.14 * strength)
 			}
 			position.needsUpdate = true
 			color.needsUpdate = true
+			const smokeSeeds = smoke.userData.seeds as Float32Array
+			const smokePosition = smoke.geometry.getAttribute('position') as THREE.BufferAttribute
+			for (let n = 0; n < SMOKE; n++) {
+				const s0 = smokeSeeds[n * 3] as number
+				const s1 = smokeSeeds[n * 3 + 1] as number
+				const life = (timeSeconds * (0.18 + s1 * 0.15) + s0 * 7) % 1
+				const side = (s0 - 0.5) * FRONT_SPAN * 2
+				// rising, and blown back over the ground already burnt
+				const back = 1 + life * 6
+				smokePosition.setXYZ(
+					n,
+					cx + across.x * side - front.dx * back,
+					2 + life * 5,
+					cy + across.y * side - front.dy * back
+				)
+			}
+			smokePosition.needsUpdate = true
+			for (const [n, light] of lights.entries()) {
+				const side = (n - (lights.length - 1) / 2) * 14
+				light.position.set(cx + across.x * side, 1.6, cy + across.y * side)
+				light.intensity =
+					(fire ? 26 : 10) * (0.75 + 0.25 * Math.sin(timeSeconds * (13 + n * 4)) * Math.sin(timeSeconds * 5.1))
+			}
 		}
 	}
 
@@ -288,57 +325,98 @@ export class MissionMarkers {
 			)
 			road.computeLineDistances()
 			group.add(ring, road)
+		} else if (objective.type === 'demolish') {
+			const ring = new THREE.Mesh(
+				new THREE.RingGeometry(0.96, 1, 72).rotateX(-Math.PI / 2),
+				new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, opacity: 0.7, depthWrite: false })
+			)
+			const fill = new THREE.Mesh(
+				new THREE.CircleGeometry(1, 72).rotateX(-Math.PI / 2),
+				new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, opacity: 0.1, depthWrite: false })
+			)
+			ring.scale.setScalar(objective.radius)
+			fill.scale.setScalar(objective.radius)
+			group.add(ring, fill)
 		} else if (objective.type === 'escape') {
 			const fire = objective.hazard.kind === 'fire'
-			// a burning band on the ground along the front (lying flat, so the camera above sees it)
-			const strip = new THREE.Mesh(
-				new THREE.PlaneGeometry(400, 3).rotateX(-Math.PI / 2),
-				new THREE.MeshBasicMaterial({
-					map: flameTexture(fire),
-					transparent: true,
-					blending: THREE.AdditiveBlending,
-					depthWrite: false
-				})
-			)
-			// behind it the ground is scorched (or fouled): glowing at the front, dark further back
+			// behind the front the ground is scorched (or fouled): glowing near it, dark further back
 			const behindGeometry = new THREE.PlaneGeometry(400, 120, 1, 12).rotateX(-Math.PI / 2)
-			const near = new THREE.Color(fire ? 0x4a1604 : 0x2e4a0e)
-			const far = new THREE.Color(fire ? 0x120604 : 0x15200a)
+			const near = new THREE.Color(fire ? 0x3a1404 : 0x2e4a0e)
+			const far = new THREE.Color(fire ? 0x0c0806 : 0x15200a)
 			const tint = new THREE.Color()
 			const vertices = behindGeometry.getAttribute('position')
 			const colors = new Float32Array(vertices.count * 3)
 			for (let n = 0; n < vertices.count; n++) {
-				// +z is the front's edge (the planes face the way the front moves)
+				// +z is the front's edge (the plane faces the way the front moves)
 				const toFront = (60 - vertices.getZ(n)) / 120
-				tint.copy(near).lerp(far, Math.min(1, toFront * 6))
+				tint.copy(near).lerp(far, Math.min(1, toFront * 8))
 				tint.toArray(colors, n * 3)
 			}
 			behindGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 			const behind = new THREE.Mesh(
 				behindGeometry,
-				new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6, depthWrite: false })
+				new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.65, depthWrite: false })
 			)
-			strip.renderOrder = behind.renderOrder + 1
-			const puffGeometry = new THREE.BufferGeometry()
-			puffGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PUFFS * 3), 3))
-			puffGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(PUFFS * 3), 3))
-			const puffs = new THREE.Points(
-				puffGeometry,
-				new THREE.PointsMaterial({
-					map: puffTexture(),
-					size: fire ? 2 : 2.8,
+			const points = (count: number, seedsPer: number, material: THREE.PointsMaterial) => {
+				const geometry = new THREE.BufferGeometry()
+				geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * 3), 3))
+				geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3).fill(1), 3))
+				const mesh = new THREE.Points(geometry, material)
+				mesh.frustumCulled = false
+				mesh.userData.seeds = new Float32Array(count * seedsPer).map(() => Math.random())
+				return mesh
+			}
+			// the ground alight in a band behind the front, brightest at its edge
+			const glowGeometry = new THREE.PlaneGeometry(400, 2.4, 1, 4).rotateX(-Math.PI / 2)
+			const glowVertices = glowGeometry.getAttribute('position')
+			const glowColors = new Float32Array(glowVertices.count * 3)
+			const hot = new THREE.Color(fire ? 0xff6a14 : 0x5aa02a)
+			for (let n = 0; n < glowVertices.count; n++) {
+				// clamped: a hair below zero would turn the power below into NaN (and the screen black under bloom)
+				const edge = Math.min(1, Math.max(0, (glowVertices.getZ(n) + 1.2) / 2.4))
+				hot
+					.clone()
+					.multiplyScalar(edge ** 1.5)
+					.toArray(glowColors, n * 3)
+			}
+			glowGeometry.setAttribute('color', new THREE.BufferAttribute(glowColors, 3))
+			const glow = new THREE.Mesh(
+				glowGeometry,
+				new THREE.MeshBasicMaterial({
 					vertexColors: true,
 					transparent: true,
 					blending: THREE.AdditiveBlending,
 					depthWrite: false
 				})
 			)
-			puffs.frustumCulled = false
-			puffs.renderOrder = strip.renderOrder + 1
-			const seeds = new Float32Array(PUFFS * 3)
-			for (let n = 0; n < seeds.length; n++) seeds[n] = Math.random()
-			puffs.userData.seeds = seeds
-			group.add(strip, behind, puffs)
+			glow.layers.set(EFFECTS_LAYER)
+			const flames = points(
+				FLAMES,
+				4,
+				new THREE.PointsMaterial({
+					map: puffTexture(),
+					size: fire ? 0.95 : 3.2,
+					vertexColors: true,
+					transparent: true,
+					blending: THREE.AdditiveBlending,
+					depthWrite: false
+				})
+			)
+			flames.layers.set(EFFECTS_LAYER)
+			const smoke = points(
+				SMOKE,
+				3,
+				new THREE.PointsMaterial({
+					map: puffTexture(),
+					size: fire ? 5.5 : 5,
+					color: fire ? 0x1a1614 : 0x2a3a14,
+					transparent: true,
+					opacity: fire ? 0.55 : 0.25,
+					depthWrite: false
+				})
+			)
+			group.add(behind, glow, flames, smoke)
+			for (let n = 0; n < 2; n++) group.add(new THREE.PointLight(fire ? 0xff7a2a : 0x9adf4a, 0, 18, 1.6))
 		} else return null
 		return group
 	}

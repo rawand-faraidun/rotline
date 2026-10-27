@@ -22,7 +22,7 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 12
+export const PROTOCOL_VERSION = 13
 
 const FAIL_REASONS = ['time', 'lives', 'wiped'] as const
 
@@ -377,7 +377,16 @@ export type ObjectState = {
 }
 
 /** Zombie status bits, for drawing (stunned zombies sparkle, marked ones glow red, ...). */
-export const ZombieStatus = { stunned: 1, slowed: 2, marked: 4, poisoned: 8, taunted: 16, burning: 32 } as const
+export const ZombieStatus = {
+	stunned: 1,
+	slowed: 2,
+	marked: 4,
+	poisoned: 8,
+	taunted: 16,
+	burning: 32,
+	/** a target a hunt objective wants dead */
+	hunted: 64
+} as const
 
 /** The decoded non-zombie part of a snapshot; zombies are applied straight into a ZombieTable. */
 export type SnapshotFrame = {
@@ -496,7 +505,8 @@ export class SnapshotEncoder {
 					(s.reloadEndTick !== 0 ? 2 : 0) |
 					(s.downed ? 4 : 0) |
 					(s.free ? 8 : 0) |
-					(s.carrying ? 16 : 0)
+					(s.carrying ? 16 : 0) |
+					(s.jammed ? 32 : 0)
 			)
 			w.u32(s.bleedoutTick).u8(s.downs).u16(Math.round(s.reviveProgress))
 			w.u8(s.slot).u8(s.previousSlot).u32(s.respawnTick).u32(s.safeUntilTick)
@@ -773,7 +783,8 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			overwatchShots,
 			minigunSteps,
 			free: (flags & 8) !== 0,
-			carrying: (flags & 16) !== 0
+			carrying: (flags & 16) !== 0,
+			jammed: (flags & 32) !== 0
 		}
 	}
 	const mission: MissionFrame = {
@@ -923,7 +934,8 @@ const EMPTY_SELF: SelfState = {
 	overwatchShots: 0,
 	minigunSteps: 0,
 	free: false,
-	carrying: false
+	carrying: false,
+	jammed: false
 }
 
 const secondsUntil = (world: World, until: number) =>
@@ -937,7 +949,8 @@ function zombieStatus(world: World, i: number): number {
 		((world.markUntil[i] as number) > tick ? ZombieStatus.marked : 0) |
 		((world.poisonUntil[i] as number) > tick ? ZombieStatus.poisoned : 0) |
 		((world.tauntUntil[i] as number) > tick ? ZombieStatus.taunted : 0) |
-		((world.burnUntil[i] as number) > tick ? ZombieStatus.burning : 0)
+		((world.burnUntil[i] as number) > tick ? ZombieStatus.burning : 0) |
+		(world.hunted[i] === 1 ? ZombieStatus.hunted : 0)
 	)
 }
 
