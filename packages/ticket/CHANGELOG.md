@@ -1,5 +1,11 @@
 # @rotline/ticket
 
+## 0.7.0
+
+### Patch Changes
+
+- @rotline/game-data@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes

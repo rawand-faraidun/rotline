@@ -1,5 +1,48 @@
 # @rotline/web
 
+## 0.7.0
+
+### Minor Changes
+
+- 045856e: New maps, secrets to find, and dying that fits each mode:
+  
+  - **Survival on three new maps, your pick:** **Old Town**, a walled river town held from its town hall; **the Glasshouse**, the botanical gardens with a hedge maze and the great palm house; and **the Docks**, a container port at night with a fort of containers in the middle. Choose one under Game modes.
+  - **Contracts move around:** each contract runs on one of several maps, picked at random every time, including the new ones and the old Crossroads.
+  - **Secrets:** cracked walls hide rooms. Shoot or blow one down to find an ammunition store, a hidden turret, or a generator that wakes a dark one. The game tells the squad when a secret is found.
+  - **Lives only in the campaign:** playing a campaign mission alone you still have three lives; in contracts and Survival the first death (or a squad wipe) ends it.
+  - **Sound you can trust:** when the browser holds the sound back or it is muted, a note on screen says so and how to fix it.
+  - New scenery: trees, palms, hedges, shipping containers, garden and household furniture.
+  - **Missions worth exploring:** every campaign map now hides a bricked-up room with a cache and an ammo station behind a cracked wall. **Holdouts** moves to **Elm Close**, a barricaded street of houses and back gardens with a school at the end; **The Minister**'s house now stands in formal gardens with hedges, rose beds and lawns. The old food depot joins the contract maps.
+  - Lawns, gravel walks and terraces are now drawn on the ground where a map calls for them.
+- a5a77cf: - **A new campaign, ten missions on ten different maps.** Ashgate: Ground Zero (burn the blighted food depot), Dead River (walk a fuel tanker across Old Town's river), Blackout Protocol (the power plant in the dark), The Crossroads (hold the square while the evacuation train crosses) and Iron Maw (break out of the motor pool in an armoured carrier). Harrow: Ghost Fleet (sink Halden's spore barge in the docks), The Glass Labyrinth (the botanical gardens where patient zero caught it), Contagion Ward (the hospital's containment wing), The Traitor's Fall (blow the minister out of his barred house) and Terminus (make the cure under the metro). Your progress and unlocks carry over, mission by mission.
+  - **New things to do in them:** search spots for what you need (somewhere else each run); hunt down marked, tougher zombies; plant a charge, guard it through its fuse and get out of the blast; repair things while the dead tear at them; carry loads one at a time (with only your pistol in hand); walk a tanker or an armoured carrier that stops dead when they climb on it; take and hold areas; outrun a line of fire or a bank of gas; hold out with your abilities jammed; Brutes that turn up halfway through a fight; traps that only work once their generator is running. Every mission has its own briefing, radio voices, notes to find and debrief.
+  - **Real vehicles:** the fuel tanker and the armoured carrier are proper models.
+  - **The fire and the gas look like fire and gas:** a burning line with smoke rolling back over the scorched ground, and it no longer starts on top of you.
+  - **The game stops when it ends:** you can no longer walk about after a mission is won or lost.
+  - **Every Brute has its own health bar** over its head, so two at once are easy to tell apart.
+  - **Reloading no longer shifts the weapon list:** the reload sign sits over the weapon.
+  - **Every bullet is its own tracer:** machine guns and miniguns now show each round flying, so what you see matches the ammo counter.
+  - **Shock traps crackle:** arcs of lightning jump between the coils while a trap fires.
+  - The Food Depot is now at dawn in fog, and the fences round the power plant's transformer yard stand up properly.
+- 111bffc: - **Damage numbers everywhere:** what you hit shows how much it took, zombies and cover, doors and walls alike. Switch them off in the pause menu (the firing range always shows them).
+  - **Skills have prices:** a rank costs 1 point in the first two tiers, 2 in the middle tiers and 3 at the top. Levels give 2 points each from level 21 (85 by level 50), so the deep skills come as you level. Skills chosen under the old prices are cut back from the top where they no longer fit, and the points are yours to spend again.
+  - **Big hordes run smoother:** zombies and bodies off screen are no longer drawn, and laptops draw the horde more cheaply.
+  - No more puddles on the ground.
+  - **Survival maps rebuilt as real places, with no turrets:** Old Town is now a river town with bridges, a church square, a park and a mill; the Glasshouse wraps round a lake with a walk all the way round it; the Docks sit on the water with piers, a barge and a camp round the crane. Woods, water and fences give every map a shape instead of a box.
+  - **A fresh look for the world:** rivers and ponds you walk round but can shoot across, wooden and tiled floors inside buildings, cobbles, paving, gravel and lawns, real sandbags, and scenery drawn far more cheaply so maps can hold much more of it.
+  - **Campaign maps rebuilt as real places:** Landfall's high street and town square, the Rail Yard's station and signal yard, the power plant's transformer yard and turbine hall, the motor pool inside its fence, the airfield's apron, the supermarket's aisles and Harrow General's wards are drawn as the places they are, with floors, furniture, machinery, woods and water. Hotspot now opens on the old food depot.
+  - **A story worth playing:** every campaign mission now has its own briefing, named voices on the radio for every step, and a debrief that moves the story on: Halden's blight, the Rotline, Dr Vey, the girl who never turned, and the minister who started it. Three notes lie about each map (a diary, a ledger, a letter) to find and read; one is usually in the secret room.
+  - **Night and dark:** maps now have their own hour and weather (day, dawn, dusk, overcast, fog, night, dark). After dark the street lamps burn and light the ground, and every soldier carries a weapon light. Blackout, Lifeline and Cure are dark: the lights come back as you restart the power.
+  - **Rail Yard:** you now keep the points motor running while the refugee train crosses.
+  - Smaller damage numbers and slimmer tracers, blood no longer flickers on paths and floors, models no longer flare white, zombies no longer climb out where they get stuck, generators stand where you can defend them, furniture sits properly against walls, and leaving a game no longer ends on an error page.
+
+### Patch Changes
+
+- @rotline/client@0.7.0
+  - @rotline/constants@0.7.0
+  - @rotline/game-data@0.7.0
+  - @rotline/ui@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes
