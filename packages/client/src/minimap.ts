@@ -50,6 +50,9 @@ export class Minimap {
 			ctx.fillRect(block.x * SCALE, block.y * SCALE, block.w * SCALE, block.h * SCALE)
 		ctx.fillStyle = '#24404a'
 		for (const pool of map.water ?? []) ctx.fillRect(pool.x * SCALE, pool.y * SCALE, pool.w * SCALE, pool.h * SCALE)
+		ctx.fillStyle = '#5a6458'
+		for (const fence of map.fences ?? [])
+			ctx.fillRect(fence.x * SCALE, fence.y * SCALE, fence.w * SCALE, fence.h * SCALE)
 		for (const solid of map.solids ?? []) {
 			ctx.fillStyle = solid.kind === 'hedge' ? '#3f6a32' : '#8a6a4a'
 			ctx.fillRect(solid.x * SCALE, solid.y * SCALE, solid.w * SCALE, solid.h * SCALE)

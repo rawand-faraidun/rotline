@@ -81,7 +81,7 @@ function Lives({ left }: { left: number }) {
 
 function Weapons({ hud }: { hud: HudState }) {
 	return (
-		<ol className="flex flex-col items-end gap-2">
+		<ol className="relative flex flex-col items-end gap-2">
 			{hud.weapons.map((weapon, slot) => (
 				<li
 					// biome-ignore lint/suspicious/noArrayIndexKey: slots are fixed positions
@@ -104,7 +104,8 @@ function Weapons({ hud }: { hud: HudState }) {
 				</li>
 			))}
 			{hud.reloading !== null && (
-				<li>
+				// above the guns, so nothing moves while it shows
+				<li className="absolute right-0 bottom-full mb-2">
 					<Badge tone="warning" className="animate-blink">
 						{t.reloading}
 					</Badge>
@@ -174,6 +175,12 @@ function objectiveProgress(mission: NonNullable<HudState['mission']>): string {
 		case 'reach':
 		case 'retrieve':
 			return mission.type === 'reach' ? t.progressReach : t.progressCarry
+		case 'escape':
+			return t.progressEscape
+		case 'escort':
+			return format(t.progressMetres, values)
+		case 'capture':
+			return format(t.progressSeconds, values)
 		case 'hold':
 		case 'survive':
 		case 'defend':

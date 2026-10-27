@@ -537,6 +537,38 @@ describe('missions in snapshots', () => {
 		expect((table.health[zombie] as number) / 255).toBeCloseTo(0.5, 1)
 		expect(frame.others[0]?.healthPercent).toBe(1)
 	})
+
+	it('carries what a gather or capture objective has done, and how long it has run', () => {
+		const base = missionById('yard-sweep') as MissionDef
+		const mission: MissionDef = {
+			...base,
+			gates: undefined,
+			spawn: { ...base.spawn, perSecond: 0 },
+			objectives: [
+				{
+					type: 'capture',
+					label: 'Take',
+					seconds: 10,
+					areas: [
+						{ x: 30, y: 30, radius: 2 },
+						{ x: 40, y: 30, radius: 2 }
+					]
+				}
+			]
+		}
+		const world = new World({ seed: 2, map: yard, mission: { mission, difficulty: 'veteran' } })
+		world.addPlayer(1)
+		for (let n = 0; n < 45; n++) world.step(new Map())
+		if (!world.mission) throw new Error()
+		world.mission.areaTicks = [150, 0]
+		world.mission.picked = 0b101
+		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), new ZombieTable())
+		expect(frame.mission.picked).toBe(0b101)
+		expect(frame.mission.areas).toHaveLength(2)
+		expect(frame.mission.areas[0]).toBeCloseTo(0.5, 1)
+		expect(frame.mission.areas[1]).toBe(0)
+		expect(frame.mission.objectiveSeconds).toBeCloseTo(1.5, 1)
+	})
 })
 
 describe('props in snapshots', () => {

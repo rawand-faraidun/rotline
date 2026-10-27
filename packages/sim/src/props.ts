@@ -19,7 +19,8 @@ export const PropKind: Record<PropKindId, number> = {
 	defend: 12,
 	nest: 13,
 	ammo: 14,
-	weakwall: 15
+	weakwall: 15,
+	vehicle: 16
 }
 
 /** What a prop is doing. Not every state applies to every kind. */
@@ -125,6 +126,8 @@ function startHealth(def: MapProp): number {
 			return propsDef.generator.health
 		case 'defend':
 			return def.health ?? propsDef.defend.health
+		case 'vehicle':
+			return def.health ?? propsDef.vehicle.health
 		case 'nest':
 			return def.health ?? propsDef.nest.health
 		default:
@@ -195,6 +198,7 @@ export function setPropState(grid: Grid, prop: Prop, state: number): void {
 
 /** How far a player may be from a prop's edge to work it. */
 export function reach(prop: Prop, player: PlayerState): number {
+	if (prop.def.kind === 'vehicle') return Math.max(0, Math.hypot(player.x - prop.x, player.y - prop.y) - 1.1)
 	const halfW = prop.cells.length > 0 ? (prop.def.w ?? 1) / 2 : 0
 	const halfH = prop.cells.length > 0 ? (prop.def.h ?? 1) / 2 : 0
 	const dx = Math.max(0, Math.abs(player.x - prop.x) - halfW)

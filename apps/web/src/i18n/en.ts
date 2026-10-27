@@ -713,6 +713,8 @@ export const en = {
 			progressKills: '{progress} / {goal}',
 			progressSeconds: '{progress} / {goal} s',
 			progressReach: 'Get there',
+			progressEscape: 'Get out, now',
+			progressMetres: '{progress} / {goal} m',
 			progressCarry: 'Bring it there',
 			progressLeft: '{progress} s left',
 			failedBanner: 'Objective failed — back to the checkpoint',

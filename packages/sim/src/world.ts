@@ -44,6 +44,7 @@ import {
 	isActive,
 	type MissionSetup,
 	type MissionState,
+	MissionStatus,
 	maybeDropBuff,
 	openCaches,
 	pickUpBuffs,
@@ -257,6 +258,7 @@ function targetable(prop: Prop): boolean {
 		case 'survivor':
 			return prop.state === PropState.idle || prop.state === PropState.following
 		case 'defend':
+		case 'vehicle':
 			return prop.state !== PropState.destroyed
 		case 'generator':
 			return prop.state === PropState.active
@@ -267,6 +269,8 @@ function targetable(prop: Prop): boolean {
 
 /** Distance from (x, y) to a prop's edge (its centre for props on a point). */
 function edgeDistance(prop: Prop, x: number, y: number): number {
+	// a vehicle is a body about two metres across whichever way it faces
+	if (prop.def.kind === 'vehicle') return Math.max(0, Math.hypot(x - prop.x, y - prop.y) - 1.1)
 	const halfW = prop.cells.length > 0 ? (prop.def.w ?? 1) / 2 : 0.3
 	const halfH = prop.cells.length > 0 ? (prop.def.h ?? 1) / 2 : 0.3
 	return Math.hypot(Math.max(0, Math.abs(x - prop.x) - halfW), Math.max(0, Math.abs(y - prop.y) - halfH))
@@ -548,6 +552,11 @@ export class World {
 	/** A zombie's body radius, by slot. */
 	readonly zombieRadius = (index: number): number => (zombieDefs[this.type[index] as number] as ZombieDef).radius
 
+	/** The mission is won or lost, or the Survival run has ended: the results are on screen. */
+	get over(): boolean {
+		return this.finished || (this.mission !== null && this.mission.status !== MissionStatus.active)
+	}
+
 	/** Missions and Survival keep score and drop buffs; the firing range does neither. */
 	get scoring(): boolean {
 		return this.mission !== null || this.survival
@@ -593,7 +602,8 @@ export class World {
 		for (const state of this.players.values()) {
 			if (!state.alive && this.tick >= state.respawnTick) this.respawn(state)
 			const input = inputs.get(state.id)
-			if (input) this.applyInput(state, input)
+			// once the mission is over or the run has ended, nobody moves or shoots
+			if (input && !this.over) this.applyInput(state, input)
 			const interacting = (state.heldButtons & Button.interact) !== 0
 			state.interactTicks = interacting ? state.interactTicks + 1 : 0
 			// a press is latched per input, so one made during a catch-up input still counts
@@ -733,7 +743,7 @@ export class World {
 	}
 
 	/** Damage to a player after armour, damage reduction and resistance; melee has no damage type. */
-	private hurt(state: PlayerState, raw: number, type: DamageType | null): void {
+	hurt(state: PlayerState, raw: number, type: DamageType | null): void {
 		if (!state.alive || state.downed || raw <= 0 || this.tick < state.safeUntilTick) return
 		// in the firing range nobody goes down: health simply comes back
 		if (this.range && damageTaken(state.stats, raw, type) >= state.health) {

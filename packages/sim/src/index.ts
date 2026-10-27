@@ -8,6 +8,7 @@ export {
 	chainMultiplier,
 	currentObjective,
 	enemyScale,
+	hazardFront,
 	type MissionSetup,
 	type MissionState,
 	MissionStatus,

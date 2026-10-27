@@ -255,10 +255,19 @@ for (const mission of layouts) {
 		}
 		if (objective.type === 'rescue') for (const id of objective.survivors) needs(id, ['survivor'], 'survivor')
 		if (objective.type === 'retrieve') needs(objective.item, ['carry'], 'item')
+		if (objective.type === 'escort') needs(objective.prop, ['vehicle'], 'vehicle')
+		if (objective.type === 'gather')
+			check(
+				(objective.count ?? objective.items.length) <= objective.items.length,
+				`missions/${mission.id}: a gather objective wants more than it has`
+			)
+		if (objective.type === 'escape')
+			for (const point of [objective.hazard.from, objective.hazard.toward])
+				check(inside(point.x, point.y), `missions/${mission.id}: a hazard point is outside the map`)
 		if (objective.optional)
 			check(
-				objective.type === 'kill' || objective.type === 'interact',
-				`missions/${mission.id}: optional objectives are kill or interact`
+				objective.type === 'kill' || objective.type === 'interact' || objective.type === 'destroy',
+				`missions/${mission.id}: optional objectives are kill, interact or destroy`
 			)
 	}
 	for (const [id, gate] of Object.entries(mission.gates ?? {})) {
@@ -281,7 +290,7 @@ for (const mission of layouts) {
 /** The map's walls (and blockers) and blocking props as cells: 1 wall, 2 prop; for checking positions in the data. */
 function occupancy(map: MapDef): Uint8Array {
 	const cells = new Uint8Array(map.width * map.height)
-	for (const wall of [...map.walls, ...(map.blockers ?? []), ...(map.water ?? [])]) {
+	for (const wall of [...map.walls, ...(map.blockers ?? []), ...(map.water ?? []), ...(map.fences ?? [])]) {
 		for (let y = wall.y; y < wall.y + wall.h; y++) {
 			for (let x = wall.x; x < wall.x + wall.w; x++) {
 				if (x >= 0 && y >= 0 && x < map.width && y < map.height) cells[y * map.width + x] = 1
@@ -351,6 +360,17 @@ function checkReachable(mission: MissionDef, map: MapDef): void {
 		if (objective.type === 'rescue')
 			for (const id of objective.survivors) check(near(id), `${where}: ${id} cannot be reached`)
 		if (objective.type === 'retrieve') check(near(objective.item), `${where}: ${objective.item} cannot be reached`)
+		if (objective.type === 'gather')
+			check(
+				objective.items.filter(at).length >= (objective.count ?? objective.items.length),
+				`${where}: not enough of its items can be reached`
+			)
+		if (objective.type === 'capture')
+			for (const area of objective.areas) check(at(area), `${where}: an area cannot be reached`)
+		if (objective.type === 'escort') {
+			check(near(objective.prop), `${where}: ${objective.prop} cannot be reached`)
+			for (const point of objective.path) check(at(point), `${where}: its path leaves the open ground`)
+		}
 		if (objective.checkpoint) {
 			const point = 'area' in objective ? objective.area : objective.checkpointAt
 			if (point) start = point
@@ -435,6 +455,9 @@ for (const mission of layouts) {
 	for (const note of mission.notes ?? []) floor(note, `note ${note.id}`)
 	for (const [index, objective] of mission.objectives.entries()) {
 		if ('area' in objective) floor(objective.area, `objective ${index}'s area`)
+		if (objective.type === 'gather') for (const item of objective.items) floor(item, `objective ${index}'s item`)
+		if (objective.type === 'capture') for (const area of objective.areas) floor(area, `objective ${index}'s area`)
+		if (objective.type === 'escort') for (const point of objective.path) floor(point, `objective ${index}'s path`)
 		if (objective.checkpointAt) floor(objective.checkpointAt, `objective ${index}'s checkpoint`)
 		check(
 			!objective.checkpoint || 'area' in objective || objective.checkpointAt !== undefined,

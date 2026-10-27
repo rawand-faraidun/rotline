@@ -401,7 +401,9 @@ function dress(
 	base: string,
 	repeat: number | null,
 	tint = 0xffffff,
-	detail = true
+	detail = true,
+	/** ground: never glossy (the photos' roughness maps make lawns and tarmac shine under lamps) */
+	matte = false
 ): void {
 	const loader = new THREE.TextureLoader()
 	const load = (name: string, apply: (texture: THREE.Texture) => void, colour = false) =>
@@ -432,6 +434,7 @@ function dress(
 	load('normal', texture => {
 		material.normalMap = texture
 	})
+	if (matte) return
 	load('rough', texture => {
 		material.roughnessMap = texture
 		material.roughness = 1
@@ -548,7 +551,7 @@ export class Stage {
 		const groundGeometry = new THREE.PlaneGeometry(groundWidth, groundDepth)
 		const uv = groundGeometry.getAttribute('uv') as THREE.BufferAttribute
 		for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * groundWidth) / 4, (uv.getY(i) * groundDepth) / 4)
-		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4, detailed)
+		dress(groundMaterial, `${assets}/textures/${look.ground}`, null, 0xdcdcd4, detailed, true)
 		this.ground = new THREE.Mesh(groundGeometry, groundMaterial)
 		this.ground.rotation.x = -Math.PI / 2
 		this.ground.position.set(map.width / 2, 0, map.height / 2)
@@ -571,6 +574,7 @@ export class Stage {
 		this.addSolids(map, assets, detailed)
 		this.addPatches(map, assets, detailed)
 		this.addWater(map)
+		this.addFences(map)
 		// the town beyond the border: buildings of a few heights, in the map's wall material and another
 		const other = look.walls === 'brick' ? 'wall-concrete' : 'brick'
 		const otherMaterial = new THREE.MeshStandardMaterial({ color: 0x5d665a, roughness: 0.85 })
@@ -691,7 +695,7 @@ export class Stage {
 					polygonOffsetUnits: -2
 				})
 				// pale floors (tiles, paving) toned down to sit with the rest of the ground
-				dress(material, `${assets}/textures/${ground}`, null, PATCH_TINT[ground] ?? 0xdcdcd4, detailed)
+				dress(material, `${assets}/textures/${ground}`, null, PATCH_TINT[ground] ?? 0xdcdcd4, detailed, true)
 				materials.set(ground, material)
 			}
 			const mesh = new THREE.Mesh(geometry, material)
@@ -700,6 +704,76 @@ export class Stage {
 			mesh.name = `patches-${key}`
 			this.scene.add(mesh)
 		}
+	}
+
+	/**
+	 * Chain-link fences: steel posts every two and a half metres, a top rail, and wire mesh between
+	 * (a see-through texture) along the middle of each run of fence cells.
+	 */
+	private addFences(map: MapDef): void {
+		const runs = map.fences ?? []
+		if (runs.length === 0) return
+		const canvas = document.createElement('canvas')
+		canvas.width = canvas.height = 64
+		const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+		ctx.strokeStyle = 'rgba(150,156,160,1)'
+		ctx.lineWidth = 4
+		for (let k = -64; k < 128; k += 16) {
+			ctx.beginPath()
+			ctx.moveTo(k, 0)
+			ctx.lineTo(k + 64, 64)
+			ctx.moveTo(k + 64, 0)
+			ctx.lineTo(k, 64)
+			ctx.stroke()
+		}
+		const wire = new THREE.CanvasTexture(canvas)
+		wire.wrapS = wire.wrapT = THREE.RepeatWrapping
+		wire.colorSpace = THREE.SRGBColorSpace
+		const mesh = new THREE.MeshStandardMaterial({
+			map: wire,
+			transparent: true,
+			alphaTest: 0.3,
+			side: THREE.DoubleSide,
+			roughness: 0.6,
+			metalness: 0.3
+		})
+		const steel = new THREE.MeshStandardMaterial({ color: 0x6a6e70, roughness: 0.5, metalness: 0.4 })
+		const height = 2.2
+		const posts: THREE.Matrix4[] = []
+		const rails: THREE.Matrix4[] = []
+		const panels = new THREE.Group()
+		for (const run of runs) {
+			const along = run.w >= run.h
+			const length = along ? run.w : run.h
+			const cx = run.x + run.w / 2
+			const cz = run.y + run.h / 2
+			const panel = new THREE.Mesh(new THREE.PlaneGeometry(length, height), mesh)
+			const uv = panel.geometry.getAttribute('uv') as THREE.BufferAttribute
+			for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * length) / 0.5, (uv.getY(i) * height) / 0.5)
+			panel.position.set(cx, height / 2, cz)
+			if (!along) panel.rotation.y = Math.PI / 2
+			panel.castShadow = true
+			panels.add(panel)
+			rails.push(
+				new THREE.Matrix4().compose(
+					new THREE.Vector3(cx, height, cz),
+					new THREE.Quaternion(),
+					new THREE.Vector3(along ? length : 0.06, 0.06, along ? 0.06 : length)
+				)
+			)
+			const count = Math.max(1, Math.round(length / 2.5))
+			for (let k = 0; k <= count; k++) {
+				const t = (k / count) * length
+				posts.push(new THREE.Matrix4().makeTranslation(along ? run.x + t : cx, height / 2, along ? cz : run.y + t))
+			}
+		}
+		const postMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.05, height, 6), steel, posts.length)
+		for (const [i, matrix] of posts.entries()) postMesh.setMatrixAt(i, matrix)
+		const railMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), steel, rails.length)
+		for (const [i, matrix] of rails.entries()) railMesh.setMatrixAt(i, matrix)
+		postMesh.castShadow = railMesh.castShadow = true
+		panels.name = 'fences'
+		this.scene.add(panels, postMesh, railMesh)
 	}
 
 	/** the water's ripples, moved on every frame */

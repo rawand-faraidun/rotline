@@ -68,6 +68,7 @@ import { loadDamageNumbers, loadReadNotes, saveReadNotes } from './preferences.t
 import { Decor } from './render/decor.ts'
 import { autoDecor, groundMarks } from './render/dressing.ts'
 import { Effects, SHOT_LOOKS } from './render/effects.ts'
+import { EliteBars } from './render/elite-bars.ts'
 import { MissionMarkers } from './render/mission.ts'
 import { DamageNumbers, ObjectRenderer } from './render/objects.ts'
 import { PlayerFigure } from './render/players.ts'
@@ -137,6 +138,7 @@ export function startGame(options: GameOptions): GameHandle {
 	stage.scene.add(spawnHoles(map.zombieSpawns))
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene, options.assets)
+	const eliteBars = new EliteBars(stage.scene)
 	const propRenderer = new PropRenderer(
 		stage.scene,
 		props,
@@ -162,6 +164,10 @@ export function startGame(options: GameOptions): GameHandle {
 	let propsSynced = false
 	const ownHits: { at: number; amount: number }[] = []
 	const readNotes = loadReadNotes()
+	/** the mission is won or lost, or the run is over: the player stands still behind the results */
+	let ended = false
+	/** the current objective's own state: items picked up, areas taken, how long it has run */
+	const objectiveState = { index: -1, picked: 0, areas: [] as number[], seconds: 0, at: 0 }
 	const barricades = new Map<number, number[]>()
 	const rangeWriter = new Writer(16)
 	const interpolator = new Interpolator()
@@ -363,12 +369,14 @@ export function startGame(options: GameOptions): GameHandle {
 				hud.set({ mission: missionHud }, performance.now(), true)
 			}
 		},
-		results: results =>
+		results: results => {
+			ended = true
 			hud.set(
 				{ results: { ...results, items: results.items.map(index => items[index]?.name ?? '') } },
 				performance.now(),
 				true
-			),
+			)
+		},
 		roster: entries => {
 			names.clear()
 			for (const entry of entries) {
@@ -414,7 +422,8 @@ export function startGame(options: GameOptions): GameHandle {
 					objective?.type === 'hold' ||
 					objective?.type === 'survive' ||
 					objective?.type === 'defend' ||
-					objective?.type === 'extract'
+					objective?.type === 'extract' ||
+					objective?.type === 'capture'
 				const next: MissionHud = {
 					...missionHud,
 					objective: Math.min(progress.objective, mission.objectives.length - 1),
@@ -455,6 +464,14 @@ export function startGame(options: GameOptions): GameHandle {
 				)
 					missionHud = next
 				markers?.update(progress.objective, progress.status === 1, progress.caches, receivedAt / 1000)
+				// something picked up: a click of a pickup, for the whole squad
+				if (progress.objective === objectiveState.index && progress.picked !== objectiveState.picked)
+					audio.sound('pickup', { bus: 'interface', rate: 1.2, volume: 0.6 })
+				objectiveState.index = progress.objective
+				objectiveState.picked = progress.picked
+				objectiveState.areas = progress.areas
+				objectiveState.seconds = progress.objectiveSeconds
+				objectiveState.at = performance.now()
 				openedCaches = progress.caches
 			}
 			const running: { id: string; name: string; seconds: number }[] = []
@@ -656,6 +673,7 @@ export function startGame(options: GameOptions): GameHandle {
 						audio.sound('alarm', { bus: 'interface' })
 						break
 					case 'mission-failed':
+						ended = true
 						audio.sound('stinger-high', { bus: 'interface' })
 						hud.set(
 							{ banner: { text: event.reason === 'time' ? 'timeout' : event.reason, wave: 0, at: performance.now() } },
@@ -664,12 +682,14 @@ export function startGame(options: GameOptions): GameHandle {
 						)
 						break
 					case 'run-over':
+						ended = true
 						hud.set({ banner: { text: 'run-over', wave: event.wave, at: performance.now() } }, performance.now(), true)
 						break
 					case 'mission-complete':
+						ended = true
 						if (mission?.debrief)
 							hud.set(
-								{ radio: { speaker: 'Command', text: mission.debrief, at: performance.now() } },
+								{ radio: { speaker: 'Major Okafor', text: mission.debrief, at: performance.now() } },
 								performance.now(),
 								true
 							)
@@ -950,8 +970,8 @@ export function startGame(options: GameOptions): GameHandle {
 			while (accumulator >= TICK_MS) {
 				accumulator -= TICK_MS
 				const input = sampleInput(renderTick)
-				// behind the menu in a squad the player stands still (aim kept)
-				if (menuOpen) {
+				// behind the menu in a squad, and once the game is over, the player stands still (aim kept)
+				if (menuOpen || ended) {
 					input.moveX = 0
 					input.moveY = 0
 					input.buttons = 0
@@ -1048,6 +1068,15 @@ export function startGame(options: GameOptions): GameHandle {
 			const watched = own.alive ? null : interpolator.others.find(other => other.alive)
 			if (watched) stage.follow(watched.x, watched.y, watched.x, watched.y, dt)
 			else stage.follow(drawn.x, drawn.y, aimX, aimY, dt)
+			// the objective's things in the world: items to pick up, areas filling, a hazard sweeping in
+			markers?.objectiveState(
+				objectiveState.index,
+				objectiveState.picked,
+				objectiveState.areas,
+				objectiveState.seconds + (paused ? 0 : (performance.now() - objectiveState.at) / 1000),
+				now / 1000,
+				props
+			)
 			// a note underfoot opens to read; it counts as found from then on
 			const notes = mission?.notes ?? []
 			if (mission && notes.length > 0) {
@@ -1077,7 +1106,9 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 			// where the objective is: a marker on screen, or an arrow at the edge pointing to it
 			const current = mission && missionHud && !missionHud.complete ? mission.objectives[missionHud.objective] : null
-			const target = current ? objectiveTarget(current, props, drawn) : null
+			const target = current
+				? objectiveTarget(current, props, drawn, { picked: objectiveState.picked, areas: objectiveState.areas })
+				: null
 			if (target) {
 				waypointVector.set(target.x, 0.6, target.y).project(stage.camera)
 				const placed = screenWaypoint((waypointVector.x + 1) / 2, (1 - waypointVector.y) / 2, waypointVector.z > 1)
@@ -1146,7 +1177,8 @@ export function startGame(options: GameOptions): GameHandle {
 							step
 						)
 			}
-			// the toughest elite in sight gets a health bar at the top of the screen
+			// every elite in sight carries its own bar over its head; the toughest one's is also at the top
+			eliteBars.update(interpolator.view, stage.camera)
 			{
 				const view = interpolator.view
 				let boss: { name: string; health: number } | null = null
@@ -1333,6 +1365,7 @@ function propAction(prop: Prop, carrying: boolean, tick: number, workable: Set<s
 		case 'carry':
 			return allowed && prop.state === PropState.idle && !carrying ? 'pickup' : null
 		case 'defend':
+		case 'vehicle':
 			return prop.state !== PropState.destroyed && prop.health < prop.maxHealth ? 'repair' : null
 		default:
 			return null
@@ -1352,6 +1385,7 @@ function propInSight(grid: Grid, prop: Prop, player: { x: number; y: number }): 
 }
 
 function propReach(prop: Prop, player: { x: number; y: number }): number {
+	if (prop.def.kind === 'vehicle') return Math.max(0, Math.hypot(player.x - prop.x, player.y - prop.y) - 1.1)
 	const halfW = prop.cells.length > 0 ? (prop.def.w ?? 1) / 2 : 0
 	const halfH = prop.cells.length > 0 ? (prop.def.h ?? 1) / 2 : 0
 	return Math.hypot(Math.max(0, Math.abs(player.x - prop.x) - halfW), Math.max(0, Math.abs(player.y - prop.y) - halfH))

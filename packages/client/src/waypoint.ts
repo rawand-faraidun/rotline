@@ -9,7 +9,12 @@ type Point = { x: number; y: number }
  * be dealt with (a nest to burn, a generator to start, a survivor to free, the object to carry).
  * Null when the objective is not a place (kill so many, survive so long).
  */
-export function objectiveTarget(objective: Objective, props: readonly Prop[], from: Point): Point | null {
+export function objectiveTarget(
+	objective: Objective,
+	props: readonly Prop[],
+	from: Point,
+	state: { picked: number; areas: readonly number[] } = { picked: 0, areas: [] }
+): Point | null {
 	const byId = (id: string) => props.find(prop => prop.def.id === id)
 	const nearest = (ids: readonly string[], wanted: (prop: Prop) => boolean): Point | null => {
 		let best: Point | null = null
@@ -42,6 +47,23 @@ export function objectiveTarget(objective: Objective, props: readonly Prop[], fr
 		case 'retrieve': {
 			const item = byId(objective.item)
 			return item && item.state !== PropState.carried ? { x: item.x, y: item.y } : objective.area
+		}
+		case 'escape':
+			return objective.area
+		case 'escort':
+			return nearest([objective.prop], () => true)
+		case 'gather':
+		case 'capture': {
+			// the nearest item still lying there, or the nearest area not yet taken
+			const spots: Point[] =
+				objective.type === 'gather'
+					? objective.items.filter((_, index) => (state.picked & (1 << index)) === 0)
+					: objective.areas.filter((_, index) => (state.areas[index] ?? 0) < 1)
+			let best: Point | null = null
+			for (const spot of spots)
+				if (!best || Math.hypot(spot.x - from.x, spot.y - from.y) < Math.hypot(best.x - from.x, best.y - from.y))
+					best = spot
+			return best
 		}
 		default:
 			return null

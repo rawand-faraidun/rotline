@@ -62,8 +62,9 @@ export function stepProps(world: World): void {
 	}
 }
 
-/** Generators and terminals keep partial work when let go; the rest start over. */
-const keepsProgress = (prop: Prop) => prop.def.kind === 'generator' || prop.def.kind === 'terminal'
+/** Generators and terminals keep partial work when let go, a vehicle the way it has driven; the rest start over. */
+const keepsProgress = (prop: Prop) =>
+	prop.def.kind === 'generator' || prop.def.kind === 'terminal' || prop.def.kind === 'vehicle'
 
 function turret(world: World, prop: Prop): void {
 	if (world.tick < prop.readyTick) return
@@ -264,6 +265,7 @@ function usable(world: World, prop: Prop, player: PlayerState): boolean {
 		case 'carry':
 			return allowed && prop.state === PropState.idle && !player.carrying
 		case 'defend':
+		case 'vehicle':
 			return prop.state !== PropState.destroyed && prop.health < prop.maxHealth
 		case 'ammo':
 			return wantsAmmo(player) && spendableScore(player) >= ammoPrice(world)
@@ -312,7 +314,11 @@ function press(world: World, prop: Prop): void {
 
 function hold(world: World, prop: Prop, player: PlayerState): void {
 	// mending: a welded door or a defend target with damage
-	if ((prop.def.kind === 'door' && prop.state === PropState.welded) || prop.def.kind === 'defend') {
+	if (
+		(prop.def.kind === 'door' && prop.state === PropState.welded) ||
+		prop.def.kind === 'defend' ||
+		prop.def.kind === 'vehicle'
+	) {
 		prop.health = Math.min(prop.maxHealth, prop.health + propsDef.repairPerSecond * DT)
 		return
 	}
@@ -402,6 +408,7 @@ export function damageProp(world: World, prop: Prop, amount: number, by: number)
 		case 'weakwall':
 		case 'sandbags':
 		case 'defend':
+		case 'vehicle':
 		case 'nest':
 			break
 		case 'generator':
@@ -431,7 +438,7 @@ export function damageProp(world: World, prop: Prop, amount: number, by: number)
 			playerOnly: by
 		})
 	}
-	if (prop.def.kind === 'survivor' || prop.def.kind === 'defend') world.propLost(prop)
+	if (prop.def.kind === 'survivor' || prop.def.kind === 'defend' || prop.def.kind === 'vehicle') world.propLost(prop)
 }
 
 /** Back to how it started (a restart from the checkpoint). */

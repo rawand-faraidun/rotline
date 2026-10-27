@@ -73,5 +73,8 @@
 	},
 	"interactRange": 1.6,
 	"repairPerSecond": 50,
-	"extractIdleSeconds": 15
+	"extractIdleSeconds": 15,
+	"vehicle": {
+		"health": 900
+	}
 }

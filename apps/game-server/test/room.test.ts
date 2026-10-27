@@ -186,11 +186,8 @@ describe('mission rooms', () => {
 			Math.floor((economy.rewards.objective.salvage + (a2?.score ?? 0) / economy.rewards.scorePerSalvage) * scale)
 		)
 		expect(forA[0]?.xp).toBeGreaterThanOrEqual(Math.floor(economy.rewards.objective.xp * scale))
-		// the nests burn out: the next checkpoint reports only what came since
-		for (const id of ['nest-stacks-west', 'nest-stacks-centre', 'nest-stacks-east']) {
-			const nest = room.world.propById.get(id)
-			if (nest) nest.state = PropState.destroyed
-		}
+		// the lanes are taken: the next checkpoint reports only what came since
+		mission.areaTicks = mission.areaTicks.map(() => 12 * 30)
 		play(room, 2)
 		expect(mission.checkpointIndex).toBe(2)
 		const later = reports.filter(report => report.userId === 'user-a')
@@ -208,7 +205,8 @@ describe('mission rooms', () => {
 		const room = missionRoom(reports, sent)
 		const mission = room.world.mission
 		if (!mission) throw new Error('no mission')
-		mission.index = mission.def.objectives.length - 1
+		// the last step that counts kills, one kill short
+		mission.index = mission.def.objectives.findLastIndex(objective => objective.type === 'kill')
 		mission.progress = 40 * 30 - 1
 		play(room, 3)
 		expect(room.completedAt).toBeGreaterThan(0)

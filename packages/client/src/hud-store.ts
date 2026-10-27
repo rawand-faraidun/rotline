@@ -1,3 +1,4 @@
+import type { MissionDef } from '@rotline/game-data'
 /** What the HUD shows. The game writes it; React reads it through `subscribe` + `getSnapshot`. */
 export type HudState = {
 	/** 'over': the mission is complete and the room has closed; the game is paused while 'paused' */
@@ -115,7 +116,7 @@ export type MissionHud = {
 	step: number
 	count: number
 	label: string
-	type: 'kill' | 'reach' | 'hold' | 'survive' | 'interact' | 'defend' | 'rescue' | 'retrieve' | 'destroy' | 'extract'
+	type: MissionDef['objectives'][number]['type']
 	/** kills, things done, or seconds (extract: seconds left) */
 	progress: number
 	goal: number

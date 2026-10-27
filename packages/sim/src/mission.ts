@@ -8,6 +8,7 @@ import {
 	items,
 	type MissionDef,
 	type ObjectiveDef,
+	pathLength,
 	propsDef,
 	zombieIndex,
 	zombies
@@ -58,6 +59,12 @@ export type MissionState = {
 	/** composition as cumulative weights, for weighted picks */
 	pool: { type: number; upTo: number }[]
 	poolTotal: number
+	/** gather: bit n set once item n has been picked up */
+	picked: number
+	/** capture: ticks of holding in each area (they fill to the objective's seconds) */
+	areaTicks: number[]
+	/** the tick the current objective started (or restarted): an escape's hazard moves from it */
+	objectiveTick: number
 }
 
 /** A player counts as playing (for objective score and drops) if they acted this recently. */
@@ -110,7 +117,10 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 		burstPool: [],
 		burstTotal: 0,
 		pool,
-		poolTotal: total
+		poolTotal: total,
+		picked: 0,
+		areaTicks: [],
+		objectiveTick: startTick
 	}
 }
 
@@ -144,6 +154,15 @@ export function objectiveGoal(objective: ObjectiveDef | null): number {
 		case 'rescue':
 			return objective.survivors.length
 		case 'retrieve':
+			return 1
+		case 'gather':
+			return objective.count ?? objective.items.length
+		case 'capture':
+			return objective.areas.length * Math.round(objective.seconds * TICK_RATE)
+		case 'escort':
+			// metres along the path
+			return Math.round(pathLength(objective.path))
+		case 'escape':
 			return 1
 	}
 }
@@ -185,7 +204,7 @@ export function updateTargets(world: World): void {
 		const ids =
 			objective.type === 'rescue'
 				? objective.survivors
-				: objective.type === 'defend'
+				: objective.type === 'defend' || objective.type === 'escort'
 					? [objective.prop]
 					: objective.type === 'interact'
 						? objective.props
@@ -301,6 +320,19 @@ export function stepMission(world: World): void {
 		case 'retrieve':
 			mission.progress = deliverItem(world, objective.item, objective.area) ? 1 : 0
 			break
+		case 'gather':
+			mission.progress = gather(world, mission, objective.items)
+			break
+		case 'capture':
+			mission.progress = capture(world, mission, objective.areas, Math.round(objective.seconds * TICK_RATE))
+			break
+		case 'escort':
+			mission.progress = escort(world, objective)
+			break
+		case 'escape':
+			burnBehind(world, mission, objective.hazard)
+			if (everyoneIn(world, objective.area)) mission.progress = 1
+			break
 		case 'extract':
 			if (standing(world)) mission.progress++
 			stepOptional(world, mission)
@@ -323,6 +355,9 @@ export function stepMission(world: World): void {
 function startObjective(world: World, mission: MissionState, objective: ObjectiveDef, count: number): void {
 	mission.startedFor = mission.index
 	mission.burst = 0
+	mission.picked = 0
+	mission.areaTicks = objective.type === 'capture' ? objective.areas.map(() => 0) : []
+	mission.objectiveTick = world.tick
 	if (objective.ambush) {
 		let total = 0
 		const composition = objective.ambush.composition ?? mission.def.spawn.composition
@@ -339,6 +374,124 @@ function startObjective(world: World, mission: MissionState, objective: Objectiv
 		const clear = at && world.nearestPlayerDistance(at.x, at.y) > 12
 		const type = zombieIndex(objective.boss.type)
 		if (world.spawnZombie(type, clear ? at : (world.pickSpawnPoint() ?? at)) < 0) world.spawnZombie(type, at)
+	}
+}
+
+/** Items lying where a standing player walks over them are picked up. Returns how many are. */
+function gather(world: World, mission: MissionState, items: readonly { x: number; y: number }[]): number {
+	for (const state of world.players.values()) {
+		if (!state.alive || state.downed) continue
+		for (const [index, item] of items.entries()) {
+			if (mission.picked & (1 << index)) continue
+			if (Math.hypot(state.x - item.x, state.y - item.y) > GATHER_REACH) continue
+			mission.picked |= 1 << index
+		}
+	}
+	let count = 0
+	for (let bits = mission.picked; bits; bits &= bits - 1) count++
+	return count
+}
+
+/**
+ * Each area fills while a standing player is in it and drains (more slowly) while zombies hold it
+ * and nobody does. Returns the ticks held across the areas.
+ */
+function capture(
+	world: World,
+	mission: MissionState,
+	areas: readonly { x: number; y: number; radius: number }[],
+	full: number
+): number {
+	let total = 0
+	for (const [index, area] of areas.entries()) {
+		let held = mission.areaTicks[index] ?? 0
+		if (held < full) {
+			if (anyoneIn(world, area)) held++
+			else if (zombieIn(world, area)) held = Math.max(0, held - 0.5)
+		}
+		mission.areaTicks[index] = held
+		total += Math.floor(held)
+	}
+	return total
+}
+
+function zombieIn(world: World, area: { x: number; y: number; radius: number }): boolean {
+	for (let i = 0; i < MAX_ZOMBIES; i++) {
+		if (!world.alive[i]) continue
+		if (Math.hypot((world.x[i] as number) - area.x, (world.y[i] as number) - area.y) <= area.radius) return true
+	}
+	return false
+}
+
+/**
+ * The vehicle drives along its path while a standing player is near it, at half speed with the dead
+ * clawing at it. Its `progress` is the metres travelled; returns them.
+ */
+function escort(world: World, objective: Extract<ObjectiveDef, { type: 'escort' }>): number {
+	const prop = world.propById.get(objective.prop)
+	if (!prop || prop.state === PropState.destroyed) return 0
+	let near = false
+	for (const state of world.players.values()) {
+		if (!state.alive || state.downed || !isActive(world, state)) continue
+		if (Math.hypot(state.x - prop.x, state.y - prop.y) <= objective.radius) near = true
+	}
+	if (near) {
+		let crowded = false
+		for (let i = 0; i < MAX_ZOMBIES && !crowded; i++) {
+			if (world.alive[i] && Math.hypot((world.x[i] as number) - prop.x, (world.y[i] as number) - prop.y) < 1.8)
+				crowded = true
+		}
+		prop.progress += objective.speed * DT * (crowded ? 0.5 : 1)
+	}
+	// where that is along the path
+	let left = prop.progress
+	for (let i = 1; i < objective.path.length; i++) {
+		const a = objective.path[i - 1] as { x: number; y: number }
+		const b = objective.path[i] as { x: number; y: number }
+		const leg = Math.hypot(b.x - a.x, b.y - a.y)
+		if (left <= leg || i === objective.path.length - 1) {
+			const t = leg > 0 ? Math.min(1, left / leg) : 1
+			prop.x = a.x + (b.x - a.x) * t
+			prop.y = a.y + (b.y - a.y) * t
+			break
+		}
+		left -= leg
+	}
+	return Math.floor(prop.progress)
+}
+
+/**
+ * The hazard's front: it waits `delaySeconds`, then sweeps from `from` toward `toward` (and on past
+ * it). Anyone on the far side of the front from the way it moves (caught behind it) takes damage.
+ */
+export function hazardFront(
+	hazard: Extract<ObjectiveDef, { type: 'escape' }>['hazard'],
+	secondsSinceStart: number
+): { x: number; y: number; dx: number; dy: number } {
+	const length = Math.hypot(hazard.toward.x - hazard.from.x, hazard.toward.y - hazard.from.y) || 1
+	const dx = (hazard.toward.x - hazard.from.x) / length
+	const dy = (hazard.toward.y - hazard.from.y) / length
+	const moved = Math.max(0, secondsSinceStart - hazard.delaySeconds) * hazard.speed
+	return { x: hazard.from.x + dx * moved, y: hazard.from.y + dy * moved, dx, dy }
+}
+
+function burnBehind(
+	world: World,
+	mission: MissionState,
+	hazard: Extract<ObjectiveDef, { type: 'escape' }>['hazard']
+): void {
+	const front = hazardFront(hazard, (world.tick - mission.objectiveTick) / TICK_RATE)
+	for (const state of world.players.values()) {
+		if (!state.alive || state.downed) continue
+		// behind the front: on the side it came from
+		if ((state.x - front.x) * front.dx + (state.y - front.y) * front.dy < 0)
+			world.hurt(state, hazard.damagePerSecond * DT, hazard.kind === 'fire' ? 'fire' : 'chemical')
+	}
+	// the dead caught in it burn too
+	for (let i = 0; i < MAX_ZOMBIES; i++) {
+		if (!world.alive[i]) continue
+		if (((world.x[i] as number) - front.x) * front.dx + ((world.y[i] as number) - front.y) * front.dy < -1)
+			world.damageZombie(i, hazard.damagePerSecond * 2 * DT, 0, hazard.kind === 'fire' ? 'fire' : 'chemical')
 	}
 }
 
@@ -395,6 +548,8 @@ function deliverItem(world: World, id: string, area: { x: number; y: number; rad
 }
 
 const EXTRACT_IDLE_TICKS = Math.round(propsDef.extractIdleSeconds * TICK_RATE)
+/** how near a player walks to an item to pick it up (metres) */
+const GATHER_REACH = 1.1
 
 /**
  * Everyone still standing and playing is inside the area (and there is at least one). Players who are
@@ -423,7 +578,9 @@ function stepOptional(world: World, mission: MissionState): void {
 				? mission.kills >= objective.count
 				: objective.type === 'interact'
 					? countDone(world, objective.props) >= objective.props.length
-					: false
+					: objective.type === 'destroy'
+						? countDestroyed(world, objective.props) >= objective.props.length
+						: false
 		if (!done) continue
 		mission.optionalDone.push(index)
 		world.events.push({ type: 'objective', index, first: true })
@@ -534,7 +691,7 @@ export function wipeMission(world: World, mission: MissionState): void {
 		const ids =
 			objective.type === 'interact' || objective.type === 'destroy'
 				? objective.props
-				: objective.type === 'defend'
+				: objective.type === 'defend' || objective.type === 'escort'
 					? [objective.prop]
 					: objective.type === 'rescue'
 						? objective.survivors

@@ -22,7 +22,7 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 11
+export const PROTOCOL_VERSION = 12
 
 const FAIL_REASONS = ['time', 'lives', 'wiped'] as const
 
@@ -334,6 +334,12 @@ export type MissionFrame = {
 	caches: number
 	/** whole seconds left on a timed mission's clock; null without a time limit */
 	timeLeft: number | null
+	/** gather: bit n set once item n is picked up */
+	picked: number
+	/** capture: how full each area is, 0..1 */
+	areas: number[]
+	/** seconds since the current objective started (an escape's hazard moves from then) */
+	objectiveSeconds: number
 }
 
 export type OtherPlayer = {
@@ -522,6 +528,13 @@ export class SnapshotEncoder {
 			w.u16(caches)
 			const left = mission ? timeLeft(world, mission) : null
 			w.u16(left === null ? NO_LIMIT : Math.min(NO_LIMIT - 1, left))
+			w.u16(mission?.picked ?? 0)
+			const objective = mission ? currentObjective(mission) : null
+			const full = objective?.type === 'capture' ? Math.round(objective.seconds * TICK_RATE) : 1
+			const areas = objective?.type === 'capture' ? (mission?.areaTicks ?? []) : []
+			w.u8(areas.length)
+			for (const held of areas) w.u8(Math.min(255, Math.round((held / full) * 255)))
+			w.u16(mission ? Math.min(0xffff, Math.round(((world.tick - mission.objectiveTick) / TICK_RATE) * 10)) : 0)
 		}
 
 		// everyone else, quantised
@@ -660,7 +673,8 @@ export class SnapshotEncoder {
 			const i = prop.index
 			const health =
 				prop.maxHealth > 0 ? Math.max(0, Math.min(255, Math.round((prop.health / prop.maxHealth) * 255))) : 255
-			const progress = Math.round(prop.progress * 255)
+			// a hold's 0..1 (a vehicle's progress is metres driven, which clients read from where it is)
+			const progress = Math.round(Math.min(1, prop.progress) * 255)
 			// state, plus powered (turrets and lights) and cooling down (traps) as flag bits
 			const cooling = prop.def.kind === 'trap' && world.tick < prop.readyTick
 			const state = prop.state | (prop.powered ? 0x80 : 0) | (cooling ? 0x40 : 0)
@@ -774,7 +788,10 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		chain: r.u16(),
 		chainLeft: r.u8() / 255,
 		caches: r.u16(),
-		timeLeft: nullableSeconds(r.u16())
+		timeLeft: nullableSeconds(r.u16()),
+		picked: r.u16(),
+		areas: Array.from({ length: r.u8() }, () => r.u8() / 255),
+		objectiveSeconds: r.u16() / 10
 	}
 	const others: OtherPlayer[] = []
 	const otherCount = r.u8()

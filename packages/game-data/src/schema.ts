@@ -414,7 +414,9 @@ export const propKindId = z.enum([
 	'carry',
 	'defend',
 	'nest',
-	'ammo'
+	'ammo',
+	/** a vehicle the squad escorts: it drives along its path while someone walks with it */
+	'vehicle'
 ])
 
 /**
@@ -490,6 +492,8 @@ export const mapSchema = z.object({
 		.optional(),
 	/** water: blocks walking (players and zombies), not shots or thrown things */
 	water: z.array(rect).max(2000).optional(),
+	/** chain-link fences: like water, walked round and shot through */
+	fences: z.array(rect).max(2000).optional(),
 	/** patches of other ground drawn over the map's own (lawns in a street, gravel paths): drawing only */
 	patches: z
 		.array(rect.extend({ ground: groundKind }))
@@ -636,7 +640,51 @@ export const objectiveSchema = z.discriminatedUnion('type', [
 	/** destroy every listed nest (nests keep spawning until they are gone) */
 	z.object({ type: z.literal('destroy'), props: z.array(id).min(1), ...objectiveBase }),
 	/** everyone standing reaches an area before the time runs out */
-	z.object({ type: z.literal('extract'), area, seconds: z.number().positive(), ...objectiveBase })
+	z.object({ type: z.literal('extract'), area, seconds: z.number().positive(), ...objectiveBase }),
+	/** pick things up off the ground (walk over them): `count` of them, any of the listed spots */
+	z.object({
+		type: z.literal('gather'),
+		items: z.array(point).min(1).max(16),
+		count: z.number().int().positive().optional(),
+		/** how they look: sample cases, fuel cans, papers, supply packs */
+		look: z.enum(['sample', 'fuel', 'intel', 'supplies']),
+		...objectiveBase
+	}),
+	/** take every area: each fills while someone stands in it, and drains while the dead hold it */
+	z.object({
+		type: z.literal('capture'),
+		areas: z.array(area).min(1).max(4),
+		seconds: z.number().positive(),
+		...objectiveBase
+	}),
+	/** walk a vehicle along its path: it drives while someone is near it, the dead go for it */
+	z.object({
+		type: z.literal('escort'),
+		prop: id,
+		path: z.array(point).min(2).max(24),
+		/** metres a second while it drives */
+		speed: z.number().positive().max(6),
+		/** how near someone has to be for it to drive */
+		radius: z.number().positive().max(12),
+		...objectiveBase
+	}),
+	/** get out before something spreading across the map catches you (fire, gas): it hurts behind its front */
+	z.object({
+		type: z.literal('escape'),
+		area,
+		hazard: z.object({
+			/** what it is: drawn as fire or as gas */
+			kind: z.enum(['fire', 'gas']),
+			/** where its front starts, and the way it moves */
+			from: point,
+			toward: point,
+			speed: z.number().positive().max(8),
+			/** seconds before it starts to move */
+			delaySeconds: z.number().min(0),
+			damagePerSecond: z.number().positive()
+		}),
+		...objectiveBase
+	})
 ])
 
 const missionFields = z.object({
@@ -748,6 +796,7 @@ export const propsDataSchema = z.object({
 	}),
 	crate: z.object({ health: z.number().positive() }),
 	weakwall: z.object({ health: z.number().positive() }),
+	vehicle: z.object({ health: z.number().positive() }),
 	sandbags: z.object({ health: z.number().positive() }),
 	door: z.object({
 		weldSeconds: z.number().positive(),

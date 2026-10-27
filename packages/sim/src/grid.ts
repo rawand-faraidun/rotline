@@ -21,7 +21,8 @@ export class Grid {
 				}
 			}
 		}
-		for (const pool of map.water ?? []) {
+		// water and fences: nobody walks through, shots and thrown things cross
+		for (const pool of [...(map.water ?? []), ...(map.fences ?? [])]) {
 			for (let y = pool.y; y < pool.y + pool.h; y++) {
 				for (let x = pool.x; x < pool.x + pool.w; x++) {
 					if (x >= 0 && y >= 0 && x < this.width && y < this.height) this.walls[y * this.width + x] = WATER_CELL

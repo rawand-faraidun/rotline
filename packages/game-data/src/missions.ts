@@ -84,6 +84,20 @@ export function minimumSeconds(mission: MissionDef): number {
 			seconds += Math.min(propsDef.terminal.holdSeconds, propsDef.generator.holdSeconds)
 		if (objective.type === 'rescue') seconds += propsDef.survivor.freeSeconds
 		if (objective.type === 'retrieve') seconds += propsDef.carry.pickupSeconds
+		// one area at a time for a squad of one; a squad may split, so only the longest counts
+		if (objective.type === 'capture') seconds += objective.seconds
+		if (objective.type === 'escort') seconds += pathLength(objective.path) / objective.speed
 	}
-	return seconds
+	return Math.floor(seconds)
+}
+
+/** Metres along a path of points. */
+export function pathLength(path: readonly { x: number; y: number }[]): number {
+	let length = 0
+	for (let i = 1; i < path.length; i++) {
+		const a = path[i - 1] as { x: number; y: number }
+		const b = path[i] as { x: number; y: number }
+		length += Math.hypot(b.x - a.x, b.y - a.y)
+	}
+	return length
 }

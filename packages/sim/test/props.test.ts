@@ -457,6 +457,127 @@ describe('campaign objectives', () => {
 		for (let i = 0; i < 300; i++) if (world.alive[i] === 1) expect(world.x[i]).toBeGreaterThan(15)
 		expect(maps.landfall?.props?.some(prop => prop.id === 'gate-crash')).toBe(true)
 	})
+
+	it('gathers items a player walks over, counting only as many as it asks for', () => {
+		const world = mission(room([]), {
+			objectives: [
+				{
+					type: 'gather',
+					label: 'Cases',
+					look: 'sample',
+					count: 2,
+					items: [
+						{ x: 8, y: 10 },
+						{ x: 10, y: 10 },
+						{ x: 12, y: 10 }
+					]
+				},
+				{ type: 'survive', label: 'Wait', seconds: 60 }
+			]
+		})
+		const player = world.addPlayer(1)
+		player.x = 8
+		player.y = 10
+		world.step(new Map())
+		expect(world.mission?.picked).toBe(1)
+		expect(world.mission?.index).toBe(0)
+		player.x = 12.5
+		world.step(new Map())
+		expect(world.mission?.index).toBe(1)
+	})
+
+	it('fills a capture area while someone stands in it and drains it while the dead hold it', () => {
+		const world = mission(room([]), {
+			objectives: [
+				{ type: 'capture', label: 'Take', seconds: 2, areas: [{ x: 8, y: 10, radius: 2 }] },
+				{ type: 'survive', label: 'Wait', seconds: 60 }
+			]
+		})
+		const player = world.addPlayer(1)
+		player.x = 8
+		player.y = 10
+		steps(world, TICK_RATE)
+		const held = world.mission?.areaTicks[0] ?? 0
+		expect(held).toBeGreaterThan(TICK_RATE / 2)
+		player.x = 25
+		const zombie = world.spawnZombie(drudge, { x: 8.5, y: 10 })
+		steps(world, 4)
+		expect(world.mission?.areaTicks[0]).toBeLessThan(held)
+		world.damageZombie(zombie, 1e9, 1)
+		player.x = 8
+		steps(world, 2 * TICK_RATE)
+		expect(world.mission?.index).toBe(1)
+	})
+
+	it('drives an escorted vehicle along its path only while the squad is near it', () => {
+		const map = room([{ id: 'van', kind: 'vehicle', x: 4, y: 10 }])
+		const world = mission(map, {
+			objectives: [
+				{
+					type: 'escort',
+					label: 'Van',
+					prop: 'van',
+					speed: 4,
+					radius: 5,
+					path: [
+						{ x: 4, y: 10 },
+						{ x: 24, y: 10 }
+					]
+				},
+				{ type: 'survive', label: 'Wait', seconds: 60 }
+			]
+		})
+		const van = world.propById.get('van')
+		const player = world.addPlayer(1)
+		player.x = 25
+		player.y = 4
+		steps(world, TICK_RATE)
+		expect(van?.x).toBe(4)
+		player.x = 4
+		player.y = 12
+		steps(world, TICK_RATE)
+		expect(van?.x).toBeCloseTo(8, 0)
+		for (let i = 0; i < 10 * TICK_RATE && world.mission?.index === 0; i++) {
+			if (van) player.x = van.x
+			world.step(new Map())
+		}
+		expect(world.mission?.index).toBe(1)
+		expect(van?.x).toBeCloseTo(24, 0)
+	})
+
+	it('burns whoever the escape hazard catches and finishes once everyone is out', () => {
+		const hazard = {
+			kind: 'fire' as const,
+			from: { x: 2, y: 10 },
+			toward: { x: 28, y: 10 },
+			speed: 4,
+			delaySeconds: 1,
+			damagePerSecond: 40
+		}
+		const world = mission(room([]), {
+			objectives: [
+				{ type: 'escape', label: 'Run', area: { x: 26, y: 10, radius: 2 }, hazard },
+				{ type: 'survive', label: 'Wait', seconds: 60 }
+			]
+		})
+		const slow = world.addPlayer(1)
+		const fast = world.addPlayer(2)
+		slow.x = 3
+		slow.y = 10
+		fast.x = 20
+		fast.y = 10
+		const health = slow.health
+		steps(world, 2 * TICK_RATE)
+		expect(slow.health).toBeLessThan(health)
+		expect(fast.health).toBe(health)
+		expect(world.mission?.index).toBe(0)
+		slow.downed = false
+		slow.health = health
+		slow.x = 26
+		fast.x = 26
+		world.step(new Map())
+		expect(world.mission?.index).toBe(1)
+	})
 })
 
 describe('more prop rules', () => {
