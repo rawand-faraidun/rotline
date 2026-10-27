@@ -440,7 +440,7 @@ export const mapPropSchema = z.object({
 	locked: z.boolean().optional(),
 	/** defend targets: their health (default from props data) */
 	health: z.number().positive().optional(),
-	/** turrets and floodlights: the generator that powers them */
+	/** turrets, floodlights and traps: the generator that powers them (a trap without power is dead) */
 	powerBy: id.optional(),
 	/** drawing only: the scenery model it looks like (searches, carried things, defend targets, vehicles) */
 	look: id.optional()
@@ -621,7 +621,14 @@ const objectiveBase = {
 		})
 		.optional(),
 	/** an elite who turns up when the objective starts: its type, and where (default: a spawn point) */
-	boss: z.object({ type: id, at: point.optional() }).optional(),
+	boss: z
+		.object({
+			type: id,
+			at: point.optional(),
+			/** seconds into the step before it turns up (default straight away) */
+			afterSeconds: z.number().min(0).max(300).optional()
+		})
+		.optional(),
 	/** something jams the squad's kit while this step runs: no abilities (grenades and the like still work) */
 	jammed: z.boolean().optional()
 }
@@ -797,7 +804,12 @@ const missionFields = z.object({
 		)
 		.max(6)
 		.optional(),
-	/** locked doors this mission opens (and closes behind the squad) when an objective is done */
+	/** where the squad deploys, when not at the map's own spawn (one point per player) */
+	playerSpawns: z.array(point).min(1).max(8).optional(),
+	/**
+	 * Doors this mission keeps locked until an objective is done (then opens, and may close again
+	 * behind the squad). A map's own gates start locked; any other door named here is locked too.
+	 */
 	gates: z
 		.record(
 			id,
@@ -822,7 +834,16 @@ const missionFields = z.object({
  * mission says. Each room is given one of the mission's maps at random.
  */
 export const missionVariantSchema = missionFields
-	.pick({ description: true, briefing: true, caches: true, notes: true, gates: true, props: true, objectives: true })
+	.pick({
+		description: true,
+		briefing: true,
+		caches: true,
+		notes: true,
+		gates: true,
+		props: true,
+		objectives: true,
+		playerSpawns: true
+	})
 	.partial()
 	.extend({ map: id })
 

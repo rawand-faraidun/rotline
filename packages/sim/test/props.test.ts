@@ -745,6 +745,67 @@ describe('campaign objectives', () => {
 		expect(player.jammed).toBe(false)
 	})
 
+	it('brings a boss in partway through a step', () => {
+		const world = mission(room([]), {
+			objectives: [
+				{ type: 'survive', label: 'Wait', seconds: 60, boss: { type: 'brute', at: { x: 25, y: 10 }, afterSeconds: 2 } },
+				wait
+			]
+		})
+		world.addPlayer(1)
+		const brute = zombieIndex('brute')
+		const brutes = () => [...world.alive.keys()].filter(i => world.alive[i] === 1 && world.type[i] === brute).length
+		steps(world, TICK_RATE)
+		expect(brutes()).toBe(0)
+		steps(world, TICK_RATE + 2)
+		expect(brutes()).toBe(1)
+	})
+
+	it('puts the pistol in the hands of whoever carries, and the gun back after', () => {
+		const map = room([{ id: 'box', kind: 'carry', x: 5, y: 13 }])
+		const world = mission(map, {
+			objectives: [{ type: 'retrieve', label: 'Carry', item: 'box', area: { x: 6, y: 5, radius: 2 } }, wait]
+		})
+		const player = world.addPlayer(1)
+		player.x = 5
+		player.y = 13
+		world.step(new Map())
+		expect(player.slot).toBe(0)
+		steps(world, Math.round(propsDef.carry.pickupSeconds * TICK_RATE) + 2, () => hold())
+		world.step(new Map([[1, input({ buttons: Button.slot1 })]]))
+		expect(player.carrying).toBe(true)
+		expect(player.slot).toBe(2)
+		player.x = 6
+		player.y = 5
+		world.step(new Map())
+		expect(player.carrying).toBe(false)
+		expect(player.slot).toBe(0)
+	})
+
+	it('keeps a trap wired to a generator dead until the generator runs', () => {
+		const world = new World({
+			seed: 1,
+			map: room([
+				{ id: 'gen', kind: 'generator', x: 20, y: 5, w: 1, h: 1 },
+				{ id: 'trap', kind: 'trap', x: 8.5, y: 10.5, powerBy: 'gen' }
+			]),
+			waves: quiet
+		})
+		const trap = world.propById.get('trap')
+		const generator = world.propById.get('gen')
+		const player = world.addPlayer(1)
+		player.x = 8.5
+		player.y = 11.5
+		world.step(new Map())
+		world.step(hold())
+		expect(trap?.state).toBe(PropState.idle)
+		if (generator) generator.state = PropState.done
+		// let go of E, then press it again
+		world.step(new Map([[1, input({})]]))
+		world.step(hold())
+		expect(trap?.state).toBe(PropState.active)
+	})
+
 	it('stops an escort dead while the dead are on it, and bursts nests as they die', () => {
 		const map = room([
 			{ id: 'van', kind: 'vehicle', x: 4, y: 10 },

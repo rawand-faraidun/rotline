@@ -15,6 +15,9 @@ const BOLT_STEPS = 7
 /** as tall as the map's walls */
 const WEAK_WALL_HEIGHT = 3.2
 
+/** How far each vehicle model is turned so it faces along +z (the way the vehicle drives). */
+const VEHICLE_TURN: Record<string, number> = { 'scene-apc': -Math.PI / 2 }
+
 /** Kinds drawn with a model (fitted to a 1 m cube by the asset pipeline); the rest stay simple shapes. */
 const MODELLED = new Set(['barrel', 'crate', 'generator', 'terminal', 'carry', 'defend', 'door', 'ammo'])
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
@@ -242,33 +245,6 @@ export class PropRenderer {
 		positions.needsUpdate = true
 	}
 
-	/** The rail yard's shunting engine: a long yellow hood, a cab at one end, buffers and wheels. */
-	private shunter(root: THREE.Group): void {
-		const paint = this.material(0xd9a400)
-		const dark = this.material(0x22241f)
-		const glass = this.material(0x1a2a30, 0x22343a)
-		const part = (material: THREE.Material, w: number, h: number, d: number, x: number, y: number, z: number) => {
-			const mesh = new THREE.Mesh(this.box, material)
-			mesh.scale.set(w, h, d)
-			mesh.position.set(x, y, z)
-			mesh.castShadow = true
-			root.add(mesh)
-			return mesh
-		}
-		part(dark, 2.3, 0.35, 6.4, 0, 0.45, 0)
-		part(paint, 1.7, 1.3, 4.2, 0, 1.25, -0.9)
-		part(paint, 2.2, 2.2, 1.9, 0, 1.7, 2.1)
-		part(glass, 2.25, 0.6, 1.6, 0, 2.3, 2.1)
-		part(dark, 2.3, 0.15, 2.1, 0, 2.85, 2.1)
-		// warning stripes on both ends, buffers, and a light on the cab
-		for (const z of [-3.15, 3.15]) {
-			part(this.material(0x111111), 2.2, 0.5, 0.08, 0, 0.75, z)
-			for (const x of [-0.8, 0.8]) part(dark, 0.25, 0.25, 0.3, x, 0.75, z + Math.sign(z) * 0.15)
-		}
-		for (const z of [-2.2, -0.8, 0.8, 2.2]) for (const x of [-1, 1]) part(dark, 0.18, 0.7, 0.7, x, 0.35, z)
-		part(this.material(0x332200, 0xffd27a), 0.4, 0.2, 0.1, 0, 2.6, 3.06)
-	}
-
 	private material(color: number, emissive = 0): THREE.MeshStandardMaterial {
 		return new THREE.MeshStandardMaterial({ color, roughness: 0.85, emissive, emissiveIntensity: emissive ? 0.8 : 0 })
 	}
@@ -308,18 +284,18 @@ export class PropRenderer {
 				break
 			}
 			case 'vehicle': {
-				// the vehicle to walk out: a battered car or van (or the yard's shunting engine), its health over it
+				// the vehicle to walk out (a car, the fuel tanker, the armoured carrier), its health over it
+				const look = prop.def.look ?? 'scene-car'
+				const turn = VEHICLE_TURN[look] ?? 0
 				const body = add(new THREE.Mesh(this.box, this.material(0x3a4a3e)), 0.8)
 				body.scale.set(1.8, 1.5, 4.2)
-				bar = this.bar(root, prop.def.look === 'shunter' ? 3.2 : 2.2)
-				if (prop.def.look === 'shunter') {
-					body.visible = false
-					this.shunter(root)
-				} else if (this.models)
-					void propModel(`${this.assets}/models/props/scene-car.glb`).then(model => {
+				bar = this.bar(root, look === 'scene-car' ? 2.2 : 3.4)
+				if (this.models)
+					void propModel(`${this.assets}/models/props/${look}.glb`).then(model => {
 						if (!model || !root.parent) return
 						const copy = model.clone()
-						copy.scale.setScalar(1.05)
+						// scenery models come at their real size; each faces its own way
+						copy.rotation.y = turn
 						root.add(copy)
 						body.visible = false
 					})

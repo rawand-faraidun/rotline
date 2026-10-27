@@ -3,13 +3,13 @@
 		{
 			"id": "ashgate",
 			"name": "Ashgate",
-			"description": "The town where it started: Halden's blight in the barley, the Rotline drawn round it, and the girl who never turned.",
+			"description": "The town where it started: Halden's blight in the grain, the Rotline drawn round it, and the girl who never turned.",
 			"missions": ["landfall", "yard-sweep", "power-out", "survivors", "yard-stand"]
 		},
 		{
 			"id": "harrow",
 			"name": "Harrow",
-			"description": "The city past the Rotline: its airfield, its hive, its hospital, the minister on the hill and the sealed lab under it all, where the cure is made.",
+			"description": "The city past the Rotline: its harbour, its gardens, its hospital, the minister on the hill and the sealed lab under it all, where the cure is made.",
 			"missions": ["airlift", "hive", "lifeline", "minister", "cure"]
 		}
 	],

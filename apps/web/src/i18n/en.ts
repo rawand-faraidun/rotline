@@ -96,11 +96,11 @@ export const en = {
 		galleryTitle: 'Straight from the game',
 		gallery: {
 			survival: 'Survival at the Crossroads',
-			airlift: 'Airlift: holding the cargo bay',
-			holdouts: 'Hotspot: the food depot at night',
-			landfall: 'Landfall: up the high street',
-			railyard: 'Rail Yard: the platform',
-			blackout: 'Blackout: the approach road'
+			airlift: 'Harrow airfield: holding the cargo bay',
+			holdouts: 'The food depot',
+			landfall: 'Ashgate: up the high street',
+			railyard: 'Ashgate rail yard: the platform',
+			blackout: 'Blackout Protocol: the approach road'
 		},
 		openKicker: 'Open source',
 		openTitle: 'Built in the open',

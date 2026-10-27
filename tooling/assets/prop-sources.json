@@ -216,7 +216,7 @@
 			"kind": "scene-hydrant",
 			"source": "fire_hydrant",
 			"name": "Fire Hydrant",
-			"author": "Gonçalo Felício",
+			"author": "Gon\u00e7alo Fel\u00edcio",
 			"triangles": 1500
 		},
 		{
@@ -581,7 +581,7 @@
 			"kind": "scene-tv",
 			"source": "Television_01",
 			"name": "Television 01",
-			"author": "Gabriel Radić",
+			"author": "Gabriel Radi\u0107",
 			"triangles": 1500
 		},
 		{
@@ -738,6 +738,22 @@
 			"author": "Berk Gedik",
 			"triangles": 900,
 			"size": 1.6
+		},
+		{
+			"kind": "scene-tanker",
+			"uid": "d1a986c5d7f34d9eb027e612502c4874",
+			"name": "M978 HEMTT",
+			"author": "42manako",
+			"triangles": 9000,
+			"size": 9.5
+		},
+		{
+			"kind": "scene-apc",
+			"uid": "f470fbdb206f4837aaf6dbee2d081707",
+			"name": "AT105E Saxon APC",
+			"author": "42manako",
+			"triangles": 6000,
+			"size": 5.3
 		}
 	]
 }

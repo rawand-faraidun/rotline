@@ -1380,7 +1380,7 @@ function propAction(prop: Prop, carrying: boolean, tick: number, workable: Set<s
 		case 'terminal':
 			return allowed && prop.state === PropState.idle ? 'hack' : null
 		case 'trap':
-			return prop.state === PropState.idle && tick >= prop.readyTick ? 'trap' : null
+			return prop.powered && prop.state === PropState.idle && tick >= prop.readyTick ? 'trap' : null
 		case 'survivor':
 			return allowed && prop.state === PropState.idle ? 'free' : null
 		case 'carry':

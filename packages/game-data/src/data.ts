@@ -136,12 +136,19 @@ export const missionLayouts: ReadonlyMap<string, readonly MissionDef[]> = new Ma
 )
 const layouts = [...missionLayouts.values()].flat()
 const laidOut = new WeakMap<MissionDef, MapDef>()
-/** The map a mission (or one of its variants) plays on, with the props the mission lays on it. */
+/**
+ * The map a mission (or one of its variants) plays on: with the props the mission lays on it, the
+ * doors it uses as gates locked, and its own deploy points.
+ */
 export function missionMap(mission: MissionDef): MapDef {
 	let map = laidOut.get(mission)
 	if (!map) {
 		const base = maps[mission.map] as MapDef
-		map = mission.props?.length ? { ...base, props: [...(base.props ?? []), ...mission.props] } : base
+		const gates = mission.gates ?? {}
+		const props = [...(base.props ?? []), ...(mission.props ?? [])].map(prop =>
+			prop.id in gates && !prop.locked ? { ...prop, locked: true } : prop
+		)
+		map = { ...base, props, playerSpawns: mission.playerSpawns ?? base.playerSpawns }
 		laidOut.set(mission, map)
 	}
 	return map
@@ -290,10 +297,7 @@ for (const mission of layouts) {
 			)
 	}
 	for (const [id, gate] of Object.entries(mission.gates ?? {})) {
-		check(
-			map?.props?.find(prop => prop.id === id)?.locked === true,
-			`missions/${mission.id}: gate ${id} is not a locked door`
-		)
+		check(map?.props?.find(prop => prop.id === id)?.kind === 'door', `missions/${mission.id}: gate ${id} is not a door`)
 		const step = (index: number | undefined) =>
 			index === undefined || (mission.objectives[index] !== undefined && !mission.objectives[index]?.optional)
 		check(

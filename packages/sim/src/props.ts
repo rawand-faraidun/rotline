@@ -172,8 +172,9 @@ export function createProps(map: MapDef, grid: Grid): Prop[] {
 	const byId = new Map(props.map(prop => [prop.def.id, prop.index]))
 	for (const prop of props) {
 		if (prop.def.powerBy) prop.powerBy = byId.get(prop.def.powerBy) ?? -1
-		// a turret or light with no generator is always on
-		if ((prop.def.kind === 'turret' || prop.def.kind === 'floodlight') && prop.powerBy < 0) prop.powered = true
+		// a turret, light or trap with no generator is always on
+		if ((prop.def.kind === 'turret' || prop.def.kind === 'floodlight' || prop.def.kind === 'trap') && prop.powerBy < 0)
+			prop.powered = true
 		applyCells(grid, prop)
 	}
 	return props

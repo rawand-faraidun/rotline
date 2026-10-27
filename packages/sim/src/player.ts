@@ -78,7 +78,7 @@ export type PlayerState = {
 	minigunSteps: number
 	/** firing range: abilities have no cooldown and utilities no limit */
 	free: boolean
-	/** carrying a mission object: slower (predicted, so the server's word arrives in snapshots) */
+	/** carrying a mission object: slower and pistol only (predicted, so the server's word arrives in snapshots) */
 	carrying: boolean
 	/** a mission step jams the squad's kit: no abilities (the client sets it from the objective too) */
 	jammed: boolean
@@ -392,7 +392,8 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	state.aim = input.aim
 
 	// downed players only have the pistol
-	if (state.downed) {
+	// down, or carrying something in both hands: the pistol only
+	if (state.downed || state.carrying) {
 		if (state.slot !== 2) switchTo(state, 2, tick)
 	} else if (pressed & Button.slot1) switchTo(state, 0, tick)
 	else if (pressed & Button.slot2) switchTo(state, 1, tick)
@@ -404,7 +405,7 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	countDown(state)
 
 	// the minigun needs no ammunition and no reloads while it lasts
-	if (minigunActive && !state.downed) {
+	if (minigunActive && !state.downed && !state.carrying) {
 		const minigun = state.stats.minigun
 		if (!(input.buttons & Button.fire) || tick < state.nextFireTick) return result
 		state.nextFireTick = Math.max(state.nextFireTick, tick) + (60 * TICK_RATE) / (minigun.fireRate * fireRateScale)

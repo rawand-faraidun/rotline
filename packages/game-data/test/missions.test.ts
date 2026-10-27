@@ -55,7 +55,7 @@ describe('mission mastery', () => {
 	})
 
 	it('knows the fastest possible time of every mission', () => {
-		expect(minimumSeconds(sweep)).toBe(81)
+		expect(minimumSeconds(sweep)).toBe(89)
 		for (const mission of missions) expect(minimumSeconds(mission)).toBeLessThan(mission.parTimeSeconds)
 	})
 })

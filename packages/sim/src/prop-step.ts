@@ -18,6 +18,8 @@ export function stepProps(world: World): void {
 				break
 			}
 			case 'trap':
+				// a trap wired to a generator works only while it runs
+				if (prop.powerBy >= 0) prop.powered = world.props[prop.powerBy]?.state === PropState.done
 				if (prop.state === PropState.active) {
 					if (world.tick >= prop.untilTick) {
 						prop.state = PropState.idle
@@ -208,11 +210,20 @@ function carried(world: World, prop: Prop): void {
 }
 
 export function drop(world: World, prop: Prop, carrier: PlayerState | undefined): void {
-	if (carrier) carrier.carrying = false
+	if (carrier) letGo(carrier)
 	prop.with = 0
 	prop.state = PropState.idle
 	prop.progress = 0
 	world.events.push({ type: 'prop', index: prop.index, state: prop.state })
+}
+
+/** Hands free again: back to the gun held before (a downed player keeps the pistol). */
+export function letGo(carrier: PlayerState): void {
+	carrier.carrying = false
+	if (carrier.downed || carrier.slot !== 2 || carrier.previousSlot === 2) return
+	carrier.slot = carrier.previousSlot
+	carrier.previousSlot = 2
+	carrier.reloadEndTick = 0
 }
 
 /** Is a downed teammate in reach? Then interact revives them instead of working a prop. */
@@ -259,7 +270,7 @@ function usable(world: World, prop: Prop, player: PlayerState): boolean {
 		case 'terminal':
 			return allowed && prop.state === PropState.idle
 		case 'trap':
-			return prop.state === PropState.idle && tick >= prop.readyTick
+			return prop.powered && prop.state === PropState.idle && tick >= prop.readyTick
 		case 'survivor':
 			return allowed && prop.state === PropState.idle
 		case 'carry':

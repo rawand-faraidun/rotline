@@ -15,7 +15,7 @@ import {
 } from '@rotline/game-data'
 import { DT, MAX_ZOMBIES, TICK_RATE } from './constants.ts'
 import { type PlayerState, refillUtilities } from './player.ts'
-import { resetProp } from './prop-step.ts'
+import { letGo, resetProp } from './prop-step.ts'
 import { type Prop, PropState, setPropState } from './props.ts'
 import { ObjectKind, type World } from './world.ts'
 
@@ -74,6 +74,8 @@ export type MissionState = {
 	repaired: number
 	/** nests (by prop index) that have burst since they were last whole */
 	spilled: Set<number>
+	/** the tick a step's boss is due (0 when it has come or there is none) */
+	bossTick: number
 }
 
 /** A player counts as playing (for objective score and drops) if they acted this recently. */
@@ -134,7 +136,8 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 		found: 0,
 		huntKilled: 0,
 		repaired: 0,
-		spilled: new Set()
+		spilled: new Set(),
+		bossTick: 0
 	}
 }
 
@@ -325,6 +328,8 @@ export function stepMission(world: World): void {
 	const objective = currentObjective(mission)
 	if (!objective) return
 	jam(world, objective.jammed === true)
+	if (objective.boss && mission.startedFor === mission.index && mission.bossTick > 0 && world.tick >= mission.bossTick)
+		spawnBoss(world, mission, objective.boss)
 
 	// the spawn director: a steady stream, scaled by the objective, difficulty and squad size
 	const squad = Math.max(1, Math.min(4, world.players.size))
@@ -489,13 +494,18 @@ function startObjective(world: World, mission: MissionState, objective: Objectiv
 		mission.burstTotal = total
 		mission.burst = Math.max(1, Math.round(objective.ambush.count * count))
 	}
-	if (objective.boss) {
-		// the boss's own place, unless someone stands near it: then it walks in from out of sight
-		const at = objective.boss.at
-		const clear = at && world.nearestPlayerDistance(at.x, at.y) > 12
-		const type = zombieIndex(objective.boss.type)
-		if (world.spawnZombie(type, clear ? at : (world.pickSpawnPoint() ?? at)) < 0) world.spawnZombie(type, at)
-	}
+	// the boss now, or a while into the step
+	mission.bossTick = objective.boss ? world.tick + Math.round((objective.boss.afterSeconds ?? 0) * TICK_RATE) : 0
+	if (objective.boss && mission.bossTick === world.tick) spawnBoss(world, mission, objective.boss)
+}
+
+/** The boss's own place, unless someone stands near it: then it walks in from out of sight. */
+function spawnBoss(world: World, mission: MissionState, boss: NonNullable<ObjectiveDef['boss']>): void {
+	mission.bossTick = 0
+	const at = boss.at
+	const clear = at && world.nearestPlayerDistance(at.x, at.y) > 12
+	const type = zombieIndex(boss.type)
+	if (world.spawnZombie(type, clear ? at : (world.pickSpawnPoint() ?? at)) < 0) world.spawnZombie(type, at)
 }
 
 /** A step jams the squad's kit, or lets it go. */
@@ -745,7 +755,7 @@ function deliverItem(world: World, id: string, area: { x: number; y: number; rad
 	if (prop.state === PropState.delivered) return true
 	if (prop.state !== PropState.carried || Math.hypot(prop.x - area.x, prop.y - area.y) > area.radius) return false
 	const carrier = world.players.get(prop.with)
-	if (carrier) carrier.carrying = false
+	if (carrier) letGo(carrier)
 	prop.state = PropState.delivered
 	prop.with = 0
 	world.events.push({ type: 'prop', index: prop.index, state: prop.state })
