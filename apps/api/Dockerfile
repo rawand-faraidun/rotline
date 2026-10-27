@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:26.12.0-trixie-slim AS base
+FROM node:26.12.1-trixie-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
 RUN npm install --global --no-fund --no-audit pnpm@11.22.0
 
@@ -12,7 +12,7 @@ RUN pnpm --filter @rotline/db generate \
 	&& pnpm --filter @rotline/api deploy --legacy --prod /out \
 	&& cp -r apps/api/dist /out/dist
 
-FROM node:26.12.0-trixie-slim AS runtime
+FROM node:26.12.1-trixie-slim AS runtime
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 ENV NODE_ENV=production
 WORKDIR /app

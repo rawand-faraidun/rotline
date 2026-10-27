@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:26.12.0-trixie-slim AS build
+FROM node:26.12.1-trixie-slim AS build
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
 RUN npm install --global --no-fund --no-audit pnpm@11.22.0
 WORKDIR /repo
