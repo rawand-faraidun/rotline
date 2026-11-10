@@ -23,6 +23,8 @@ export type Party = {
 	/** user ids in join order */
 	members: string[]
 	ready: string[]
+	/** open to anyone: quick play may put a player who is looking for a squad in it */
+	open: boolean
 }
 
 export class PartyError extends Error {
@@ -42,6 +44,10 @@ const memberKey = (userId: string) => `party-member:${userId}`
 /** when each player last had the game open (any page that keeps the event stream) */
 const SEEN_KEY = 'party-seen'
 const SWEEP_LOCK = 'party-sweep-lock'
+/** open squads, by when they opened (newest last) */
+const OPEN_KEY = 'party-open'
+/** quick play looks at this many of the newest open squads */
+const OPEN_LOOK = 50
 
 /** Players gone this long are taken out of their squad (a squad with nobody left is closed). */
 export const PARTY_AWAY_MS = 3 * 60_000
@@ -75,8 +81,48 @@ export class PartyStore {
 			mission: hash.mission ?? '',
 			difficulty: hash.difficulty ?? '',
 			members,
-			ready
+			ready,
+			open: hash.open === '1'
 		}
+	}
+
+	/** The leader opens the squad to anyone (or closes it again). */
+	async setOpen(leaderId: string, open: boolean, now = Date.now()): Promise<Party> {
+		const party = await this.current(leaderId)
+		if (party.leader !== leaderId) throw new PartyError('not-leader')
+		const multi = this.valkey.multi().hset(partyKey(party.id), 'open', open ? '1' : '0')
+		if (open) multi.zadd(OPEN_KEY, now, party.id)
+		else multi.zrem(OPEN_KEY, party.id)
+		await multi.exec()
+		return (await this.get(party.id)) as Party
+	}
+
+	/**
+	 * Quick play: puts a player who is on their own into the newest open squad in the lobby with
+	 * room for them (`accept` may turn a squad down, for blocks). Null when there is none.
+	 */
+	async quickJoin(userId: string, accept: (party: Party) => Promise<boolean>): Promise<Party | null> {
+		const own = await this.current(userId)
+		const ids = await this.valkey.zrevrange(OPEN_KEY, 0, OPEN_LOOK - 1)
+		for (const id of ids) {
+			if (id === own.id) continue
+			const party = await this.get(id)
+			// gone, or closed since: off the list
+			if (!party?.open) {
+				await this.valkey.zrem(OPEN_KEY, id)
+				continue
+			}
+			if (party.state !== 'lobby' || party.members.length >= PARTY_SIZE || party.members.includes(userId)) continue
+			if (!(await accept(party))) continue
+			try {
+				return (await this.join(userId, party.code)).party
+			} catch (error) {
+				// filled up or deployed a moment ago: try the next
+				if (error instanceof PartyError) continue
+				throw error
+			}
+		}
+		return null
 	}
 
 	async byCode(code: string): Promise<Party | null> {
@@ -319,6 +365,7 @@ local rest = redis.call('ZRANGE', members, 0, 0)
 if #rest == 0 then
   local code = redis.call('HGET', party, 'code')
   redis.call('DEL', party, members, party .. ':ready')
+  redis.call('ZREM', 'party-open', id)
   if code then redis.call('DEL', 'party-code:' .. code) end
 elseif redis.call('HGET', party, 'leader') == user then
   redis.call('HSET', party, 'leader', rest[1])

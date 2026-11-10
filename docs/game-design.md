@@ -464,7 +464,8 @@ The daily and weekly jobs the brief calls contracts are called **challenges** in
 
 ## 13. Lobby, difficulty and matchmaking
 
-- Private lobbies by invite link, 6-character code, or the friends list; public quick match by mission and difficulty.
+- Private lobbies by invite link, 6-character code, or the friends list.
+- **Quick play**: the leader can open a squad to anyone. A player on their own who presses Quick play joins the newest open squad in the lobby with room, never one with someone either of them blocks; when there is none, their own squad opens and waits for the next player to press it. They join whatever the leader has chosen, and ready up for it like anyone else. Planned: matching by mission and difficulty.
 - The lobby shows each player's class, class level, loadout and avatar, with a ready check (all ready, or the host starts after a 10 s countdown).
 - Disconnect grace period: 120 s (see `netcode.md`). Meanwhile the player's character is away: it stays where it is, holds no buttons, and an extraction does not wait for it.
 - Idle in lobby: warning at 10 minutes, seat released at 12 minutes (queue rules in `architecture.md`).

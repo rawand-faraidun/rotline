@@ -175,6 +175,8 @@ export function partyRoutes(services: Services) {
 			you,
 			leader: party.leader,
 			members,
+			/** open to anyone through quick play */
+			open: party.open,
 			canStart: party.leader === you && party.state === 'lobby' && members.every(member => member.ready)
 		}
 	}
@@ -214,6 +216,41 @@ export function partyRoutes(services: Services) {
 				const { party, left } = await parties.join(user.id, c.req.valid('json').code)
 				await changed(party.id, left)
 				return c.json(await view(party, user.id), 200)
+			})
+			// the leader opens the squad to anyone looking for one (or closes it)
+			.post('/party/open', zValidator('json', z.object({ open: z.boolean() })), async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const party = await parties.setOpen(user.id, c.req.valid('json').open)
+				await changed(party.id)
+				return c.json(await view(party, user.id), 200)
+			})
+			// quick play: a player on their own joins the newest open squad with room (nobody they
+			// block or who blocks them); with none, their own squad opens and waits for others
+			.post('/party/quick', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const own = await parties.current(user.id)
+				if (own.members.length > 1) return c.json({ error: 'in-squad' as const }, 409)
+				if (own.state !== 'lobby') return c.json({ error: 'in-mission' as const }, 409)
+				const found = await parties.quickJoin(
+					user.id,
+					async party =>
+						(await db.block.count({
+							where: {
+								OR: [
+									{ blockerId: user.id, blockedId: { in: party.members } },
+									{ blockerId: { in: party.members }, blockedId: user.id }
+								]
+							}
+						})) === 0
+				)
+				if (found) {
+					await changed(found.id)
+					return c.json({ joined: true, party: await view(found, user.id) }, 200)
+				}
+				const opened = await parties.setOpen(user.id, true)
+				return c.json({ joined: false, party: await view(opened, user.id) }, 200)
 			})
 			// leave a mission for good: a squad of one ends it, a member of a bigger squad leaves the squad
 			.post('/party/abandon', async c => {

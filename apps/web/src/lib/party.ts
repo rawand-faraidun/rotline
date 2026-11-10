@@ -22,6 +22,8 @@ export type PartyMember = {
 export type PartyView = {
 	id: string
 	code: string
+	/** open to anyone through quick play */
+	open: boolean
 	state: 'lobby' | 'mission'
 	/** what the leader chose for the next mission */
 	mission: { id: string; difficulty: DifficultyId }
@@ -42,6 +44,7 @@ export type PartyProblem =
 	| 'elsewhere'
 	| 'locked'
 	| 'cooldown'
+	| 'in-squad'
 
 export const partyQuery = queryOptions({
 	queryKey: ['party'],
@@ -147,7 +150,18 @@ export const partyActions = {
 		send('start', seen ? { seen: { mission: seen.id, difficulty: seen.difficulty } } : {}),
 	/** leave the mission for good: a squad of one ends it, otherwise the player leaves the squad */
 	abandon: () => send('abandon'),
-	mission: (mission: string, difficulty: DifficultyId) => send('mission', { mission, difficulty })
+	mission: (mission: string, difficulty: DifficultyId) => send('mission', { mission, difficulty }),
+	/** the leader opens the squad to quick play, or closes it */
+	open: (open: boolean) => send('open', { open }),
+	/** joins an open squad with room; with none, opens the player's own */
+	quick: async (): Promise<{ joined: boolean; party: PartyView } | { error: PartyProblem }> => {
+		const response = await fetch('/api/party/quick', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: '{}'
+		})
+		return (await response.json()) as { joined: boolean; party: PartyView } | { error: PartyProblem }
+	}
 }
 
 export type Invite = { from: string; code: string }

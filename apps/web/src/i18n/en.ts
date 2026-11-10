@@ -668,6 +668,13 @@ export const en = {
 			rejoin: 'Rejoin mission',
 			abandon: 'Abandon mission',
 			abandonSquad: 'Leave the mission and the squad',
+			quickPlay: 'Quick play',
+			quickPlayHint: 'Join an open squad that has room.',
+			quickJoined: 'You joined an open squad.',
+			quickWaiting: 'No open squad has room yet. Yours is open now: anyone using quick play can join you.',
+			openSquad: 'Open to anyone',
+			openSquadHint: 'Players using quick play can join your squad.',
+			closedSquad: 'Invite only',
 			problems: {
 				'not-found': 'No squad has that code.',
 				full: 'That squad is full.',
@@ -678,7 +685,8 @@ export const en = {
 				changed: 'The mission changed just now. Check it and try again.',
 				elsewhere: 'You are still in another mission. Leave it first.',
 				locked: 'That mission is not open yet. Finish the one before it first.',
-				cooldown: 'You just left a mission. Wait a few seconds before deploying again.'
+				cooldown: 'You just left a mission. Wait a few seconds before deploying again.',
+				'in-squad': 'You are already in a squad. Leave it to use quick play.'
 			}
 		},
 		missions: {
