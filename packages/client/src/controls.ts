@@ -65,6 +65,7 @@ export class Controls {
 		if (this.keys.has('KeyV')) buttons |= Button.ability3
 		if (this.keys.has('KeyG')) buttons |= Button.utility1
 		if (this.keys.has('KeyT')) buttons |= Button.utility2
+		if (this.keys.has('ShiftLeft') || this.keys.has('ShiftRight')) buttons |= Button.sprint
 		return buttons
 	}
 

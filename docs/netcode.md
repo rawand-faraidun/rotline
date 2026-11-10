@@ -26,7 +26,7 @@ If a tick runs late, the server runs the missed ticks back to back (up to 3) ins
 
 ## Messages
 
-All messages are binary; the first byte is the message type. Encoding lives in `packages/protocol`, shared by server and client, with round-trip tests for every type. The protocol is versioned (currently version 6); the `hello` carries the client's version.
+All messages are binary; the first byte is the message type. Encoding lives in `packages/protocol`, shared by server and client, with round-trip tests for every type. The protocol is versioned (currently version 14); the `hello` carries the client's version.
 
 ### Client to server
 

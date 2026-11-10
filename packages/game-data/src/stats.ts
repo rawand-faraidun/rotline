@@ -44,6 +44,8 @@ export type PlayerStats = {
 	level: number
 	maxHealth: number
 	speed: number
+	/** speed at a sprint, times `speed` */
+	sprint: number
 	reviveSeconds: number
 	armour: number
 	/** share of incoming damage removed after armour, 0..0.5 */
@@ -220,6 +222,7 @@ export function computeStats(build: Build): PlayerStats {
 		level: build.level,
 		maxHealth: Math.round(cls.health * healthScale * (1 + total('maxHealth'))),
 		speed: cls.speed * (1 + total('moveSpeed') + armourSpeed),
+		sprint: cls.sprint,
 		reviveSeconds: Math.max(combat.reviveFloorSeconds, cls.reviveSeconds + total('reviveTime')),
 		armour: (armourBase + total('armour')) * (1 + total('armourPct')) * cls.armourEffectiveness,
 		damageReduction: Math.min(combat.damageReductionCap, total('damageReduction')),

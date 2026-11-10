@@ -650,6 +650,8 @@ export const en = {
 			locked: 'Locked',
 			done: 'Done',
 			lockedHint: 'Finish the mission before it to open this one.',
+			zoneBoss: 'Zone boss',
+			bossLockedHint: 'Finish the zone to face its boss. The next zone does not wait for it.',
 			timeLimit: '{time} on the clock',
 			tabs: { campaign: 'Campaign', modes: 'Game modes' },
 			tabHints: {
@@ -756,6 +758,8 @@ export const en = {
 			itemFound: 'Item found',
 			buffPicked: '{name}',
 			buffBy: '{name} — from {by}',
+			bossPhase: 'Boss',
+			stamina: 'Stamina',
 			threshold: 'Score bonus: +{salvage} Salvage and health',
 			resupply: 'Ammo refilled',
 			secretFound: 'Secret found: a hidden room is open',
@@ -822,7 +826,7 @@ export const en = {
 			},
 			backToLobby: 'Back to lobby',
 			controls:
-				'WASD move · mouse aim · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
+				'WASD move · Shift sprint · mouse aim · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
 			abilities: 'Abilities and utilities',
 			ready: 'Ready',
 			jammed: 'Jammed'

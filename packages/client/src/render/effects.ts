@@ -32,7 +32,10 @@ export const SHOT_LOOKS: Record<string, ShotLook> = {
 const DEFAULT_LOOK = SHOT_LOOKS.rifle as ShotLook
 const DECALS = 800
 const BURSTS = 8
-const POOLS = 16
+const POOLS = 96
+const ACID = new THREE.Color(0x7fd03a)
+/** scorched ground still glowing: dark enough that a trail of them reads as burnt, not as a wall of fire */
+const EMBERS = new THREE.Color(0x4a1c06)
 const PROJECTILES = 16
 
 function blob(r: number, g: number, b: number, soft: number): THREE.CanvasTexture {
@@ -166,9 +169,10 @@ export class Effects {
 		poolGeometry.rotateX(-Math.PI / 2)
 		this.pools = new THREE.InstancedMesh(
 			poolGeometry,
-			new THREE.MeshBasicMaterial({ color: 0x7fd03a, transparent: true, opacity: 0.35, depthWrite: false }),
+			new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false }),
 			POOLS
 		)
+		for (let i = 0; i < POOLS; i++) this.pools.setColorAt(i, ACID)
 		this.pools.count = 0
 		this.pools.frustumCulled = false
 
@@ -401,9 +405,12 @@ export class Effects {
 				this.scale.set(pool.radius, 1, pool.radius)
 			)
 			this.pools.setMatrixAt(i, this.matrix)
+			// acid is green; a burning trail glows like embers
+			this.pools.setColorAt(i, pool.fire ? EMBERS : ACID)
 		}
 		this.pools.count = count
 		this.pools.instanceMatrix.needsUpdate = true
+		if (this.pools.instanceColor) this.pools.instanceColor.needsUpdate = true
 	}
 
 	/** A body bursting apart: `count` lumps thrown out and up from (x, y), and the blood around it. */

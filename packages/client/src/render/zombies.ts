@@ -169,6 +169,11 @@ const STUNNED = new THREE.Color(0x6fb8ff)
 const POISONED = new THREE.Color(0x9fe04a)
 const SLOWED = new THREE.Color(0x9fd8e8)
 const BURNING = new THREE.Color(0xff7a2a)
+const DAZED = new THREE.Color(0xd8d0b0)
+/** a zombie's own glow, by type: a Retcher's throat */
+const THROATS = zombieDefs.map(def => (def.ranged ? new THREE.Color(0xe8f040) : null))
+/** who carries a shield, and how big it is for them */
+const SHIELDS = zombieDefs.map(def => (def.shield ? def.scale : 0))
 
 export class ZombieRenderer {
 	readonly mesh: THREE.InstancedMesh
@@ -194,6 +199,12 @@ export class ZombieRenderer {
 	private readonly up = new THREE.Vector3(0, 1, 0)
 	// the model is already painted (skin, rags, blood): the type's tint only shifts it a little
 	private readonly tints = zombieDefs.map(def => new THREE.Color(0xffffff).lerp(new THREE.Color(def.tint), 0.4))
+
+	/** a mound of earth over each zombie under the ground, shields carried in front, a Retcher's throat */
+	readonly extras = new THREE.Group()
+	private readonly mounds: THREE.InstancedMesh
+	private readonly shields: THREE.InstancedMesh
+	private readonly throats: THREE.InstancedMesh
 
 	private readonly frustum = new THREE.Frustum()
 	private readonly viewMatrix = new THREE.Matrix4()
@@ -258,6 +269,38 @@ export class ZombieRenderer {
 		this.corpses = dead.mesh
 		this.corpseAnim = dead.anim
 		this.corpses.receiveShadow = true
+
+		const mound = new THREE.SphereGeometry(0.55, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2)
+		this.mounds = new THREE.InstancedMesh(
+			mound,
+			new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 }),
+			MAX_ZOMBIES
+		)
+		// a riot shield: a slab with a little give at the edges, dark steel with a scratched face
+		const slab = new THREE.BoxGeometry(0.85, 1.25, 0.07).translate(0, 0.85, 0)
+		this.shields = new THREE.InstancedMesh(
+			slab,
+			new THREE.MeshStandardMaterial({ color: 0x39434c, roughness: 0.55, metalness: 0.7 }),
+			64
+		)
+		this.shields.castShadow = detail === 'high'
+		this.throats = new THREE.InstancedMesh(
+			new THREE.SphereGeometry(0.12, 10, 8),
+			new THREE.MeshBasicMaterial({
+				color: 0xffffff,
+				transparent: true,
+				opacity: 0.85,
+				blending: THREE.AdditiveBlending
+			}),
+			64
+		)
+		for (const mesh of [this.mounds, this.shields, this.throats]) {
+			mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+			mesh.frustumCulled = false
+			mesh.count = 0
+		}
+		this.mounds.receiveShadow = true
+		this.extras.add(this.mounds, this.shields, this.throats)
 	}
 
 	static async load(url: string, detail: ZombieDetail = 'high'): Promise<ZombieRenderer> {
@@ -320,14 +363,33 @@ export class ZombieRenderer {
 		this.updateCorpses(timeSeconds, culled)
 		this.seenNow.fill(0)
 		let drawn = 0
+		let mounds = 0
+		let shields = 0
+		let throats = 0
 		for (let i = 0; i < view.count; i++) {
 			const type = view.type[i] as number
 			const def = zombieDefs[type]
-			const attacking = view.state[i] === ZombieState.attacking
-			const clip = attacking ? this.clips.attack : def && def.speed > 2.5 ? this.clips.run : this.clips.walk
+			const state = view.state[i] as number
+			const attacking = state === ZombieState.attacking || state === ZombieState.windup
+			const charging = state === ZombieState.charging
+			const clip = attacking
+				? this.clips.attack
+				: charging || (def && def.speed > 2.5)
+					? this.clips.run
+					: this.clips.walk
 			// a stable per-zombie phase so the horde does not step in unison
 			const phase = (((view.index[i] as number) * 0.6180339887) % 1) as number
-			const speed = attacking ? 1.2 : def ? Math.min(1.6, 0.6 + def.speed / 3) : 1
+			const speed = charging
+				? 2.2
+				: state === ZombieState.windup
+					? 0.6
+					: state === ZombieState.dazed
+						? 0.35
+						: attacking
+							? 1.2
+							: def
+								? Math.min(1.6, 0.6 + def.speed / 3)
+								: 1
 			const size = def?.scale ?? 1
 			const slot = view.index[i] as number
 			this.seenNow[slot] = 1
@@ -337,6 +399,18 @@ export class ZombieRenderer {
 			if (this.seen[slot] === 0)
 				this.bornAt[slot] = this.nearHole(view.x[i] as number, view.y[i] as number) ? timeSeconds : 0
 			if (culled && !this.inView(view.x[i] as number, view.y[i] as number, size)) continue
+			// under the ground: only the earth it heaves up shows, trembling harder just before it bursts out
+			if (state === ZombieState.under || state === ZombieState.erupting) {
+				const erupting = state === ZombieState.erupting
+				const wobble = 1 + Math.sin(timeSeconds * (erupting ? 40 : 9) + phase * 6) * (erupting ? 0.18 : 0.08)
+				this.matrix.compose(
+					this.position.set(view.x[i] as number, -0.12, view.y[i] as number),
+					this.quaternion.setFromAxisAngle(this.up, phase * 6),
+					this.scale.set(size * wobble * (erupting ? 1.5 : 1), size * (erupting ? 0.7 : 0.45), size * wobble)
+				)
+				this.mounds.setMatrixAt(mounds++, this.matrix)
+				continue
+			}
 			const n = drawn++
 			const base = n * 4
 			this.anim.array[base] = clip.start
@@ -355,6 +429,41 @@ export class ZombieRenderer {
 				this.scale.set(size, size, size)
 			)
 			this.mesh.setMatrixAt(n, this.matrix)
+			// a shield held in front, the way it faces (dropped low while it stands dazed)
+			const shieldSize = SHIELDS[type] ?? 0
+			if (shieldSize > 0 && shields < 64) {
+				const facing = view.facing[i] as number
+				const ahead = 0.45 * shieldSize
+				const dazed = state === ZombieState.dazed
+				this.matrix.compose(
+					this.position.set(
+						(view.x[i] as number) + Math.cos(facing) * ahead,
+						dazed ? -0.45 * shieldSize : -below,
+						(view.y[i] as number) + Math.sin(facing) * ahead
+					),
+					this.quaternion,
+					this.scale.set(shieldSize, shieldSize, shieldSize)
+				)
+				this.shields.setMatrixAt(shields++, this.matrix)
+			}
+			// a Retcher's throat glows, brighter as it rears back to spit
+			const throat = THROATS[type]
+			if (throat && throats < 64) {
+				const facing = view.facing[i] as number
+				const pulse = state === ZombieState.windup ? 1.8 + Math.sin(timeSeconds * 30) * 0.4 : 1
+				this.matrix.compose(
+					this.position.set(
+						(view.x[i] as number) + Math.cos(facing) * 0.18 * size,
+						1.45 * size - below,
+						(view.y[i] as number) + Math.sin(facing) * 0.18 * size
+					),
+					this.quaternion,
+					this.scale.setScalar(pulse * size)
+				)
+				this.throats.setMatrixAt(throats, this.matrix)
+				this.throats.setColorAt(throats, this.color.copy(throat))
+				throats++
+			}
 			// wounded zombies darken slightly; statuses tint them (stunned blue, marked red, poisoned green)
 			const health = (view.health[i] as number) / 255
 			this.color.copy(this.tints[type] ?? this.color.set(0xffffff)).multiplyScalar(0.55 + 0.45 * health)
@@ -365,8 +474,14 @@ export class ZombieRenderer {
 			else if (status & ZombieStatus.slowed) this.color.lerp(SLOWED, 0.35)
 			// burning: scorched dark, lit orange by its own flames
 			if (status & ZombieStatus.burning) this.color.multiplyScalar(0.55).lerp(BURNING, 0.25)
+			if (state === ZombieState.dazed) this.color.lerp(DAZED, 0.35 + 0.2 * Math.sin(timeSeconds * 12))
 			this.mesh.setColorAt(n, this.color)
 		}
+		this.mounds.count = mounds
+		this.shields.count = shields
+		this.throats.count = throats
+		for (const mesh of [this.mounds, this.shields, this.throats]) mesh.instanceMatrix.needsUpdate = true
+		if (this.throats.instanceColor) this.throats.instanceColor.needsUpdate = true
 		this.seen.set(this.seenNow)
 		this.mesh.count = drawn
 		this.mesh.instanceMatrix.needsUpdate = true

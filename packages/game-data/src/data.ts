@@ -173,6 +173,25 @@ for (const [index, wave] of waves.waves.entries()) {
 		)
 	}
 }
+for (const key of Object.keys(difficulties.director.caps))
+	check(
+		zombies.some(zombie => zombie.id === key && !zombie.dummy),
+		`difficulties: the director caps an unknown zombie ${key}`
+	)
+for (const zombie of zombies) {
+	for (const phase of zombie.phases ?? [])
+		for (const key of Object.keys(phase.summon?.composition ?? {}))
+			check(
+				zombies.some(other => other.id === key && !other.dummy && !other.boss),
+				`zombies/${zombie.id}: a phase calls an unknown zombie ${key}`
+			)
+	const below = (zombie.phases ?? []).map(phase => phase.below)
+	check(
+		below.every((share, index) => index === 0 || share < (below[index - 1] as number)),
+		`zombies/${zombie.id}: phases must come in falling order of health`
+	)
+	check(!zombie.boss || zombie.elite === true, `zombies/${zombie.id}: a boss is an elite`)
+}
 if (waves.boss) {
 	const type = waves.boss.type
 	check(
@@ -513,7 +532,10 @@ for (const mission of layouts) {
 	}
 }
 {
-	const listed = [...campaign.zones.flatMap(zone => zone.missions), ...(campaign.contracts ?? [])]
+	const listed = [
+		...campaign.zones.flatMap(zone => [...zone.missions, ...(zone.boss ? [zone.boss] : [])]),
+		...(campaign.contracts ?? [])
+	]
 	check(new Set(listed).size === listed.length, 'campaign: a mission is listed twice')
 	for (const id of listed)
 		check(

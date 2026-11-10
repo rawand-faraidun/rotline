@@ -1,4 +1,13 @@
-import { ARMOUR_PIECES, type Build, buildSchema, classes, dataVersion, gear, weapons } from '@rotline/game-data'
+import {
+	ARMOUR_PIECES,
+	type Build,
+	buildSchema,
+	classes,
+	dataVersion,
+	gear,
+	weapons,
+	zombies as zombieDefs
+} from '@rotline/game-data'
 import {
 	CHAIN_TICKS,
 	currentObjective,
@@ -22,7 +31,7 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 13
+export const PROTOCOL_VERSION = 14
 
 const FAIL_REASONS = ['time', 'lives', 'wiped'] as const
 
@@ -357,7 +366,8 @@ export type OtherPlayer = {
 	revive: number
 }
 
-export type PoolState = { x: number; y: number; radius: number }
+/** `fire`: a burning trail; otherwise acid */
+export type PoolState = { x: number; y: number; radius: number; fire: boolean }
 
 /** A zone, barricade, mine, decoy, sentry or mortar marker, as clients see it. */
 export type ObjectState = {
@@ -517,6 +527,9 @@ export class SnapshotEncoder {
 			w.u16(s.hasteSteps).f64(s.hasteSpeed).f64(s.hasteFire)
 			w.u16(s.dashSteps).f64(s.dashX).f64(s.dashY)
 			w.u16(s.overwatchShots).u16(s.minigunSteps)
+			w.u32(s.stamina)
+				.u16(s.staminaWait)
+				.u8(s.sprinting ? 1 : 0)
 		}
 
 		// the mission, and this player's score and chain
@@ -566,6 +579,7 @@ export class SnapshotEncoder {
 			w.u16(q(pool.x))
 				.u16(q(pool.y))
 				.u8(Math.round(pool.radius * 10))
+				.u8(pool.type === 'fire' ? 1 : 0)
 		}
 
 		// map props: only what changed since the last snapshot
@@ -753,6 +767,9 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		const dashY = r.f64()
 		const overwatchShots = r.u16()
 		const minigunSteps = r.u16()
+		const stamina = r.u32()
+		const staminaWait = r.u16()
+		const sprinting = r.u8() === 1
 		self = {
 			x,
 			y,
@@ -782,6 +799,9 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			dashY,
 			overwatchShots,
 			minigunSteps,
+			stamina,
+			staminaWait,
+			sprinting,
 			free: (flags & 8) !== 0,
 			carrying: (flags & 16) !== 0,
 			jammed: (flags & 32) !== 0
@@ -830,7 +850,8 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 	}
 	const pools: PoolState[] = []
 	const poolCount = r.u8()
-	for (let i = 0; i < poolCount; i++) pools.push({ x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })
+	for (let i = 0; i < poolCount; i++)
+		pools.push({ x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10, fire: r.u8() === 1 })
 	const props: PropUpdate[] = []
 	const propCount = r.u16()
 	if (propCount > 4096) throw new ProtocolError('too many props')
@@ -933,6 +954,9 @@ const EMPTY_SELF: SelfState = {
 	dashY: 0,
 	overwatchShots: 0,
 	minigunSteps: 0,
+	stamina: 0,
+	staminaWait: 0,
+	sprinting: false,
 	free: false,
 	carrying: false,
 	jammed: false
@@ -941,9 +965,13 @@ const EMPTY_SELF: SelfState = {
 const secondsUntil = (world: World, until: number) =>
 	Math.max(0, Math.min(255, Math.ceil((until - world.tick) / TICK_RATE)))
 
+/** Types that are always alight. */
+const ALIGHT = zombieDefs.map(def => def.alight === true)
+
 function zombieStatus(world: World, i: number): number {
 	const tick = world.tick
 	return (
+		(ALIGHT[world.type[i] as number] ? ZombieStatus.burning : 0) |
 		((world.stunUntil[i] as number) > tick ? ZombieStatus.stunned : 0) |
 		((world.slowUntil[i] as number) > tick ? ZombieStatus.slowed : 0) |
 		((world.markUntil[i] as number) > tick ? ZombieStatus.marked : 0) |
@@ -984,7 +1012,10 @@ const EventType = {
 	prop: 24,
 	failed: 25,
 	scream: 26,
-	resupply: 27
+	resupply: 28,
+	warn: 29,
+	strike: 30,
+	phase: 31
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -1071,6 +1102,19 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'resupply':
 				w.u8(event.player).u16(q(event.x)).u16(q(event.y))
+				break
+			case 'warn':
+				w.u8(event.kind).u16(q(event.x)).u16(q(event.y)).u16(q(event.tx)).u16(q(event.ty))
+				w.u8(Math.min(255, Math.round(event.radius * 10))).u8(Math.min(255, Math.round(event.seconds * 20)))
+				break
+			case 'strike':
+				w.u8(event.kind)
+					.u16(q(event.x))
+					.u16(q(event.y))
+					.u8(Math.min(255, Math.round(event.radius * 10)))
+				break
+			case 'phase':
+				w.u16(event.zombie).u8(event.zombieType).u8(event.phase)
 				break
 			case 'cache':
 			case 'threshold':
@@ -1197,6 +1241,24 @@ export function readEvents(r: Reader): SimEvent[] {
 				break
 			case EventType.threshold:
 				events.push({ type: 'threshold', player: r.u8(), index: r.u8() })
+				break
+			case EventType.warn:
+				events.push({
+					type: 'warn',
+					kind: r.u8(),
+					x: dq(r.u16()),
+					y: dq(r.u16()),
+					tx: dq(r.u16()),
+					ty: dq(r.u16()),
+					radius: r.u8() / 10,
+					seconds: r.u8() / 20
+				})
+				break
+			case EventType.strike:
+				events.push({ type: 'strike', kind: r.u8(), x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })
+				break
+			case EventType.phase:
+				events.push({ type: 'phase', zombie: r.u16(), zombieType: r.u8(), phase: r.u8() })
 				break
 			default:
 				throw new ProtocolError(`unknown event ${type}`)

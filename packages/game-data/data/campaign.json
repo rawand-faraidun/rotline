@@ -4,7 +4,8 @@
 			"id": "ashgate",
 			"name": "Ashgate",
 			"description": "The town where it started: Halden's blight in the grain, the Rotline drawn round it, and the girl who never turned.",
-			"missions": ["landfall", "yard-sweep", "power-out", "survivors", "yard-stand"]
+			"missions": ["landfall", "yard-sweep", "power-out", "survivors", "yard-stand"],
+			"boss": "warden"
 		},
 		{
 			"id": "harrow",

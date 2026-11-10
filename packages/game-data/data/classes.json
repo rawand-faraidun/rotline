@@ -30,6 +30,7 @@
 			"name": "Assault",
 			"health": 100,
 			"speed": 5.4,
+			"sprint": 1.45,
 			"reviveSeconds": 4,
 			"armourEffectiveness": 1
 		},
@@ -38,6 +39,7 @@
 			"name": "Medic",
 			"health": 100,
 			"speed": 5,
+			"sprint": 1.4,
 			"reviveSeconds": 2.5,
 			"armourEffectiveness": 1
 		},
@@ -46,6 +48,7 @@
 			"name": "Heavy",
 			"health": 140,
 			"speed": 4.4,
+			"sprint": 1.3,
 			"reviveSeconds": 4,
 			"armourEffectiveness": 1.2
 		}

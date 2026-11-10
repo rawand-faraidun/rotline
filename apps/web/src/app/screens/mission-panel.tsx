@@ -45,11 +45,14 @@ function MissionCard({
 	chosen,
 	editable,
 	entry,
+	boss = false,
 	onChoose
 }: {
 	mission: MissionDef
 	number?: number | undefined
 	open: boolean
+	/** the zone's boss: marked as such, and locked behind the zone's last mission */
+	boss?: boolean
 	chosen: boolean
 	editable: boolean
 	entry: MissionRecord | undefined
@@ -67,10 +70,13 @@ function MissionCard({
 					'frame cut flex h-full w-full flex-col gap-2 p-4 text-left',
 					chosen
 						? '[--frame-color:var(--color-rot-lime)]'
-						: editable && open && 'hover:[--frame-color:var(--color-bone)]',
+						: boss
+							? '[--frame-color:var(--color-alert)]'
+							: editable && open && 'hover:[--frame-color:var(--color-bone)]',
 					(!open || (!editable && !chosen)) && 'opacity-50'
 				)}
 			>
+				{boss && <span className="font-bold text-[10px] text-alert uppercase tracking-[0.25em]">{t.zoneBoss}</span>}
 				<span className="flex items-start justify-between gap-3">
 					<span className="font-display text-2xl uppercase">
 						{number !== undefined && <span className="text-muted">{number}.</span>} {mission.name}
@@ -93,7 +99,7 @@ function MissionCard({
 					<span>{format(t.objectives, { count: String(mission.objectives.length) })}</span>
 					{record.bestTimeMs ? <span>{format(t.best, { time: clock(record.bestTimeMs / 1000) })}</span> : null}
 				</span>
-				{!open && <span className="text-muted text-xs">{t.lockedHint}</span>}
+				{!open && <span className="text-muted text-xs">{boss ? t.bossLockedHint : t.lockedHint}</span>}
 			</button>
 		</li>
 	)
@@ -116,7 +122,7 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 		else queryClient.setQueryData(partyQuery.queryKey, result)
 	}
 
-	const card = (id: string, number?: number, firstOpen = false) => {
+	const card = (id: string, number?: number, firstOpen = false, boss = false) => {
 		const mission = missionById(id)
 		if (!mission) return []
 		const entry = records.data?.find(record => record.id === mission.id)
@@ -130,6 +136,7 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 				chosen={view.mission.id === mission.id}
 				editable={editable}
 				entry={entry}
+				boss={boss}
 				onChoose={() => void choose(mission.id, view.mission.difficulty)}
 			/>
 		]
@@ -175,6 +182,7 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 								order++
 								return card(id, order, order === 1)
 							})}
+							{zone.boss ? card(zone.boss, undefined, false, true) : null}
 						</ul>
 					</section>
 				))}

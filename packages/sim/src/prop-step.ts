@@ -73,7 +73,7 @@ function turret(world: World, prop: Prop): void {
 	let best = -1
 	let bestDistance = propsDef.turret.range
 	for (let i = 0; i < MAX_ZOMBIES; i++) {
-		if (world.alive[i] === 0) continue
+		if (world.alive[i] === 0 || world.under[i] === 1) continue
 		const d = Math.hypot((world.x[i] as number) - prop.x, (world.y[i] as number) - prop.y)
 		if (d >= bestDistance) continue
 		const a = Math.atan2((world.y[i] as number) - prop.y, (world.x[i] as number) - prop.x)
@@ -97,7 +97,7 @@ function turret(world: World, prop: Prop): void {
 	prop.readyTick = world.tick + TURRET_INTERVAL
 	const angle = Math.atan2((world.y[best] as number) - prop.y, (world.x[best] as number) - prop.x)
 	world.events.push({ type: 'shot', player: 0, x: prop.x, y: prop.y, angle, length: bestDistance, weapon: 0 })
-	world.damageZombie(best, propsDef.turret.damage, 0, propsDef.turret.damageType)
+	world.damageZombie(best, propsDef.turret.damage, 0, propsDef.turret.damageType, true, prop.x, prop.y)
 }
 
 const NEST_INTERVAL = ticks(propsDef.nest.spawnEverySeconds)

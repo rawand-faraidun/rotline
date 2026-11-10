@@ -83,6 +83,9 @@ export type HudState = {
 	utilities: { name: string; key: string; charges: number | null }[]
 	/** firing range: damage per second over the last three seconds */
 	dps: number
+	/** sprint stamina left, 0..1, and whether the player is running flat out */
+	stamina: number
+	sprinting: boolean
 	pingMs: number
 	fps: number
 	hitMarker: number
@@ -130,7 +133,8 @@ export type MissionHud = {
 
 export type Toast = {
 	id: number
-	kind: 'item' | 'buff' | 'threshold' | 'resupply' | 'secret'
+	/** `phase`: a boss stepped into a new phase (its name in `text`) */
+	kind: 'item' | 'buff' | 'threshold' | 'resupply' | 'secret' | 'phase'
 	/** the item or buff name, or the Salvage paid for a threshold */
 	text: string
 	/** who picked a buff up (teammates' pickups help everyone) */
@@ -186,6 +190,8 @@ export const initialHud: HudState = {
 	abilities: [],
 	utilities: [],
 	dps: 0,
+	stamina: 1,
+	sprinting: false,
 	pingMs: 0,
 	fps: 0,
 	hitMarker: 0,

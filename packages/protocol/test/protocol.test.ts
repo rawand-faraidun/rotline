@@ -264,7 +264,12 @@ describe('server messages', () => {
 			{ type: 'item-found', player: 2, item: 11 },
 			{ type: 'cache', player: 2, index: 1 },
 			{ type: 'buff', player: 1, buff: 3 },
-			{ type: 'threshold', player: 1, index: 0 }
+			{ type: 'threshold', player: 1, index: 0 },
+			// once sent with the code `mission-failed` uses, so a refill read as a lost mission
+			{ type: 'resupply', player: 2, x: 4, y: 5 },
+			{ type: 'warn', kind: 2, x: 3, y: 4, tx: 13, ty: 4, radius: 1.1, seconds: 1.2 },
+			{ type: 'strike', kind: 3, x: 3, y: 4, radius: 4 },
+			{ type: 'phase', zombie: 40, zombieType: 11, phase: 2 }
 		]
 		const decoded = readServerHeader(new Reader(writeEvents(new Writer(), events)))
 		expect(decoded.type).toBe('events')

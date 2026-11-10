@@ -76,6 +76,12 @@ export type PlayerState = {
 	overwatchShots: number
 	/** Minigun Spin-up: steps left firing the minigun */
 	minigunSteps: number
+	/** stamina left, 0..STAMINA_MAX (whole numbers, so client and server never drift apart) */
+	stamina: number
+	/** steps since the last sprinting step before stamina starts coming back */
+	staminaWait: number
+	/** running flat out this step */
+	sprinting: boolean
 	/** firing range: abilities have no cooldown and utilities no limit */
 	free: boolean
 	/** carrying a mission object: slower and pistol only (predicted, so the server's word arrives in snapshots) */
@@ -135,6 +141,15 @@ export const Step = {
 	minigun: 128
 } as const
 
+// Stamina is kept in whole units so prediction is exact: a sprinting step drains STAMINA_DRAIN, a
+// resting step gives back STAMINA_REGEN, and the bar is their product (it empties in `seconds` and
+// fills in `regenSeconds`).
+const STAMINA_DRAIN = Math.max(1, Math.round(playerDef.sprint.regenSeconds * TICK_RATE))
+const STAMINA_REGEN = Math.max(1, Math.round(playerDef.sprint.seconds * TICK_RATE))
+export const STAMINA_MAX = STAMINA_DRAIN * STAMINA_REGEN
+const STAMINA_DELAY = Math.round(playerDef.sprint.delaySeconds * TICK_RATE)
+const STAMINA_RESTART = Math.round(STAMINA_MAX * playerDef.sprint.restartShare)
+
 /** Throws and placements are this far apart at least. */
 const UTILITY_COOLDOWN_TICKS = Math.round(combat.throwIntervalSeconds * TICK_RATE)
 const RANGE_COOLDOWN_TICKS = Math.round(combat.rangeCooldownSeconds * TICK_RATE)
@@ -180,6 +195,9 @@ export function createPlayer(id: number, x: number, y: number, build: Build = st
 		dashY: 0,
 		overwatchShots: 0,
 		minigunSteps: 0,
+		stamina: STAMINA_MAX,
+		staminaWait: 0,
+		sprinting: false,
 		free: false,
 		carrying: false,
 		jammed: false,
@@ -219,12 +237,13 @@ export function separateFromZombies(
 	zombieX: ArrayLike<number>,
 	zombieY: ArrayLike<number>,
 	zombieRadius: (index: number) => number,
-	alive?: ArrayLike<number>
+	/** per zombie: 0 for one that is not there or cannot be touched (dead, or under the ground) */
+	solid?: ArrayLike<number>
 ): void {
 	if (!state.alive) return
 	const r = playerDef.radius
 	for (let i = 0; i < count; i++) {
-		if (alive && alive[i] === 0) continue
+		if (solid && solid[i] === 0) continue
 		const dx = state.x - (zombieX[i] as number)
 		const dy = state.y - (zombieY[i] as number)
 		const reach = r + zombieRadius(i) * 0.85
@@ -379,12 +398,29 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 		mx /= length
 		my /= length
 	}
+	// sprinting: the key held while moving, on your feet, hands free and not firing; it goes on while
+	// stamina lasts, and an emptied bar must fill part of the way before the next one
+	const wantsSprint =
+		(input.buttons & Button.sprint) !== 0 &&
+		(input.buttons & Button.fire) === 0 &&
+		length > 0.1 &&
+		!state.downed &&
+		!state.carrying &&
+		state.dashSteps === 0 &&
+		state.minigunSteps === 0
+	state.sprinting = wantsSprint && (state.sprinting ? state.stamina > 0 : state.stamina >= STAMINA_RESTART)
+	if (state.sprinting) {
+		if (!state.free) state.stamina = Math.max(0, state.stamina - STAMINA_DRAIN)
+		state.staminaWait = STAMINA_DELAY
+	} else if (state.staminaWait > 0) state.staminaWait--
+	else if (state.stamina < STAMINA_MAX) state.stamina = Math.min(STAMINA_MAX, state.stamina + STAMINA_REGEN)
 	if (state.dashSteps > 0 && !state.downed) {
 		grid.moveCircle(state.x, state.y, state.dashX, state.dashY, playerDef.radius, position)
 	} else {
 		const haste = state.hasteSteps > 0 ? state.hasteSpeed : 0
 		const carry = state.carrying ? propsDef.carry.speedMultiplier : 1
-		const step = (state.downed ? DOWNED_SPEED : state.stats.speed * (1 + haste) * carry) * DT
+		const sprint = state.sprinting ? state.stats.sprint : 1
+		const step = (state.downed ? DOWNED_SPEED : state.stats.speed * (1 + haste) * carry * sprint) * DT
 		grid.moveCircle(state.x, state.y, mx * step, my * step, playerDef.radius, position)
 	}
 	state.x = position.x
@@ -419,7 +455,7 @@ export function stepPlayer(grid: Grid, state: PlayerState, input: PlayerInput, t
 	if (pressed & Button.reload) startReload(state, tick, weapon)
 
 	const wantsFire = weapon.automatic ? (input.buttons & Button.fire) !== 0 : (pressed & Button.fire) !== 0
-	if (!wantsFire) return result
+	if (!wantsFire || state.sprinting) return result
 	// a shell-by-shell reload stops as soon as the player fires with shells loaded
 	if (state.reloadEndTick !== 0) {
 		if (!weapon.reloadPerRound || held.mag === 0) return result

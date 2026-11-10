@@ -38,5 +38,24 @@
 		"health": 0.06,
 		"damage": 0.04
 	},
-	"maxAlive": 300
+	"maxAlive": 300,
+	"director": {
+		"buildSeconds": [50, 80],
+		"peakSeconds": [18, 30],
+		"reliefSeconds": [14, 22],
+		"buildRate": [0.85, 1.2],
+		"peakRate": 1.6,
+		"reliefRate": 0.35,
+		"peakAlive": 1.15,
+		"easeHealth": 0.35,
+		"caps": {
+			"retcher": 4,
+			"bulwark": 3,
+			"delver": 2,
+			"cinder": 3,
+			"screamer": 3,
+			"swell": 8,
+			"brute": 2
+		}
+	}
 }

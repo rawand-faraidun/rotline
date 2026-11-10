@@ -106,7 +106,7 @@ export function ProfileScreen() {
 							</thead>
 							<tbody>
 								{campaign.zones.flatMap(zone =>
-									zone.missions.map(id => {
+									[...zone.missions, ...(zone.boss ? [zone.boss] : [])].map(id => {
 										const mission = missionById(id)
 										const entry = records.data?.find(record => record.id === id)
 										const best = bestOf(entry)

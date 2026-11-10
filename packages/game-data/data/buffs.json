@@ -16,7 +16,8 @@
 			"weight": 1,
 			"params": {
 				"radius": 22,
-				"eliteDamage": 0.25
+				"eliteDamage": 0.25,
+				"bossDamage": 0.05
 			}
 		},
 		{

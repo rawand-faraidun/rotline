@@ -45,10 +45,14 @@ import {
 	REACH_STEP,
 	REVIVE_COMPLETE,
 	REVIVE_RANGE,
+	STAMINA_MAX,
 	Step,
+	StrikeKind,
 	separateFromZombies,
 	setPropState,
-	TICK_RATE
+	TICK_RATE,
+	WarnKind,
+	ZombieState
 } from '@rotline/sim'
 import * as THREE from 'three'
 import { type AudioSettings, type LoopHandle, sharedAudio } from './audio.ts'
@@ -76,6 +80,7 @@ import { PlayerFigure } from './render/players.ts'
 import { PropRenderer } from './render/props.ts'
 import { Stage, spawnHoles } from './render/scene.ts'
 import { surroundings } from './render/surroundings.ts'
+import { Warnings } from './render/warnings.ts'
 import { ZombieRenderer } from './render/zombies.ts'
 import { objectiveTarget, screenWaypoint } from './waypoint.ts'
 
@@ -140,6 +145,9 @@ export function startGame(options: GameOptions): GameHandle {
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene, options.assets)
 	const eliteBars = new EliteBars(stage.scene)
+	const warnings = new Warnings(stage.scene)
+	/** per drawn zombie: 1 when it can be bumped into (not under the ground) */
+	const viewSolid = new Uint8Array(300)
 	const propRenderer = new PropRenderer(
 		stage.scene,
 		props,
@@ -328,7 +336,7 @@ export function startGame(options: GameOptions): GameHandle {
 		if (stopped) return
 		zombies = renderer
 		renderer.setSpawnHoles(map.zombieSpawns)
-		stage.scene.add(renderer.mesh, renderer.corpses)
+		stage.scene.add(renderer.mesh, renderer.corpses, renderer.extras)
 		modelReady = true
 		checkReady()
 	})
@@ -340,7 +348,15 @@ export function startGame(options: GameOptions): GameHandle {
 			predictor = new Predictor(grid, slot, build)
 			// zombies are solid, as on the server (against where they are drawn)
 			predictor.collide = state =>
-				separateFromZombies(grid, state, interpolator.view.count, interpolator.view.x, interpolator.view.y, viewRadius)
+				separateFromZombies(
+					grid,
+					state,
+					interpolator.view.count,
+					interpolator.view.x,
+					interpolator.view.y,
+					viewRadius,
+					viewSolid
+				)
 			me?.dispose()
 			me = new PlayerFigure(slot, true, options.assets, 'game')
 			me.setClass(
@@ -628,6 +644,51 @@ export function startGame(options: GameOptions): GameHandle {
 						effects.gas(event.x, event.y, event.radius, now)
 						audio.sound('thump', { x: event.x, y: event.y, rate: 0.6 })
 						break
+					case 'warn':
+						warnings.add(event.kind, event.x, event.y, event.tx, event.ty, event.radius, event.seconds, now)
+						if (event.kind === WarnKind.spit || event.kind === WarnKind.lob)
+							audio.sound('zombie-pain', { x: event.x, y: event.y, rate: 1.5, volume: 0.6 })
+						else if (event.kind === WarnKind.charge || event.kind === WarnKind.slam)
+							audio.sound('zombie-roar', { x: event.x, y: event.y, rate: 0.8, volume: 0.9 })
+						else if (event.kind === WarnKind.erupt) audio.sound('thud', { x: event.x, y: event.y, rate: 0.6 })
+						break
+					case 'strike': {
+						const d = Math.hypot(event.x - drawn.x, event.y - drawn.y)
+						switch (event.kind) {
+							case StrikeKind.acid:
+								effects.gas(event.x, event.y, event.radius, now)
+								audio.sound('splat', { x: event.x, y: event.y, volume: 0.6 })
+								break
+							case StrikeKind.fire:
+								effects.explode(0, event.x, event.y, event.radius * 0.6, now)
+								break
+							case StrikeKind.slam:
+							case StrikeKind.erupt:
+								effects.burst(event.x, event.y, event.radius, now, 0xc9b48a)
+								effects.splat(event.x, event.y, event.radius * 0.4)
+								audio.sound('explosion', { x: event.x, y: event.y, rate: 0.6, volume: 0.8 })
+								if (d < 14) stage.shake(0.5 * (1 - d / 14))
+								break
+							case StrikeKind.crash:
+								effects.impact(event.x, event.y, now)
+								effects.burst(event.x, event.y, event.radius, now, 0xc9b48a)
+								audio.sound('thud', { x: event.x, y: event.y, rate: 0.7 })
+								if (d < 14) stage.shake(0.4 * (1 - d / 14))
+								break
+							case StrikeKind.dig:
+								effects.burst(event.x, event.y, event.radius, now, 0x8a6a4a)
+								break
+						}
+						break
+					}
+					case 'phase': {
+						const phase = zombieDefs[event.zombieType]?.phases?.[event.phase - 1]
+						if (phase) {
+							toast('phase', phase.name)
+							audio.sound('stinger', { bus: 'interface', volume: 0.9 })
+						}
+						break
+					}
 					case 'player-down':
 						if (event.player === you) {
 							hud.set({ status: 'down' }, performance.now(), true)
@@ -770,6 +831,7 @@ export function startGame(options: GameOptions): GameHandle {
 		const view = interpolator.view
 		const hits: number[] = []
 		for (let i = 0; i < view.count; i++) {
+			if (viewSolid[i] === 0) continue
 			const qx = (view.x[i] as number) - x
 			const qy = (view.y[i] as number) - y
 			const along = qx * dx + qy * dy
@@ -880,6 +942,8 @@ export function startGame(options: GameOptions): GameHandle {
 						: []
 				),
 				dps: dps(now),
+				stamina: Math.round((state.stamina / STAMINA_MAX) * 50) / 50,
+				sprinting: state.sprinting,
 				interactHint: interactHint(state)
 			},
 			now
@@ -1182,6 +1246,13 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		}
 		if (interpolator.sample(renderTick)) {
+			{
+				const view = interpolator.view
+				for (let n = 0; n < view.count; n++) {
+					const state = view.state[n] as number
+					viewSolid[n] = state === ZombieState.under || state === ZombieState.erupting ? 0 : 1
+				}
+			}
 			zombies?.update(interpolator.view, now / 1000, stage.camera)
 			// zombies on fire burn where they walk
 			{
@@ -1261,6 +1332,7 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		}
 		effects.update(now / 1000)
+		warnings.update(now / 1000)
 		decor.update(now / 1000, drawn.x, drawn.y)
 		numbers.update(now / 1000)
 		stage.render()
@@ -1333,7 +1405,12 @@ export function startGame(options: GameOptions): GameHandle {
 			controls.dispose()
 			window.removeEventListener('resize', onResize)
 			// freeing the GPU's copies must never take the page down with it
-			for (const release of [() => markers?.dispose(), () => propRenderer.dispose(), () => stage.dispose()]) {
+			for (const release of [
+				() => markers?.dispose(),
+				() => propRenderer.dispose(),
+				() => warnings.dispose(),
+				() => stage.dispose()
+			]) {
 				try {
 					release()
 				} catch {

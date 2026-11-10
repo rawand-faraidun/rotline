@@ -62,7 +62,7 @@ function storedView(party: Party, seen: { mission: string; difficulty: string } 
 /**
  * Missions a player may choose: every contract, and the campaign in order — a mission opens once the
  * one before it in its zone is done (any difficulty); a zone opens once the previous zone's last
- * mission is done.
+ * mission is done, and so does that zone's boss.
  */
 export async function openMissions(db: Services['db'], playerId: string): Promise<Set<string>> {
 	const done = new Set(
@@ -78,6 +78,8 @@ export async function openMissions(db: Services['db'], playerId: string): Promis
 			open.add(id)
 			previous = id
 		}
+		// the zone's boss waits behind its last mission (and holds nobody back from the next zone)
+		if (zone.boss && previous !== null && done.has(previous)) open.add(zone.boss)
 	}
 	return open
 }

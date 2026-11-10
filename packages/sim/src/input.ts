@@ -12,7 +12,9 @@ export const Button = {
 	ability2: 256,
 	ability3: 512,
 	utility1: 1024,
-	utility2: 2048
+	utility2: 2048,
+	/** hold to run: faster while the stamina lasts, and no firing meanwhile */
+	sprint: 4096
 } as const
 
 /** `reach` is in steps of this many metres: how far from the player the cursor is (for throws). */

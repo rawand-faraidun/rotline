@@ -235,6 +235,22 @@ function Radio({ hud }: { hud: HudState }) {
 	)
 }
 
+/** Sprint stamina: a thin bar under the health, bright while running, dim while it fills again. */
+function StaminaBar({ stamina, sprinting }: { stamina: number; sprinting: boolean }) {
+	return (
+		<div className="mt-2 flex items-center gap-2" aria-hidden={stamina >= 1}>
+			<span className="w-16 font-bold text-[10px] text-muted uppercase tracking-[0.2em]">{t.stamina}</span>
+			<span className="h-1.5 flex-1 skew-x-[-20deg] bg-surface-raised">
+				<span
+					className={cn('block h-full', sprinting ? 'bg-bone' : stamina < 0.25 ? 'bg-warning' : 'bg-muted')}
+					style={{ width: `${Math.round(stamina * 100)}%` }}
+				/>
+			</span>
+			<meter className="sr-only" min={0} max={1} value={stamina} aria-label={t.stamina} />
+		</div>
+	)
+}
+
 const RADIO_MS = 9000
 
 /** An elite in the fight: its name and a long health bar at the top of the screen. */
@@ -456,7 +472,8 @@ function Toasts({ hud }: { hud: HudState }) {
 					key={toast.id}
 					className={cn(
 						'frame cut-sm flex flex-col px-3 py-2 [--frame-fill:rgb(13_16_14/0.9)]',
-						toast.kind === 'item' && '[--frame-color:var(--color-warning)]'
+						toast.kind === 'item' && '[--frame-color:var(--color-warning)]',
+						toast.kind === 'phase' && '[--frame-color:var(--color-alert)]'
 					)}
 				>
 					{toast.kind === 'item' && (
@@ -474,6 +491,12 @@ function Toasts({ hud }: { hud: HudState }) {
 					)}
 					{toast.kind === 'threshold' && (
 						<span className="font-bold text-warning">{format(t.threshold, { salvage: toast.text })}</span>
+					)}
+					{toast.kind === 'phase' && (
+						<>
+							<span className="font-bold text-[10px] text-alert uppercase tracking-[0.25em]">{t.bossPhase}</span>
+							<span className="font-display text-alert text-lg uppercase">{toast.text}</span>
+						</>
 					)}
 					{toast.kind === 'secret' && (
 						<span className="font-bold text-warning uppercase tracking-wide">{t.secretFound}</span>
@@ -704,8 +727,13 @@ function RangePanel({ handle, hud }: { handle: GameHandle; hud: HudState }) {
 			<div className="grid grid-cols-2 gap-1.5">
 				{zombies.map((zombie, index) =>
 					zombie.dummy ? null : (
-						<Button key={zombie.id} size="sm" variant="secondary" onClick={() => handle.range('spawn', index, 5)}>
-							{zombie.name} ×5
+						<Button
+							key={zombie.id}
+							size="sm"
+							variant="secondary"
+							onClick={() => handle.range('spawn', index, zombie.boss ? 1 : 5)}
+						>
+							{zombie.name} ×{zombie.boss ? 1 : 5}
 						</Button>
 					)
 				)}
@@ -994,6 +1022,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 
 					<div className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
 						<HealthBar health={hud.health} max={hud.maxHealth} />
+						<StaminaBar stamina={hud.stamina} sprinting={hud.sprinting} />
 						{hud.livesLeft !== null && <Lives left={hud.livesLeft} />}
 					</div>
 

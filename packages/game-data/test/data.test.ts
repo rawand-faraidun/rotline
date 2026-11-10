@@ -23,7 +23,12 @@ describe('game data', () => {
 			'swell',
 			'crawler',
 			'brute',
-			'screamer'
+			'screamer',
+			'retcher',
+			'bulwark',
+			'delver',
+			'cinder',
+			'warden'
 		])
 		expect(maps.range?.playerSpawns.length).toBe(4)
 		expect(maps.yard?.playerSpawns.length).toBe(4)

@@ -117,6 +117,18 @@ export const weaponSchema = z
 		path: ['maxReserve']
 	})
 
+/** Something a zombie throws: it lands after `flightSeconds` where the mark on the ground says. */
+const zombieLob = z.object({
+	flightSeconds: z.number().positive().max(5),
+	damage: z.number().min(0),
+	radius: z.number().positive().max(10),
+	type: damageType,
+	/** what it leaves on the ground */
+	pool: z
+		.object({ damagePerSecond: z.number().min(0), radius: z.number().positive(), seconds: z.number().positive() })
+		.optional()
+})
+
 export const zombieSchema = z.object({
 	id,
 	name: z.string().min(1),
@@ -155,14 +167,144 @@ export const zombieSchema = z.object({
 			poolRadius: z.number().positive(),
 			poolSeconds: z.number().positive()
 		})
-		.nullable()
+		.nullable(),
+	/** the bestiary: what it is, and what to do about it */
+	about: z.string().min(1).max(260).optional(),
+	answer: z.string().min(1).max(260).optional(),
+	/** share of each damage type it shrugs off (1: immune) */
+	resist: z.partialRecord(damageType, z.number().min(0).max(1)).optional(),
+	/** what its blows deal (default: plain melee, which only armour answers) */
+	meleeType: damageType.optional(),
+	/** always burning (drawn alight; fire does it no harm when it resists fire) */
+	alight: z.boolean().optional(),
+	/** stuns, slows and knock-back do nothing to it (its own stumbles still do) */
+	unstoppable: z.boolean().optional(),
+	/** the health bar at the top of the screen is its own, with its name; a screen nuke barely scratches it */
+	boss: z.boolean().optional(),
+	/** health by squad size, 1 to 4 players (bosses) */
+	squadHealth: z
+		.tuple([z.number().positive(), z.number().positive(), z.number().positive(), z.number().positive()])
+		.optional(),
+	/** a spitter: stops in sight of a player and lobs something that lands where they stood */
+	ranged: zombieLob
+		.extend({
+			range: z.number().positive().max(40),
+			/** within this of a player in sight it stands its ground instead of walking in */
+			holdRange: z.number().min(0).max(40),
+			cooldownSeconds: z.number().positive(),
+			/** it rears back this long before it spits */
+			windupSeconds: z.number().min(0)
+		})
+		.optional(),
+	/** a shield carried in front: shots from within the arc ahead of it mostly glance off */
+	shield: z
+		.object({
+			arcDegrees: z.number().positive().max(300),
+			/** share of the damage stopped */
+			reduction: z.number().min(0).max(1),
+			/** which damage the shield stops (blasts and fire go round it) */
+			types: z.array(damageType).min(1),
+			/** how fast it can turn to keep the shield toward its target */
+			turnDegreesPerSecond: z.number().positive().max(720)
+		})
+		.optional(),
+	/** a burrower: goes under (nothing can touch it), comes up beneath a player after a warning */
+	burrow: z
+		.object({
+			speed: z.number().positive().max(12),
+			/** it goes under when its target is farther than this */
+			fromRange: z.number().positive(),
+			/** it comes up when this close */
+			surfaceRange: z.number().positive(),
+			/** the ground cracks this long before it bursts out */
+			eruptSeconds: z.number().positive(),
+			damage: z.number().min(0),
+			radius: z.number().positive(),
+			/** it stays up this long before going under again */
+			aboveSeconds: z.number().positive()
+		})
+		.optional(),
+	/** a straight-line charge after a warning: sidestep it and it runs on, into a wall it stuns itself */
+	charge: z
+		.object({
+			minRange: z.number().min(0),
+			maxRange: z.number().positive(),
+			windupSeconds: z.number().positive(),
+			speed: z.number().positive().max(30),
+			/** how far past its target it may run */
+			overshoot: z.number().min(0),
+			damage: z.number().min(0),
+			/** how far whoever it hits is thrown aside */
+			knockback: z.number().min(0).max(6),
+			/** dazed this long after running into a wall (its shield is down meanwhile) */
+			stunSeconds: z.number().min(0),
+			cooldownSeconds: z.number().positive()
+		})
+		.optional(),
+	/** a blow to the ground round it, after a warning */
+	slam: z
+		.object({
+			/** it winds up when a player is this close */
+			range: z.number().positive(),
+			radius: z.number().positive(),
+			windupSeconds: z.number().positive(),
+			damage: z.number().min(0),
+			cooldownSeconds: z.number().positive()
+		})
+		.optional(),
+	/** it leaves something burning behind it as it walks */
+	trail: z
+		.object({
+			everySeconds: z.number().positive(),
+			damagePerSecond: z.number().min(0),
+			radius: z.number().positive(),
+			seconds: z.number().positive(),
+			type: damageType
+		})
+		.optional(),
+	/** a boss changes as its health falls: each phase starts below a share of its health and stays */
+	phases: z
+		.array(
+			z.object({
+				below: z.number().positive().max(1),
+				/** what the screen says when it starts */
+				name: z.string().min(1).max(40),
+				/** walking and charging speed, times this */
+				speed: z.number().positive().max(3).optional(),
+				/** its attacks come round this much sooner (0.7: 30 % sooner) */
+				cooldowns: z.number().positive().max(2).optional(),
+				/** others it calls in, again and again */
+				summon: z
+					.object({
+						everySeconds: z.number().positive(),
+						count: z.number().int().positive().max(30),
+						composition: z.record(id, z.number().positive())
+					})
+					.optional(),
+				/** canisters or spit it throws at every player, again and again */
+				lob: zombieLob.extend({ everySeconds: z.number().positive() }).optional()
+			})
+		)
+		.max(4)
+		.optional()
 })
 
 export const playerSchema = z.object({
 	radius: z.number().positive(),
 	respawnSeconds: z.number().min(0),
 	/** playing alone, a run is lost at this many deaths (a death sends you back to the checkpoint or round) */
-	soloLives: z.number().int().min(1)
+	soloLives: z.number().int().min(1),
+	/**
+	 * Sprinting: a full bar lasts `seconds`, comes back in `regenSeconds` after `delaySeconds` of not
+	 * sprinting, and an emptied bar must fill to `restartShare` before the next sprint. No firing at a
+	 * sprint. How much faster each class runs is the class's own `sprint`.
+	 */
+	sprint: z.object({
+		seconds: z.number().positive().max(8),
+		regenSeconds: z.number().positive().max(8),
+		delaySeconds: z.number().min(0).max(8),
+		restartShare: z.number().min(0).max(1)
+	})
 })
 
 export const classesSchema = z.object({
@@ -208,6 +350,8 @@ export const classesSchema = z.object({
 				name: z.string().min(1),
 				health: z.number().positive(),
 				speed: z.number().positive().max(12),
+				/** speed at a sprint, times the class's speed */
+				sprint: z.number().min(1).max(2),
 				reviveSeconds: z.number().positive(),
 				armourEffectiveness: z.number().positive()
 			})
@@ -565,7 +709,27 @@ export const difficultiesSchema = z.object({
 	/** per enemy level above 1 */
 	enemyLevel: z.object({ health: z.number().min(0), damage: z.number().min(0) }),
 	/** zombies alive at once, whatever the difficulty and squad size */
-	maxAlive: z.number().int().positive().max(300)
+	maxAlive: z.number().int().positive().max(300),
+	/**
+	 * The spawn director: a mission's stream of zombies rises and falls instead of staying flat. It
+	 * builds up (the rate climbing between `buildRate`'s two values), peaks, then eases off, each for
+	 * a time picked between two bounds; a squad in trouble (someone down, or the standing below
+	 * `easeHealth` on average) ends a peak early. `caps` limits how many of a kind are alive at once
+	 * (for a full squad; fewer for a smaller one): a pick over its cap comes in as the mission's
+	 * commonest kind instead.
+	 */
+	director: z.object({
+		buildSeconds: z.tuple([z.number().positive(), z.number().positive()]),
+		peakSeconds: z.tuple([z.number().positive(), z.number().positive()]),
+		reliefSeconds: z.tuple([z.number().positive(), z.number().positive()]),
+		buildRate: z.tuple([z.number().positive(), z.number().positive()]),
+		peakRate: z.number().positive(),
+		reliefRate: z.number().positive(),
+		/** the cap on zombies alive rises this much during a peak */
+		peakAlive: z.number().min(1).max(2),
+		easeHealth: z.number().min(0).max(1),
+		caps: z.record(id, z.number().int().positive())
+	})
 })
 
 export const buffsSchema = z.object({
@@ -859,7 +1023,12 @@ export const campaignSchema = z.object({
 				id,
 				name: z.string().min(1),
 				description: z.string().min(1),
-				missions: z.array(id).min(1)
+				missions: z.array(id).min(1),
+				/**
+				 * the zone's boss: opens once the zone's last mission is done, and is not needed to go on
+				 * to the next zone
+				 */
+				boss: id.optional()
 			})
 		)
 		.min(1),

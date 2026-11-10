@@ -13,7 +13,9 @@
 		"scale": 1,
 		"deathBurst": null,
 		"xp": 4,
-		"salvage": 0.5
+		"salvage": 0.5,
+		"about": "The baseline dead: slow, hunched and everywhere. One is nothing; forty in a doorway is the mission.",
+		"answer": "Any gun. Do not let them close the ring round you."
 	},
 	{
 		"id": "bolter",
@@ -29,7 +31,9 @@
 		"scale": 0.9,
 		"deathBurst": null,
 		"xp": 6,
-		"salvage": 1
+		"salvage": 1,
+		"about": "A runner, thin and fast, that comes straight in ahead of the crowd.",
+		"answer": "Keep moving and keep a shotgun or an SMG ready; it dies to a few rounds."
 	},
 	{
 		"id": "swell",
@@ -51,7 +55,9 @@
 			"poolSeconds": 8
 		},
 		"xp": 15,
-		"salvage": 3
+		"salvage": 3,
+		"about": "Bloated with gas. It bursts when it dies and leaves a pool that eats at whoever stands in it.",
+		"answer": "Kill it at range, or among the others: its burst hurts them too."
 	},
 	{
 		"id": "target-dummy",
@@ -68,7 +74,9 @@
 		"tint": "#c9b48a",
 		"scale": 1.1,
 		"deathBurst": null,
-		"dummy": true
+		"dummy": true,
+		"about": "A dummy on the firing range.",
+		"answer": "Shoot it."
 	},
 	{
 		"id": "crawler",
@@ -84,7 +92,9 @@
 		"scale": 0.85,
 		"deathBurst": null,
 		"xp": 5,
-		"salvage": 0.5
+		"salvage": 0.5,
+		"about": "Low, quick and easy to miss under the horde's feet.",
+		"answer": "Watch the floor. Blasts and flame clear them."
 	},
 	{
 		"id": "brute",
@@ -101,7 +111,20 @@
 		"elite": true,
 		"deathBurst": null,
 		"xp": 80,
-		"salvage": 12
+		"salvage": 12,
+		"about": "Twice a man's size. It walks you down, and from a distance it lowers its head and charges in a straight line.",
+		"answer": "Step out of the marked lane. A charge that ends in a wall leaves it dazed: unload then.",
+		"charge": {
+			"minRange": 5,
+			"maxRange": 13,
+			"windupSeconds": 1.0,
+			"speed": 9,
+			"overshoot": 4,
+			"damage": 30,
+			"knockback": 1.6,
+			"stunSeconds": 1.8,
+			"cooldownSeconds": 8
+		}
 	},
 	{
 		"id": "screamer",
@@ -127,6 +150,212 @@
 				"bolter": 25,
 				"crawler": 15
 			}
+		},
+		"about": "It calls. Every few seconds it is alive near you, more of them climb out.",
+		"answer": "Kill it first, before anything else."
+	},
+	{
+		"id": "retcher",
+		"name": "Retcher",
+		"health": 80,
+		"speed": 1.6,
+		"radius": 0.36,
+		"meleeDamage": 6,
+		"meleeRange": 0.5,
+		"meleeCooldownSeconds": 1.4,
+		"score": 40,
+		"tint": "#c9c45a",
+		"scale": 1.0,
+		"deathBurst": null,
+		"xp": 12,
+		"salvage": 2,
+		"about": "A spitter. It stops where it can see you and lobs acid that lands where you were standing, leaving a puddle.",
+		"answer": "Move when the ring appears, then break its line of sight or shoot it: it is slow and soft.",
+		"resist": {
+			"chemical": 0.6
+		},
+		"ranged": {
+			"range": 12,
+			"holdRange": 8,
+			"cooldownSeconds": 4.5,
+			"windupSeconds": 0.7,
+			"flightSeconds": 0.9,
+			"damage": 22,
+			"radius": 1.8,
+			"type": "chemical",
+			"pool": {
+				"damagePerSecond": 8,
+				"radius": 1.6,
+				"seconds": 4
+			}
 		}
+	},
+	{
+		"id": "bulwark",
+		"name": "Bulwark",
+		"health": 300,
+		"speed": 1.4,
+		"radius": 0.5,
+		"meleeDamage": 16,
+		"meleeRange": 0.6,
+		"meleeCooldownSeconds": 1.4,
+		"score": 80,
+		"tint": "#6f7f8f",
+		"scale": 1.25,
+		"deathBurst": null,
+		"xp": 25,
+		"salvage": 4,
+		"about": "It carries a riot shield in front of it. Bullets from ahead mostly glance off, and it turns slowly to keep the shield on you.",
+		"answer": "Get round it, or have someone else hold its eye. Blasts, fire and gas go round the shield.",
+		"shield": {
+			"arcDegrees": 130,
+			"reduction": 0.9,
+			"types": ["ballistic", "shock"],
+			"turnDegreesPerSecond": 80
+		}
+	},
+	{
+		"id": "delver",
+		"name": "Delver",
+		"health": 200,
+		"speed": 2.2,
+		"radius": 0.42,
+		"meleeDamage": 14,
+		"meleeRange": 0.55,
+		"meleeCooldownSeconds": 1.1,
+		"score": 70,
+		"tint": "#8a6a4a",
+		"scale": 1.1,
+		"deathBurst": null,
+		"xp": 22,
+		"salvage": 4,
+		"about": "A burrower. It goes under, where nothing can touch it, follows you by the dust it throws up and bursts out beneath your feet.",
+		"answer": "Keep moving when the ground cracks under you. It can only be hurt while it is up.",
+		"burrow": {
+			"speed": 4,
+			"fromRange": 7,
+			"surfaceRange": 1.2,
+			"eruptSeconds": 0.9,
+			"damage": 35,
+			"radius": 1.8,
+			"aboveSeconds": 6
+		}
+	},
+	{
+		"id": "cinder",
+		"name": "Cinder",
+		"health": 160,
+		"speed": 2.2,
+		"radius": 0.38,
+		"meleeDamage": 12,
+		"meleeRange": 0.55,
+		"meleeCooldownSeconds": 1.1,
+		"score": 50,
+		"tint": "#d9743a",
+		"scale": 1.05,
+		"deathBurst": null,
+		"xp": 16,
+		"salvage": 3,
+		"about": "It burns and does not mind. It leaves fire where it walks and its hands burn what they touch.",
+		"answer": "Fire does nothing to it: use bullets, shock or blasts, and do not follow it through its own trail.",
+		"resist": {
+			"fire": 1
+		},
+		"meleeType": "fire",
+		"alight": true,
+		"trail": {
+			"everySeconds": 0.9,
+			"damagePerSecond": 15,
+			"radius": 0.8,
+			"seconds": 2.5,
+			"type": "fire"
+		}
+	},
+	{
+		"id": "warden",
+		"name": "The Warden",
+		"health": 22000,
+		"speed": 1.7,
+		"radius": 0.95,
+		"meleeDamage": 45,
+		"meleeRange": 1.0,
+		"meleeCooldownSeconds": 1.6,
+		"score": 5000,
+		"tint": "#4a5560",
+		"scale": 2.4,
+		"elite": true,
+		"deathBurst": null,
+		"xp": 600,
+		"salvage": 150,
+		"about": "The riot sergeant who held Ashgate's checkpoint, grown into his armour. He keeps a shield wall's worth of plate between you and him, charges whoever stands in the open and brings the ground down round himself.",
+		"answer": "Out of the lane when he charges: into a wall he is dazed and his guard is down. Out of the ring when he raises his arm. Shoot his back while he looks at someone else.",
+		"boss": true,
+		"unstoppable": true,
+		"squadHealth": [0.55, 0.75, 0.9, 1],
+		"shield": {
+			"arcDegrees": 140,
+			"reduction": 0.85,
+			"types": ["ballistic", "shock"],
+			"turnDegreesPerSecond": 70
+		},
+		"charge": {
+			"minRange": 4,
+			"maxRange": 16,
+			"windupSeconds": 1.2,
+			"speed": 11,
+			"overshoot": 5,
+			"damage": 45,
+			"knockback": 2.2,
+			"stunSeconds": 3,
+			"cooldownSeconds": 9
+		},
+		"slam": {
+			"range": 3.2,
+			"radius": 4,
+			"windupSeconds": 0.9,
+			"damage": 50,
+			"cooldownSeconds": 5
+		},
+		"phases": [
+			{
+				"below": 0.66,
+				"name": "The Warden calls the line",
+				"summon": {
+					"everySeconds": 18,
+					"count": 5,
+					"composition": {
+						"bulwark": 2,
+						"drudge": 6,
+						"bolter": 2
+					}
+				}
+			},
+			{
+				"below": 0.33,
+				"name": "The Warden is enraged",
+				"speed": 1.25,
+				"cooldowns": 0.65,
+				"summon": {
+					"everySeconds": 22,
+					"count": 4,
+					"composition": {
+						"bolter": 3,
+						"crawler": 2
+					}
+				},
+				"lob": {
+					"everySeconds": 7,
+					"flightSeconds": 1.1,
+					"damage": 20,
+					"radius": 2.4,
+					"type": "chemical",
+					"pool": {
+						"damagePerSecond": 14,
+						"radius": 2.2,
+						"seconds": 6
+					}
+				}
+			}
+		]
 	}
 ]

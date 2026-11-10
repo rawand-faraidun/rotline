@@ -1,11 +1,14 @@
 export { barricadeCells } from './abilities.ts'
 export * from './constants.ts'
 export { Grid, WATER_CELL } from './grid.ts'
+export { type Hazard, StrikeKind, WarnKind, ZombieAction } from './horde.ts'
 export * from './input.ts'
 export {
 	applyBuff,
 	buffIndex,
+	capped,
 	chainMultiplier,
+	createMission,
 	currentObjective,
 	enemyScale,
 	hazardFront,
@@ -14,6 +17,8 @@ export {
 	MissionStatus,
 	objectiveGoal,
 	objectiveProps,
+	Pace,
+	pacing,
 	scoreThreshold,
 	timeLeft
 } from './mission.ts'
@@ -24,6 +29,7 @@ export {
 	createPlayer,
 	type PlayerState,
 	refillUtilities,
+	STAMINA_MAX,
 	Step,
 	separateFromZombies,
 	stepPlayer,

@@ -329,7 +329,8 @@
 				"bolter": 20,
 				"crawler": 15,
 				"swell": 6,
-				"screamer": 4
+				"screamer": 4,
+				"retcher": 4
 			}
 		},
 		"caches": [
@@ -649,7 +650,9 @@
 				"bolter": 22,
 				"crawler": 14,
 				"swell": 10,
-				"screamer": 4
+				"screamer": 4,
+				"retcher": 5,
+				"cinder": 3
 			}
 		},
 		"caches": [
@@ -966,7 +969,9 @@
 				"bolter": 22,
 				"crawler": 12,
 				"swell": 8,
-				"screamer": 3
+				"screamer": 3,
+				"retcher": 4,
+				"bulwark": 3
 			}
 		},
 		"caches": [
@@ -1215,7 +1220,10 @@
 				"drudge": 50,
 				"bolter": 28,
 				"swell": 12,
-				"crawler": 10
+				"crawler": 10,
+				"retcher": 4,
+				"bulwark": 4,
+				"cinder": 3
 			}
 		},
 		"caches": [
@@ -1470,6 +1478,133 @@
 		]
 	},
 	{
+		"id": "warden",
+		"name": "The Warden",
+		"zone": "ashgate",
+		"map": "landfall",
+		"description": "Sergeant Hale held Ashgate's checkpoint for nine days with a riot shield and a baton. Something in the blight liked him: what came out of the checkpoint is twice his size and still in his plates. Kill him in the town square, then make the pad.",
+		"briefing": [
+			"The checkpoint was the last line between the town and the cordon. Its sergeant never left it.",
+			"Thermal shows one big heat source walking the square, and a lot of small ones following it.",
+			"He charges whoever stands in the open: get out of the lane. When he raises his arm, get out of the ring. A charge into a wall leaves him dazed with his guard down."
+		],
+		"debrief": "The Warden is down. Ashgate's checkpoint is open for the first time since the cordon went up.",
+		"parTimeSeconds": 360,
+		"timeLimitSeconds": 720,
+		"scoreTarget": 30000,
+		"enemyLevel": 7,
+		"recommendedLevel": 7,
+		"spawn": {
+			"perSecond": 1.2,
+			"maxAlive": 60,
+			"composition": {
+				"drudge": 50,
+				"bolter": 18,
+				"crawler": 12,
+				"bulwark": 6,
+				"retcher": 6,
+				"swell": 4,
+				"cinder": 4
+			}
+		},
+		"caches": [
+			{
+				"x": 40.5,
+				"y": 32.5
+			}
+		],
+		"playerSpawns": [
+			{
+				"x": 20.5,
+				"y": 62.5
+			},
+			{
+				"x": 24.5,
+				"y": 62.5
+			},
+			{
+				"x": 20.5,
+				"y": 64.5
+			},
+			{
+				"x": 24.5,
+				"y": 64.5
+			}
+		],
+		"gates": {
+			"gate-pad": {
+				"openOn": 1
+			}
+		},
+		"objectives": [
+			{
+				"type": "kill",
+				"label": "Break the riot line in the square",
+				"count": 35,
+				"sections": [3],
+				"checkpoint": true,
+				"checkpointAt": {
+					"x": 22.5,
+					"y": 58.5
+				},
+				"ambush": {
+					"count": 14,
+					"composition": {
+						"drudge": 60,
+						"bulwark": 20,
+						"bolter": 20
+					}
+				},
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "Lantern, Okafor. The square in front of the checkpoint is full of what used to be the riot line. Thin it before he notices you.",
+					"done": "That's got his attention. Here he comes."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Put down the Warden",
+				"count": 1,
+				"of": "warden",
+				"sections": [3],
+				"spawnScale": 0.6,
+				"boss": {
+					"type": "warden",
+					"at": {
+						"x": 22.5,
+						"y": 33.5
+					}
+				},
+				"radio": {
+					"speaker": "Major Okafor",
+					"start": "That's Hale. Stay out of his lane and shoot his back while he's looking at someone else.",
+					"done": "He's down. The pad gate is open: Kestrel is inbound."
+				}
+			},
+			{
+				"type": "extract",
+				"label": "Get to the pad",
+				"area": {
+					"x": 22.5,
+					"y": 14.5,
+					"radius": 4
+				},
+				"seconds": 60,
+				"sections": [4],
+				"radio": {
+					"speaker": "Kestrel",
+					"start": "Sixty seconds, Lantern. I'm not landing twice."
+				}
+			},
+			{
+				"type": "kill",
+				"label": "Optional: put down 150",
+				"count": 150,
+				"optional": true
+			}
+		]
+	},
+	{
 		"id": "airlift",
 		"name": "Ghost Fleet",
 		"zone": "harrow",
@@ -1494,7 +1629,10 @@
 				"bolter": 22,
 				"crawler": 18,
 				"swell": 8,
-				"screamer": 4
+				"screamer": 4,
+				"retcher": 5,
+				"bulwark": 3,
+				"delver": 2
 			}
 		},
 		"caches": [
@@ -1775,7 +1913,9 @@
 				"crawler": 25,
 				"bolter": 16,
 				"swell": 10,
-				"screamer": 4
+				"screamer": 4,
+				"retcher": 6,
+				"delver": 3
 			}
 		},
 		"caches": [
@@ -2102,7 +2242,10 @@
 				"bolter": 25,
 				"crawler": 15,
 				"swell": 10,
-				"screamer": 5
+				"screamer": 5,
+				"retcher": 5,
+				"bulwark": 4,
+				"cinder": 2
 			}
 		},
 		"caches": [
@@ -2406,7 +2549,10 @@
 				"bolter": 28,
 				"crawler": 12,
 				"swell": 10,
-				"screamer": 5
+				"screamer": 5,
+				"retcher": 4,
+				"bulwark": 5,
+				"delver": 2
 			}
 		},
 		"caches": [
@@ -2730,7 +2876,11 @@
 				"bolter": 28,
 				"crawler": 12,
 				"swell": 12,
-				"screamer": 6
+				"screamer": 6,
+				"retcher": 5,
+				"bulwark": 4,
+				"delver": 3,
+				"cinder": 3
 			}
 		},
 		"caches": [
@@ -3072,7 +3222,9 @@
 				"drudge": 60,
 				"bolter": 22,
 				"crawler": 12,
-				"swell": 6
+				"swell": 6,
+				"retcher": 4,
+				"cinder": 2
 			}
 		},
 		"caches": [
@@ -3180,7 +3332,8 @@
 			"composition": {
 				"drudge": 60,
 				"bolter": 25,
-				"crawler": 15
+				"crawler": 15,
+				"retcher": 5
 			}
 		},
 		"caches": [
@@ -3442,7 +3595,9 @@
 			"composition": {
 				"drudge": 55,
 				"bolter": 30,
-				"crawler": 15
+				"crawler": 15,
+				"retcher": 4,
+				"delver": 2
 			}
 		},
 		"caches": [
@@ -3677,7 +3832,9 @@
 				"drudge": 50,
 				"bolter": 30,
 				"swell": 10,
-				"crawler": 10
+				"crawler": 10,
+				"bulwark": 4,
+				"retcher": 4
 			}
 		},
 		"caches": [
