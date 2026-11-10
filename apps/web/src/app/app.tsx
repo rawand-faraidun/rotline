@@ -16,6 +16,7 @@ import { FriendsScreen } from './screens/friends-screen.tsx'
 import { LobbyScreen } from './screens/lobby-screen.tsx'
 import { MissionScreen, RangeScreen } from './screens/mission-screen.tsx'
 import { ProfileScreen } from './screens/profile-screen.tsx'
+import { RecordsScreen } from './screens/records-screen.tsx'
 import { ShopScreen } from './screens/shop-screen.tsx'
 import { SignInScreen } from './screens/sign-in-screen.tsx'
 import { SkillsScreen } from './screens/skills-screen.tsx'
@@ -94,10 +95,9 @@ const missionRoute = createRoute({
 })
 
 /** Lobby-side screens: signed in, enlisted, holding a seat. */
-function hubRoute<P extends '/play/skills' | '/play/armory' | '/play/shop' | '/play/profile' | '/play/friends'>(
-	path: P,
-	component: () => React.ReactNode
-) {
+function hubRoute<
+	P extends '/play/skills' | '/play/armory' | '/play/shop' | '/play/profile' | '/play/friends' | '/play/records'
+>(path: P, component: () => React.ReactNode) {
 	return createRoute({
 		getParentRoute: () => rootRoute,
 		path,
@@ -129,6 +129,7 @@ const armoryRoute = hubRoute('/play/armory', ArmoryScreen)
 const shopRoute = hubRoute('/play/shop', ShopScreen)
 const profileRoute = hubRoute('/play/profile', ProfileScreen)
 const friendsRoute = hubRoute('/play/friends', FriendsScreen)
+const recordsRoute = hubRoute('/play/records', RecordsScreen)
 
 // codes in an invite or friend link survive signing in
 keepLinkCodes()
@@ -147,6 +148,7 @@ const router = createRouter({
 		shopRoute,
 		profileRoute,
 		friendsRoute,
+		recordsRoute,
 		rangeRoute,
 		missionRoute
 	]),

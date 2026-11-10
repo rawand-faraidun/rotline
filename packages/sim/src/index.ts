@@ -40,6 +40,7 @@ export { applyCells, blocks, createProps, PROP_CELL, type Prop, PropKind, PropSt
 export { Rng } from './rng.ts'
 export {
 	CHAIN_TICKS,
+	NO_WEAPON,
 	ObjectKind,
 	type Pool,
 	type SimEvent,

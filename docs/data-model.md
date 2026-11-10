@@ -25,15 +25,14 @@ erDiagram
   player ||--o{ match_player : "plays in"
   match ||--o{ checkpoint : saves
   player ||--o{ mission_progress : "mastery"
-  contract ||--o{ contract_progress : tracks
-  player ||--o{ contract_progress : has
-  player ||--o{ bestiary_entry : discovers
+  player ||--o{ challenge_progress : has
+  player ||--o{ player_stat : counts
   player ||--o{ achievement_unlock : earns
+  player ||--o{ survival_run : plays
   player ||--o{ cosmetic_unlock : earns
   player ||--o{ friendship : "is in"
   player ||--o{ block : blocks
   player ||--o{ recent_player : remembers
-  player ||--o{ leaderboard_entry : scores
 ```
 
 ## Tables
@@ -53,7 +52,7 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 
 | Table | Columns | Constraints and notes |
 |---|---|---|
-| `player` | `user_id` PK → user, `player_name` citext, `avatar_style`, `avatar_seed`, `avatar_options` jsonb, `active_class` (`assault`/`medic`/`heavy`), `salvage` bigint, `title_id`, `banner_id`, `is_admin` bool | `player_name` unique, 3–16 chars, filter-checked in the API; `salvage >= 0`; the balance is a cache of the ledger (checked by a nightly job and in tests) |
+| `player` | `user_id` PK → user, `player_name` citext, `avatar_style`, `avatar_seed`, `avatar_options` jsonb, `active_class` (`assault`/`medic`/`heavy`), `salvage` bigint, `title_id` (an earned achievement), `banner_id`, `is_admin` bool | `player_name` unique, 3–16 chars, filter-checked in the API; `salvage >= 0`; the balance is a cache of the ledger (checked by a nightly job and in tests) |
 | `class_progress` | `player_id`, `class`, `xp` bigint | PK (`player_id`, `class`); three rows created with the player. Level and skill points are derived from the XP total and the game data, so a curve change never needs a migration |
 | `skill_allocation` | `player_id`, `class`, `node_id`, `rank` | PK (`player_id`, `class`, `node_id`); prerequisites checked against game data |
 | `ability_slot` | `player_id`, `class`, `slot` (1–3), `ability_id` | PK (`player_id`, `class`, `slot`) |
@@ -61,7 +60,7 @@ Conventions: `id` columns are UUIDv7 (`uuidv7()` is built into PostgreSQL 18) un
 | `item_duplicate` | `id`, `player_id`, `item_id`, `match_id`, `found_at` | A found copy of something already owned; its only action is "discard for currency". Until match records exist, `match_id` holds the id of the room the item was found in |
 | `loadout` | `player_id` PK, `main_1`, `main_2`, `pistol`, `armour_head`, `armour_torso`, `armour_vest`, `armour_legs`, `armour_feet`, `utility_1`, `utility_2` (item ids) | Each is a foreign key to (`player_id`, `item_id`) in `inventory_item`, so only owned items can be equipped; shared across classes; `main_1 <> main_2`; slots (and each armour piece's place) are checked against game data by the API |
 | `mission_progress` | `player_id`, `mission_id`, `difficulty` enum (`recruit`/`veteran`/`nightmare`/`apocalypse`), `completions` int, `best_time_ms` int, `best_score` bigint, `mastery` enum (`none`/`bronze`/`silver`/`gold`), `updated_at` | PK (`player_id`, `mission_id`, `difficulty`). Checks: `completions >= 0`, `best_time_ms > 0`, `best_score >= 0`, and `best_time_ms` is null exactly when there are no completions. Written from signed mission results (successful ones only): completions count up, best time, best score and mastery keep the best. These rows also decide which campaign missions a player has opened: a mission opens once the one before it (in the campaign order in game data) has a row with `completions > 0` |
-| `bestiary_entry` | `player_id`, `zombie_type`, `first_kill_at`, `kills` bigint, `mutations_seen` text[] | PK (`player_id`, `zombie_type`) |
+| `player_stat` | `player_id`, `key`, `value` bigint | PK (`player_id`, `key`); index (`key`). Lifetime counts from signed reports: `kills`, `kill:<zombie>` (the bestiary), `weapon:<kind>`, `revives`, `objectives`, `rounds`, `elites`, `missions`, `missions:<difficulty>`, `mission:<id>`, `clean-missions`, `gold`, `challenges`, and `bestiary` (kinds killed, worked out by the API). `value >= 0` |
 | `achievement_unlock` | `player_id`, `achievement_id`, `unlocked_at` | PK both ids |
 | `cosmetic_unlock` | `player_id`, `cosmetic_id`, `source`, `unlocked_at` | PK both ids |
 
@@ -87,10 +86,9 @@ Every change to a player's progress, inventory or Salvage runs in one transactio
 
 | Table | Columns | Notes |
 |---|---|---|
-| `contract` | `id`, `kind` (`daily`/`weekly`/`bounty`), `template_id`, `params` jsonb, `reward`, `starts_at`, `ends_at` | Rotated by a scheduled job on a fixed UTC clock |
-| `contract_progress` | `player_id`, `contract_id`, `progress`, `completed_at`, `claimed_at` | PK both ids; progress counted from match events on the server |
-| `event_schedule` | `id`, `event_id`, `starts_at`, `ends_at`, `enabled`, `updated_by` | Special events, switched in the admin panel |
-| `leaderboard_entry` | `board` (e.g. `survival:<map>:<season>`), `player_id`, `score`, `match_id`, `achieved_at` | PK (`board`, `player_id`); index (`board`, `score desc`) |
+| `challenge_progress` | `player_id`, `challenge_key` (`daily:<date>:<template>` or `weekly:<monday>:<template>`), `progress`, `completed_at` | PK both; the rotation is worked out from the clock (game data), so there is no table of challenges. A finished one is paid in the same transaction, through the ledger with the grant key `challenge:<player>:<key>`, so it pays once |
+| `survival_run` | `id`, `player_id`, `arena`, `rounds`, `score` bigint, `time_ms`, `squad`, `created_at` | One row per player per Survival run that ended; index (`arena`, `rounds desc`, `score desc`) and (`arena`, `created_at`) for the weekly and all-time boards. Mission boards read `mission_progress` |
+| `event_schedule` (planned) | `id`, `event_id`, `starts_at`, `ends_at`, `enabled`, `updated_by` | Special events, switched in the admin panel |
 
 ### Social
 
@@ -120,7 +118,7 @@ In one transaction: delete the `user` row, which cascades to `account`, `session
 - `inventory_item (player_id)`, `item_duplicate (player_id)`.
 - `reward_grant (player_id, room)` for the per-room item cap and result check.
 - `contract (kind, starts_at, ends_at)`.
-- `leaderboard_entry (board, score desc)`.
+- `survival_run (arena, rounds desc, score desc)` and `(arena, created_at)`.
 
 ## Migration rules
 

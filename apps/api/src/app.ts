@@ -8,11 +8,13 @@ import { friendRoutes } from './routes/friends.ts'
 import { partyRoutes } from './routes/party.ts'
 import { playerRoutes } from './routes/player.ts'
 import { progressRoutes } from './routes/progress.ts'
+import { recordRoutes } from './routes/records.ts'
 
 /** Limits by path: player search, progress changes, game tickets, and everything else social. */
 function writeLimit(path: string): { name: string; count: number; windowMs: number } | null {
 	if (path === '/api/friends/search') return { name: 'search', count: 30, windowMs: 10_000 }
 	if (path.startsWith('/api/progress/')) return { name: 'progress', count: 20, windowMs: 1000 }
+	if (path.startsWith('/api/records/')) return { name: 'records', count: 10, windowMs: 10_000 }
 	if (path.startsWith('/api/game/')) return { name: 'game', count: 6, windowMs: 10_000 }
 	if (path.startsWith('/api/party') || path.startsWith('/api/friends'))
 		return { name: 'social', count: 20, windowMs: 10_000 }
@@ -66,6 +68,7 @@ export function createApp(services: Services) {
 		.route('/', friendRoutes(services))
 		.route('/', adminRoutes(services))
 		.route('/', progressRoutes(services))
+		.route('/', recordRoutes(services))
 
 	api.onError((error, c) => {
 		log.error({ err: error, path: c.req.path }, 'unhandled error')

@@ -1,0 +1,226 @@
+[
+	{
+		"id": "first-blood",
+		"name": "First Blood",
+		"description": "Kill your first zombie.",
+		"stat": "kills",
+		"target": 1,
+		"title": "Fresh Meat"
+	},
+	{
+		"id": "hundred",
+		"name": "Thinning the Herd",
+		"description": "Kill 1,000 zombies.",
+		"stat": "kills",
+		"target": 1000,
+		"title": "Herder"
+	},
+	{
+		"id": "ten-thousand",
+		"name": "Ten Thousand Dead",
+		"description": "Kill 10,000 zombies.",
+		"stat": "kills",
+		"target": 10000,
+		"title": "The Line"
+	},
+	{
+		"id": "fifty-thousand",
+		"name": "Rotline",
+		"description": "Kill 50,000 zombies.",
+		"stat": "kills",
+		"target": 50000,
+		"title": "Rotline"
+	},
+	{
+		"id": "know-your-enemy",
+		"name": "Know Your Enemy",
+		"description": "Kill one of every kind of zombie.",
+		"stat": "bestiary",
+		"target": 11,
+		"title": "Field Biologist"
+	},
+	{
+		"id": "warden",
+		"name": "Checkpoint Cleared",
+		"description": "Beat The Warden.",
+		"stat": "mission:warden",
+		"target": 1,
+		"title": "Warden's Bane"
+	},
+	{
+		"id": "ashgate",
+		"name": "Out of Ashgate",
+		"description": "Finish Iron Maw.",
+		"stat": "mission:yard-stand",
+		"target": 1,
+		"title": "Ashgate Survivor"
+	},
+	{
+		"id": "harrow",
+		"name": "The Cure",
+		"description": "Finish Terminus.",
+		"stat": "mission:cure",
+		"target": 1,
+		"title": "Lantern"
+	},
+	{
+		"id": "medic",
+		"name": "Not Today",
+		"description": "Revive 25 teammates.",
+		"stat": "revives",
+		"target": 25,
+		"title": "Lifeline"
+	},
+	{
+		"id": "medic-hundred",
+		"name": "Field Surgeon",
+		"description": "Revive 100 teammates.",
+		"stat": "revives",
+		"target": 100,
+		"title": "Doc"
+	},
+	{
+		"id": "survivor",
+		"name": "Hold the Line",
+		"description": "Clear 50 Survival rounds.",
+		"stat": "rounds",
+		"target": 50,
+		"title": "Holdout"
+	},
+	{
+		"id": "survivor-500",
+		"name": "Endless",
+		"description": "Clear 500 Survival rounds.",
+		"stat": "rounds",
+		"target": 500,
+		"title": "Last Stand"
+	},
+	{
+		"id": "clean",
+		"name": "Nobody Left Behind",
+		"description": "Finish 5 missions with nobody bleeding out.",
+		"stat": "clean-missions",
+		"target": 5,
+		"title": "Shepherd"
+	},
+	{
+		"id": "gold",
+		"name": "Gold Standard",
+		"description": "Earn gold mastery on any mission.",
+		"stat": "gold",
+		"target": 1,
+		"title": "Gold"
+	},
+	{
+		"id": "gold-ten",
+		"name": "Precision",
+		"description": "Earn gold mastery 10 times.",
+		"stat": "gold",
+		"target": 10,
+		"title": "Perfectionist"
+	},
+	{
+		"id": "nightmare",
+		"name": "Bad Dreams",
+		"description": "Complete a mission on Nightmare.",
+		"stat": "missions:nightmare",
+		"target": 1,
+		"title": "Insomniac"
+	},
+	{
+		"id": "apocalypse",
+		"name": "End of Days",
+		"description": "Complete a mission on Apocalypse.",
+		"stat": "missions:apocalypse",
+		"target": 1,
+		"title": "Apocalypse"
+	},
+	{
+		"id": "elites",
+		"name": "Giant Slayer",
+		"description": "Kill 50 Brutes or bosses.",
+		"stat": "elites",
+		"target": 50,
+		"title": "Giant Slayer"
+	},
+	{
+		"id": "pyro",
+		"name": "Kiln Hot",
+		"description": "Burn 1,000 zombies with the flamethrower.",
+		"stat": "weapon:flamethrower",
+		"target": 1000,
+		"title": "Pyro"
+	},
+	{
+		"id": "boom",
+		"name": "Demolition",
+		"description": "Blow up 1,000 zombies with the grenade launcher.",
+		"stat": "weapon:launcher",
+		"target": 1000,
+		"title": "Sapper"
+	},
+	{
+		"id": "marksman",
+		"name": "Long Shot",
+		"description": "Kill 1,000 zombies with a sniper rifle.",
+		"stat": "weapon:sniper",
+		"target": 1000,
+		"title": "Marksman"
+	},
+	{
+		"id": "buckshot",
+		"name": "Buckshot",
+		"description": "Kill 2,000 zombies with a shotgun.",
+		"stat": "weapon:shotgun",
+		"target": 2000,
+		"title": "Breacher"
+	},
+	{
+		"id": "sidearm",
+		"name": "Sidearm",
+		"description": "Kill 1,000 zombies with a pistol.",
+		"stat": "weapon:pistol",
+		"target": 1000,
+		"title": "Gunslinger"
+	},
+	{
+		"id": "screamers",
+		"name": "Quiet Please",
+		"description": "Kill 100 Screamers.",
+		"stat": "kill:screamer",
+		"target": 100,
+		"title": "Hush"
+	},
+	{
+		"id": "shields",
+		"name": "Shield Breaker",
+		"description": "Kill 100 Bulwarks.",
+		"stat": "kill:bulwark",
+		"target": 100,
+		"title": "Flanker"
+	},
+	{
+		"id": "diggers",
+		"name": "Whack-a-Mole",
+		"description": "Kill 100 Delvers.",
+		"stat": "kill:delver",
+		"target": 100,
+		"title": "Groundskeeper"
+	},
+	{
+		"id": "contracts",
+		"name": "Contractor",
+		"description": "Complete 25 missions or contracts.",
+		"stat": "missions",
+		"target": 25,
+		"title": "Contractor"
+	},
+	{
+		"id": "challenges",
+		"name": "Orders Received",
+		"description": "Complete 10 daily or weekly challenges.",
+		"stat": "challenges",
+		"target": 10,
+		"title": "Dutiful"
+	}
+]

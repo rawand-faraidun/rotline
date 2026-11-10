@@ -102,6 +102,9 @@ function PlayerCard() {
 			<AvatarFrame src={avatar} alt="" size={64} />
 			<span className="flex min-w-0 flex-1 flex-col gap-1">
 				<span className="truncate font-display text-2xl uppercase">{player.name}</span>
+				{player.title && (
+					<span className="truncate text-rot-lime text-xs uppercase tracking-[0.2em]">{player.title}</span>
+				)}
 				<span className="flex items-baseline justify-between gap-2 text-sm">
 					<span className="font-bold text-rot-lime uppercase tracking-[0.12em]">
 						{en.app.progression.classes[view.activeClass].name} ·{' '}
@@ -142,6 +145,9 @@ function MemberRow({
 					{member.name}
 					{you && <span className="text-muted"> {t.you}</span>}
 				</span>
+				{member.title && (
+					<span className="truncate text-rot-lime text-xs uppercase tracking-[0.15em]">{member.title}</span>
+				)}
 				<span className="text-muted text-xs uppercase tracking-wider">
 					{t.classes[member.activeClass]} · {format(en.app.progression.level, { level: String(member.level) })}
 				</span>

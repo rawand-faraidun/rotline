@@ -1,0 +1,201 @@
+{
+	"daily": {
+		"count": 3,
+		"reward": 1500
+	},
+	"weekly": {
+		"count": 3,
+		"reward": 8000
+	},
+	"templates": [
+		{
+			"id": "d-kills",
+			"kind": "daily",
+			"stat": "kills",
+			"target": 400,
+			"text": "Put down 400 zombies"
+		},
+		{
+			"id": "d-shotgun",
+			"kind": "daily",
+			"stat": "weapon:shotgun",
+			"target": 120,
+			"text": "Kill 120 zombies with a shotgun"
+		},
+		{
+			"id": "d-smg",
+			"kind": "daily",
+			"stat": "weapon:smg",
+			"target": 200,
+			"text": "Kill 200 zombies with an SMG"
+		},
+		{
+			"id": "d-rifle",
+			"kind": "daily",
+			"stat": "weapon:rifle",
+			"target": 200,
+			"text": "Kill 200 zombies with an assault rifle"
+		},
+		{
+			"id": "d-pistol",
+			"kind": "daily",
+			"stat": "weapon:pistol",
+			"target": 60,
+			"text": "Kill 60 zombies with a pistol"
+		},
+		{
+			"id": "d-fire",
+			"kind": "daily",
+			"stat": "weapon:flamethrower",
+			"target": 150,
+			"text": "Burn 150 zombies with the flamethrower"
+		},
+		{
+			"id": "d-blast",
+			"kind": "daily",
+			"stat": "weapon:launcher",
+			"target": 120,
+			"text": "Blow up 120 zombies with the grenade launcher"
+		},
+		{
+			"id": "d-retcher",
+			"kind": "daily",
+			"stat": "kill:retcher",
+			"target": 12,
+			"text": "Kill 12 Retchers"
+		},
+		{
+			"id": "d-bulwark",
+			"kind": "daily",
+			"stat": "kill:bulwark",
+			"target": 10,
+			"text": "Kill 10 Bulwarks"
+		},
+		{
+			"id": "d-delver",
+			"kind": "daily",
+			"stat": "kill:delver",
+			"target": 8,
+			"text": "Kill 8 Delvers"
+		},
+		{
+			"id": "d-cinder",
+			"kind": "daily",
+			"stat": "kill:cinder",
+			"target": 12,
+			"text": "Kill 12 Cinders"
+		},
+		{
+			"id": "d-screamer",
+			"kind": "daily",
+			"stat": "kill:screamer",
+			"target": 10,
+			"text": "Silence 10 Screamers"
+		},
+		{
+			"id": "d-objectives",
+			"kind": "daily",
+			"stat": "objectives",
+			"target": 10,
+			"text": "Complete 10 mission objectives"
+		},
+		{
+			"id": "d-revives",
+			"kind": "daily",
+			"stat": "revives",
+			"target": 3,
+			"text": "Revive 3 teammates"
+		},
+		{
+			"id": "d-rounds",
+			"kind": "daily",
+			"stat": "rounds",
+			"target": 10,
+			"text": "Clear 10 Survival rounds"
+		},
+		{
+			"id": "d-mission",
+			"kind": "daily",
+			"stat": "missions",
+			"target": 2,
+			"text": "Complete 2 missions or contracts"
+		},
+		{
+			"id": "w-kills",
+			"kind": "weekly",
+			"stat": "kills",
+			"target": 3000,
+			"text": "Put down 3,000 zombies"
+		},
+		{
+			"id": "w-elites",
+			"kind": "weekly",
+			"stat": "elites",
+			"target": 15,
+			"text": "Kill 15 Brutes or bosses"
+		},
+		{
+			"id": "w-clean",
+			"kind": "weekly",
+			"stat": "clean-missions",
+			"target": 3,
+			"text": "Finish 3 missions with nobody bleeding out"
+		},
+		{
+			"id": "w-nightmare",
+			"kind": "weekly",
+			"stat": "missions:nightmare",
+			"target": 3,
+			"text": "Complete 3 missions on Nightmare"
+		},
+		{
+			"id": "w-revives",
+			"kind": "weekly",
+			"stat": "revives",
+			"target": 15,
+			"text": "Revive 15 teammates"
+		},
+		{
+			"id": "w-rounds",
+			"kind": "weekly",
+			"stat": "rounds",
+			"target": 60,
+			"text": "Clear 60 Survival rounds"
+		},
+		{
+			"id": "w-objectives",
+			"kind": "weekly",
+			"stat": "objectives",
+			"target": 50,
+			"text": "Complete 50 mission objectives"
+		},
+		{
+			"id": "w-sniper",
+			"kind": "weekly",
+			"stat": "weapon:sniper",
+			"target": 300,
+			"text": "Kill 300 zombies with a sniper rifle"
+		},
+		{
+			"id": "w-lmg",
+			"kind": "weekly",
+			"stat": "weapon:lmg",
+			"target": 800,
+			"text": "Kill 800 zombies with a machine gun"
+		},
+		{
+			"id": "w-shock",
+			"kind": "weekly",
+			"stat": "weapon:shock",
+			"target": 500,
+			"text": "Kill 500 zombies with the shock rifle"
+		},
+		{
+			"id": "w-missions",
+			"kind": "weekly",
+			"stat": "missions",
+			"target": 10,
+			"text": "Complete 10 missions or contracts"
+		}
+	]
+}

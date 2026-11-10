@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { friendIds } from '@rotline/db'
 import {
+	achievements,
 	buildProblem,
 	campaign,
 	type DifficultyId,
@@ -143,6 +144,7 @@ export function partyRoutes(services: Services) {
 				avatarStyle: true,
 				avatarSeed: true,
 				activeClass: true,
+				titleId: true,
 				classes: { select: { class: true, xp: true } }
 			}
 		})
@@ -157,6 +159,8 @@ export function partyRoutes(services: Services) {
 					avatarStyle: player.avatarStyle,
 					avatarSeed: player.avatarSeed,
 					activeClass: player.activeClass,
+					// the title they wear (an achievement's), or null
+					title: achievements.find(entry => entry.id === player.titleId)?.title ?? null,
 					level: levelFromXp(Number(player.classes.find(entry => entry.class === player.activeClass)?.xp ?? 0)).level,
 					ready: id === party.leader || party.ready.includes(id),
 					leader: id === party.leader

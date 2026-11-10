@@ -14,6 +14,7 @@ import {
 	SURVIVAL,
 	type SurvivalId,
 	survivalMap,
+	weapons,
 	zombieIndex,
 	zombies
 } from '@rotline/game-data'
@@ -93,6 +94,8 @@ type Earnings = {
 	hits: number
 	/** unique per membership, so a player who leaves and rejoins (or a restarted server) never reuses a grant key */
 	nonce: string
+	/** lifetime counts since the last report (see RewardReport.tally) */
+	tally: Record<string, number>
 }
 
 export type MissionRoom = { id: string; difficulty: DifficultyId }
@@ -120,6 +123,8 @@ export type RewardSink = (report: {
 	items?: string[]
 	/** a finished mission, for best times and mastery */
 	result?: MissionResult
+	tally?: Record<string, number>
+	survival?: { arena: string; rounds: number; score: number; timeMs: number; squad: number }
 }) => void
 
 type Member = {
@@ -173,6 +178,8 @@ export class Room {
 	/** the difficulty's reward multiplier */
 	private readonly rewardScale: number
 	private readonly startTick: number
+	/** someone bled out this mission (a clean mission is one where nobody did) */
+	private bledOut = false
 
 	constructor(
 		id: string,
@@ -338,7 +345,8 @@ export class Room {
 					totalKills: 0,
 					shots: 0,
 					hits: 0,
-					nonce: randomUUID().slice(0, 8)
+					nonce: randomUUID().slice(0, 8),
+					tally: {}
 				},
 				connection: null,
 				encoder: new SnapshotEncoder(slot),
@@ -493,19 +501,25 @@ export class Room {
 				continue
 			}
 			this.pendingEvents.push(event)
-			if (event.type === 'kill') this.credit(event.by, event.zombieType)
+			if (event.type === 'kill') this.credit(event.by, event.zombieType, event.weapon)
+			else if (event.type === 'player-revived') this.tallySlot(event.by, 'revives')
+			else if (event.type === 'player-out') this.bledOut = true
 			else if (event.type === 'shot' && event.player > 0) this.count(event.player, 'shots')
 			else if (event.type === 'hit' && event.by > 0) this.count(event.by, 'hits')
 			// a cleared wave pays everyone connected who played it (not on a restart after a wipe,
 			// not the absent, not someone standing idle while the others play)
-			else if (event.type === 'cleared') this.payAll(economy.rewards.waveClear, 'now')
+			else if (event.type === 'cleared') {
+				this.tallyPlaying('rounds')
+				this.payAll(economy.rewards.waveClear, 'now')
+			}
 			// objectives pay like waves, the first time only; checkpoints save what was earned and found
-			else if (event.type === 'objective' && event.first)
+			else if (event.type === 'objective' && event.first) {
+				if (!this.missionDef?.objectives[event.index]?.optional) this.tallyPlaying('objectives')
 				this.payAll(
 					this.missionDef?.objectives[event.index]?.optional ? economy.rewards.optional : economy.rewards.objective,
 					'pending'
 				)
-			else if (event.type === 'checkpoint') {
+			} else if (event.type === 'checkpoint') {
 				this.settlePending()
 				for (const member of this.members.values()) this.report(member, true)
 			} else if (event.type === 'threshold') this.paySalvage(event.player, economy.score.thresholdSalvage)
@@ -611,9 +625,33 @@ export class Room {
 		member.earnings.salvage += salvage
 	}
 
-	private credit(slot: number, zombieType: number): void {
+	/** Adds to a member's tally. */
+	private tally(member: Member, key: string, amount = 1): void {
+		member.earnings.tally[key] = (member.earnings.tally[key] ?? 0) + amount
+	}
+
+	private tallySlot(slot: number, key: string): void {
+		for (const member of this.members.values()) if (member.slot === slot) this.tally(member, key)
+	}
+
+	/** Counts for everyone connected who played since the last payment (as a cleared wave or objective pays). */
+	private tallyPlaying(key: string): void {
+		for (const member of this.members.values()) if (member.connection && member.earnings.active) this.tally(member, key)
+	}
+
+	private credit(slot: number, zombieType: number, weapon?: number): void {
 		const zombie = zombies[zombieType]
 		if (!zombie || this.world.finished) return
+		// the firing range counts nothing
+		if (this.mode !== 'range')
+			for (const member of this.members.values()) {
+				if (member.slot !== slot) continue
+				this.tally(member, 'kills')
+				this.tally(member, `kill:${zombie.id}`)
+				if (zombie.elite) this.tally(member, 'elites')
+				const kind = weapon === undefined ? undefined : weapons[weapon]?.kind
+				if (kind) this.tally(member, `weapon:${kind}`)
+			}
 		// Double XP multiplies the class XP earned (kills here; objectives and score likewise)
 		const xp = zombie.xp * (this.world.tick < this.world.doubleXpUntil ? DOUBLE_XP : 1)
 		for (const member of this.members.values()) {
@@ -665,6 +703,11 @@ export class Room {
 				if (at >= 0) state.foundItems.splice(at, 1)
 			}
 			if (counts) {
+				this.tally(member, 'missions')
+				this.tally(member, `missions:${room.difficulty}`)
+				this.tally(member, `mission:${room.id}`)
+				if (!this.bledOut) this.tally(member, 'clean-missions')
+				if (mastery === 3) this.tally(member, 'gold')
 				const reward = economy.rewards.completion
 				const doubled = this.world.tick < this.world.doubleXpUntil ? DOUBLE_XP : 1
 				this.add(member, reward.xp * doubled * this.rewardScale, reward.salvage * this.rewardScale)
@@ -691,9 +734,15 @@ export class Room {
 		if (this.completedAt > 0) return
 		this.completedAt = now
 		const timeMs = ((this.world.tick - this.startTick) * DT * 1000) | 0
+		const squad = this.members.size
 		for (const member of this.members.values()) {
 			const state = this.world.players.get(member.slot)
-			this.report(member)
+			// the leaderboards count those who took part in the run
+			const survival =
+				this.arena && this.tookPart(member) && timeMs > 0
+					? { arena: this.arena, rounds, score: Math.floor(state?.score ?? 0), timeMs, squad }
+					: undefined
+			this.report(member, false, undefined, survival)
 			member.results = writeResults(this.writer, {
 				success: false,
 				rounds,
@@ -767,7 +816,12 @@ export class Room {
 	 * mission's end), as the rules say. A report larger than one report may carry is split, the items
 	 * and the result going with the last part.
 	 */
-	private report(member: Member, withItems = false, result?: MissionResult): void {
+	private report(
+		member: Member,
+		withItems = false,
+		result?: MissionResult,
+		survival?: { arena: string; rounds: number; score: number; timeMs: number; squad: number }
+	): void {
 		if (this.mode === 'range') return
 		const earnings = member.earnings
 		const state = this.world.players.get(member.slot)
@@ -784,7 +838,11 @@ export class Room {
 		const items = withItems && state ? state.foundItems.splice(0) : []
 		if (state) state.itemsReported += items.length
 		member.reportedItems.push(...items.map(itemIndex))
-		if (xp === 0 && salvage === 0 && earnings.kills === 0 && items.length === 0 && !result) return
+		const tally = earnings.tally
+		const tallied = Object.keys(tally).length > 0
+		if (xp === 0 && salvage === 0 && earnings.kills === 0 && items.length === 0 && !result && !tallied && !survival)
+			return
+		earnings.tally = {}
 		const cap = economy.rewards.maxPerReport
 		do {
 			const partXp = Math.min(xp, cap.xp)
@@ -798,7 +856,9 @@ export class Room {
 				salvage: partSalvage,
 				kills: last ? earnings.kills : 0,
 				...(last && items.length > 0 ? { items } : {}),
-				...(last && result ? { result } : {})
+				...(last && result ? { result } : {}),
+				...(last && tallied ? { tally } : {}),
+				...(last && survival ? { survival } : {})
 			})
 			earnings.reports++
 			earnings.reportedXp += partXp

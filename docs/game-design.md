@@ -452,12 +452,15 @@ In a squad there are no lives: a player at zero health goes down and waits to be
 | Zero health alone, contract or Survival | No lives: the first death ends it (contract failed, or the Survival run over) |
 | Failed objective | A survivor or defend target lost, or an extraction timer run out: the same as a squad wipe (section 7); it does not cost a life |
 
-## 12. Contracts and bounties
+## 12. Challenges and bounties
 
-- **3 daily contracts** rotate at 00:00 UTC (1,500 Salvage each); **3 weekly contracts** rotate Monday 00:00 UTC (8,000 each). A countdown is shown.
-- Examples: "Kill 200 zombies with shotguns", "Finish a mission with nobody bleeding out", "Revive 5 teammates", "Destroy 10 nests on Nightmare".
-- **Bounties**: a named elite (e.g. *Old Ironjaw*, a mutated Ram) that appears in one mission at one difficulty this week; reward 5,000 and a title.
-- Progress is counted by the server from match events. Missing a day costs nothing: no streaks, no penalties.
+The daily and weekly jobs the brief calls contracts are called **challenges** in the game, because Contracts is already the name of the short game mode (section 2).
+
+- **3 daily challenges** change at 00:00 UTC (1,500 Salvage each); **3 weekly challenges** change on Monday at 00:00 UTC (8,000 each). They are picked from the templates in `packages/game-data/data/challenges.json` by the date alone, so every server agrees without storing them, and the Records screen counts down to the next ones.
+- Examples: "Kill 120 zombies with a shotgun", "Kill 12 Retchers", "Clear 10 Survival rounds", "Finish 3 missions with nobody bleeding out", "Complete 3 missions on Nightmare".
+- Progress is counted by the server from match events: every report a game server signs carries a tally (kills, by kind and by the weapon that made them, burns and poison included; revives; objectives; Survival rounds; elites; missions and contracts completed, by difficulty, and the ones nobody bled out in; golds). A finished challenge pays at once, through the ledger, once per player and rotation. Missing a day costs nothing: no streaks, no penalties.
+- The API refuses a tally the play could not have produced (more kills than the report pays, more rounds or revives than a stretch between two reports allows, a mission completion without that mission's own successful result) and drops it, keeping the rest of the report.
+- **Bounties** (planned): a named elite (e.g. *Old Ironjaw*, a mutated Ram) that appears in one mission at one difficulty this week; reward 5,000 and a title.
 
 ## 13. Lobby, difficulty and matchmaking
 
@@ -494,11 +497,15 @@ Planned with the bestiary and later content: moving and armoured dummies with we
 
 ## 16. Bestiary
 
-An entry unlocks on a player's first kill of a type: the model (rotatable), behaviour notes, weaknesses and resistances, every mutation stage and adaptive strain the player has seen, and their kill count.
+An entry unlocks on a player's first kill of a type: what it is, what works against it, what it shrugs off, and the player's kill count; until then the card says only that it is unknown (and, for an elite or a boss, that much). On the Records screen. Planned: the model, and the mutation stages and strains seen.
 
 ## 17. Achievements and cosmetics
 
-About 60 achievements at launch (milestones, feats, mastery, bestiary completion). Rewards are cosmetics only: titles, profile banners, weapon skins, armour colours, extra DiceBear avatar styles. Cosmetics never change stats and are never sold.
+28 achievements so far (kills, kinds of zombie, the Warden and the two zones, revives, Survival rounds, clean missions, golds, Nightmare and Apocalypse, weapon kills, challenges done), each a lifetime count reaching a target, kept in `packages/game-data/data/achievements.json`. Each one earns a **title**, worn beside the player's name in the lobby, on squad cards, the profile and the leaderboards; one at a time, only one the player has earned. Planned: profile banners, weapon skins, armour colours, extra DiceBear avatar styles. Cosmetics never change stats and are never sold.
+
+### Leaderboards
+
+On the Records screen: each Survival arena, this week (from Monday 00:00 UTC) and all time, ranked by rounds survived and then score, one line per player (their best run); and each campaign mission at each difficulty, by best time and then best score. The top 20 are shown, and the player's own place when they are lower down. A Survival run counts for everyone who took part in it (section 6) and is checked like a mission result: no more rounds than the time allows, no more score than it can earn.
 
 ## 18. Mission mastery
 

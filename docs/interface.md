@@ -48,7 +48,7 @@ Buttons (primary lime, secondary outlined bone, destructive alert with stripes),
 
 ## Screens
 
-Landing, queue, lobby hub, class and skill tree, armory (inventory, upgrades, discard), shop, contracts, friends, mission select with the campaign map, firing range, bestiary, achievements and cosmetics, results, profile and statistics, leaderboards, settings, privacy and terms, admin.
+Landing, queue, lobby hub, class and skill tree, armory (inventory, upgrades, discard), shop, friends, mission select with the campaign map, firing range, records (challenges, leaderboards, bestiary, achievements and titles, a tab each), results, profile and statistics, settings, privacy and terms, admin.
 
 ## The queue page
 

@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import abilitiesData from '../data/abilities.json' with { type: 'json' }
+import achievementsData from '../data/achievements.json' with { type: 'json' }
 import buffsData from '../data/buffs.json' with { type: 'json' }
 import campaignData from '../data/campaign.json' with { type: 'json' }
+import challengesData from '../data/challenges.json' with { type: 'json' }
 import classesData from '../data/classes.json' with { type: 'json' }
 import difficultiesData from '../data/difficulties.json' with { type: 'json' }
 import economyData from '../data/economy.json' with { type: 'json' }
@@ -37,9 +39,11 @@ import zombiesData from '../data/zombies.json' with { type: 'json' }
 import { fromLayout, type MapSource } from './layout.ts'
 import {
 	abilitySchema,
+	achievementSchema,
 	buffsSchema,
 	type ClassId,
 	campaignSchema,
+	challengesSchema,
 	classesSchema,
 	type DifficultyDef,
 	type DifficultyId,
@@ -122,6 +126,11 @@ export const upgrades = parse('upgrades', upgradesSchema, upgradesData)
 export const difficulties = parse('difficulties', difficultiesSchema, difficultiesData)
 export const buffs = parse('buffs', buffsSchema, buffsData)
 export const missions = uniqueById('missions', parse('missions', z.array(missionSchema), missionsData))
+export const challenges = parse('challenges', challengesSchema, challengesData)
+export const achievements = uniqueById(
+	'achievements',
+	parse('achievements', z.array(achievementSchema), achievementsData)
+)
 /**
  * Each mission on each of its maps: the mission as written first, then its variants (contracts run
  * on several maps). A variant keeps the mission's id, rules and rewards; only the place changes.
@@ -544,6 +553,31 @@ for (const mission of layouts) {
 		)
 	for (const mission of missions)
 		check(listed.includes(mission.id), `campaign: mission ${mission.id} is in no zone and is no contract`)
+}
+// every stat a challenge or an achievement counts names something that exists
+{
+	const kinds = new Set<string>(weapons.map(weapon => weapon.kind))
+	const known = (stat: string) => {
+		const [head, tail = ''] = stat.split(':')
+		if (head === 'kill') return zombies.some(zombie => zombie.id === tail && !zombie.dummy)
+		if (head === 'weapon') return kinds.has(tail)
+		if (head === 'mission') return missions.some(mission => mission.id === tail)
+		return true
+	}
+	uniqueById('challenges', challenges.templates)
+	for (const template of challenges.templates)
+		check(known(template.stat), `challenges/${template.id}: counts ${template.stat}, which does not exist`)
+	for (const kind of ['daily', 'weekly'] as const)
+		check(
+			challenges.templates.filter(template => template.kind === kind).length >= challenges[kind].count,
+			`challenges: fewer ${kind} templates than are picked`
+		)
+	const types = zombies.filter(zombie => !zombie.dummy).length
+	for (const achievement of achievements) {
+		check(known(achievement.stat), `achievements/${achievement.id}: counts ${achievement.stat}, which does not exist`)
+		if (achievement.stat === 'bestiary')
+			check(achievement.target === types, `achievements/${achievement.id}: the bestiary has ${types} kinds`)
+	}
 }
 for (const tier of difficulties.tiers) {
 	check(economy.drops.tierWeights[tier.id] !== undefined, `economy: drop weights for ${tier.id}`)

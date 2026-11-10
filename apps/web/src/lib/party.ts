@@ -4,6 +4,7 @@ import { queryOptions, useQueryClient } from '@tanstack/react-query'
 import { api } from './api.ts'
 import { friendsQuery } from './friends.ts'
 import { progressQuery } from './progress.ts'
+import { RECORDS } from './records.ts'
 
 export type PartyMember = {
 	id: string
@@ -12,6 +13,8 @@ export type PartyMember = {
 	avatarSeed: string
 	activeClass: 'assault' | 'medic' | 'heavy'
 	level: number
+	/** the title they wear, or null */
+	title: string | null
 	ready: boolean
 	leader: boolean
 }
@@ -165,6 +168,8 @@ export function usePlayerEvents(onInvite?: (invite: Invite) => void): void {
 		source.addEventListener('progress', () => {
 			void queryClient.invalidateQueries({ queryKey: progressQuery.queryKey })
 			void queryClient.invalidateQueries({ queryKey: missionsQuery.queryKey })
+			// challenges, achievements, the bestiary and the boards move with every report
+			void queryClient.invalidateQueries({ queryKey: [RECORDS] })
 			// squad cards show class levels
 			refreshParty()
 		})

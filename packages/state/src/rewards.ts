@@ -31,6 +31,13 @@ export type RewardReport = {
 				optionalDone: number
 		  }
 		| undefined
+	/**
+	 * Lifetime counts since the previous report (kills by kind and weapon, revives, objectives,
+	 * rounds, missions completed), for the bestiary, achievements and challenges.
+	 */
+	tally?: Record<string, number> | undefined
+	/** a Survival run that ended: the arena, rounds cleared and the player's score, for the leaderboards */
+	survival?: { arena: string; rounds: number; score: number; timeMs: number; squad: number } | undefined
 }
 
 /**

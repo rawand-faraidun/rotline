@@ -1036,6 +1036,47 @@ export const campaignSchema = z.object({
 	contracts: z.array(id).optional()
 })
 
+/**
+ * A lifetime count kept for each player, by key: every kill (`kills`), by kind (`kill:<zombie>`) and
+ * by weapon kind (`weapon:<kind>`); `revives`, `objectives`, Survival `rounds`, `elites` (Brutes and
+ * bosses); missions and contracts completed (`missions`, `missions:<difficulty>`, `mission:<id>`),
+ * the ones nobody bled out in (`clean-missions`), golds, challenges done, and `bestiary`: how many
+ * kinds the player has killed.
+ */
+export const statKeyId = z
+	.string()
+	.regex(
+		/^(kills|revives|objectives|rounds|missions|elites|clean-missions|gold|challenges|bestiary|kill:[a-z0-9-]+|weapon:[a-z]+|missions:(recruit|veteran|nightmare|apocalypse)|mission:[a-z0-9-]+)$/,
+		'not a stat'
+	)
+
+/** Daily and weekly challenges: a few picked from these every day and every week (UTC). */
+export const challengesSchema = z.object({
+	daily: z.object({ count: z.number().int().min(1).max(6), reward: z.number().int().positive() }),
+	weekly: z.object({ count: z.number().int().min(1).max(6), reward: z.number().int().positive() }),
+	templates: z
+		.array(
+			z.object({
+				id,
+				kind: z.enum(['daily', 'weekly']),
+				stat: statKeyId,
+				target: z.number().int().positive(),
+				text: z.string().min(1).max(80)
+			})
+		)
+		.min(1)
+})
+
+/** Achievements: a lifetime count reaching a target; each one earns a title to wear. */
+export const achievementSchema = z.object({
+	id,
+	name: z.string().min(1).max(40),
+	description: z.string().min(1).max(120),
+	stat: statKeyId,
+	target: z.number().int().positive(),
+	title: z.string().min(1).max(24)
+})
+
 /** Interactive map props: their numbers. */
 export const propsDataSchema = z.object({
 	barrel: z.object({
@@ -1180,3 +1221,6 @@ export type BuffDef = BuffsDef['buffs'][number]
 export type ObjectiveDef = z.infer<typeof objectiveSchema>
 export type MissionDef = z.infer<typeof missionSchema>
 export type Build = z.infer<typeof buildSchema>
+export type ChallengesDef = z.infer<typeof challengesSchema>
+export type ChallengeTemplate = ChallengesDef['templates'][number]
+export type AchievementDef = z.infer<typeof achievementSchema>

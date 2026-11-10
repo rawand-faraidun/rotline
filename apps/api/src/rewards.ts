@@ -6,6 +6,15 @@ import { verifyMessage } from '@rotline/ticket'
 import type { Logger } from 'pino'
 import { z } from 'zod'
 import { changeSalvage, lockPlayer, PlayerMissing, type Tx } from './lib/ledger.ts'
+import {
+	applyRecords,
+	plausibleSurvival,
+	plausibleTally,
+	type SurvivalRecord,
+	survivalSchema,
+	type Tally,
+	tallySchema
+} from './lib/records.ts'
 
 const GROUP = 'api'
 /** room:player:membership:sequence, from squad rooms only (the firing range reports nothing) */
@@ -37,7 +46,9 @@ const report = z.object({
 			squad: z.number().int().min(1).max(4),
 			optionalDone: z.number().int().min(0).max(20)
 		})
-		.optional()
+		.optional(),
+	tally: tallySchema.optional(),
+	survival: survivalSchema.optional()
 })
 
 type Report = z.infer<typeof report>
@@ -109,7 +120,12 @@ async function recordResult(tx: Tx, playerId: string, result: NonNullable<Report
  * Applies one reward report in one transaction: the grant key is recorded first, so a report
  * delivered twice changes nothing the second time. Returns false for a repeat.
  */
-export async function grantReward(db: Database, valkey: Valkey | null, input: RewardReport): Promise<boolean> {
+export async function grantReward(
+	db: Database,
+	valkey: Valkey | null,
+	input: RewardReport,
+	now = new Date()
+): Promise<boolean> {
 	// a deleted player cannot be paid; nothing is recorded for them
 	if (!(await db.player.findUnique({ where: { userId: input.userId }, select: { userId: true } }))) return false
 	const room = input.grantKey.split(':')[0] ?? ''
@@ -151,6 +167,8 @@ export async function grantReward(db: Database, valkey: Valkey | null, input: Re
 						update: { xp: { increment: BigInt(input.xp) } }
 					})
 				}
+				if (input.tally || input.survival)
+					await applyRecords(tx, input.userId, (input.tally ?? {}) as Tally, input.survival as SurvivalRecord, now)
 				if (input.salvage > 0) {
 					await changeSalvage(
 						tx,
@@ -311,6 +329,20 @@ export class RewardWorker {
 			if (!(await matchesRoom(this.valkey, room, grant))) {
 				this.log.error({ id, grantKey: grant.grantKey }, 'reward report items or result do not fit the room')
 				const { items: _items, result: _result, ...rest } = grant
+				grant = rest
+			}
+			// counts that the play could not have produced are dropped (the pay itself was checked above)
+			if (grant.tally && !plausibleTally(grant.tally, grant.kills, grant.result)) {
+				this.log.error({ id, grantKey: grant.grantKey }, 'reward report tally is implausible')
+				const { tally: _tally, ...rest } = grant
+				grant = rest
+			}
+			if (
+				grant.survival &&
+				(!plausibleSurvival(grant.survival) || (await roomMission(this.valkey, room)) !== 'survival')
+			) {
+				this.log.error({ id, grantKey: grant.grantKey }, 'reward report Survival run does not fit')
+				const { survival: _survival, ...rest } = grant
 				grant = rest
 			}
 			try {

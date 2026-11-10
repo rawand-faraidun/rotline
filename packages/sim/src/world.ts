@@ -83,7 +83,8 @@ import { Rng } from './rng.ts'
 export type SimEvent =
 	| { type: 'shot'; player: number; x: number; y: number; angle: number; length: number; weapon: number }
 	| { type: 'hit'; zombie: number; x: number; y: number; amount: number; by: number }
-	| { type: 'kill'; zombie: number; zombieType: number; x: number; y: number; by: number }
+	/** `weapon`: the weapon (index into game-data weapons) that made the kill, for the server's records only */
+	| { type: 'kill'; zombie: number; zombieType: number; x: number; y: number; by: number; weapon?: number }
 	| { type: 'burst'; x: number; y: number; radius: number }
 	| { type: 'scream'; x: number; y: number }
 	| { type: 'launch'; id: number; player: number; x: number; y: number; angle: number; speed: number; weapon: number }
@@ -166,7 +167,12 @@ export type Projectile = {
 	/** thrown: flies over zombies and lands at its range, then runs `land` */
 	lob: boolean
 	land: ((world: World, x: number, y: number) => void) | null
+	/** the weapon it came from (NO_WEAPON for thrown things) */
+	weapon: number
 }
+
+/** No weapon: an ability, a utility, a barrel or a trap did it. */
+export const NO_WEAPON = 255
 
 /** Things abilities and utilities leave in the world, sent to clients in every snapshot. */
 export const ObjectKind = {
@@ -383,6 +389,11 @@ export class World {
 	readonly burnUntil = new Uint32Array(MAX_ZOMBIES)
 	readonly burnPerTick = new Float32Array(MAX_ZOMBIES)
 	readonly burnBy = new Uint8Array(MAX_ZOMBIES)
+	/** which weapon set it alight, or poisoned it (NO_WEAPON for neither): a kill by the burning is that weapon's */
+	readonly burnWeapon = new Uint8Array(MAX_ZOMBIES).fill(NO_WEAPON)
+	readonly poisonWeapon = new Uint8Array(MAX_ZOMBIES).fill(NO_WEAPON)
+	/** the weapon whose damage is being dealt right now (NO_WEAPON otherwise), so kills know what made them */
+	firingWeapon = NO_WEAPON
 	/** taunted toward a player (1..4) or, with 0, toward (tauntX, tauntY) */
 	readonly tauntUntil = new Uint32Array(MAX_ZOMBIES)
 	/** screamers: the tick of their next call */
@@ -746,7 +757,9 @@ export class World {
 		separateFromZombies(this.grid, state, MAX_ZOMBIES, this.x, this.y, this.zombieRadius, this.solid)
 		if (result === 0) return
 		if (result & Step.fired) {
+			this.firingWeapon = activeWeapon(state, (result & Step.minigun) !== 0).index
 			this.fire(state, input.viewTick, (result & Step.piercing) !== 0, (result & Step.minigun) !== 0)
+			this.firingWeapon = NO_WEAPON
 		}
 		for (let slot = 0; slot < 3; slot++) {
 			const id = state.stats.abilities[slot]
@@ -1108,6 +1121,7 @@ export class World {
 		this.burnPerTick[index] = Math.max(perSecond * DT, current)
 		this.burnUntil[index] = Math.max(this.burnUntil[index] as number, this.tick + ticks)
 		this.burnBy[index] = by
+		this.burnWeapon[index] = this.firingWeapon
 	}
 
 	/** Lightning jumps from the first zombie hit to the nearest unhit zombie, `chains` times. */
@@ -1166,7 +1180,8 @@ export class World {
 			radius,
 			damageType: weapon.damageType,
 			lob: false,
-			land: null
+			land: null,
+			weapon: weapon.index
 		})
 		this.events.push({
 			type: 'launch',
@@ -1201,7 +1216,8 @@ export class World {
 			radius: 0,
 			damageType: 'explosive',
 			lob: true,
-			land
+			land,
+			weapon: NO_WEAPON
 		})
 		this.events.push({
 			type: 'launch',
@@ -1240,7 +1256,9 @@ export class World {
 			shot.land?.(this, shot.x, shot.y)
 			return
 		}
+		this.firingWeapon = shot.weapon
 		this.blast(shot.x, shot.y, shot.radius, shot.damage, shot.damageType, shot.owner, {}, shot.id)
+		this.firingWeapon = NO_WEAPON
 	}
 
 	/**
@@ -1341,11 +1359,14 @@ export class World {
 		for (let i = 0; i < MAX_ZOMBIES; i++) {
 			if (this.alive[i] === 0) continue
 			if ((this.poisonUntil[i] as number) > this.tick) {
+				this.firingWeapon = this.poisonWeapon[i] as number
 				this.damageZombie(i, this.poisonPerTick[i] as number, this.poisonBy[i] as number, 'chemical', false)
 			}
 			if (this.alive[i] !== 0 && (this.burnUntil[i] as number) > this.tick) {
+				this.firingWeapon = this.burnWeapon[i] as number
 				this.damageZombie(i, this.burnPerTick[i] as number, this.burnBy[i] as number, 'fire', false)
 			}
+			this.firingWeapon = NO_WEAPON
 			if (this.alive[i] === 0) continue
 			const def = zombieDefs[this.type[i] as number] as ZombieDef
 			if (def.dummy && this.tick - (this.lastHitTick[i] as number) > this.dummyResetTicks) {
@@ -1490,7 +1511,15 @@ export class World {
 		this.aliveCount--
 		this.kills++
 		this.score += def.score
-		this.events.push({ type: 'kill', zombie: index, zombieType: this.type[index] as number, x, y, by })
+		this.events.push({
+			type: 'kill',
+			zombie: index,
+			zombieType: this.type[index] as number,
+			x,
+			y,
+			by,
+			...(this.firingWeapon !== NO_WEAPON ? { weapon: this.firingWeapon } : {})
+		})
 		if (attacker) {
 			attacker.chain = this.tick - attacker.lastKillTick <= CHAIN_TICKS ? attacker.chain + 1 : 1
 			attacker.lastKillTick = this.tick
@@ -1581,6 +1610,7 @@ export class World {
 		this.poisonPerTick[index] = Math.max(perSecond * DT, current)
 		this.poisonUntil[index] = Math.max(this.poisonUntil[index] as number, this.tick + ticks)
 		this.poisonBy[index] = by
+		this.poisonWeapon[index] = this.firingWeapon
 	}
 
 	mark(index: number, amount: number, ticks: number): void {
@@ -1750,6 +1780,8 @@ export class World {
 		this.hunted[index] = 0
 		this.poisonUntil[index] = 0
 		this.burnUntil[index] = 0
+		this.burnWeapon[index] = NO_WEAPON
+		this.poisonWeapon[index] = NO_WEAPON
 		this.tauntUntil[index] = 0
 		this.callAt[index] = this.tick + Math.round((def.call?.everySeconds ?? 0) * TICK_RATE * 0.5)
 		this.action[index] = ZombieAction.none

@@ -23,6 +23,7 @@ const tabs = [
 	{ to: '/play/armory', label: t.nav.armory },
 	{ to: '/play/shop', label: t.nav.shop },
 	{ to: '/play/friends', label: t.nav.friends },
+	{ to: '/play/records', label: t.nav.records },
 	{ to: '/play/range', label: en.app.range.enter }
 ] as const
 
