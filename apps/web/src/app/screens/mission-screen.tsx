@@ -7,7 +7,9 @@ import {
 	loadDamageNumbers,
 	loadGraphicsSetting,
 	saveDamageNumbers,
-	saveGraphicsSetting
+	saveGraphicsSetting,
+	setTips,
+	tipsOn
 } from '@rotline/client'
 import { missionById, missionFor, missionMap, player as playerDef, survivalMap, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
@@ -604,6 +606,40 @@ function DamageNumberSetting({ handle }: { handle: GameHandle }) {
 	)
 }
 
+/** Tips on how to play, once each; switching them back on shows them all again. */
+function TipsSetting() {
+	const [on, setOn] = useState(() => tipsOn())
+	return (
+		<label className="flex items-center gap-2 text-sm">
+			<input
+				type="checkbox"
+				checked={on}
+				onChange={event => {
+					setOn(event.target.checked)
+					setTips(event.target.checked)
+				}}
+			/>
+			{t.tipsSetting}
+		</label>
+	)
+}
+
+/** How to play, when it first matters: what to press, for the keyboard or the gamepad in use. */
+function Tip({ hud }: { hud: HudState }) {
+	const tip = hud.tip
+	if (!tip || performance.now() - tip.at > 7000) return null
+	const text = (tip.pad ? t.tipsPad[tip.id] : undefined) ?? t.tips[tip.id]
+	return (
+		<section
+			role="status"
+			className="frame cut-sm pointer-events-none absolute top-16 left-4 flex max-w-sm flex-col gap-1 px-4 py-3 [--frame-color:var(--color-warning)] [--frame-fill:rgb(13_16_14/0.88)]"
+		>
+			<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.tipLabel}</span>
+			<span className="font-bold text-bone">{text}</span>
+		</section>
+	)
+}
+
 function PauseMenu({
 	handle,
 	range,
@@ -647,6 +683,7 @@ function PauseMenu({
 				<SoundSettings handle={handle} />
 				<GraphicsSettings />
 				<DamageNumberSetting handle={handle} />
+				<TipsSetting />
 				<p className="text-muted text-xs">{t.controls}</p>
 			</Panel>
 		</div>
@@ -895,6 +932,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					<BossBar hud={hud} />
 					<Radio hud={hud} />
 					<Toasts hud={hud} />
+					<Tip hud={hud} />
 					{hud.teammates.length > 0 && (
 						<ul className="pointer-events-none absolute top-16 left-4 flex flex-col gap-2">
 							{hud.teammates.map(mate => (

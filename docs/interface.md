@@ -60,4 +60,6 @@ Health and armour, ammunition (magazine and reserve; the pistol shows ∞), abil
 
 ## Settings
 
+**Tips**: the first time something matters (the first moments of the first game, an objective marker, an empty magazine, something to work, an attack marked on the ground, a teammate down), a short tip says what to press, for the keyboard or the gamepad in use; each is shown once per browser, and a pause-menu switch turns them off (or back on, from the start). **Gamepad** (standard layout): left stick moves, right stick aims (a thrown grenade lands up to 12 m along it), RT fires, LT or a left-stick click sprints, LB, RB and Y are the abilities, d-pad up and down the utilities and left and right the main weapons, A works things and revives, X reloads, B swaps, Start opens the menu. The mouse takes aiming back as soon as it moves.
+
 Graphics quality presets (low, medium, high; automatic picks high for a graphics card, medium for graphics built into the processor, low for a software renderer, and a frame-rate guard lowers the resolution, and drops ambient occlusion first, when frames run under 50 a second), key rebinding, gamepad support, audio sliders, interface scale, screen-shake toggle, gore toggle, reduced flashing for effects like the nuke, and colour-vision-safe palettes. All interface text lives in translation files.

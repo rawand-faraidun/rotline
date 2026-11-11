@@ -63,13 +63,14 @@ import {
 	type InteractAction,
 	type InteractHint,
 	type MissionHud,
+	type TipId,
 	type Toast
 } from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
 import { Minimap, type MinimapMode } from './minimap.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
-import { loadDamageNumbers, loadReadNotes, saveReadNotes } from './preferences.ts'
+import { loadDamageNumbers, loadReadNotes, loadTipsSeen, saveReadNotes, saveTipsSeen } from './preferences.ts'
 import { Decor } from './render/decor.ts'
 import { autoDecor, groundMarks } from './render/dressing.ts'
 import { Effects, SHOT_LOOKS } from './render/effects.ts'
@@ -128,6 +129,8 @@ const UTILITY_KEYS = ['G', 'T']
 const DPS_WINDOW_MS = 3000
 /** Toasts stay on screen this long. */
 const TOAST_MS = 4000
+/** A tip stays on screen this long, and the next waits for it. */
+const TIP_MS = 7000
 
 /** Starts a mission client: connects, predicts, interpolates and draws until stopped. */
 export function startGame(options: GameOptions): GameHandle {
@@ -173,6 +176,18 @@ export function startGame(options: GameOptions): GameHandle {
 	let propsSynced = false
 	const ownHits: { at: number; amount: number }[] = []
 	const readNotes = loadReadNotes()
+	/** tips already shown in this browser (null: switched off); the firing range shows none */
+	const tipsSeen = range ? null : loadTipsSeen()
+	let tipUntil = 0
+	/** Shows a tip the first time it matters (one at a time, each for a while). */
+	const tip = (id: TipId, now = performance.now()) => {
+		if (!tipsSeen || tipsSeen.has(id) || now < tipUntil || ended) return
+		tipsSeen.add(id)
+		saveTipsSeen(tipsSeen)
+		tipUntil = now + TIP_MS
+		hud.set({ tip: { id, at: now, pad: controls.padInUse } }, now, true)
+	}
+	let playingSince = 0
 	/** the mission is won or lost, or the run is over: the player stands still behind the results */
 	let ended = false
 	/** the current objective's own state: items picked up, areas taken, how long it has run */
@@ -646,6 +661,7 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					case 'warn':
 						warnings.add(event.kind, event.x, event.y, event.tx, event.ty, event.radius, event.seconds, now)
+						if (Math.hypot(event.tx - drawn.x, event.ty - drawn.y) < 12) tip('warning')
 						if (event.kind === WarnKind.spit || event.kind === WarnKind.lob)
 							audio.sound('zombie-pain', { x: event.x, y: event.y, rate: 1.5, volume: 0.6 })
 						else if (event.kind === WarnKind.charge || event.kind === WarnKind.slam)
@@ -690,7 +706,9 @@ export function startGame(options: GameOptions): GameHandle {
 						break
 					}
 					case 'player-down':
+						if (event.player !== you) tip('revive')
 						if (event.player === you) {
+							if (names.size > 1) tip('downed')
 							hud.set({ status: 'down' }, performance.now(), true)
 							audio.sound('thud', { volume: 0.9 })
 						}
@@ -877,11 +895,16 @@ export function startGame(options: GameOptions): GameHandle {
 	window.addEventListener('resize', onResize)
 
 	function sampleInput(renderTick: number): PlayerInput {
+		controls.poll()
 		const move = controls.movement()
-		const length = Math.hypot(move.x, move.y) || 1
+		// a stick's half travel is half speed; keys are always full
+		const length = Math.max(1, Math.hypot(move.x, move.y))
 		let aim = predictor?.state.aim ?? 0
 		let reach = 0
-		if (controls.pointer.inside && predictor) {
+		if (controls.stick.active) {
+			aim = angleToAim(controls.stick.angle)
+			reach = Math.min(255, controls.stick.reach / REACH_STEP)
+		} else if (controls.pointer.inside && predictor) {
 			pointer.set(controls.pointer.x, controls.pointer.y)
 			raycaster.setFromCamera(pointer, stage.camera)
 			if (raycaster.ray.intersectPlane(groundPlane, aimPoint)) {
@@ -1012,6 +1035,25 @@ export function startGame(options: GameOptions): GameHandle {
 		return best
 	}
 
+	let nextTipCheck = 0
+	/** The tips that come from how the game stands: the first ones at once, the rest as play goes on. */
+	function checkTips(now: number): void {
+		const state = predictor?.state
+		if (!state?.alive || state.downed || !snapshotReady) return
+		if (playingSince === 0) playingSince = now
+		const played = (now - playingSince) / 1000
+		const snapshot = hud.getSnapshot()
+		tip('move', now)
+		if (snapshot.waypoint && mission) tip('objective', now)
+		const held = state.weapons[state.slot as 0 | 1 | 2]
+		if (held.mag === 0 && held.reserve !== 0 && state.reloadEndTick === 0) tip('reload', now)
+		if (snapshot.interactHint) tip('interact', now)
+		if (played > 25) tip('sprint', now)
+		if (played > 45 && state.stats.abilities.length > 0) tip('ability', now)
+		if (played > 75 && state.stats.utilities.some(Boolean)) tip('utility', now)
+		if (played > 110 && mission) tip('map', now)
+	}
+
 	/** The predicted tick: what cooldowns are measured against. */
 	function tickNow(): number {
 		return predictorTick
@@ -1119,6 +1161,10 @@ export function startGame(options: GameOptions): GameHandle {
 			if (hudDirty) {
 				updateWeaponsHud(now)
 				hudDirty = false
+			}
+			if (tipsSeen && wallNow >= nextTipCheck) {
+				nextTipCheck = wallNow + 500
+				checkTips(wallNow)
 			}
 		}
 

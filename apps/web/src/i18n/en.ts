@@ -859,6 +859,31 @@ export const en = {
 				mute: 'Mute all sound'
 			},
 			damageNumbers: 'Show damage numbers over what you hit',
+			tipsSetting: 'Show tips on how to play',
+			tipLabel: 'Tip',
+			tips: {
+				move: 'WASD to move, the mouse to aim, click to fire. The wheel zooms.',
+				objective: 'Follow the marker to the objective. Off screen, the arrow at the edge points the way.',
+				reload: 'Out of rounds: R reloads. Your pistol never runs dry: 3 switches to it.',
+				interact: 'Hold E to work what is in front of you. The bar shows how long.',
+				sprint: 'Hold Shift to sprint while your stamina lasts. You cannot fire at a run.',
+				ability: 'F, C and V use your abilities. The bar at the bottom shows when each is ready.',
+				warning: 'A ring or a lane on the ground means an attack is coming. Get out of it before it fills.',
+				revive: 'A teammate is down. Stand next to them and hold E before they bleed out.',
+				downed: 'You are down. Crawl toward your squad: they can revive you. Your pistol still works.',
+				map: 'M opens the map: the squad, the horde and the objective.',
+				utility: 'G and T throw or place your utilities: grenades, mines, a decoy, a sentry.'
+			},
+			tipsPad: {
+				move: 'The left stick moves, the right stick aims, RT fires.',
+				reload: 'Out of rounds: X reloads. The d-pad switches weapons.',
+				interact: 'Hold A to work what is in front of you. The bar shows how long.',
+				sprint: 'Hold LT (or click the left stick) to sprint while your stamina lasts.',
+				ability: 'LB, RB and Y use your abilities. The bar at the bottom shows when each is ready.',
+				revive: 'A teammate is down. Stand next to them and hold A before they bleed out.',
+				map: 'Press M on the keyboard for the map. Start opens the menu.',
+				utility: 'Up and down on the d-pad throw or place your utilities.'
+			} as Partial<Record<string, string>>,
 			graphics: {
 				title: 'Graphics',
 				hint: 'Applies the next time a game loads.',
@@ -879,7 +904,7 @@ export const en = {
 			},
 			backToLobby: 'Back to lobby',
 			controls:
-				'WASD move · Shift sprint · mouse aim · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
+				'WASD move · Shift sprint · mouse aim (or a gamepad) · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
 			abilities: 'Abilities and utilities',
 			ready: 'Ready',
 			jammed: 'Jammed'

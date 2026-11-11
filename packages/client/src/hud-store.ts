@@ -83,6 +83,8 @@ export type HudState = {
 	utilities: { name: string; key: string; charges: number | null }[]
 	/** firing range: damage per second over the last three seconds */
 	dps: number
+	/** a tip on how to play, shown once per browser when it first matters (its id; the page has the text) */
+	tip: { id: TipId; at: number; pad: boolean } | null
 	/** sprint stamina left, 0..1, and whether the player is running flat out */
 	stamina: number
 	sprinting: boolean
@@ -91,6 +93,20 @@ export type HudState = {
 	hitMarker: number
 	kickReason: number | null
 }
+
+/** The tips, in the order a new player usually meets them. */
+export type TipId =
+	| 'move'
+	| 'objective'
+	| 'reload'
+	| 'interact'
+	| 'sprint'
+	| 'ability'
+	| 'warning'
+	| 'revive'
+	| 'downed'
+	| 'map'
+	| 'utility'
 
 export type InteractAction =
 	| 'open'
@@ -190,6 +206,7 @@ export const initialHud: HudState = {
 	abilities: [],
 	utilities: [],
 	dps: 0,
+	tip: null,
 	stamina: 1,
 	sprinting: false,
 	pingMs: 0,
