@@ -1077,6 +1077,35 @@ export const achievementSchema = z.object({
 	title: z.string().min(1).max(24)
 })
 
+/**
+ * Mission modifiers: harder rules a leader may switch on for more reward (the bonuses add up, to
+ * `maxBonus` at most). Effects are multipliers, or flags set to 1.
+ */
+export const modifiersSchema = z.object({
+	maxBonus: z.number().min(0).max(2),
+	modifiers: z
+		.array(
+			z.object({
+				id,
+				name: z.string().min(1).max(32),
+				description: z.string().min(1).max(160),
+				bonus: z.number().min(0).max(1),
+				effects: z.object({
+					enemyCount: z.number().positive().max(3).optional(),
+					enemyHealth: z.number().positive().max(3).optional(),
+					playerHealth: z.number().positive().max(1).optional(),
+					ammoPrice: z.number().positive().max(5).optional(),
+					noMaxAmmo: z.literal(1).optional(),
+					dark: z.literal(1).optional(),
+					soloLives: z.number().int().min(1).max(5).optional(),
+					/** seconds added to bleeding out (negative: less) */
+					bleedout: z.number().min(-20).max(20).optional()
+				})
+			})
+		)
+		.max(16)
+})
+
 /** Interactive map props: their numbers. */
 export const propsDataSchema = z.object({
 	barrel: z.object({
@@ -1222,5 +1251,6 @@ export type ObjectiveDef = z.infer<typeof objectiveSchema>
 export type MissionDef = z.infer<typeof missionSchema>
 export type Build = z.infer<typeof buildSchema>
 export type ChallengesDef = z.infer<typeof challengesSchema>
+export type ModifierDef = z.infer<typeof modifiersSchema>['modifiers'][number]
 export type ChallengeTemplate = ChallengesDef['templates'][number]
 export type AchievementDef = z.infer<typeof achievementSchema>

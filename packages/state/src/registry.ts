@@ -103,11 +103,11 @@ const ROOM_MISSION_SECONDS = 8 * 60 * 60
 export async function recordRoomMission(
 	valkey: Valkey,
 	roomId: string,
-	mission: { id: string; difficulty: string } | null
+	mission: { id: string; difficulty: string; modifiers?: readonly string[] } | null
 ): Promise<void> {
 	await valkey.set(
 		roomMissionKey(roomId),
-		mission ? `${mission.id}:${mission.difficulty}` : 'survival',
+		mission ? `${mission.id}:${mission.difficulty}:${(mission.modifiers ?? []).join(',')}` : 'survival',
 		'EX',
 		ROOM_MISSION_SECONDS
 	)
@@ -116,12 +116,12 @@ export async function recordRoomMission(
 export async function roomMission(
 	valkey: Valkey,
 	roomId: string
-): Promise<{ id: string; difficulty: string } | 'survival' | null> {
+): Promise<{ id: string; difficulty: string; modifiers: string[] } | 'survival' | null> {
 	const value = await valkey.get(roomMissionKey(roomId))
 	if (!value) return null
 	if (value === 'survival') return 'survival'
-	const [id = '', difficulty = ''] = value.split(':')
-	return { id, difficulty }
+	const [id = '', difficulty = '', modifiers = ''] = value.split(':')
+	return { id, difficulty, modifiers: modifiers ? modifiers.split(',') : [] }
 }
 
 const CLAIM = `

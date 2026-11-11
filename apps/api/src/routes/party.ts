@@ -9,7 +9,8 @@ import {
 	isSurvival,
 	levelFromXp,
 	missionById,
-	missions
+	missions,
+	normaliseModifiers
 } from '@rotline/game-data'
 import {
 	liveInstances,
@@ -21,6 +22,7 @@ import {
 	recordRoomMission,
 	releasePlayerRoom,
 	roomExists,
+	type SeenMission,
 	setPresence
 } from '@rotline/state'
 import { loadPrivateKey, signTicket } from '@rotline/ticket'
@@ -51,13 +53,18 @@ const MASTERY = ['none', 'bronze', 'silver', 'gold'] as const
  * The stored values to compare a client's view against: a party that never chose has empty fields,
  * which the client saw as the defaults.
  */
-function storedView(party: Party, seen: { mission: string; difficulty: string } | undefined) {
+function storedView(
+	party: Party,
+	seen: { mission: string; difficulty: string; modifiers?: string[] | undefined } | undefined
+): SeenMission | undefined {
 	if (!seen) return undefined
+	const modifiers = normaliseModifiers(seen.modifiers ?? []).join(',')
 	if (party.mission === '' && party.difficulty === '') {
 		const chosen = chosenMission(party)
-		if (seen.mission === chosen.id && seen.difficulty === chosen.difficulty) return { mission: '', difficulty: '' }
+		if (seen.mission === chosen.id && seen.difficulty === chosen.difficulty)
+			return { mission: '', difficulty: '', modifiers }
 	}
-	return seen
+	return { mission: seen.mission, difficulty: seen.difficulty, modifiers }
 }
 
 /**
@@ -86,10 +93,12 @@ export async function openMissions(db: Services['db'], playerId: string): Promis
 }
 
 /** The party's mission and difficulty, or the defaults until the leader chooses. */
-function chosenMission(party: Party): { id: string; difficulty: DifficultyId } {
+function chosenMission(party: Party): { id: string; difficulty: DifficultyId; modifiers: string[] } {
 	const id = isSurvival(party.mission) || missionById(party.mission) ? party.mission : DEFAULT_MISSION
 	const parsed = difficultyId.safeParse(party.difficulty)
-	return { id, difficulty: parsed.success ? parsed.data : DEFAULT_DIFFICULTY }
+	// Survival has no modifiers
+	const modifiers = isSurvival(id) ? [] : normaliseModifiers(party.modifiers ? party.modifiers.split(',') : [])
+	return { id, difficulty: parsed.success ? parsed.data : DEFAULT_DIFFICULTY, modifiers }
 }
 
 const errorStatus = {
@@ -103,7 +112,13 @@ const errorStatus = {
 } as const
 
 /** What the client says it saw: a start or ready mark only counts for that mission and difficulty. */
-const seenMission = z.object({ mission: z.string().max(64), difficulty: difficultyId }).optional()
+const seenMission = z
+	.object({
+		mission: z.string().max(64),
+		difficulty: difficultyId,
+		modifiers: z.array(z.string().max(32)).max(8).optional()
+	})
+	.optional()
 
 export function partyRoutes(services: Services) {
 	const { db, env, log, parties, seats, valkey, events } = services
@@ -300,17 +315,23 @@ export function partyRoutes(services: Services) {
 					'json',
 					z.object({
 						mission: z.string().refine(id => isSurvival(id) || missionById(id) !== undefined, 'unknown mission'),
-						difficulty: difficultyId
+						difficulty: difficultyId,
+						modifiers: z.array(z.string().max(32)).max(8).optional()
 					})
 				),
 				async c => {
 					const user = c.get('user')
 					if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-					const { mission, difficulty } = c.req.valid('json')
+					const { mission, difficulty, modifiers } = c.req.valid('json')
 					// only missions the leader has opened in the campaign (Survival is always open)
 					if (!isSurvival(mission) && !(await openMissions(db, user.id)).has(mission))
 						return c.json({ error: 'locked' as const }, 409)
-					const party = await parties.setMission(user.id, mission, difficulty)
+					const party = await parties.setMission(
+						user.id,
+						mission,
+						difficulty,
+						isSurvival(mission) ? '' : normaliseModifiers(modifiers ?? []).join(',')
+					)
 					await changed(party.id)
 					return c.json(await view(party, user.id), 200)
 				}
@@ -356,7 +377,9 @@ export function partyRoutes(services: Services) {
 					user.id,
 					room,
 					instance,
-					seen ? storedView(current, seen) : { mission: current.mission, difficulty: current.difficulty }
+					seen
+						? storedView(current, seen)
+						: { mission: current.mission, difficulty: current.difficulty, modifiers: current.modifiers }
 				)
 				// the API's own record of what this room plays, checked against the room's reports
 				const chosen = chosenMission(party)
@@ -395,7 +418,15 @@ export function partyRoutes(services: Services) {
 					room: party.room,
 					inst: party.instance,
 					mode: 'squad',
-					...(isSurvival(chosen.id) ? { arena: chosen.id } : { mission: chosen }),
+					...(isSurvival(chosen.id)
+						? { arena: chosen.id }
+						: {
+								mission: {
+									id: chosen.id,
+									difficulty: chosen.difficulty,
+									...(chosen.modifiers.length > 0 ? { modifiers: chosen.modifiers } : {})
+								}
+							}),
 					build
 				})
 				return c.json(

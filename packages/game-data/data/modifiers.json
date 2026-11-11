@@ -1,0 +1,61 @@
+{
+	"maxBonus": 0.6,
+	"modifiers": [
+		{
+			"id": "swarm",
+			"name": "Swarm",
+			"description": "30 % more zombies.",
+			"bonus": 0.15,
+			"effects": {
+				"enemyCount": 1.3
+			}
+		},
+		{
+			"id": "hardened",
+			"name": "Hardened",
+			"description": "Zombies are 30 % tougher.",
+			"bonus": 0.2,
+			"effects": {
+				"enemyHealth": 1.3
+			}
+		},
+		{
+			"id": "fragile",
+			"name": "Fragile",
+			"description": "The squad has 30 % less health.",
+			"bonus": 0.25,
+			"effects": {
+				"playerHealth": 0.7
+			}
+		},
+		{
+			"id": "scarce",
+			"name": "Scarce ammunition",
+			"description": "No Max Ammo drops, and ammo stations cost twice as much.",
+			"bonus": 0.15,
+			"effects": {
+				"ammoPrice": 2,
+				"noMaxAmmo": 1
+			}
+		},
+		{
+			"id": "blackout",
+			"name": "Blackout",
+			"description": "The lights are out: only lamps, fires and weapon lights.",
+			"bonus": 0.2,
+			"effects": {
+				"dark": 1
+			}
+		},
+		{
+			"id": "one-life",
+			"name": "One life",
+			"description": "Alone, the first death ends the mission. In a squad, bleeding out takes 10 seconds less.",
+			"bonus": 0.15,
+			"effects": {
+				"soloLives": 1,
+				"bleedout": -10
+			}
+		}
+	]
+}

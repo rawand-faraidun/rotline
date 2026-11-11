@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { AvatarStyle } from '@rotline/constants'
-import { difficulties, isSurvival, missionById, SURVIVAL } from '@rotline/game-data'
+import { difficulties, isSurvival, missionById, modifierBonus, modifierDefs, SURVIVAL } from '@rotline/game-data'
 import { AvatarFrame, Badge, Button, cn, Input, Label, Panel } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
@@ -348,6 +348,17 @@ export function LobbyScreen() {
 										? `${en.app.missions.endless} · ${en.app.missions.arenas[view.mission.id].description}`
 										: `${difficultyName} · ${missionById(view.mission.id)?.description ?? ''}`}
 								</span>
+								{view.mission.modifiers.length > 0 && (
+									<span className="text-warning text-xs uppercase tracking-[0.15em]">
+										{modifierDefs(view.mission.modifiers)
+											.map(modifier => modifier.name)
+											.join(' · ')}{' '}
+										·{' '}
+										{format(en.app.missions.modifierBonus, {
+											percent: String(Math.round(modifierBonus(view.mission.modifiers) * 100))
+										})}
+									</span>
+								)}
 							</button>
 						)}
 						{/* the game modes, set apart from the campaign above */}

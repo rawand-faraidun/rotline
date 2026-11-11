@@ -27,6 +27,7 @@ import rangeData from '../data/maps/range.json' with { type: 'json' }
 import supermarketData from '../data/maps/supermarket.json' with { type: 'json' }
 import yardData from '../data/maps/yard.json' with { type: 'json' }
 import missionsData from '../data/missions.json' with { type: 'json' }
+import modifiersData from '../data/modifiers.json' with { type: 'json' }
 import playerData from '../data/player.json' with { type: 'json' }
 import propsData from '../data/props.json' with { type: 'json' }
 import assaultTree from '../data/skills/assault.json' with { type: 'json' }
@@ -54,6 +55,7 @@ import {
 	type MissionDef,
 	mapSchema,
 	missionSchema,
+	modifiersSchema,
 	playerSchema,
 	propsDataSchema,
 	type SkillNode,
@@ -127,6 +129,8 @@ export const difficulties = parse('difficulties', difficultiesSchema, difficulti
 export const buffs = parse('buffs', buffsSchema, buffsData)
 export const missions = uniqueById('missions', parse('missions', z.array(missionSchema), missionsData))
 export const challenges = parse('challenges', challengesSchema, challengesData)
+export const modifiers = parse('modifiers', modifiersSchema, modifiersData)
+uniqueById('modifiers', modifiers.modifiers)
 export const achievements = uniqueById(
 	'achievements',
 	parse('achievements', z.array(achievementSchema), achievementsData)

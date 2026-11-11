@@ -11,6 +11,7 @@ import {
 	masteryFor,
 	missionFor,
 	missionMap,
+	modifierBonus,
 	SURVIVAL,
 	type SurvivalId,
 	survivalMap,
@@ -98,7 +99,7 @@ type Earnings = {
 	tally: Record<string, number>
 }
 
-export type MissionRoom = { id: string; difficulty: DifficultyId }
+export type MissionRoom = { id: string; difficulty: DifficultyId; modifiers?: string[] | undefined }
 
 export type MissionResult = {
 	missionId: string
@@ -201,7 +202,10 @@ export class Room {
 		this.missionDef = !range && mission ? (missionFor(mission.id, id) ?? null) : null
 		this.missionRoom = this.missionDef && mission ? mission : null
 		this.arena = !range && !this.missionRoom ? (arena ?? SURVIVAL) : null
-		this.rewardScale = this.missionRoom ? difficultyDef(this.missionRoom.difficulty).rewards : 1
+		// the difficulty's rewards, and the modifiers' bonus on top
+		this.rewardScale = this.missionRoom
+			? difficultyDef(this.missionRoom.difficulty).rewards * (1 + modifierBonus(this.missionRoom.modifiers ?? []))
+			: 1
 		const map = (
 			range ? maps.range : this.missionDef ? missionMap(this.missionDef) : maps[survivalMap(this.arena)]
 		) as NonNullable<typeof maps.yard>
@@ -214,7 +218,13 @@ export class Room {
 			// a squad room without a mission is Survival: endless rounds, the run ends on a wipe
 			survival: !range && !this.missionRoom,
 			...(this.missionDef && this.missionRoom
-				? { mission: { mission: this.missionDef, difficulty: this.missionRoom.difficulty } }
+				? {
+						mission: {
+							mission: this.missionDef,
+							difficulty: this.missionRoom.difficulty,
+							modifiers: this.missionRoom.modifiers ?? []
+						}
+					}
 				: {})
 		})
 		this.startTick = this.world.tick
@@ -393,7 +403,8 @@ export class Room {
 				this.world.tick,
 				member.build,
 				this.missionRoom?.id ?? '',
-				this.missionRoom?.difficulty ?? ''
+				this.missionRoom?.difficulty ?? '',
+				this.missionRoom?.modifiers ?? []
 			)
 		)
 		// back during the results: the results screen again

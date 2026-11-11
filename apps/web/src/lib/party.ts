@@ -26,7 +26,8 @@ export type PartyView = {
 	open: boolean
 	state: 'lobby' | 'mission'
 	/** what the leader chose for the next mission */
-	mission: { id: string; difficulty: DifficultyId }
+	/** `modifiers`: the harder rules switched on (ids; none for Survival) */
+	mission: { id: string; difficulty: DifficultyId; modifiers: string[] }
 	you: string
 	leader: string
 	members: PartyMember[]
@@ -113,7 +114,7 @@ export type Ticket = {
 	direct?: string | null
 	/** the room: a contract's map depends on it */
 	room: string
-	mission: { id: string; difficulty: DifficultyId } | null
+	mission: { id: string; difficulty: DifficultyId; modifiers?: string[] } | null
 	/** Survival's arena (none for missions and the range) */
 	arena?: string | null
 }
@@ -145,12 +146,16 @@ export const partyActions = {
 	kick: (userId: string) => send('kick', { userId }),
 	/** `seen`: the mission the player is looking at; the server refuses if it has changed meanwhile */
 	ready: (ready: boolean, seen?: PartyView['mission']) =>
-		send('ready', { ready, ...(seen ? { seen: { mission: seen.id, difficulty: seen.difficulty } } : {}) }),
+		send('ready', {
+			ready,
+			...(seen ? { seen: { mission: seen.id, difficulty: seen.difficulty, modifiers: seen.modifiers } } : {})
+		}),
 	start: (seen?: PartyView['mission']) =>
-		send('start', seen ? { seen: { mission: seen.id, difficulty: seen.difficulty } } : {}),
+		send('start', seen ? { seen: { mission: seen.id, difficulty: seen.difficulty, modifiers: seen.modifiers } } : {}),
 	/** leave the mission for good: a squad of one ends it, otherwise the player leaves the squad */
 	abandon: () => send('abandon'),
-	mission: (mission: string, difficulty: DifficultyId) => send('mission', { mission, difficulty }),
+	mission: (mission: string, difficulty: DifficultyId, modifiers: string[] = []) =>
+		send('mission', { mission, difficulty, modifiers }),
 	/** the leader opens the squad to quick play, or closes it */
 	open: (open: boolean) => send('open', { open }),
 	/** joins an open squad with room; with none, opens the player's own */

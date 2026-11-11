@@ -6,6 +6,8 @@ import {
 	isSurvival,
 	type MissionDef,
 	missionById,
+	modifierBonus,
+	modifiers,
 	SURVIVAL_ARENAS
 } from '@rotline/game-data'
 import { Badge, cn, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
@@ -115,9 +117,10 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 	const editable = leader && view.state === 'lobby'
 	const survival = isSurvival(view.mission.id)
 
-	async function choose(mission: string, difficulty: DifficultyId) {
+	// a new mission keeps the modifiers chosen (Survival takes none)
+	async function choose(mission: string, difficulty: DifficultyId, chosen = view.mission.modifiers) {
 		setProblem(null)
-		const result = await partyActions.mission(mission, difficulty)
+		const result = await partyActions.mission(mission, difficulty, chosen)
 		if ('error' in result) setProblem(result.error)
 		else queryClient.setQueryData(partyQuery.queryKey, result)
 	}
@@ -254,6 +257,44 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 							>
 								<span className="font-bold uppercase tracking-wide">{tier.name}</span>
 								<span className="text-muted text-xs">{format(t.rewards, { times: String(tier.rewards) })}</span>
+							</button>
+						)
+					})}
+				</div>
+			</fieldset>
+			<fieldset className={cn('flex flex-col gap-2', survival && 'hidden')}>
+				<legend className="mb-2 flex w-full items-baseline justify-between gap-3 font-bold text-muted text-xs uppercase tracking-[0.2em]">
+					<span>{t.modifiers}</span>
+					{view.mission.modifiers.length > 0 && (
+						<span className="text-warning">
+							{format(t.modifierBonus, { percent: String(Math.round(modifierBonus(view.mission.modifiers) * 100)) })}
+						</span>
+					)}
+				</legend>
+				<div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+					{modifiers.modifiers.map(modifier => {
+						const on = view.mission.modifiers.includes(modifier.id)
+						const next = on
+							? view.mission.modifiers.filter(id => id !== modifier.id)
+							: [...view.mission.modifiers, modifier.id]
+						return (
+							<button
+								key={modifier.id}
+								type="button"
+								aria-pressed={on}
+								disabled={!editable}
+								onClick={() => void choose(view.mission.id, view.mission.difficulty, next)}
+								className={cn(
+									'frame cut-sm flex flex-col items-start gap-0.5 px-3 py-2 text-left',
+									on ? '[--frame-color:var(--color-warning)]' : editable && 'hover:[--frame-color:var(--color-bone)]',
+									!editable && !on && 'opacity-60'
+								)}
+							>
+								<span className="flex w-full items-baseline justify-between gap-2">
+									<span className="font-bold uppercase tracking-wide">{modifier.name}</span>
+									<span className="text-warning text-xs">+{Math.round(modifier.bonus * 100)} %</span>
+								</span>
+								<span className="text-muted text-xs">{modifier.description}</span>
 							</button>
 						)
 					})}

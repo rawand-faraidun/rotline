@@ -7,6 +7,7 @@ import {
 	damageTaken,
 	economy,
 	type MapDef,
+	modifiedStats,
 	player as playerDef,
 	specialParams,
 	type WavesDef,
@@ -549,6 +550,11 @@ export class World {
 	addPlayer(id: number, build?: Build): PlayerState {
 		const spawn = this.map.playerSpawns[this.players.size % this.map.playerSpawns.length] ?? this.map.playerSpawns[0]
 		const state = createPlayer(id, spawn?.x ?? 1, spawn?.y ?? 1, build)
+		// Fragile and One life change the player's own numbers
+		if (this.mission && this.mission.modifiers.length > 0) {
+			state.stats = modifiedStats(state.stats, this.mission.modifiers)
+			state.health = state.stats.maxHealth
+		}
 		state.free = this.range
 		state.lastActiveTick = this.tick
 		// joining a mission under way: at the last checkpoint, with the squad
@@ -951,7 +957,12 @@ export class World {
 	 */
 	get livesLeft(): number | null {
 		if (this.players.size !== 1 || !this.campaignMission) return null
-		return Math.max(0, playerDef.soloLives - this.soloDeaths)
+		return Math.max(0, this.soloLives - this.soloDeaths)
+	}
+
+	/** Lives playing alone (One life: one). */
+	private get soloLives(): number {
+		return this.mission?.effects.soloLives ?? playerDef.soloLives
 	}
 
 	/** A campaign mission (not a contract, not Survival): the only kind where a player alone has lives. */
@@ -971,7 +982,7 @@ export class World {
 		const lost =
 			this.mission !== null &&
 			reason === 'death' &&
-			(this.campaignMission ? solo && this.soloDeaths >= playerDef.soloLives : true)
+			(this.campaignMission ? solo && this.soloDeaths >= this.soloLives : true)
 		if (this.mission && lost) {
 			failMission(this, this.mission, this.campaignMission ? 'lives' : 'wiped')
 			return

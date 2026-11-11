@@ -7,6 +7,9 @@ import {
 	economy,
 	items,
 	type MissionDef,
+	type ModifierEffects,
+	modifierEffects,
+	normaliseModifiers,
 	type ObjectiveDef,
 	pathLength,
 	propsDef,
@@ -19,7 +22,8 @@ import { letGo, resetProp } from './prop-step.ts'
 import { type Prop, PropState, setPropState } from './props.ts'
 import { ObjectKind, type World } from './world.ts'
 
-export type MissionSetup = { mission: MissionDef; difficulty: DifficultyId }
+/** `modifiers`: the harder rules the leader switched on (ids from game data) */
+export type MissionSetup = { mission: MissionDef; difficulty: DifficultyId; modifiers?: readonly string[] }
 
 /** `failed`: the mission's clock ran out before the last step was done */
 export const MissionStatus = { none: 0, active: 1, complete: 2, failed: 3 } as const
@@ -28,6 +32,9 @@ export const MissionStatus = { none: 0, active: 1, complete: 2, failed: 3 } as c
 export type MissionState = {
 	def: MissionDef
 	difficulty: DifficultyDef
+	/** the modifiers switched on, and what they do */
+	modifiers: readonly string[]
+	effects: ModifierEffects
 	/** current objective */
 	index: number
 	/** kills, or ticks spent in the area / survived */
@@ -118,6 +125,8 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 	return {
 		def: setup.mission,
 		difficulty: difficultyDef(setup.difficulty),
+		modifiers: normaliseModifiers(setup.modifiers ?? []),
+		effects: modifierEffects(setup.modifiers ?? []),
 		index: nextStep(setup.mission, 0),
 		progress: 0,
 		status: MissionStatus.active,
@@ -321,7 +330,8 @@ export function hideUnusedProps(props: readonly Prop[], def: MissionDef): void {
 export function enemyScale(mission: MissionState): { health: number; damage: number } {
 	const levels = mission.def.enemyLevel - 1
 	return {
-		health: mission.difficulty.enemyHealth * (1 + difficulties.enemyLevel.health * levels),
+		health:
+			mission.difficulty.enemyHealth * (1 + difficulties.enemyLevel.health * levels) * mission.effects.enemyHealth,
 		damage: mission.difficulty.enemyDamage * (1 + difficulties.enemyLevel.damage * levels)
 	}
 }
@@ -417,7 +427,7 @@ export function stepMission(world: World): void {
 	// the spawn director: a steady stream, scaled by the objective, difficulty and squad size
 	const squad = Math.max(1, Math.min(4, world.players.size))
 	const squadScale = difficulties.squadEnemyCount[squad - 1] ?? 1
-	const count = mission.difficulty.enemyCount * squadScale
+	const count = mission.difficulty.enemyCount * squadScale * mission.effects.enemyCount
 	world.spawnSections = objective.sections ?? null
 	if (mission.startedFor !== mission.index) startObjective(world, mission, objective, count)
 	// an ambush pours in a few a tick, past the stream's cap (never past the engine's)
@@ -1141,15 +1151,19 @@ export function openCaches(world: World, state: PlayerState, interacting: boolea
 export function maybeDropBuff(world: World, x: number, y: number, chance: number = buffs.drop.chancePerKill): void {
 	if (world.range || world.tick < world.nextBuffTick) return
 	if (world.lootRng.next() >= chance) return
-	const total = buffs.buffs.reduce((sum, buff) => sum + buff.weight, 0)
+	// Scarce ammunition: no Max Ammo
+	const weight = (buff: (typeof buffs.buffs)[number]) =>
+		buff.id === 'max-ammo' && world.mission?.effects.noMaxAmmo ? 0 : buff.weight
+	const total = buffs.buffs.reduce((sum, buff) => sum + weight(buff), 0)
 	let roll = world.lootRng.next() * total
 	let chosen = 0
 	for (const [index, buff] of buffs.buffs.entries()) {
-		if (roll < buff.weight) {
+		if (weight(buff) === 0) continue
+		if (roll < weight(buff)) {
 			chosen = index
 			break
 		}
-		roll -= buff.weight
+		roll -= weight(buff)
 	}
 	world.nextBuffTick = world.tick + Math.round(buffs.drop.minIntervalSeconds * TICK_RATE)
 	world.addObject({

@@ -31,7 +31,7 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 14
+export const PROTOCOL_VERSION = 15
 
 const FAIL_REASONS = ['time', 'lives', 'wiped'] as const
 
@@ -168,6 +168,8 @@ export type WelcomeMessage = {
 	difficulty: string
 	/** a fingerprint of the game data: a client built from other data must reload */
 	dataVersion: number
+	/** the mission's modifiers (ids) */
+	modifiers: string[]
 }
 
 export function writeWelcome(
@@ -177,7 +179,8 @@ export function writeWelcome(
 	tick: number,
 	build: Build,
 	missionId = '',
-	difficulty = ''
+	difficulty = '',
+	modifiers: readonly string[] = []
 ): Uint8Array<ArrayBuffer> {
 	return w
 		.reset()
@@ -190,6 +193,7 @@ export function writeWelcome(
 		.string(missionId)
 		.string(difficulty)
 		.u32(dataVersion)
+		.string(modifiers.join(','))
 		.finish()
 }
 
@@ -1290,7 +1294,8 @@ export function readServerHeader(r: Reader): ServerToClient {
 				build: readBuild(r.string(4096)),
 				missionId: r.string(64),
 				difficulty: r.string(32),
-				dataVersion: r.u32()
+				dataVersion: r.u32(),
+				modifiers: ((text: string) => (text ? text.split(',') : []))(r.string(256))
 			}
 		case ServerMessage.snapshot:
 			return { type: 'snapshot' }

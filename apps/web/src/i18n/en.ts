@@ -694,6 +694,8 @@ export const en = {
 			leaderChooses: 'The squad leader chooses',
 			difficulty: 'Difficulty',
 			rewards: 'Rewards ×{times}',
+			modifiers: 'Modifiers',
+			modifierBonus: '+{percent} % rewards',
 			recommended: 'Level {level}+',
 			par: 'Par {time}',
 			best: 'Best {time}',

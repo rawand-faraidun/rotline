@@ -1,4 +1,4 @@
-import type { Build } from '@rotline/game-data'
+import { type Build, modifiedStats } from '@rotline/game-data'
 import type { SelfState } from '@rotline/protocol'
 import { clonePlayer, createPlayer, type Grid, type PlayerInput, type PlayerState, stepPlayer } from '@rotline/sim'
 
@@ -27,9 +27,11 @@ export class Predictor {
 	collide: ((state: PlayerState) => void) | null = null
 
 	/** `build` comes from the welcome message, so prediction uses exactly the server's numbers. */
-	constructor(grid: Grid, slot: number, build?: Build) {
+	constructor(grid: Grid, slot: number, build?: Build, modifiers: readonly string[] = []) {
 		this.grid = grid
 		this.state = createPlayer(slot, 0, 0, build)
+		// the mission's modifiers change the player's own numbers on the server too
+		this.state.stats = modifiedStats(this.state.stats, modifiers)
 	}
 
 	/** The tick of the newest predicted input (cooldowns are measured against it). */

@@ -838,7 +838,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					ticket,
 					assets: '/assets',
 					map,
-					room: issued.room
+					room: issued.room,
+					modifiers: issued.mission?.modifiers ?? []
 				})
 				setHandle(game)
 				await game.ready

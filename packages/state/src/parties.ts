@@ -20,12 +20,17 @@ export type Party = {
 	/** the mission and difficulty the leader chose ('' until they choose: the API picks a default) */
 	mission: string
 	difficulty: string
+	/** the modifiers switched on, ids joined with commas in game data's order ('' for none) */
+	modifiers: string
 	/** user ids in join order */
 	members: string[]
 	ready: string[]
 	/** open to anyone: quick play may put a player who is looking for a squad in it */
 	open: boolean
 }
+
+/** What a player saw when they marked ready or started: the mission, the difficulty and the modifiers. */
+export type SeenMission = { mission: string; difficulty: string; modifiers?: string }
 
 export class PartyError extends Error {
 	readonly code: 'not-found' | 'full' | 'in-mission' | 'not-leader' | 'not-ready' | 'not-member' | 'changed'
@@ -80,6 +85,7 @@ export class PartyStore {
 			startedAt: Number(hash.startedAt ?? '0'),
 			mission: hash.mission ?? '',
 			difficulty: hash.difficulty ?? '',
+			modifiers: hash.modifiers ?? '',
 			members,
 			ready,
 			open: hash.open === '1'
@@ -198,7 +204,7 @@ export class PartyStore {
 	 * Ready (or not) for the mission the player saw: if the leader changed it in the meantime the mark
 	 * is refused ('changed'), so nobody is ever ready for a mission they did not choose.
 	 */
-	async setReady(userId: string, ready: boolean, expected?: { mission: string; difficulty: string }): Promise<Party> {
+	async setReady(userId: string, ready: boolean, expected?: SeenMission): Promise<Party> {
 		const party = await this.current(userId)
 		if (!ready) await this.valkey.srem(readyKey(party.id), userId)
 		else {
@@ -209,7 +215,8 @@ export class PartyStore {
 				userId,
 				expected ? '1' : '0',
 				expected?.mission ?? '',
-				expected?.difficulty ?? ''
+				expected?.difficulty ?? '',
+				expected?.modifiers ?? ''
 			)) as string
 			if (result !== 'ok') throw new PartyError(result === 'in-mission' ? 'in-mission' : 'changed')
 		}
@@ -220,11 +227,19 @@ export class PartyStore {
 	 * The leader picks the mission and difficulty in the lobby. Ready marks are cleared: the others
 	 * agreed to something else.
 	 */
-	async setMission(leaderId: string, mission: string, difficulty: string): Promise<Party> {
+	async setMission(leaderId: string, mission: string, difficulty: string, modifiers = ''): Promise<Party> {
 		const party = await this.current(leaderId)
 		if (party.leader !== leaderId) throw new PartyError('not-leader')
 		if (party.state !== 'lobby') throw new PartyError('in-mission')
-		const result = (await this.valkey.eval(SET_MISSION, 0, party.id, leaderId, mission, difficulty)) as string
+		const result = (await this.valkey.eval(
+			SET_MISSION,
+			0,
+			party.id,
+			leaderId,
+			mission,
+			difficulty,
+			modifiers
+		)) as string
 		if (result !== 'ok') throw new PartyError(result === 'in-mission' ? 'in-mission' : 'not-leader')
 		return (await this.get(party.id)) as Party
 	}
@@ -234,12 +249,7 @@ export class PartyStore {
 	 * One atomic check: the leader starts, in the lobby, everyone else ready, and the mission still
 	 * the one the leader saw (a change in between refuses the start with 'changed').
 	 */
-	async start(
-		leaderId: string,
-		room: string,
-		instance: string,
-		expected?: { mission: string; difficulty: string }
-	): Promise<Party> {
+	async start(leaderId: string, room: string, instance: string, expected?: SeenMission): Promise<Party> {
 		const party = await this.current(leaderId)
 		const result = (await this.valkey.eval(
 			START,
@@ -251,7 +261,8 @@ export class PartyStore {
 			Date.now(),
 			expected ? '1' : '0',
 			expected?.mission ?? '',
-			expected?.difficulty ?? ''
+			expected?.difficulty ?? '',
+			expected?.modifiers ?? ''
 		)) as string
 		if (result !== 'ok') throw new PartyError(result as PartyError['code'])
 		return (await this.get(party.id)) as Party
@@ -304,10 +315,10 @@ export class PartyStore {
 }
 
 const READY = `
-local id, user, check, mission, difficulty = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5]
+local id, user, check, mission, difficulty, modifiers = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5], ARGV[6]
 local party = 'party:' .. id
 if redis.call('HGET', party, 'state') ~= 'lobby' then return 'in-mission' end
-if check == '1' and ((redis.call('HGET', party, 'mission') or '') ~= mission or (redis.call('HGET', party, 'difficulty') or '') ~= difficulty) then
+if check == '1' and ((redis.call('HGET', party, 'mission') or '') ~= mission or (redis.call('HGET', party, 'difficulty') or '') ~= difficulty or (redis.call('HGET', party, 'modifiers') or '') ~= modifiers) then
   return 'changed'
 end
 redis.call('SADD', party .. ':ready', user)
@@ -315,11 +326,11 @@ return 'ok'
 `
 
 const START = `
-local id, leader, room, instance, now, check, mission, difficulty = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5], ARGV[6], ARGV[7], ARGV[8]
+local id, leader, room, instance, now, check, mission, difficulty, modifiers = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5], ARGV[6], ARGV[7], ARGV[8], ARGV[9]
 local party = 'party:' .. id
 if redis.call('HGET', party, 'leader') ~= leader then return 'not-leader' end
 if redis.call('HGET', party, 'state') ~= 'lobby' then return 'in-mission' end
-if check == '1' and ((redis.call('HGET', party, 'mission') or '') ~= mission or (redis.call('HGET', party, 'difficulty') or '') ~= difficulty) then
+if check == '1' and ((redis.call('HGET', party, 'mission') or '') ~= mission or (redis.call('HGET', party, 'difficulty') or '') ~= difficulty or (redis.call('HGET', party, 'modifiers') or '') ~= modifiers) then
   return 'changed'
 end
 for _, member in ipairs(redis.call('ZRANGE', party .. ':members', 0, -1)) do
@@ -330,14 +341,14 @@ return 'ok'
 `
 
 const SET_MISSION = `
-local id, leader, mission, difficulty = ARGV[1], ARGV[2], ARGV[3], ARGV[4]
+local id, leader, mission, difficulty, modifiers = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5]
 local party = 'party:' .. id
 if redis.call('HGET', party, 'leader') ~= leader then return 'not-leader' end
 if redis.call('HGET', party, 'state') ~= 'lobby' then return 'in-mission' end
-if redis.call('HGET', party, 'mission') == mission and redis.call('HGET', party, 'difficulty') == difficulty then
+if redis.call('HGET', party, 'mission') == mission and redis.call('HGET', party, 'difficulty') == difficulty and (redis.call('HGET', party, 'modifiers') or '') == modifiers then
   return 'ok'
 end
-redis.call('HSET', party, 'mission', mission, 'difficulty', difficulty)
+redis.call('HSET', party, 'mission', mission, 'difficulty', difficulty, 'modifiers', modifiers)
 redis.call('DEL', 'party:' .. id .. ':ready')
 return 'ok'
 `

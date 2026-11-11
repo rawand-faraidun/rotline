@@ -181,14 +181,14 @@ describe('server messages', () => {
 			build,
 			missionId: '',
 			difficulty: '',
-			dataVersion
+			dataVersion,
+			modifiers: []
 		})
-		expect(readServerHeader(new Reader(writeWelcome(w, 1, 'yard', 0, build, 'yard-sweep', 'nightmare')))).toMatchObject(
-			{
-				missionId: 'yard-sweep',
-				difficulty: 'nightmare'
-			}
-		)
+		expect(
+			readServerHeader(
+				new Reader(writeWelcome(w, 1, 'yard', 0, build, 'yard-sweep', 'nightmare', ['swarm', 'blackout']))
+			)
+		).toMatchObject({ missionId: 'yard-sweep', difficulty: 'nightmare', modifiers: ['swarm', 'blackout'] })
 		const results = {
 			success: true,
 			rounds: 0,

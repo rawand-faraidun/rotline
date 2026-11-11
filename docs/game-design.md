@@ -525,13 +525,15 @@ Shown on the mission select map.
 
 ## 19. Mission modifiers
 
-Switched on before a mission; the reward bonus is shown clearly and capped at **+60 %** total.
+The leader switches them on in the mission picker, beside the difficulty (campaign missions and contracts; Survival takes none). Each adds to every reward the mission pays (kills, objectives, completion, score), on top of the difficulty's multiplier, up to **+60 %** in all; the picker and the lobby show the total. Changing them clears the squad's ready marks, a ready mark or a start counts only for the set the player saw, and the set travels in the signed game ticket, so a game server plays exactly what was agreed.
 
 | Modifier | Effect | Reward bonus |
 |---|---|---|
-| Friendly fire | Your shots hurt teammates (50 %) | +15 % |
-| Hardened strains | Mutation stage +1 | +20 % |
-| Scarce ammunition | Ammo pickups −50 %, no max-ammo buffs | +15 % |
-| Blackout | Darkness; flashlights only | +20 % |
-| Fragile | −30 % max health | +25 % |
 | Swarm | Enemy count ×1.3 | +15 % |
+| Hardened | Enemy health ×1.3 (until mutations exist) | +20 % |
+| Fragile | Player maximum health ×0.7 | +25 % |
+| Scarce ammunition | No Max Ammo drops; ammo stations cost twice as much | +15 % |
+| Blackout | The map is dark: lamps, fires, floodlights and weapon lights only | +20 % |
+| One life | Alone, the first death ends the mission; in a squad, bleeding out takes 10 s less | +15 % |
+
+Planned: friendly fire (+15 %), once players can be hurt by each other's shots.

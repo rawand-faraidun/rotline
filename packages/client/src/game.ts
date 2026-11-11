@@ -14,6 +14,7 @@ import {
 	maps,
 	missionById,
 	missionFor,
+	modifierEffects,
 	propsDef,
 	weapons,
 	zombies as zombieDefs
@@ -99,6 +100,8 @@ export type GameOptions = {
 	map?: string | MapDef
 	/** the room the ticket is for: a contract's map (and so its objectives) depends on it */
 	room?: string
+	/** the mission's modifiers, from the ticket: Blackout puts the lights out before the map is drawn */
+	modifiers?: readonly string[]
 	/** floating damage numbers over what is hit (the player's choice; always on in the firing range) */
 	damageNumbers?: boolean
 }
@@ -135,9 +138,21 @@ const TIP_MS = 7000
 /** Starts a mission client: connects, predicts, interpolates and draws until stopped. */
 export function startGame(options: GameOptions): GameHandle {
 	const hud = new HudStore()
-	const map = (
+	const chosenMap = (
 		typeof options.map === 'object' ? options.map : (maps[options.map ?? 'yard'] ?? maps.yard)
 	) as NonNullable<typeof maps.yard>
+	// Blackout: the map as it is in the dark
+	const map: typeof chosenMap = modifierEffects(options.modifiers ?? []).dark
+		? {
+				...chosenMap,
+				look: {
+					ground: chosenMap.look?.ground ?? 'concrete',
+					walls: chosenMap.look?.walls ?? 'wall-concrete',
+					...chosenMap.look,
+					light: 'dark'
+				}
+			}
+		: chosenMap
 	const range = map.id === 'range'
 	const grid = new Grid(map)
 	// the map's props, kept in step with the server's (their blocking cells match its grid)
@@ -357,10 +372,11 @@ export function startGame(options: GameOptions): GameHandle {
 	})
 
 	const connection = new GameConnection(options.url, options.ticket, {
-		welcome: (slot, _tick, map, build, missionId, difficulty) => {
+		welcome: (slot, _tick, map, build, missionId, difficulty, modifiers) => {
 			startLoops(map)
 			you = slot
-			predictor = new Predictor(grid, slot, build)
+			predictor = new Predictor(grid, slot, build, modifiers)
+			ammoPrice = range ? 0 : Math.round(propsDef.ammo.price * modifierEffects(modifiers).ammoPrice)
 			// zombies are solid, as on the server (against where they are drawn)
 			predictor.collide = state =>
 				separateFromZombies(
@@ -548,6 +564,7 @@ export function startGame(options: GameOptions): GameHandle {
 					livesLeft: snapshot.livesLeft,
 					silence: audio.silence,
 					health: Math.ceil(self.health),
+					maxHealth: predictor?.state.stats.maxHealth ?? 100,
 					wave: snapshot.wave + 1,
 					kills: snapshot.kills,
 					score: snapshot.score,
@@ -993,7 +1010,7 @@ export function startGame(options: GameOptions): GameHandle {
 	/** What interact would do where the player stands (the same rules the server applies). */
 	let lastHint: InteractHint | null = null
 	// the firing range charges nothing for ammo (nobody scores there)
-	const ammoPrice = range ? 0 : propsDef.ammo.price
+	let ammoPrice = range ? 0 : propsDef.ammo.price
 	function interactHint(state: PlayerState): InteractHint | null {
 		let best: InteractHint | null = null
 		if (state.alive && !state.downed) {

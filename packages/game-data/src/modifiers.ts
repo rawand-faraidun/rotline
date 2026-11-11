@@ -1,0 +1,59 @@
+import { modifiers } from './data.ts'
+import type { ModifierDef } from './schema.ts'
+import type { PlayerStats } from './stats.ts'
+
+/** The modifiers by id, in the order the data lists them (unknown ids are dropped). */
+export function modifierDefs(ids: readonly string[]): ModifierDef[] {
+	return modifiers.modifiers.filter(entry => ids.includes(entry.id))
+}
+
+/** The ids, known and in the data's order, without repeats: how a choice of modifiers is stored. */
+export function normaliseModifiers(ids: readonly string[]): string[] {
+	return modifierDefs(ids).map(entry => entry.id)
+}
+
+/** Extra rewards for these modifiers, as a share (0.35 = 35 % more), at most the cap. */
+export function modifierBonus(ids: readonly string[]): number {
+	return Math.min(
+		modifiers.maxBonus,
+		modifierDefs(ids).reduce((sum, entry) => sum + entry.bonus, 0)
+	)
+}
+
+/** What the modifiers do, multiplied (and flags set) together. */
+export function modifierEffects(ids: readonly string[]) {
+	const effects = {
+		enemyCount: 1,
+		enemyHealth: 1,
+		playerHealth: 1,
+		ammoPrice: 1,
+		noMaxAmmo: false,
+		dark: false,
+		soloLives: null as number | null,
+		bleedout: 0
+	}
+	for (const { effects: one } of modifierDefs(ids)) {
+		effects.enemyCount *= one.enemyCount ?? 1
+		effects.enemyHealth *= one.enemyHealth ?? 1
+		effects.playerHealth *= one.playerHealth ?? 1
+		effects.ammoPrice *= one.ammoPrice ?? 1
+		effects.noMaxAmmo ||= one.noMaxAmmo === 1
+		effects.dark ||= one.dark === 1
+		if (one.soloLives !== undefined) effects.soloLives = Math.min(effects.soloLives ?? one.soloLives, one.soloLives)
+		effects.bleedout += one.bleedout ?? 0
+	}
+	return effects
+}
+
+export type ModifierEffects = ReturnType<typeof modifierEffects>
+
+/** A player's numbers under the modifiers (less health when Fragile, a shorter bleed-out with One life). */
+export function modifiedStats(stats: PlayerStats, ids: readonly string[]): PlayerStats {
+	if (ids.length === 0) return stats
+	const effects = modifierEffects(ids)
+	return {
+		...stats,
+		maxHealth: Math.max(1, Math.round(stats.maxHealth * effects.playerHealth)),
+		bleedoutBonusSeconds: stats.bleedoutBonusSeconds + effects.bleedout
+	}
+}

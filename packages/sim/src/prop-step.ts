@@ -290,7 +290,7 @@ function usable(world: World, prop: Prop, player: PlayerState): boolean {
 
 /** What a refill at an ammo station costs here: nothing where nobody scores (the firing range). */
 export function ammoPrice(world: World): number {
-	return world.scoring ? propsDef.ammo.price : 0
+	return world.scoring ? Math.round(propsDef.ammo.price * (world.mission?.effects.ammoPrice ?? 1)) : 0
 }
 
 /** Score a player has earned and not spent at ammo stations. */
