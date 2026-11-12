@@ -170,6 +170,9 @@ const POISONED = new THREE.Color(0x9fe04a)
 const SLOWED = new THREE.Color(0x9fd8e8)
 const BURNING = new THREE.Color(0xff7a2a)
 const DAZED = new THREE.Color(0xd8d0b0)
+/** mutated flesh goes sickly and dark, more with every stage; a strain grows a pale crust */
+const MUTATED = new THREE.Color(0x6d7a3a)
+const CRUST = new THREE.Color(0xd9d2b8)
 /** a zombie's own glow, by type: a Retcher's throat */
 const THROATS = zombieDefs.map(def => (def.ranged ? new THREE.Color(0xe8f040) : null))
 /** who carries a shield, and how big it is for them */
@@ -205,6 +208,9 @@ export class ZombieRenderer {
 	private readonly mounds: THREE.InstancedMesh
 	private readonly shields: THREE.InstancedMesh
 	private readonly throats: THREE.InstancedMesh
+
+	/** how far the horde has mutated (0 to 3) */
+	mutation = 0
 
 	private readonly frustum = new THREE.Frustum()
 	private readonly viewMatrix = new THREE.Matrix4()
@@ -475,6 +481,8 @@ export class ZombieRenderer {
 			// burning: scorched dark, lit orange by its own flames
 			if (status & ZombieStatus.burning) this.color.multiplyScalar(0.55).lerp(BURNING, 0.25)
 			if (state === ZombieState.dazed) this.color.lerp(DAZED, 0.35 + 0.2 * Math.sin(timeSeconds * 12))
+			if (this.mutation > 0 && !def?.boss) this.color.lerp(MUTATED, 0.12 * this.mutation)
+			if (status & ZombieStatus.strain) this.color.lerp(CRUST, 0.45)
 			this.mesh.setColorAt(n, this.color)
 		}
 		this.mounds.count = mounds

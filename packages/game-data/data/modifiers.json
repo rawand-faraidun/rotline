@@ -13,10 +13,10 @@
 		{
 			"id": "hardened",
 			"name": "Hardened",
-			"description": "Zombies are 30 % tougher.",
+			"description": "Zombies mutate one stage further: tougher, with one more trait each.",
 			"bonus": 0.2,
 			"effects": {
-				"enemyHealth": 1.3
+				"mutation": 1
 			}
 		},
 		{

@@ -6,6 +6,7 @@ import {
 	type DifficultyId,
 	difficulties,
 	missionById,
+	mutations,
 	SURVIVAL_ARENAS,
 	zombies
 } from '@rotline/game-data'
@@ -299,6 +300,17 @@ function Bestiary() {
 													share >= 1
 														? format(t.immune, { type: t.damageTypes[type] })
 														: format(t.resist, { share: String(Math.round(share * 100)), type: t.damageTypes[type] })
+												)
+												.join(', ')}
+										</span>
+									)}
+									{(zombie.mutations ?? []).length > 0 && (
+										<span className="text-muted text-xs">
+											{t.mutations}:{' '}
+											{(zombie.mutations ?? [])
+												.map(
+													(id, index) =>
+														`${mutations.traits.find(trait => trait.id === id)?.name ?? id} (${format(t.stage, { stage: String(index + 1) })})`
 												)
 												.join(', ')}
 										</span>

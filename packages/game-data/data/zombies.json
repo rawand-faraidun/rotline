@@ -15,7 +15,8 @@
 		"xp": 4,
 		"salvage": 0.5,
 		"about": "The baseline dead: slow, hunched and everywhere. One is nothing; forty in a doorway is the mission.",
-		"answer": "Any gun. Do not let them close the ring round you."
+		"answer": "Any gun. Do not let them close the ring round you.",
+		"mutations": ["armoured", "toxic", "swift"]
 	},
 	{
 		"id": "bolter",
@@ -33,7 +34,8 @@
 		"xp": 6,
 		"salvage": 1,
 		"about": "A runner, thin and fast, that comes straight in ahead of the crowd.",
-		"answer": "Keep moving and keep a shotgun or an SMG ready; it dies to a few rounds."
+		"answer": "Keep moving and keep a shotgun or an SMG ready; it dies to a few rounds.",
+		"mutations": ["swift", "toxic", "armoured"]
 	},
 	{
 		"id": "swell",
@@ -57,7 +59,8 @@
 		"xp": 15,
 		"salvage": 3,
 		"about": "Bloated with gas. It bursts when it dies and leaves a pool that eats at whoever stands in it.",
-		"answer": "Kill it at range, or among the others: its burst hurts them too."
+		"answer": "Kill it at range, or among the others: its burst hurts them too.",
+		"mutations": ["regenerating", "armoured", "swift"]
 	},
 	{
 		"id": "target-dummy",
@@ -94,7 +97,8 @@
 		"xp": 5,
 		"salvage": 0.5,
 		"about": "Low, quick and easy to miss under the horde's feet.",
-		"answer": "Watch the floor. Blasts and flame clear them."
+		"answer": "Watch the floor. Blasts and flame clear them.",
+		"mutations": ["swift", "volatile", "toxic"]
 	},
 	{
 		"id": "brute",
@@ -124,7 +128,8 @@
 			"knockback": 1.6,
 			"stunSeconds": 1.8,
 			"cooldownSeconds": 8
-		}
+		},
+		"mutations": ["armoured", "regenerating", "swift"]
 	},
 	{
 		"id": "screamer",
@@ -152,7 +157,8 @@
 			}
 		},
 		"about": "It calls. Every few seconds it is alive near you, more of them climb out.",
-		"answer": "Kill it first, before anything else."
+		"answer": "Kill it first, before anything else.",
+		"mutations": ["regenerating", "armoured", "swift"]
 	},
 	{
 		"id": "retcher",
@@ -188,7 +194,8 @@
 				"radius": 1.6,
 				"seconds": 4
 			}
-		}
+		},
+		"mutations": ["insulated", "swift", "regenerating"]
 	},
 	{
 		"id": "bulwark",
@@ -212,7 +219,8 @@
 			"reduction": 0.9,
 			"types": ["ballistic", "shock"],
 			"turnDegreesPerSecond": 80
-		}
+		},
+		"mutations": ["regenerating", "toxic", "swift"]
 	},
 	{
 		"id": "delver",
@@ -239,7 +247,8 @@
 			"damage": 35,
 			"radius": 1.8,
 			"aboveSeconds": 6
-		}
+		},
+		"mutations": ["armoured", "swift", "regenerating"]
 	},
 	{
 		"id": "cinder",
@@ -269,7 +278,8 @@
 			"radius": 0.8,
 			"seconds": 2.5,
 			"type": "fire"
-		}
+		},
+		"mutations": ["swift", "armoured", "volatile"]
 	},
 	{
 		"id": "warden",

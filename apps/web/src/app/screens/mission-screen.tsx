@@ -529,6 +529,24 @@ function Toasts({ hud }: { hud: HudState }) {
 					{toast.kind === 'threshold' && (
 						<span className="font-bold text-warning">{format(t.threshold, { salvage: toast.text })}</span>
 					)}
+					{toast.kind === 'mutation' && (
+						<>
+							<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.mutationLabel}</span>
+							<span className="font-bold uppercase tracking-wide">
+								{format(t.mutationStage, { stage: toast.text })}
+							</span>
+						</>
+					)}
+					{toast.kind === 'strain' && (
+						<>
+							<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.strainLabel}</span>
+							<span className="font-bold uppercase tracking-wide">
+								{format(t.strainHardened, {
+									type: en.app.records.damageTypes[toast.text as keyof typeof en.app.records.damageTypes] ?? toast.text
+								})}
+							</span>
+						</>
+					)}
 					{toast.kind === 'phase' && (
 						<>
 							<span className="font-bold text-[10px] text-alert uppercase tracking-[0.25em]">{t.bossPhase}</span>

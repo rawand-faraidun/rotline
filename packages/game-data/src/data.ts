@@ -28,6 +28,7 @@ import supermarketData from '../data/maps/supermarket.json' with { type: 'json' 
 import yardData from '../data/maps/yard.json' with { type: 'json' }
 import missionsData from '../data/missions.json' with { type: 'json' }
 import modifiersData from '../data/modifiers.json' with { type: 'json' }
+import mutationsData from '../data/mutations.json' with { type: 'json' }
 import playerData from '../data/player.json' with { type: 'json' }
 import propsData from '../data/props.json' with { type: 'json' }
 import assaultTree from '../data/skills/assault.json' with { type: 'json' }
@@ -56,6 +57,7 @@ import {
 	mapSchema,
 	missionSchema,
 	modifiersSchema,
+	mutationsSchema,
 	playerSchema,
 	propsDataSchema,
 	type SkillNode,
@@ -130,6 +132,14 @@ export const buffs = parse('buffs', buffsSchema, buffsData)
 export const missions = uniqueById('missions', parse('missions', z.array(missionSchema), missionsData))
 export const challenges = parse('challenges', challengesSchema, challengesData)
 export const modifiers = parse('modifiers', modifiersSchema, modifiersData)
+export const mutations = parse('mutations', mutationsSchema, mutationsData)
+uniqueById('mutation traits', mutations.traits)
+for (const zombie of zombies)
+	for (const trait of zombie.mutations ?? [])
+		check(
+			mutations.traits.some(entry => entry.id === trait),
+			`zombies/${zombie.id}: unknown mutation ${trait}`
+		)
 uniqueById('modifiers', modifiers.modifiers)
 export const achievements = uniqueById(
 	'achievements',

@@ -1,0 +1,74 @@
+{
+	"perStage": {
+		"health": 0.12,
+		"damage": 0.08
+	},
+	"maxResist": 0.35,
+	"survivalRoundsPerStage": 8,
+	"traits": [
+		{
+			"id": "armoured",
+			"name": "Armoured",
+			"description": "Bone plates turn some of every bullet.",
+			"resist": {
+				"ballistic": 0.2
+			}
+		},
+		{
+			"id": "swift",
+			"name": "Swift",
+			"description": "15 % faster.",
+			"speed": 1.15
+		},
+		{
+			"id": "toxic",
+			"name": "Toxic",
+			"description": "Its blows are acid, and 25 % harder.",
+			"meleeType": "chemical",
+			"melee": 1.25
+		},
+		{
+			"id": "regenerating",
+			"name": "Regenerating",
+			"description": "Heals 2 % of its health a second.",
+			"regen": 0.02
+		},
+		{
+			"id": "volatile",
+			"name": "Volatile",
+			"description": "Bursts when it dies.",
+			"deathBurst": {
+				"damage": 25,
+				"radius": 2,
+				"poolDamagePerSecond": 6,
+				"poolRadius": 1.5,
+				"poolSeconds": 4
+			}
+		},
+		{
+			"id": "fireproof",
+			"name": "Fireproof",
+			"description": "Fire does 30 % less.",
+			"resist": {
+				"fire": 0.3
+			}
+		},
+		{
+			"id": "insulated",
+			"name": "Insulated",
+			"description": "Shock does 30 % less.",
+			"resist": {
+				"shock": 0.3
+			}
+		}
+	],
+	"adaptive": {
+		"windowSeconds": 120,
+		"share": 0.55,
+		"minDamage": 4000,
+		"resist": 0.35,
+		"maxStrains": 2,
+		"cooldownSeconds": 45,
+		"chance": 0.5
+	}
+}

@@ -31,7 +31,7 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 15
+export const PROTOCOL_VERSION = 16
 
 const FAIL_REASONS = ['time', 'lives', 'wiped'] as const
 
@@ -399,7 +399,9 @@ export const ZombieStatus = {
 	taunted: 16,
 	burning: 32,
 	/** a target a hunt objective wants dead */
-	hunted: 64
+	hunted: 64,
+	/** an adaptive strain, hardened against what the squad leans on */
+	strain: 128
 } as const
 
 /** The decoded non-zombie part of a snapshot; zombies are applied straight into a ZombieTable. */
@@ -982,7 +984,8 @@ function zombieStatus(world: World, i: number): number {
 		((world.poisonUntil[i] as number) > tick ? ZombieStatus.poisoned : 0) |
 		((world.tauntUntil[i] as number) > tick ? ZombieStatus.taunted : 0) |
 		((world.burnUntil[i] as number) > tick ? ZombieStatus.burning : 0) |
-		(world.hunted[i] === 1 ? ZombieStatus.hunted : 0)
+		(world.hunted[i] === 1 ? ZombieStatus.hunted : 0) |
+		(world.strain[i] !== 0 ? ZombieStatus.strain : 0)
 	)
 }
 
@@ -1019,7 +1022,9 @@ const EventType = {
 	resupply: 28,
 	warn: 29,
 	strike: 30,
-	phase: 31
+	phase: 31,
+	strain: 32,
+	mutation: 33
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -1119,6 +1124,12 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'phase':
 				w.u16(event.zombie).u8(event.zombieType).u8(event.phase)
+				break
+			case 'strain':
+				w.u8(event.damage)
+				break
+			case 'mutation':
+				w.u8(event.stage)
 				break
 			case 'cache':
 			case 'threshold':
@@ -1263,6 +1274,12 @@ export function readEvents(r: Reader): SimEvent[] {
 				break
 			case EventType.phase:
 				events.push({ type: 'phase', zombie: r.u16(), zombieType: r.u8(), phase: r.u8() })
+				break
+			case EventType.strain:
+				events.push({ type: 'strain', damage: r.u8() })
+				break
+			case EventType.mutation:
+				events.push({ type: 'mutation', stage: r.u8() })
 				break
 			default:
 				throw new ProtocolError(`unknown event ${type}`)

@@ -30,7 +30,9 @@ export function modifierEffects(ids: readonly string[]) {
 		noMaxAmmo: false,
 		dark: false,
 		soloLives: null as number | null,
-		bleedout: 0
+		bleedout: 0,
+		/** mutation stages added (Hardened) */
+		mutation: 0
 	}
 	for (const { effects: one } of modifierDefs(ids)) {
 		effects.enemyCount *= one.enemyCount ?? 1
@@ -41,6 +43,7 @@ export function modifierEffects(ids: readonly string[]) {
 		effects.dark ||= one.dark === 1
 		if (one.soloLives !== undefined) effects.soloLives = Math.min(effects.soloLives ?? one.soloLives, one.soloLives)
 		effects.bleedout += one.bleedout ?? 0
+		effects.mutation += one.mutation ?? 0
 	}
 	return effects
 }

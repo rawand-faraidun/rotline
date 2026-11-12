@@ -400,9 +400,10 @@ Every attack of this kind is shown before it lands: a ring that fills for slams,
 
 ### Mutation system
 
-- **Stages**: each type has three mutation stages unlocked by zone progress and difficulty (stage 1 from zone 2 or Nightmare, stage 2 from zone 4 or Apocalypse, stage 3 Apocalypse zone 4+). A stage adds one ability, a resistance, or an attack pattern, and a visible change (growths, colour, glow). Example, Retcher: stage 1 spits twice; stage 2 acid slows; stage 3 spits a burst of three.
-- **Adaptive mutations**: the server tracks the squad's damage by type and behaviour (turret share, time spent stationary, average distance to zombies) over the last two checkpoints. If one damage type exceeds 55 % of damage, later spawns shift toward a strain with resistance to it; if the squad camps, more Vaulters and Delvers; if it kites, more Bolters and Clutches.
-- **Fairness**: resistances are capped at 35 % (never immunity, except the Cinder's inherent fire immunity); at most two adaptive strains active at once; every strain is announced in the HUD ("Strain adapted: fire-hardened") and shown on the zombie (a coloured crust); there is always a counter (another damage type, an ability, a utility).
+- **Stages** (0 to 3): the furthest of the zone (Harrow is one stage on from Ashgate; a fourth zone would be two), the difficulty (Nightmare one, Apocalypse two) and, in Survival, one stage every 8 rounds; the Hardened modifier adds one. The rules live in game data (`mutations.json`), and server and client work the stage out the same way.
+- Each stage gives every kind 12 % more health and 8 % more damage, and one more of its own three traits, in order (bosses do not mutate): **Armoured** (20 % less from bullets), **Swift** (15 % faster), **Toxic** (blows are acid, 25 % harder), **Regenerating** (2 % of its health back a second), **Volatile** (bursts when it dies), **Fireproof** (30 % less from fire), **Insulated** (30 % less from shock). Drudge: armoured, toxic, swift; Bolter: swift, toxic, armoured; Swell: regenerating, armoured, swift; Crawler: swift, volatile, toxic; Brute: armoured, regenerating, swift; Screamer: regenerating, armoured, swift; Retcher: insulated, swift, regenerating; Bulwark: regenerating, toxic, swift; Delver: armoured, swift, regenerating; Cinder: swift, armoured, volatile. The bestiary lists them.
+- **Adaptive strains**: once a second the server weighs the damage the squad dealt over the last 120 s by type; past 4,000 of it, one type over 55 % brings a strain hardened against it (35 % less from that type), announced on screen ("Strain adapted: hardened against fire"). Half the zombies that come in from then on are the strain, drawn with a pale crust. At most two strains run at once (the older gives way), never two within 45 s; missions, contracts and Survival only.
+- **Fairness**: what a mutation or strain adds stops at 35 % (a kind's own resistance, like the Cinder's to fire, may be higher), every stage and strain is announced and visible (the horde's flesh darkens with each stage), and there is always another damage type to switch to.
 - **Spawn director**: a mission's stream rises and falls: build-up (50–80 s, the rate climbing from ×0.85 to ×1.2), peak (18–30 s, ×1.6, and 15 % more alive at once), relief (14–22 s, ×0.35), over and over, each length picked by the room's dice. A squad in trouble at a peak (someone down, or those standing below 35 % health on average) gets its relief at once. Planned on top: an intensity score from damage taken and zombies close by.
 
 ### Bosses
@@ -539,7 +540,7 @@ The leader switches them on in the mission picker, beside the difficulty (campai
 | Modifier | Effect | Reward bonus |
 |---|---|---|
 | Swarm | Enemy count ×1.3 | +15 % |
-| Hardened | Enemy health ×1.3 (until mutations exist) | +20 % |
+| Hardened | Mutation stage +1 | +20 % |
 | Fragile | Player maximum health ×0.7 | +25 % |
 | Scarce ammunition | No Max Ammo drops; ammo stations cost twice as much | +15 % |
 | Blackout | The map is dark: lamps, fires, floodlights and weapon lights only | +20 % |

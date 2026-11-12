@@ -269,7 +269,9 @@ describe('server messages', () => {
 			{ type: 'resupply', player: 2, x: 4, y: 5 },
 			{ type: 'warn', kind: 2, x: 3, y: 4, tx: 13, ty: 4, radius: 1.1, seconds: 1.2 },
 			{ type: 'strike', kind: 3, x: 3, y: 4, radius: 4 },
-			{ type: 'phase', zombie: 40, zombieType: 11, phase: 2 }
+			{ type: 'phase', zombie: 40, zombieType: 11, phase: 2 },
+			{ type: 'strain', damage: 2 },
+			{ type: 'mutation', stage: 3 }
 		]
 		const decoded = readServerHeader(new Reader(writeEvents(new Writer(), events)))
 		expect(decoded.type).toBe('events')
@@ -503,7 +505,7 @@ describe('missions in snapshots', () => {
 		me.openedCaches.push(1)
 		world.doubleXpUntil = 60 * 30
 		const zombie = world.spawnZombie(zombieIndex('drudge'), { x: me.x + 2, y: me.y })
-		world.damageZombie(zombie, (world.maxHealth[zombie] as number) / 2, 0)
+		world.damageZombie(zombie, (world.maxHealth[zombie] as number) / 2, 0, 'explosive')
 		world.addObject({
 			kind: ObjectKind.buff,
 			owner: 0,

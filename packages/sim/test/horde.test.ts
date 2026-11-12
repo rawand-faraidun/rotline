@@ -1,4 +1,13 @@
-import { type MissionDef, missionById, missionMap, zombieIndex, zombies } from '@rotline/game-data'
+import {
+	DAMAGE_TYPES,
+	type MissionDef,
+	missionById,
+	missionMap,
+	mutate,
+	mutationStage,
+	zombieIndex,
+	zombies
+} from '@rotline/game-data'
 import { describe, expect, it } from 'vitest'
 import {
 	angleToAim,
@@ -17,7 +26,7 @@ import {
 	World,
 	ZombieAction
 } from '../src/index.ts'
-import { input, quietWorld, steps, sweep } from './helpers.ts'
+import { input, quietWorld, steps, sweep, yard } from './helpers.ts'
 
 const zombieDef = (id: string) => zombies[zombieIndex(id)] as NonNullable<(typeof zombies)[number]>
 /** a player who cannot be hurt and stands still: for watching a zombie at work */
@@ -360,5 +369,72 @@ describe('The Gardener', () => {
 		world.damageZombie(gardener, 1e9, 1, 'explosive')
 		steps(world, 3)
 		expect(world.mission?.index).toBe(2)
+	})
+})
+
+describe('mutations', () => {
+	it('take the stage from the zone and the difficulty, and give each kind its traits', () => {
+		expect(mutationStage({ zone: 'ashgate', difficulty: 'veteran' })).toBe(0)
+		expect(mutationStage({ zone: 'harrow', difficulty: 'veteran' })).toBe(1)
+		expect(mutationStage({ zone: 'ashgate', difficulty: 'apocalypse', extra: 1 })).toBe(3)
+		expect(mutationStage({ rounds: 17 })).toBe(2)
+		const drudge = zombieDef('drudge')
+		const mutated = mutate(drudge, 2)
+		expect(mutated.health).toBeCloseTo(drudge.health * 1.24)
+		// armoured, then toxic
+		expect(mutated.resist?.ballistic).toBeCloseTo(0.2)
+		expect(mutated.meleeType).toBe('chemical')
+		// a kind's own resistance stays (a Cinder in fire), added ones stop at the cap
+		expect(mutate(zombieDef('cinder'), 3).resist?.fire).toBe(1)
+		expect(mutate(zombieDef('warden'), 3)).toBe(zombieDef('warden'))
+	})
+
+	it('Survival mutates further as the rounds go by, and says so', () => {
+		const world = new World({
+			seed: 2,
+			map: yard,
+			survival: true,
+			waves: {
+				firstWaveDelaySeconds: 0,
+				breakSeconds: 0,
+				spawnPerSecond: 1,
+				maxAlive: 300,
+				waves: [{ drudge: 0 }],
+				growthPerWave: 1
+			}
+		})
+		world.addPlayer(1).safeUntilTick = 1e9
+		const seen: number[] = []
+		for (let n = 0; n < 30 * 40 && world.mutation < 1; n++) {
+			world.step(new Map())
+			for (const event of world.events) if (event.type === 'mutation') seen.push(event.stage)
+		}
+		expect(world.mutation).toBe(1)
+		expect(seen).toEqual([1])
+	})
+
+	it('a squad that leans on one damage type meets a strain hardened against it', () => {
+		const world = quietWorld()
+		;(world as unknown as { survival: boolean }).survival = true
+		world.addPlayer(1)
+		const fire = zombieIndex('drudge')
+		const strains: number[] = []
+		for (let n = 0; n < 30 * 20 && world.strains.length === 0; n++) {
+			const index = world.spawnZombie(fire, { x: 30, y: 30 })
+			world.damageZombie(index, 500, 1, 'fire')
+			world.step(new Map())
+			for (const event of world.events) if (event.type === 'strain') strains.push(event.damage)
+		}
+		expect(strains).toEqual([DAMAGE_TYPES.indexOf('fire')])
+		// the strain shrugs off fire; anything else hurts as before
+		let strained = -1
+		for (let n = 0; n < 40 && strained < 0; n++) {
+			const index = world.spawnZombie(fire, { x: 30, y: 30 })
+			if (world.strain[index]) strained = index
+		}
+		expect(strained).toBeGreaterThanOrEqual(0)
+		const full = world.health[strained] as number
+		world.damageZombie(strained, 10, 1, 'fire')
+		expect(full - (world.health[strained] as number)).toBeCloseTo(6.5, 5)
 	})
 })

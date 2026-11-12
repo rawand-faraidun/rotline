@@ -3,11 +3,15 @@ import {
 	type Build,
 	buffs as buffDefs,
 	combat,
+	DAMAGE_TYPES,
 	type DamageType,
 	damageTaken,
 	economy,
 	type MapDef,
 	modifiedStats,
+	mutatedZombies,
+	mutationStage,
+	mutations as mutationsDef,
 	player as playerDef,
 	specialParams,
 	type WavesDef,
@@ -133,6 +137,10 @@ export type SimEvent =
 	| { type: 'strike'; kind: number; x: number; y: number; radius: number }
 	/** a boss moved into its next phase */
 	| { type: 'phase'; zombie: number; zombieType: number; phase: number }
+	/** a new strain answers what the squad leans on: hardened against this damage type (index in DAMAGE_TYPES) */
+	| { type: 'strain'; damage: number }
+	/** the horde mutated a stage further (Survival, as the rounds go by) */
+	| { type: 'mutation'; stage: number }
 	/** a map prop changed state (index into the map's props) */
 	| { type: 'prop'; index: number; state: number }
 	/** the current objective failed (a survivor or defend target lost, time ran out): back to the checkpoint */
@@ -427,6 +435,15 @@ export class World {
 	readonly solid = new Uint8Array(MAX_ZOMBIES)
 	/** spit and canisters in the air */
 	readonly hazards: Hazard[] = []
+	/** how far the horde has mutated, and every kind as it is at that stage */
+	mutation = 0
+	defs: ZombieDef[] = zombieDefs
+	/** adaptive strains running (damage type index + 1 each), and each zombie's (0: none) */
+	readonly strains: number[] = []
+	readonly strain = new Uint8Array(MAX_ZOMBIES)
+	/** players' damage by type, a bucket a second over the adaptive window */
+	private readonly damageWindow = new Float64Array(mutationsDef.adaptive.windowSeconds * DAMAGE_TYPES.length)
+	private nextStrainTick = 0
 	aliveCount = 0
 	kills = 0
 	/** deaths so far while playing alone (a squad does not count them) */
@@ -544,6 +561,15 @@ export class World {
 		const scale = this.mission ? enemyScale(this.mission) : { health: 1, damage: 1 }
 		this.healthScale = scale.health
 		this.damageScale = scale.damage
+		// the horde as far mutated as the mission's zone, difficulty and modifiers make it
+		if (this.mission)
+			this.setMutation(
+				mutationStage({
+					zone: this.mission.def.zone,
+					difficulty: options.mission?.difficulty ?? null,
+					extra: this.mission.effects.mutation
+				})
+			)
 		this.nextBuffTick = Math.round(buffDefs.drop.minIntervalSeconds * TICK_RATE)
 	}
 
@@ -729,6 +755,7 @@ export class World {
 		this.moveProjectiles()
 		this.blasts()
 		landHazards(this)
+		this.adapt()
 		stepObjects(this)
 		if (this.props.length > 0) stepProps(this)
 		this.statuses()
@@ -1379,10 +1406,16 @@ export class World {
 			}
 			this.firingWeapon = NO_WEAPON
 			if (this.alive[i] === 0) continue
-			const def = zombieDefs[this.type[i] as number] as ZombieDef
+			const def = this.defs[this.type[i] as number] as ZombieDef
 			if (def.dummy && this.tick - (this.lastHitTick[i] as number) > this.dummyResetTicks) {
 				this.health[i] = this.maxHealth[i] as number
 			}
+			// Regenerating: back toward full a little every tick
+			if (def.regen && (this.health[i] as number) < (this.maxHealth[i] as number))
+				this.health[i] = Math.min(
+					this.maxHealth[i] as number,
+					(this.health[i] as number) + (this.maxHealth[i] as number) * def.regen * DT
+				)
 		}
 		for (const state of this.players.values()) {
 			if (state.chain > 0 && this.tick - state.lastKillTick > CHAIN_TICKS) state.chain = 0
@@ -1469,9 +1502,18 @@ export class World {
 	): void {
 		// under the ground nothing touches it
 		if (this.alive[index] === 0 || this.under[index] === 1) return
-		const def = zombieDefs[this.type[index] as number] as ZombieDef
+		const def = this.defs[this.type[index] as number] as ZombieDef
 		const attacker = this.players.get(by)
 		let scaled = amount * (1 - (def.resist?.[type] ?? 0))
+		// a strain is hardened against the damage the squad leaned on
+		const strain = this.strain[index] as number
+		if (strain > 0 && DAMAGE_TYPES[strain - 1] === type) scaled *= 1 - mutationsDef.adaptive.resist
+		// what the squad deals, by type, for the strains to answer
+		if (attacker && this.scoring) {
+			const bucket = Math.floor(this.tick / TICK_RATE) % mutationsDef.adaptive.windowSeconds
+			const at = bucket * DAMAGE_TYPES.length + DAMAGE_TYPES.indexOf(type)
+			this.damageWindow[at] = (this.damageWindow[at] as number) + amount
+		}
 		// a shield turns most of what comes at it from ahead (from where the shot came, or the shooter)
 		const sx = fromX ?? attacker?.x
 		const sy = fromY ?? attacker?.y
@@ -1712,6 +1754,14 @@ export class World {
 					spawning.queue[j] = swap
 				}
 				this.events.push({ type: 'wave', wave: spawning.wave + 1 })
+				// Survival: the horde mutates further as the rounds go by
+				if (this.survival) {
+					const stage = mutationStage({ rounds: spawning.wave })
+					if (stage !== this.mutation) {
+						this.setMutation(stage)
+						this.events.push({ type: 'mutation', stage })
+					}
+				}
 				for (const state of this.players.values()) refillUtilities(state)
 				spawning.nextWaveTick = -1
 				for (const state of this.players.values())
@@ -1771,8 +1821,13 @@ export class World {
 		if (index < 0) return -1
 		const point = at ?? this.pickSpawnPoint()
 		if (!point) return -1
-		const def = zombieDefs[typeIndex] as ZombieDef
+		const def = this.defs[typeIndex] as ZombieDef
 		this.alive[index] = 1
+		// some of what comes in now is the strain that answers the squad
+		this.strain[index] =
+			this.strains.length > 0 && !def.dummy && !def.boss && this.rng.next() < mutationsDef.adaptive.chance
+				? (this.strains[this.rng.int(this.strains.length)] as number)
+				: 0
 		this.type[index] = typeIndex
 		this.x[index] = point.x
 		this.y[index] = point.y
@@ -1961,7 +2016,7 @@ export class World {
 		const w = this.hashWidth
 		for (let i = 0; i < MAX_ZOMBIES; i++) {
 			if (this.alive[i] === 0) continue
-			const def = zombieDefs[this.type[i] as number] as ZombieDef
+			const def = this.defs[this.type[i] as number] as ZombieDef
 			// firing-range dummies stand still
 			if (def.dummy) continue
 			const x = this.x[i] as number
@@ -2190,6 +2245,42 @@ export class World {
 		this.historyY.set(this.y, slot)
 		// one under the ground was not there to be hit
 		this.historyAlive.set(this.solid, slot)
+	}
+
+	/** The horde mutates to `stage`: zombies that come in from now on are as that stage makes them. */
+	setMutation(stage: number): void {
+		this.mutation = stage
+		this.defs = mutatedZombies(stage)
+	}
+
+	/**
+	 * Adaptive strains: once a second, the damage the squad dealt over the window is weighed; one
+	 * type past its share brings a strain hardened against it (at most a few at once, the oldest
+	 * giving way, never two close together), and the squad is told.
+	 */
+	private adapt(): void {
+		if (this.tick % TICK_RATE !== 0 || !this.scoring || this.finished) return
+		const adaptive = mutationsDef.adaptive
+		const types = DAMAGE_TYPES.length
+		// the bucket for the second starting now starts empty
+		const bucket = Math.floor(this.tick / TICK_RATE) % adaptive.windowSeconds
+		this.damageWindow.fill(0, bucket * types, bucket * types + types)
+		if (this.tick < this.nextStrainTick) return
+		const byType = new Float64Array(types)
+		for (let b = 0; b < adaptive.windowSeconds; b++)
+			for (let t = 0; t < types; t++) byType[t] = (byType[t] as number) + (this.damageWindow[b * types + t] as number)
+		let total = 0
+		let top = 0
+		for (let t = 0; t < types; t++) {
+			total += byType[t] as number
+			if ((byType[t] as number) > (byType[top] as number)) top = t
+		}
+		if (total < adaptive.minDamage || (byType[top] as number) / total < adaptive.share) return
+		if (this.strains.includes(top + 1)) return
+		if (this.strains.length >= adaptive.maxStrains) this.strains.shift()
+		this.strains.push(top + 1)
+		this.nextStrainTick = this.tick + Math.round(adaptive.cooldownSeconds * TICK_RATE)
+		this.events.push({ type: 'strain', damage: top })
 	}
 
 	/** Alive and above ground. */

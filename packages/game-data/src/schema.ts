@@ -168,6 +168,10 @@ export const zombieSchema = z.object({
 			poolSeconds: z.number().positive()
 		})
 		.nullable(),
+	/** its mutation traits in order: stage n gives it the first n (ids from mutations.json) */
+	mutations: z.array(id).max(3).optional(),
+	/** share of its maximum health it heals each second (a Regenerating mutation) */
+	regen: z.number().min(0).max(0.2).optional(),
 	/** the bestiary: what it is, and what to do about it */
 	about: z.string().min(1).max(260).optional(),
 	answer: z.string().min(1).max(260).optional(),
@@ -1093,6 +1097,8 @@ export const modifiersSchema = z.object({
 				effects: z.object({
 					enemyCount: z.number().positive().max(3).optional(),
 					enemyHealth: z.number().positive().max(3).optional(),
+					/** mutation stages added */
+					mutation: z.number().int().min(0).max(3).optional(),
 					playerHealth: z.number().positive().max(1).optional(),
 					ammoPrice: z.number().positive().max(5).optional(),
 					noMaxAmmo: z.literal(1).optional(),
@@ -1104,6 +1110,55 @@ export const modifiersSchema = z.object({
 			})
 		)
 		.max(16)
+})
+
+/**
+ * Mutations: every stage makes the horde tougher and gives each kind one more trait; adaptive
+ * strains answer the damage a squad leans on.
+ */
+export const mutationsSchema = z.object({
+	perStage: z.object({ health: z.number().min(0).max(1), damage: z.number().min(0).max(1) }),
+	/** no resistance a mutation or strain adds goes past this (a kind's own, like a Cinder's fire, may) */
+	maxResist: z.number().min(0).max(0.9),
+	/** Survival: a stage further every this many rounds */
+	survivalRoundsPerStage: z.number().int().positive(),
+	traits: z
+		.array(
+			z.object({
+				id,
+				name: z.string().min(1).max(24),
+				description: z.string().min(1).max(120),
+				resist: z.partialRecord(damageType, z.number().min(0).max(1)).optional(),
+				speed: z.number().positive().max(2).optional(),
+				meleeType: damageType.optional(),
+				melee: z.number().positive().max(3).optional(),
+				regen: z.number().min(0).max(0.2).optional(),
+				deathBurst: z
+					.object({
+						damage: z.number().min(0),
+						radius: z.number().positive(),
+						poolDamagePerSecond: z.number().min(0),
+						poolRadius: z.number().positive(),
+						poolSeconds: z.number().positive()
+					})
+					.optional()
+			})
+		)
+		.min(1),
+	adaptive: z.object({
+		/** damage dealt over this long is weighed */
+		windowSeconds: z.number().positive(),
+		/** one damage type past this share of it brings a strain hardened against it */
+		share: z.number().min(0.3).max(1),
+		/** not before the squad has dealt this much in the window */
+		minDamage: z.number().min(0),
+		resist: z.number().min(0).max(0.9),
+		maxStrains: z.number().int().min(1).max(4),
+		/** at least this long between two strains */
+		cooldownSeconds: z.number().min(0),
+		/** share of new zombies that come as the strain */
+		chance: z.number().min(0).max(1)
+	})
 })
 
 /** Interactive map props: their numbers. */
@@ -1251,6 +1306,7 @@ export type ObjectiveDef = z.infer<typeof objectiveSchema>
 export type MissionDef = z.infer<typeof missionSchema>
 export type Build = z.infer<typeof buildSchema>
 export type ChallengesDef = z.infer<typeof challengesSchema>
+export type MutationsDef = z.infer<typeof mutationsSchema>
 export type ModifierDef = z.infer<typeof modifiersSchema>['modifiers'][number]
 export type ChallengeTemplate = ChallengesDef['templates'][number]
 export type AchievementDef = z.infer<typeof achievementSchema>

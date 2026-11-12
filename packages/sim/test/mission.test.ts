@@ -129,7 +129,8 @@ describe('mission difficulty and spawning', () => {
 		const a = easy.spawnZombie(drudge, { x: 10, y: 10 })
 		const b = hard.spawnZombie(drudge, { x: 10, y: 10 })
 		expect(easy.health[a]).toBeCloseTo(def.health * 0.8)
-		expect(hard.health[b]).toBeCloseTo(def.health * 1.5 * 1.12)
+		// Nightmare also mutates the horde a stage: 12 % more health on top
+		expect(hard.health[b]).toBeCloseTo(def.health * 1.5 * 1.12 * 1.12)
 		expect(hard.maxHealth[b]).toBeCloseTo(hard.health[b] as number)
 		const player = hard.addPlayer(1)
 		const before = player.health

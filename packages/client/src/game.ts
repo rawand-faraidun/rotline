@@ -4,6 +4,7 @@ import {
 	abilities as abilityDefs,
 	buffs as buffDefs,
 	classes as classDefs,
+	DAMAGE_TYPES,
 	type DifficultyId,
 	difficultyDef,
 	economy,
@@ -15,6 +16,7 @@ import {
 	missionById,
 	missionFor,
 	modifierEffects,
+	mutationStage,
 	propsDef,
 	weapons,
 	zombies as zombieDefs
@@ -203,6 +205,8 @@ export function startGame(options: GameOptions): GameHandle {
 		hud.set({ tip: { id, at: now, pad: controls.padInUse } }, now, true)
 	}
 	let playingSince = 0
+	/** how far the horde has mutated (0 to 3) */
+	let mutation = 0
 	/** the mission is won or lost, or the run is over: the player stands still behind the results */
 	let ended = false
 	/** the current objective's own state: items picked up, areas taken, how long it has run */
@@ -397,6 +401,15 @@ export function startGame(options: GameOptions): GameHandle {
 			stage.scene.add(me.group)
 			mission = (options.room ? missionFor(missionId, options.room) : missionById(missionId)) ?? null
 			rewardScale = difficultyDef(difficulty as DifficultyId)?.rewards ?? 1
+			// the horde as mutated as the server makes it, worked out from the same rules
+			mutation = mission
+				? mutationStage({
+						zone: mission.zone,
+						difficulty: difficulty as DifficultyId,
+						extra: modifierEffects(modifiers).mutation
+					})
+				: 0
+			if (mutation > 0) toast('mutation', String(mutation))
 			markers?.dispose()
 			markers = mission ? new MissionMarkers(stage.scene, mission) : null
 			if (mission) {
@@ -714,6 +727,15 @@ export function startGame(options: GameOptions): GameHandle {
 						}
 						break
 					}
+					case 'strain':
+						toast('strain', DAMAGE_TYPES[event.damage] ?? '')
+						audio.sound('zombie-roar', { bus: 'interface', rate: 0.7, volume: 0.6 })
+						break
+					case 'mutation':
+						mutation = event.stage
+						toast('mutation', String(event.stage))
+						audio.sound('stinger', { bus: 'interface', rate: 0.8, volume: 0.7 })
+						break
 					case 'phase': {
 						const phase = zombieDefs[event.zombieType]?.phases?.[event.phase - 1]
 						if (phase) {
@@ -1316,6 +1338,7 @@ export function startGame(options: GameOptions): GameHandle {
 					viewSolid[n] = state === ZombieState.under || state === ZombieState.erupting ? 0 : 1
 				}
 			}
+			if (zombies) zombies.mutation = mutation
 			zombies?.update(interpolator.view, now / 1000, stage.camera)
 			// zombies on fire burn where they walk
 			{
