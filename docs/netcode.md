@@ -21,7 +21,7 @@ If a tick runs late, the server runs the missed ticks back to back (up to 3) ins
 
 - **WebSocket** works everywhere and is always available.
 - **A direct address.** The site sits behind a CDN, and for some regions the route through it is far slower than the route to the game server itself (about 230 ms a round trip against 80 ms from Iraq). The API can name a direct address for the game connection with every ticket; the client tries it first and falls back to the game path on the site if it has not opened within 5 seconds. Only the game connection uses it; pages, sign-in and the API stay behind the CDN. The address serves nothing but the game connection and limits new connections per client address; the signed ticket is what actually lets a player in.
-- **WebTransport** is used when the browser supports it: snapshots and inputs travel as unreliable datagrams, everything else on a reliable stream. A lost datagram never delays the ones behind it, which keeps remote entities smooth on lossy connections; on WebSocket (TCP), one lost packet holds up everything behind it.
+- **WebTransport** (not built yet): snapshots and inputs would travel as unreliable datagrams, everything else on a reliable stream, so a lost datagram never delays the ones behind it; on WebSocket (TCP), one lost packet holds up everything behind it. Browsers support it, but Node.js has no built-in QUIC or HTTP/3 server, and the one server library is a native binding that calls itself a stopgap until Node has its own. The game connection stays on WebSocket until there is a dependable server (in Node, or a separate datagram relay in front of the game servers).
 - Inputs are sent redundantly and one-off events are reliable. On WebSocket each snapshot is a delta against the previous one sent on that connection; with datagrams, snapshots become deltas against the last snapshot the client acknowledged (every input already carries that acknowledgement).
 
 ## Messages
@@ -106,7 +106,11 @@ Bots behind `tc netem` (75 ms each way, loss applied in both directions), 8 play
 | 150 ms, 2 % | 6.2 % | 0.7 % | 182 ms | 0 |
 | 150 ms, 5 % | 16.9 % | 0.9 % | 269 ms | 0 |
 
-Your own movement and shooting stay exact at every loss rate. What TCP costs is how far in the past other players and zombies are drawn; datagrams (WebTransport) would bring that back to about 75 ms.
+Your own movement and shooting stay exact at every loss rate (that run predates solid zombies; see below).
+
+A full local load, 24 bots in 6 Survival rooms of 4 for 90 s on one game server (M5 Mac, no added latency): snapshots every 67 ms at the median and 70 ms at the 99th percentile, none later than 100 ms, an interpolation delay of 70 ms, a round trip of 3 to 5 ms, nobody dropped. The same load on the build before the new zombie types gave the same figures.
+
+**Corrections from solid zombies.** Your own player is pushed out of zombies on both sides, but the client pushes against zombies where it draws them, about 70 ms in the past, while the server uses where they are now. Pressed against the horde, the two disagree a little: in the 24-bot run (bots that stand in the horde and fire) about three snapshots in five correct the position, by 0.54 m at most, eased in when under 0.5 m. Away from the horde prediction is exact (a headless check of the server and the predictor through the real snapshot encoding, with and without zombies near, shows none). What TCP costs is how far in the past other players and zombies are drawn; datagrams (WebTransport) would bring that back to about 75 ms.
 
 ## Lag compensation
 

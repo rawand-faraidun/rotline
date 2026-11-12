@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { EXTRAPOLATE_TICKS, Interpolator, Predictor } from '@rotline/client/headless'
-import { maps } from '@rotline/game-data'
+import { maps, zombies } from '@rotline/game-data'
 import {
 	INPUT_REDUNDANCY,
 	Reader,
@@ -12,7 +12,16 @@ import {
 	writePong,
 	ZombieTable
 } from '@rotline/protocol'
-import { angleToAim, Button, Grid, type PlayerInput, quantiseAxis, TICK_RATE } from '@rotline/sim'
+import {
+	angleToAim,
+	Button,
+	Grid,
+	type PlayerInput,
+	quantiseAxis,
+	separateFromZombies,
+	TICK_RATE,
+	ZombieState
+} from '@rotline/sim'
 import WebSocket from 'ws'
 
 const TICK_MS = 1000 / TICK_RATE
@@ -57,6 +66,7 @@ export class Bot {
 	private readonly table = new ZombieTable()
 	private readonly interpolator = new Interpolator()
 	private predictor: Predictor | null = null
+	private readonly solid = new Uint8Array(300)
 	private readonly grid = new Grid(maps.yard as NonNullable<typeof maps.yard>)
 	private seq = 0
 	private lastArrival = 0
@@ -79,7 +89,17 @@ export class Bot {
 		const reader = new Reader(bytes)
 		const message = readServerHeader(reader)
 		if (message.type === 'welcome') {
-			this.predictor = new Predictor(this.grid, message.you, message.build)
+			this.predictor = new Predictor(this.grid, message.you, message.build, message.modifiers)
+			// as the game's own client does: zombies are solid against where they are drawn (not under the ground)
+			const view = this.interpolator.view
+			const radius = (index: number) => zombies[view.type[index] as number]?.radius ?? 0.4
+			this.predictor.collide = state => {
+				for (let n = 0; n < view.count; n++) {
+					const drawn = view.state[n] as number
+					this.solid[n] = drawn === ZombieState.under || drawn === ZombieState.erupting ? 0 : 1
+				}
+				separateFromZombies(this.grid, state, view.count, view.x, view.y, radius, this.solid)
+			}
 			this.timers.push(setInterval(() => this.tick(), TICK_MS))
 			this.timers.push(setInterval(() => this.frame(), 1000 / 60))
 		} else if (message.type === 'ping') {
