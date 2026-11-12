@@ -168,6 +168,31 @@ export const zombieSchema = z.object({
 			poolSeconds: z.number().positive()
 		})
 		.nullable(),
+	/**
+	 * How it is drawn beyond tint and size, so each kind reads apart at a glance: its build (width
+	 * and height against the shared body), a glow (where, its colour, how big), shoulder plates and
+	 * glowing sacs on its back.
+	 */
+	look: z
+		.object({
+			width: z.number().positive().max(2).optional(),
+			height: z.number().positive().max(2).optional(),
+			glow: z
+				.object({
+					colour: z.string().regex(/^#[0-9a-f]{6}$/i),
+					/** height on the body and how far ahead of its middle, in metres at scale 1 */
+					up: z.number().min(0).max(2.5),
+					ahead: z.number().min(-1).max(1),
+					size: z.number().positive().max(4)
+				})
+				.optional(),
+			plates: z.boolean().optional(),
+			sacs: z
+				.string()
+				.regex(/^#[0-9a-f]{6}$/i)
+				.optional()
+		})
+		.optional(),
 	/** its mutation traits in order: stage n gives it the first n (ids from mutations.json) */
 	mutations: z.array(id).max(3).optional(),
 	/** share of its maximum health it heals each second (a Regenerating mutation) */

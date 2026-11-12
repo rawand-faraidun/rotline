@@ -360,7 +360,7 @@ The data checks refuse a map or mission where:
 
 ## 8. Zombies
 
-Eighteen types. Each is recognisable from above by silhouette, size and an accent colour or glow (readability beats realism).
+Eighteen types. Each is recognisable from above by silhouette, size and an accent colour or glow (readability beats realism). In the game every kind shares one animated body, told apart by its tint and size and by its own look in the data (`look` in `zombies.json`): a build (wider or taller), a glow (the Retcher's throat, the Cinder's chest, the Screamer's and The Whisper's mouths, the Gardener's core, Old Ironjaw's eye), riot plates on the shoulders (the Bulwark, the Warden, Old Ironjaw), swollen sacs on the back (the Swell, Mother Rot, the Gardener), the Bulwark's and the Warden's shields, and the Delver's mound of earth. `/dev/fx?lineup=1` shows them all in a row (`&mutation=2` as mutated).
 
 | # | Name | Role | Health (Veteran) | Speed (m/s) | Behaviour | Player answer | Readability cue |
 |---|---|---|---|---|---|---|---|

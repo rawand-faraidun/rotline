@@ -1,4 +1,4 @@
-import { buffs, maps } from '@rotline/game-data'
+import { buffs, maps, zombies as zombieDefs } from '@rotline/game-data'
 import type { ObjectState } from '@rotline/protocol'
 import { createProps, Grid, ObjectKind } from '@rotline/sim'
 import { Interpolator } from './interpolate.ts'
@@ -60,8 +60,26 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 	let zombies: ZombieRenderer | null = null
 	void ZombieRenderer.load('/assets/models/characters/zombie.glb').then(renderer => {
 		zombies = renderer
-		stage.scene.add(renderer.mesh, renderer.corpses)
+		stage.scene.add(renderer.mesh, renderer.corpses, renderer.extras)
 	})
+	/** Every kind of zombie standing in two rows round (at.x, at.y), facing the camera's left, to compare their looks. */
+	const lineup = (mutation = 0) => {
+		const kinds = zombieDefs.flatMap((def, type) => (def.dummy ? [] : [type]))
+		const perRow = Math.ceil(kinds.length / 2)
+		for (const [n, type] of kinds.entries()) {
+			const row = Math.floor(n / perRow)
+			view.index[n] = n
+			view.type[n] = type
+			view.x[n] = at.x - perRow * 1.6 + (n % perRow) * 3.2
+			view.y[n] = at.y - 2.5 + row * 5.5
+			view.facing[n] = Math.PI / 2
+			view.health[n] = 255
+			view.state[n] = 0
+			view.status[n] = 0
+		}
+		view.count = kinds.length
+		if (zombies) zombies.mutation = mutation
+	}
 	// a clock that can be stopped and set, to see one moment of an effect
 	let frozen: number | null = null
 	const now = () => frozen ?? performance.now() / 1000
@@ -70,6 +88,7 @@ export function mountFxLab(canvas: HTMLCanvasElement, mapId = 'yard', at = { x: 
 		gas: (x: number, y: number, radius: number) => effects.gas(x, y, radius, now()),
 		fall: (x: number, y: number, type = 0) => zombies?.fall(9999, type, x, y),
 		ready: () => zombies !== null,
+		lineup,
 		/** moves the camera to look at (x, y) */
 		goto: (x: number, y: number) => {
 			at.x = x

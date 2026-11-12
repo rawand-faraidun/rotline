@@ -814,7 +814,7 @@ function ResultsPanel({
 function RangePanel({ handle, hud }: { handle: GameHandle; hud: HudState }) {
 	const r = en.app.range
 	return (
-		<Panel className="absolute top-16 right-4 w-64 gap-3 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
+		<Panel className="absolute top-16 right-4 w-80 gap-3 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
 			<span className="flex items-baseline justify-between">
 				<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{r.dps}</span>
 				<span className="font-display text-3xl text-rot-lime tabular-nums" data-testid="dps">
@@ -829,9 +829,13 @@ function RangePanel({ handle, hud }: { handle: GameHandle; hud: HudState }) {
 							key={zombie.id}
 							size="sm"
 							variant="secondary"
-							onClick={() => handle.range('spawn', index, zombie.boss ? 1 : 5)}
+							className="min-w-0"
+							title={zombie.name}
+							onClick={() => handle.range('spawn', index, zombie.elite ? 1 : 5)}
 						>
-							{zombie.name} ×{zombie.boss ? 1 : 5}
+							<span className="truncate">
+								{zombie.name} ×{zombie.elite ? 1 : 5}
+							</span>
 						</Button>
 					)
 				)}

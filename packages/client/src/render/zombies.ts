@@ -174,7 +174,15 @@ const DAZED = new THREE.Color(0xd8d0b0)
 const MUTATED = new THREE.Color(0x6d7a3a)
 const CRUST = new THREE.Color(0xd9d2b8)
 /** a zombie's own glow, by type: a Retcher's throat */
-const THROATS = zombieDefs.map(def => (def.ranged ? new THREE.Color(0xe8f040) : null))
+/** each kind's look beyond tint and size: build, glow, shoulder plates, sacs on the back */
+const GLOWS = zombieDefs.map(def =>
+	def.look?.glow ? { ...def.look.glow, color: new THREE.Color(def.look.glow.colour) } : null
+)
+const SACS = zombieDefs.map(def => (def.look?.sacs ? new THREE.Color(def.look.sacs) : null))
+const PLATES = zombieDefs.map(def => def.look?.plates === true)
+const BUILD = zombieDefs.map(def => ({ width: def.look?.width ?? 1, height: def.look?.height ?? 1 }))
+/** how many of each part may be drawn at once */
+const PARTS = 128
 /** who carries a shield, and how big it is for them */
 const SHIELDS = zombieDefs.map(def => (def.shield ? def.scale : 0))
 
@@ -207,7 +215,10 @@ export class ZombieRenderer {
 	readonly extras = new THREE.Group()
 	private readonly mounds: THREE.InstancedMesh
 	private readonly shields: THREE.InstancedMesh
-	private readonly throats: THREE.InstancedMesh
+	private readonly glows: THREE.InstancedMesh
+	private readonly plates: THREE.InstancedMesh
+	private readonly sacs: THREE.InstancedMesh
+	private readonly side = new THREE.Vector3()
 
 	/** how far the horde has mutated (0 to 3) */
 	mutation = 0
@@ -290,23 +301,35 @@ export class ZombieRenderer {
 			64
 		)
 		this.shields.castShadow = detail === 'high'
-		this.throats = new THREE.InstancedMesh(
-			new THREE.SphereGeometry(0.12, 10, 8),
+		const glowing = () =>
 			new THREE.MeshBasicMaterial({
 				color: 0xffffff,
 				transparent: true,
 				opacity: 0.85,
-				blending: THREE.AdditiveBlending
-			}),
-			64
+				blending: THREE.AdditiveBlending,
+				depthWrite: false
+			})
+		this.glows = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 10, 8), glowing(), PARTS)
+		// sacs are swollen flesh, not lights: solid, a little glossy
+		this.sacs = new THREE.InstancedMesh(
+			new THREE.SphereGeometry(0.085, 10, 8),
+			new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0 }),
+			PARTS * 3
 		)
-		for (const mesh of [this.mounds, this.shields, this.throats]) {
+		// riot plates over each shoulder: dark steel, scuffed
+		this.plates = new THREE.InstancedMesh(
+			new THREE.BoxGeometry(0.16, 0.06, 0.2),
+			new THREE.MeshStandardMaterial({ color: 0x3c4650, roughness: 0.5, metalness: 0.75 }),
+			PARTS * 2
+		)
+		this.plates.castShadow = detail === 'high'
+		for (const mesh of [this.mounds, this.shields, this.glows, this.sacs, this.plates]) {
 			mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
 			mesh.frustumCulled = false
 			mesh.count = 0
 		}
 		this.mounds.receiveShadow = true
-		this.extras.add(this.mounds, this.shields, this.throats)
+		this.extras.add(this.mounds, this.shields, this.glows, this.sacs, this.plates)
 	}
 
 	static async load(url: string, detail: ZombieDetail = 'high'): Promise<ZombieRenderer> {
@@ -371,7 +394,9 @@ export class ZombieRenderer {
 		let drawn = 0
 		let mounds = 0
 		let shields = 0
-		let throats = 0
+		let glows = 0
+		let sacs = 0
+		let plates = 0
 		for (let i = 0; i < view.count; i++) {
 			const type = view.type[i] as number
 			const def = zombieDefs[type]
@@ -429,16 +454,54 @@ export class ZombieRenderer {
 			// one that just appeared at a hole climbs out of it over EMERGE seconds
 			const rising = (timeSeconds - (this.bornAt[slot] as number)) / EMERGE
 			const below = rising < 1 && this.bornAt[slot] !== 0 ? (1 - rising) ** 2 * 1.7 * size : 0
+			const build = BUILD[type] ?? { width: 1, height: 1 }
 			this.matrix.compose(
 				this.position.set(view.x[i] as number, -below, view.y[i] as number),
 				this.quaternion,
-				this.scale.set(size, size, size)
+				this.scale.set(size * build.width, size * build.height, size * build.width)
 			)
 			this.mesh.setMatrixAt(n, this.matrix)
+			const facing = view.facing[i] as number
+			const fx = Math.cos(facing)
+			const fy = Math.sin(facing)
+			const tall = size * build.height
+			const wide = size * build.width
+			// plates over both shoulders
+			if (PLATES[type] && plates < PARTS * 2 - 1)
+				for (const hand of [-1, 1]) {
+					this.matrix.compose(
+						this.position.set(
+							(view.x[i] as number) - fy * hand * 0.16 * wide,
+							1.4 * tall - below,
+							(view.y[i] as number) + fx * hand * 0.16 * wide
+						),
+						this.quaternion,
+						this.scale.set(wide, size, wide)
+					)
+					this.plates.setMatrixAt(plates++, this.matrix)
+				}
+			// sacs on the back, swelling and easing
+			const sac = SACS[type]
+			if (sac && sacs < PARTS * 3 - 2)
+				for (let k = 0; k < 3; k++) {
+					const swell = 1 + Math.sin(timeSeconds * 2.2 + phase * 6 + k * 2) * 0.12
+					this.side.set(-fy * (k - 1) * 0.09, 0, fx * (k - 1) * 0.09)
+					this.matrix.compose(
+						this.position.set(
+							(view.x[i] as number) - fx * 0.13 * wide + this.side.x * wide,
+							(1.15 + (k === 1 ? 0.1 : 0)) * tall - below,
+							(view.y[i] as number) - fy * 0.13 * wide + this.side.z * wide
+						),
+						this.quaternion,
+						this.scale.setScalar(size * swell * (k === 1 ? 1.25 : 1))
+					)
+					this.sacs.setMatrixAt(sacs, this.matrix)
+					this.sacs.setColorAt(sacs, sac)
+					sacs++
+				}
 			// a shield held in front, the way it faces (dropped low while it stands dazed)
 			const shieldSize = SHIELDS[type] ?? 0
 			if (shieldSize > 0 && shields < 64) {
-				const facing = view.facing[i] as number
 				const ahead = 0.45 * shieldSize
 				const dazed = state === ZombieState.dazed
 				this.matrix.compose(
@@ -452,23 +515,25 @@ export class ZombieRenderer {
 				)
 				this.shields.setMatrixAt(shields++, this.matrix)
 			}
-			// a Retcher's throat glows, brighter as it rears back to spit
-			const throat = THROATS[type]
-			if (throat && throats < 64) {
-				const facing = view.facing[i] as number
-				const pulse = state === ZombieState.windup ? 1.8 + Math.sin(timeSeconds * 30) * 0.4 : 1
+			// its glow (a Retcher's throat, a Cinder's chest), brighter as it winds up
+			const glow = GLOWS[type]
+			if (glow && glows < PARTS) {
+				const pulse =
+					state === ZombieState.windup
+						? 1.8 + Math.sin(timeSeconds * 30) * 0.4
+						: 1 + Math.sin(timeSeconds * 3 + phase * 6) * 0.08
 				this.matrix.compose(
 					this.position.set(
-						(view.x[i] as number) + Math.cos(facing) * 0.18 * size,
-						1.45 * size - below,
-						(view.y[i] as number) + Math.sin(facing) * 0.18 * size
+						(view.x[i] as number) + fx * glow.ahead * size,
+						glow.up * tall - below,
+						(view.y[i] as number) + fy * glow.ahead * size
 					),
 					this.quaternion,
-					this.scale.setScalar(pulse * size)
+					this.scale.setScalar(pulse * size * glow.size)
 				)
-				this.throats.setMatrixAt(throats, this.matrix)
-				this.throats.setColorAt(throats, this.color.copy(throat))
-				throats++
+				this.glows.setMatrixAt(glows, this.matrix)
+				this.glows.setColorAt(glows, glow.color)
+				glows++
 			}
 			// wounded zombies darken slightly; statuses tint them (stunned blue, marked red, poisoned green)
 			const health = (view.health[i] as number) / 255
@@ -487,9 +552,12 @@ export class ZombieRenderer {
 		}
 		this.mounds.count = mounds
 		this.shields.count = shields
-		this.throats.count = throats
-		for (const mesh of [this.mounds, this.shields, this.throats]) mesh.instanceMatrix.needsUpdate = true
-		if (this.throats.instanceColor) this.throats.instanceColor.needsUpdate = true
+		this.glows.count = glows
+		this.sacs.count = sacs
+		this.plates.count = plates
+		for (const mesh of [this.mounds, this.shields, this.glows, this.sacs, this.plates])
+			mesh.instanceMatrix.needsUpdate = true
+		for (const mesh of [this.glows, this.sacs]) if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
 		this.seen.set(this.seenNow)
 		this.mesh.count = drawn
 		this.mesh.instanceMatrix.needsUpdate = true
@@ -513,7 +581,11 @@ export class ZombieRenderer {
 			this.matrix.compose(
 				this.position.set(this.bodies[o] as number, -sink * 0.5 * size, this.bodies[o + 1] as number),
 				this.quaternion,
-				this.scale.set(size, size, size)
+				this.scale.set(
+					size * (BUILD[type]?.width ?? 1),
+					size * (BUILD[type]?.height ?? 1),
+					size * (BUILD[type]?.width ?? 1)
+				)
 			)
 			this.corpses.setMatrixAt(shown, this.matrix)
 			this.color.copy(this.tints[type] ?? this.color.set(0xffffff)).multiplyScalar(0.6)

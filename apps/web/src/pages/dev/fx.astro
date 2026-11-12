@@ -10,6 +10,12 @@
 				const params = new URLSearchParams(location.search)
 				const { mountFxLab } = await import('@rotline/client/fx-lab')
 				mountFxLab(document.getElementById('fx') as HTMLCanvasElement, params.get('map') ?? 'yard')
+				// ?lineup=1: every kind of zombie in a row (with ?mutation=2, as mutated)
+				if (params.get('lineup')) {
+					const lab = (window as unknown as { fxLab: { ready(): boolean; lineup(stage: number): void } }).fxLab
+					const wait = () => (lab.ready() ? lab.lineup(Number(params.get('mutation') ?? '0')) : setTimeout(wait, 200))
+					wait()
+				}
 			}
 		</script>
 	</body>
