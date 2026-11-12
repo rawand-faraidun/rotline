@@ -275,6 +275,39 @@ function BossBar({ hud }: { hud: HudState }) {
  * Where the objective is: a pulsing marker over it with the distance, or, when it is off screen, an
  * arrow at the edge pointing the way.
  */
+/** Space kept between a marker and a HUD panel, in pixels. */
+const PANEL_GAP = 30
+
+/**
+ * A marker at (x, y) (shares of the screen) moved out of any HUD panel it would sit on: to the
+ * panel's side nearer the middle of the screen, so it is never hidden behind the objective, the
+ * minimap or the weapons. Panels are the elements marked `data-hud-panel`.
+ */
+function clearOfPanels(x: number, y: number): { left: string; top: string } {
+	let px = x * window.innerWidth
+	let py = y * window.innerHeight
+	for (const panel of document.querySelectorAll('[data-hud-panel]')) {
+		const box = panel.getBoundingClientRect()
+		if (box.width === 0) continue
+		if (
+			px < box.left - PANEL_GAP ||
+			px > box.right + PANEL_GAP ||
+			py < box.top - PANEL_GAP ||
+			py > box.bottom + PANEL_GAP
+		)
+			continue
+		// sideways for panels at the screen's sides, up or down for those along the top and bottom
+		const middle = box.left + box.width / 2
+		if (
+			box.width < window.innerWidth * 0.4 &&
+			(box.left > window.innerWidth * 0.5 || box.right < window.innerWidth * 0.5)
+		)
+			px = middle > window.innerWidth / 2 ? box.left - PANEL_GAP : box.right + PANEL_GAP
+		else py = box.top + box.height / 2 > window.innerHeight / 2 ? box.top - PANEL_GAP : box.bottom + PANEL_GAP
+	}
+	return { left: `${px}px`, top: `${py}px` }
+}
+
 function Waypoint({ hud }: { hud: HudState }) {
 	const point = hud.waypoint
 	if (!point) return null
@@ -282,7 +315,7 @@ function Waypoint({ hud }: { hud: HudState }) {
 	return (
 		<div
 			className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
-			style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
+			style={clearOfPanels(point.x, point.y)}
 			aria-hidden="true"
 		>
 			{point.onScreen ? (
@@ -314,7 +347,7 @@ function AllyArrows({ hud }: { hud: HudState }) {
 					<div
 						key={ally.slot}
 						className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
-						style={{ left: `${ally.x * 100}%`, top: `${ally.y * 100}%`, color: colour }}
+						style={{ ...clearOfPanels(ally.x, ally.y), color: colour }}
 						aria-hidden="true"
 					>
 						<svg viewBox="0 0 24 24" className="size-7" style={{ transform: `rotate(${ally.angle}rad)` }}>
@@ -346,6 +379,7 @@ function MinimapView({ handle, expanded, onToggle }: { handle: GameHandle; expan
 				onClick={onToggle}
 				aria-label={t.openMap}
 				title={t.openMap}
+				data-hud-panel
 				className="frame cut-sm absolute top-4 right-4 flex size-48 flex-col p-1 [--frame-fill:rgb(13_16_14/0.85)] hover:[--frame-color:var(--color-rot-lime)]"
 			>
 				<canvas ref={corner} className="size-full" />
@@ -378,6 +412,7 @@ function ObjectiveTracker({ hud }: { hud: HudState }) {
 	return (
 		<section
 			aria-label={mission.name}
+			data-hud-panel
 			className="frame cut pointer-events-none absolute top-[13.5rem] right-4 flex w-72 flex-col gap-1.5 px-4 py-3 [--frame-fill:rgb(13_16_14/0.85)]"
 		>
 			<span className="flex items-baseline justify-between gap-3">
@@ -1059,17 +1094,20 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						</section>
 					)}
 
-					<div className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
+					<div
+						data-hud-panel
+						className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]"
+					>
 						<HealthBar health={hud.health} max={hud.maxHealth} />
 						<StaminaBar stamina={hud.stamina} sprinting={hud.sprinting} />
 						{hud.livesLeft !== null && <Lives left={hud.livesLeft} />}
 					</div>
 
-					<div className="pointer-events-none absolute right-6 bottom-6">
+					<div data-hud-panel className="pointer-events-none absolute right-6 bottom-6">
 						<Weapons hud={hud} />
 					</div>
 
-					<div className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2">
+					<div data-hud-panel className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2">
 						<Abilities hud={hud} />
 					</div>
 

@@ -91,6 +91,16 @@ describe('records', () => {
 		expect(((await worn.json()) as { title: string }).title).toBe('Fresh Meat')
 	})
 
+	it('awards what earlier play already earned (stats filled in from older records)', async () => {
+		const player = await enlist('Ida')
+		await db.playerStat.create({ data: { playerId: player.id, key: 'mission:yard-stand', value: 2n } })
+		const { achievements } = (await (await call(player.jar, '/api/records/achievements')).json()) as {
+			achievements: { id: string; unlockedAt: string | null }[]
+		}
+		expect(achievements.find(entry => entry.id === 'ashgate')?.unlockedAt).not.toBeNull()
+		expect(achievements.find(entry => entry.id === 'harrow')?.unlockedAt).toBeNull()
+	})
+
 	it('ranks Survival runs by rounds, then score, one line per player', async () => {
 		const first = await enlist('Uli')
 		const second = await enlist('Vic')

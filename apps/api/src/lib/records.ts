@@ -102,6 +102,28 @@ async function addStat(tx: Tx, playerId: string, key: string, value: number, set
 }
 
 /**
+ * Unlocks every achievement the player's stats already reach (stats filled in from records kept
+ * before achievements existed, or a target lowered in game data). Returns the ids newly earned.
+ */
+export async function settleAchievements(tx: Tx, playerId: string, now = new Date()): Promise<string[]> {
+	const [stats, unlocked] = await Promise.all([
+		tx.playerStat.findMany({ where: { playerId, key: { in: [...new Set(achievements.map(entry => entry.stat))] } } }),
+		tx.achievementUnlock.findMany({ where: { playerId }, select: { achievementId: true } })
+	])
+	const value = new Map(stats.map(stat => [stat.key, stat.value]))
+	const have = new Set(unlocked.map(entry => entry.achievementId))
+	const earned = achievements.filter(
+		entry => !have.has(entry.id) && (value.get(entry.stat) ?? 0n) >= BigInt(entry.target)
+	)
+	if (earned.length > 0)
+		await tx.achievementUnlock.createMany({
+			data: earned.map(entry => ({ playerId, achievementId: entry.id, unlockedAt: now })),
+			skipDuplicates: true
+		})
+	return earned.map(entry => entry.id)
+}
+
+/**
  * What a report's tally and Survival run change, in the grant's transaction (the caller has locked
  * the player): lifetime stats, the bestiary count, progress on this rotation's challenges (paying
  * the ones finished, once each, through the ledger), achievements reached, and the run itself.

@@ -11,6 +11,7 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import type { AppEnv, Services } from '../context.ts'
+import { settleAchievements } from '../lib/records.ts'
 
 /** Places shown on a leaderboard (the player's own is added when they are lower down). */
 const BOARD_SIZE = 20
@@ -61,6 +62,8 @@ export function recordRoutes({ db }: Services) {
 		.get('/records/achievements', async c => {
 			const user = c.get('user')
 			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+			// anything the player's stats already reach is theirs (records kept before achievements existed)
+			await settleAchievements(db, user.id)
 			const [unlocked, stats, player] = await Promise.all([
 				db.achievementUnlock.findMany({ where: { playerId: user.id } }),
 				db.playerStat.findMany({
