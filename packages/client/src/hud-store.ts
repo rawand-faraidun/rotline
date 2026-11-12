@@ -151,7 +151,17 @@ export type Toast = {
 	id: number
 	/** `phase`: a boss stepped into a new phase (its name in `text`) */
 	/** `mutation`: the horde's stage (in `text`); `strain`: a strain hardened against a damage type (in `text`) */
-	kind: 'item' | 'buff' | 'threshold' | 'resupply' | 'secret' | 'phase' | 'mutation' | 'strain'
+	kind:
+		| 'item'
+		| 'buff'
+		| 'threshold'
+		| 'resupply'
+		| 'secret'
+		| 'phase'
+		| 'mutation'
+		| 'strain'
+		| 'bounty'
+		| 'bounty-down'
 	/** the item or buff name, or the Salvage paid for a threshold */
 	text: string
 	/** who picked a buff up (teammates' pickups help everyone) */

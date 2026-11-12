@@ -19,6 +19,7 @@ import {
 	achievementsQuery,
 	type BoardRow,
 	bestiaryQuery,
+	bountyQuery,
 	type Challenge,
 	challengesQuery,
 	missionBoardQuery,
@@ -88,6 +89,45 @@ function ChallengeCard({ challenge }: { challenge: Challenge }) {
 	)
 }
 
+/** This week's bounty: the named elite, where and how hard, what it pays, and whether it is claimed. */
+function BountyCard() {
+	const bounty = useQuery(bountyQuery)
+	const now = useNow()
+	const view = bounty.data
+	if (!view) return null
+	const zombie = zombies.find(entry => entry.id === view.zombie)
+	return (
+		<Panel
+			className={cn(
+				'gap-2',
+				view.done ? '[--frame-color:var(--color-rot-lime)]' : '[--frame-color:var(--color-warning)]'
+			)}
+		>
+			<PanelHeader className="flex items-baseline justify-between gap-3">
+				<PanelTitle className="text-xl">{t.bounty}</PanelTitle>
+				<span className="text-muted text-xs uppercase tracking-[0.15em]">
+					{format(t.endsIn, { time: until(view.endsAt, now) })}
+				</span>
+			</PanelHeader>
+			<span className="flex items-start justify-between gap-3">
+				<span className="font-display text-3xl text-warning uppercase">{zombie?.name ?? view.zombie}</span>
+				{view.done && <Badge tone="lime">{t.bountyClaimed}</Badge>}
+			</span>
+			<span className="font-bold uppercase tracking-wide">
+				{format(t.bountyWhere, {
+					mission: missionById(view.mission)?.name ?? view.mission,
+					difficulty: difficulties.tiers.find(tier => tier.id === view.difficulty)?.name ?? view.difficulty
+				})}
+			</span>
+			<span className="text-bone/85 text-sm">{zombie?.about}</span>
+			<span className="text-sm text-warning">
+				{format(t.bountyReward, { salvage: salvage(view.reward), title: view.title })}
+			</span>
+			<span className="text-muted text-xs">{t.bountyHint}</span>
+		</Panel>
+	)
+}
+
 function Challenges() {
 	const list = useQuery(challengesQuery)
 	const now = useNow()
@@ -115,6 +155,7 @@ function Challenges() {
 						</ul>
 					</Panel>
 					{kind === 'daily' && <p className="text-muted text-sm">{t.challengesHint}</p>}
+					{kind === 'weekly' && <BountyCard />}
 				</div>
 			))}
 		</div>

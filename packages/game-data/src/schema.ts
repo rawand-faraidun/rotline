@@ -1050,7 +1050,7 @@ export const campaignSchema = z.object({
 export const statKeyId = z
 	.string()
 	.regex(
-		/^(kills|revives|objectives|rounds|missions|elites|clean-missions|gold|challenges|bestiary|kill:[a-z0-9-]+|weapon:[a-z]+|missions:(recruit|veteran|nightmare|apocalypse)|mission:[a-z0-9-]+)$/,
+		/^(kills|revives|objectives|rounds|missions|elites|clean-missions|gold|challenges|bestiary|kill:[a-z0-9-]+|weapon:[a-z]+|missions:(recruit|veteran|nightmare|apocalypse)|mission:[a-z0-9-]+|bounty:[a-z0-9-]+)$/,
 		'not a stat'
 	)
 
@@ -1066,6 +1066,27 @@ export const challengesSchema = z.object({
 				stat: statKeyId,
 				target: z.number().int().positive(),
 				text: z.string().min(1).max(80)
+			})
+		)
+		.min(1)
+})
+
+/**
+ * Bounties: each week one named elite turns up in one campaign mission at one difficulty; whoever
+ * is in the squad that kills it is paid once that week, and earns its title.
+ */
+export const bountiesSchema = z.object({
+	reward: z.number().int().positive(),
+	difficulties: z.array(difficultyId).min(1),
+	bounties: z
+		.array(
+			z.object({
+				id,
+				/** the named elite (a zombie kind of its own) */
+				zombie: id,
+				title: z.string().min(1).max(24),
+				/** the missions it may haunt */
+				missions: z.array(id).min(1)
 			})
 		)
 		.min(1)
@@ -1306,6 +1327,7 @@ export type ObjectiveDef = z.infer<typeof objectiveSchema>
 export type MissionDef = z.infer<typeof missionSchema>
 export type Build = z.infer<typeof buildSchema>
 export type ChallengesDef = z.infer<typeof challengesSchema>
+export type BountyDef = z.infer<typeof bountiesSchema>['bounties'][number]
 export type MutationsDef = z.infer<typeof mutationsSchema>
 export type ModifierDef = z.infer<typeof modifiersSchema>['modifiers'][number]
 export type ChallengeTemplate = ChallengesDef['templates'][number]

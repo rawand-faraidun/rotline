@@ -8,7 +8,8 @@ import {
 	missionById,
 	modifierBonus,
 	modifiers,
-	SURVIVAL_ARENAS
+	SURVIVAL_ARENAS,
+	zombies
 } from '@rotline/game-data'
 import { Badge, cn, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -22,6 +23,7 @@ import {
 	partyActions,
 	partyQuery
 } from '../../lib/party.ts'
+import { bountyQuery } from '../../lib/records.ts'
 
 const t = en.app.missions
 
@@ -48,8 +50,11 @@ function MissionCard({
 	editable,
 	entry,
 	boss = false,
+	bounty = null,
 	onChoose
 }: {
+	/** this week's bounty haunts this mission: its name and the difficulty */
+	bounty?: string | null
 	mission: MissionDef
 	number?: number | undefined
 	open: boolean
@@ -101,6 +106,7 @@ function MissionCard({
 					<span>{format(t.objectives, { count: String(mission.objectives.length) })}</span>
 					{record.bestTimeMs ? <span>{format(t.best, { time: clock(record.bestTimeMs / 1000) })}</span> : null}
 				</span>
+				{bounty && <span className="font-bold text-warning text-xs uppercase tracking-[0.15em]">{bounty}</span>}
 				{!open && <span className="text-muted text-xs">{boss ? t.bossLockedHint : t.lockedHint}</span>}
 			</button>
 		</li>
@@ -110,6 +116,14 @@ function MissionCard({
 /** The leader picks the next mission or game mode and its difficulty; everyone else sees the choice. */
 export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?: MissionTab }) {
 	const records = useQuery(missionsQuery)
+	const bounty = useQuery(bountyQuery).data
+	const bountyLabel = (id: string) =>
+		bounty && bounty.mission === id
+			? format(t.bountyHere, {
+					name: zombies.find(entry => entry.id === bounty.zombie)?.name ?? bounty.zombie,
+					difficulty: difficulties.tiers.find(tier => tier.id === bounty.difficulty)?.name ?? bounty.difficulty
+				})
+			: null
 	const queryClient = useQueryClient()
 	const [problem, setProblem] = useState<PartyProblem | null>(null)
 	const [tab, setTab] = useState<MissionTab>(initialTab ?? (isMode(view.mission.id) ? 'modes' : 'campaign'))
@@ -140,6 +154,7 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 				editable={editable}
 				entry={entry}
 				boss={boss}
+				bounty={bountyLabel(mission.id)}
 				onChoose={() => void choose(mission.id, view.mission.difficulty)}
 			/>
 		]

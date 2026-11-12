@@ -34,9 +34,9 @@
 	{
 		"id": "know-your-enemy",
 		"name": "Know Your Enemy",
-		"description": "Kill one of every kind of zombie.",
+		"description": "Kill one of every kind of zombie, bosses and bounties too.",
 		"stat": "bestiary",
-		"target": 12,
+		"target": 15,
 		"title": "Field Biologist"
 	},
 	{
@@ -230,5 +230,29 @@
 		"stat": "challenges",
 		"target": 10,
 		"title": "Dutiful"
+	},
+	{
+		"id": "bounty-old-ironjaw",
+		"name": "Scrap Metal",
+		"description": "Bring down Old Ironjaw on his bounty.",
+		"stat": "bounty:old-ironjaw",
+		"target": 1,
+		"title": "Ironjaw's End"
+	},
+	{
+		"id": "bounty-mother-rot",
+		"name": "Pest Control",
+		"description": "Bring down Mother Rot on her bounty.",
+		"stat": "bounty:mother-rot",
+		"target": 1,
+		"title": "Rot Mother's Bane"
+	},
+	{
+		"id": "bounty-the-whisper",
+		"name": "Quiet Now",
+		"description": "Bring down The Whisper on its bounty.",
+		"stat": "bounty:the-whisper",
+		"target": 1,
+		"title": "Silencer"
 	}
 ]

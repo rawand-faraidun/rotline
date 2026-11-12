@@ -1,5 +1,5 @@
-import { challenges } from './data.ts'
-import type { ChallengeTemplate } from './schema.ts'
+import { bounties, challenges } from './data.ts'
+import type { BountyDef, ChallengeTemplate, DifficultyId } from './schema.ts'
 
 /** One challenge running now: its key (which rotation it belongs to), what it asks, when it ends. */
 export type ActiveChallenge = {
@@ -61,6 +61,33 @@ export function currentChallenges(now: Date): ActiveChallenge[] {
 		endsAt: new Date((monday + 7) * DAY_MS)
 	}))
 	return [...daily, ...weekly]
+}
+
+/** This week's bounty: the named elite, the mission it haunts and at what difficulty, and when it ends. */
+export type ActiveBounty = {
+	key: string
+	bounty: BountyDef
+	mission: string
+	difficulty: DifficultyId
+	reward: number
+	endsAt: Date
+}
+
+/** The week's bounty (Monday to Monday, UTC), the same for every server, from the clock alone. */
+export function currentBounty(now: Date): ActiveBounty {
+	const day = Math.floor(now.getTime() / DAY_MS)
+	const monday = day - ((day + 3) % 7)
+	const week = new Date(monday * DAY_MS).toISOString().slice(0, 10)
+	const seed = hash(`bounty:${week}`)
+	const bounty = bounties.bounties[seed % bounties.bounties.length] as BountyDef
+	return {
+		key: `${week}:${bounty.id}`,
+		bounty,
+		mission: bounty.missions[Math.floor(seed / 7) % bounty.missions.length] as string,
+		difficulty: bounties.difficulties[Math.floor(seed / 131) % bounties.difficulties.length] as DifficultyId,
+		reward: bounties.reward,
+		endsAt: new Date((monday + 7) * DAY_MS)
+	}
 }
 
 /** Monday 00:00 UTC of the week holding `now`: the start of this week's leaderboard. */

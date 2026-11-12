@@ -465,5 +465,126 @@
 				}
 			}
 		]
+	},
+	{
+		"id": "old-ironjaw",
+		"name": "Old Ironjaw",
+		"health": 4200,
+		"speed": 1.7,
+		"radius": 0.75,
+		"meleeDamage": 44,
+		"meleeRange": 0.95,
+		"meleeCooldownSeconds": 1.6,
+		"score": 1500,
+		"tint": "#6e3b2a",
+		"scale": 1.95,
+		"elite": true,
+		"deathBurst": null,
+		"xp": 250,
+		"salvage": 40,
+		"about": "A Brute that has been shot so often its jaw is more scrap than bone. It charges harder and comes again sooner than any other.",
+		"answer": "Sidestep the lane, and put it into a wall: a dazed Ironjaw stands still long enough to finish.",
+		"unstoppable": true,
+		"resist": {
+			"ballistic": 0.25
+		},
+		"charge": {
+			"minRange": 4,
+			"maxRange": 15,
+			"windupSeconds": 0.85,
+			"speed": 11,
+			"overshoot": 5,
+			"damage": 40,
+			"knockback": 2,
+			"stunSeconds": 2.2,
+			"cooldownSeconds": 6
+		},
+		"slam": {
+			"range": 2.6,
+			"radius": 3.2,
+			"windupSeconds": 0.8,
+			"damage": 35,
+			"cooldownSeconds": 7
+		}
+	},
+	{
+		"id": "mother-rot",
+		"name": "Mother Rot",
+		"health": 3400,
+		"speed": 1.0,
+		"radius": 0.8,
+		"meleeDamage": 28,
+		"meleeRange": 0.9,
+		"meleeCooldownSeconds": 1.8,
+		"score": 1500,
+		"tint": "#7f8a3a",
+		"scale": 2.1,
+		"elite": true,
+		"xp": 250,
+		"salvage": 40,
+		"about": "A Swell that never burst. It carries a brood: Crawlers spill out of it as it walks, and it spits what it cannot carry.",
+		"answer": "Kill it at range and burn what crawls out. Do not be near when it finally bursts.",
+		"resist": {
+			"chemical": 0.6
+		},
+		"deathBurst": {
+			"damage": 90,
+			"radius": 5,
+			"poolDamagePerSecond": 14,
+			"poolRadius": 3.5,
+			"poolSeconds": 10
+		},
+		"call": {
+			"everySeconds": 7,
+			"count": 5,
+			"range": 24,
+			"composition": {
+				"crawler": 100
+			}
+		},
+		"ranged": {
+			"range": 14,
+			"holdRange": 6,
+			"cooldownSeconds": 4,
+			"windupSeconds": 0.8,
+			"flightSeconds": 1.0,
+			"damage": 24,
+			"radius": 2.2,
+			"type": "chemical",
+			"pool": {
+				"damagePerSecond": 10,
+				"radius": 2,
+				"seconds": 6
+			}
+		}
+	},
+	{
+		"id": "the-whisper",
+		"name": "The Whisper",
+		"health": 1800,
+		"speed": 3.2,
+		"radius": 0.4,
+		"meleeDamage": 14,
+		"meleeRange": 0.55,
+		"meleeCooldownSeconds": 1.0,
+		"score": 1500,
+		"tint": "#e2d9c4",
+		"scale": 1.15,
+		"elite": true,
+		"deathBurst": null,
+		"xp": 250,
+		"salvage": 40,
+		"about": "A Screamer that learned to run. It never stops calling, and it never stands still long enough to be shot.",
+		"answer": "Everyone on it at once. A stun or a slow pins it; the Marksman's tools finish it.",
+		"call": {
+			"everySeconds": 5,
+			"count": 8,
+			"range": 30,
+			"composition": {
+				"bolter": 50,
+				"drudge": 30,
+				"crawler": 20
+			}
+		}
 	}
 ]

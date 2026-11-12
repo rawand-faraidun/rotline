@@ -727,6 +727,14 @@ export function startGame(options: GameOptions): GameHandle {
 						}
 						break
 					}
+					case 'bounty':
+						toast('bounty', zombieDefs[event.zombieType]?.name ?? '')
+						audio.sound('stinger', { bus: 'interface', volume: 0.9 })
+						break
+					case 'bounty-down':
+						toast('bounty-down', zombieDefs[event.zombieType]?.name ?? '')
+						audio.sound('chime', { bus: 'interface', rate: 0.8 })
+						break
 					case 'strain':
 						toast('strain', DAMAGE_TYPES[event.damage] ?? '')
 						audio.sound('zombie-roar', { bus: 'interface', rate: 0.7, volume: 0.6 })

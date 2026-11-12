@@ -1,6 +1,7 @@
 import { LedgerReason } from '@rotline/db'
 import {
 	achievements,
+	currentBounty,
 	currentChallenges,
 	economy,
 	isSurvival,
@@ -19,6 +20,8 @@ const DERIVED = new Set(['bestiary', 'challenges'])
 const KINDS = new Set<string>(weapons.map(weapon => weapon.kind))
 /** The most of each a single report can plausibly carry (reports go out at every wave and checkpoint). */
 const PER_REPORT: Record<string, number> = { rounds: 5, revives: 60, objectives: 20, elites: 60 }
+/** a bounty is brought down once a mission */
+const BOUNTY_KEY = /^bounty:/
 /** Stats only a finished mission's report may carry, and only for that mission. */
 const RESULT_KEYS = /^(missions|missions:.+|mission:.+|clean-missions|gold)$/
 
@@ -70,6 +73,7 @@ export function plausibleTally(
 		if (key.startsWith('weapon:')) byWeapon += value
 		const most = PER_REPORT[key]
 		if (most !== undefined && value > most) return false
+		if (BOUNTY_KEY.test(key) && value > 1) return false
 		if (RESULT_KEYS.test(key)) {
 			if (!result?.success || value > 1) return false
 			if (key.startsWith('missions:') && key !== `missions:${result.difficulty}`) return false
@@ -129,6 +133,28 @@ export async function settleAchievements(tx: Tx, playerId: string, now = new Dat
  * the ones finished, once each, through the ledger), achievements reached, and the run itself.
  * Returns the achievements and challenges newly done, for the player to be told.
  */
+/**
+ * A bounty counts only from a room the API recorded playing this week's bounty mission at its
+ * difficulty; anything else is dropped from the tally.
+ */
+export function fitBounty(
+	tally: Tally,
+	recorded: { id: string; difficulty: string } | 'survival' | null,
+	now: Date
+): Tally {
+	const keys = Object.keys(tally).filter(key => BOUNTY_KEY.test(key))
+	if (keys.length === 0) return tally
+	const bounty = currentBounty(now)
+	const fits =
+		recorded !== null &&
+		recorded !== 'survival' &&
+		recorded.id === bounty.mission &&
+		recorded.difficulty === bounty.difficulty
+	const kept = { ...tally }
+	for (const key of keys) if (!fits || key !== `bounty:${bounty.bounty.id}`) delete kept[key]
+	return kept
+}
+
 export async function applyRecords(
 	tx: Tx,
 	playerId: string,
@@ -172,6 +198,21 @@ export async function applyRecords(
 		done.push(challenge.key)
 	}
 	if (done.length > 0) await addStat(tx, playerId, 'challenges', done.length)
+
+	// this week's bounty: paid once a week to each player who helped bring it down
+	const bounty = currentBounty(now)
+	if ((tally[`bounty:${bounty.bounty.id}`] ?? 0) > 0) {
+		const grantKey = `bounty:${playerId}:${bounty.key}`
+		if (!(await tx.ledgerEntry.findUnique({ where: { grantKey }, select: { id: true } })))
+			await changeSalvage(
+				tx,
+				playerId,
+				bounty.reward,
+				LedgerReason.contract,
+				{ type: 'bounty', id: bounty.key },
+				grantKey
+			)
+	}
 
 	const earned: string[] = []
 	const touched = new Set([...entries.map(([key]) => key), 'bestiary', 'challenges'])

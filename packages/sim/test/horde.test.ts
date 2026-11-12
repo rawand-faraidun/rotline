@@ -438,3 +438,36 @@ describe('mutations', () => {
 		expect(full - (world.health[strained] as number)).toBeCloseTo(6.5, 5)
 	})
 })
+
+describe('bounties', () => {
+	it('turn up in the middle step, a while in, and are reported down once', () => {
+		const mission = { ...sweep, spawn: { ...sweep.spawn, perSecond: 0 } }
+		const world = new World({
+			seed: 6,
+			map: yard,
+			mission: { mission, difficulty: 'veteran', bounty: 'old-ironjaw' }
+		})
+		const player = world.addPlayer(1)
+		player.safeUntilTick = 1e9
+		const ironjaw = zombieIndex('old-ironjaw')
+		const present = () => {
+			for (let i = 0; i < world.alive.length; i++) if (world.alive[i] === 1 && world.type[i] === ironjaw) return i
+			return -1
+		}
+		// the sweep's steps run 0..5: the middle one is 2 (reach the north gate)
+		if (world.mission) world.mission.index = 2
+		steps(world, 2)
+		expect(present()).toBe(-1)
+		const seen: string[] = []
+		for (let n = 0; n < 25 * TICK_RATE && present() < 0; n++) {
+			world.step(new Map())
+			for (const event of world.events) seen.push(event.type)
+		}
+		expect(seen).toContain('bounty')
+		const index = present()
+		expect(index).toBeGreaterThanOrEqual(0)
+		world.damageZombie(index, 1e9, 1, 'explosive')
+		expect(world.events.filter(event => event.type === 'bounty-down')).toHaveLength(1)
+		expect(world.mission?.bountyDown).toBe(true)
+	})
+})

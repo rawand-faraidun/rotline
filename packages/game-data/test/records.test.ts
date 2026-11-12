@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { challenges, currentChallenges, weekStart } from '../src/index.ts'
+import { bounties, challenges, currentBounty, currentChallenges, weekStart } from '../src/index.ts'
 
 describe('challenges', () => {
 	it('pick the same dailies all day and new ones at midnight UTC', () => {
@@ -22,5 +22,21 @@ describe('challenges', () => {
 		expect(sunday.map(entry => entry.key)).toEqual(monday.map(entry => entry.key))
 		expect(sunday[0]?.endsAt.toISOString()).toBe('2026-11-16T00:00:00.000Z')
 		expect(sunday.every(entry => entry.reward === challenges.weekly.reward)).toBe(true)
+	})
+})
+
+describe('bounties', () => {
+	it('pick one named elite, one of its missions and a difficulty for the whole week', () => {
+		const monday = currentBounty(new Date('2026-11-09T00:00:00Z'))
+		const sunday = currentBounty(new Date('2026-11-15T23:59:00Z'))
+		expect(sunday).toEqual(monday)
+		expect(monday.key.startsWith('2026-11-09:')).toBe(true)
+		expect(monday.bounty.missions).toContain(monday.mission)
+		expect(bounties.difficulties).toContain(monday.difficulty)
+		expect(monday.endsAt.toISOString()).toBe('2026-11-16T00:00:00.000Z')
+		// over a year every bounty comes round
+		const seen = new Set<string>()
+		for (let week = 0; week < 52; week++) seen.add(currentBounty(new Date(Date.UTC(2026, 0, 5 + week * 7))).bounty.id)
+		expect(seen.size).toBe(bounties.bounties.length)
 	})
 })

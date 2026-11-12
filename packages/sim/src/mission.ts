@@ -23,7 +23,13 @@ import { type Prop, PropState, setPropState } from './props.ts'
 import { ObjectKind, type World } from './world.ts'
 
 /** `modifiers`: the harder rules the leader switched on (ids from game data) */
-export type MissionSetup = { mission: MissionDef; difficulty: DifficultyId; modifiers?: readonly string[] }
+/** `bounty`: this week's named elite (a zombie id), when the room plays its mission at its difficulty */
+export type MissionSetup = {
+	mission: MissionDef
+	difficulty: DifficultyId
+	modifiers?: readonly string[]
+	bounty?: string | null
+}
 
 /** `failed`: the mission's clock ran out before the last step was done */
 export const MissionStatus = { none: 0, active: 1, complete: 2, failed: 3 } as const
@@ -89,7 +95,15 @@ export type MissionState = {
 	paceUntil: number
 	/** the commonest kind in the mission's mix: what comes instead of a kind already at its cap */
 	common: number
+	/** this week's bounty: its kind (-1 for none), the step it turns up in, when, and whether it is down */
+	bountyType: number
+	bountyStep: number
+	bountyTick: number
+	bountyDown: boolean
 }
+
+/** A bounty turns up this long into its step. */
+const BOUNTY_DELAY_SECONDS = 20
 
 /** The director's three paces. */
 export const Pace = { build: 0, peak: 1, relief: 2 } as const
@@ -159,8 +173,19 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 		pace: Pace.build,
 		paceStart: startTick,
 		paceUntil: 0,
-		common: commonest(setup.mission.spawn.composition)
+		common: commonest(setup.mission.spawn.composition),
+		bountyType: setup.bounty ? zombieIndex(setup.bounty) : -1,
+		// the middle one of the mission's steps
+		bountyStep: bountyStepOf(setup.mission),
+		bountyTick: 0,
+		bountyDown: false
 	}
+}
+
+/** The step a bounty turns up in: the middle one of the mission's steps (not counting optional ones). */
+function bountyStepOf(def: MissionDef): number {
+	const steps = def.objectives.flatMap((objective, index) => (objective.optional ? [] : [index]))
+	return steps[Math.floor((steps.length - 1) / 2)] ?? 0
 }
 
 /** The kind with the largest weight in a mix. */
@@ -423,6 +448,13 @@ export function stepMission(world: World): void {
 	jam(world, objective.jammed === true)
 	if (objective.boss && mission.startedFor === mission.index && mission.bossTick > 0 && world.tick >= mission.bossTick)
 		spawnBoss(world, mission, objective.boss)
+	// this week's bounty comes in from out of sight, once, until it is brought down
+	if (mission.bountyTick > 0 && world.tick >= mission.bountyTick && !mission.bountyDown) {
+		mission.bountyTick = 0
+		const at = world.pickSpawnPoint()
+		if (at && world.spawnZombie(mission.bountyType, at) >= 0)
+			world.events.push({ type: 'bounty', zombieType: mission.bountyType })
+	}
 
 	// the spawn director: a steady stream, scaled by the objective, difficulty and squad size
 	const squad = Math.max(1, Math.min(4, world.players.size))
@@ -588,6 +620,9 @@ function startObjective(world: World, mission: MissionState, objective: Objectiv
 		mission.burstTotal = total
 		mission.burst = Math.max(1, Math.round(objective.ambush.count * count))
 	}
+	// this week's bounty, a while into its step (again after a wipe, until it is down)
+	if (mission.bountyType >= 0 && mission.index === mission.bountyStep && !mission.bountyDown)
+		mission.bountyTick = world.tick + Math.round(BOUNTY_DELAY_SECONDS * TICK_RATE)
 	// the boss now, or a while into the step
 	mission.bossTick = objective.boss ? world.tick + Math.round((objective.boss.afterSeconds ?? 0) * TICK_RATE) : 0
 	if (objective.boss && mission.bossTick === world.tick) spawnBoss(world, mission, objective.boss)

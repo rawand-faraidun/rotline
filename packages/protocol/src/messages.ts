@@ -1024,7 +1024,9 @@ const EventType = {
 	strike: 30,
 	phase: 31,
 	strain: 32,
-	mutation: 33
+	mutation: 33,
+	bounty: 34,
+	'bounty-down': 35
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -1130,6 +1132,10 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'mutation':
 				w.u8(event.stage)
+				break
+			case 'bounty':
+			case 'bounty-down':
+				w.u8(event.zombieType)
 				break
 			case 'cache':
 			case 'threshold':
@@ -1280,6 +1286,12 @@ export function readEvents(r: Reader): SimEvent[] {
 				break
 			case EventType.mutation:
 				events.push({ type: 'mutation', stage: r.u8() })
+				break
+			case EventType.bounty:
+				events.push({ type: 'bounty', zombieType: r.u8() })
+				break
+			case EventType['bounty-down']:
+				events.push({ type: 'bounty-down', zombieType: r.u8() })
 				break
 			default:
 				throw new ProtocolError(`unknown event ${type}`)

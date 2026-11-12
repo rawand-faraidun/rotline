@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import abilitiesData from '../data/abilities.json' with { type: 'json' }
 import achievementsData from '../data/achievements.json' with { type: 'json' }
+import bountiesData from '../data/bounties.json' with { type: 'json' }
 import buffsData from '../data/buffs.json' with { type: 'json' }
 import campaignData from '../data/campaign.json' with { type: 'json' }
 import challengesData from '../data/challenges.json' with { type: 'json' }
@@ -42,6 +43,7 @@ import { fromLayout, type MapSource } from './layout.ts'
 import {
 	abilitySchema,
 	achievementSchema,
+	bountiesSchema,
 	buffsSchema,
 	type ClassId,
 	campaignSchema,
@@ -132,6 +134,8 @@ export const buffs = parse('buffs', buffsSchema, buffsData)
 export const missions = uniqueById('missions', parse('missions', z.array(missionSchema), missionsData))
 export const challenges = parse('challenges', challengesSchema, challengesData)
 export const modifiers = parse('modifiers', modifiersSchema, modifiersData)
+export const bounties = parse('bounties', bountiesSchema, bountiesData)
+uniqueById('bounties', bounties.bounties)
 export const mutations = parse('mutations', mutationsSchema, mutationsData)
 uniqueById('mutation traits', mutations.traits)
 for (const zombie of zombies)
@@ -576,7 +580,19 @@ for (const mission of layouts) {
 		if (head === 'kill') return zombies.some(zombie => zombie.id === tail && !zombie.dummy)
 		if (head === 'weapon') return kinds.has(tail)
 		if (head === 'mission') return missions.some(mission => mission.id === tail)
+		if (head === 'bounty') return bounties.bounties.some(bounty => bounty.id === tail)
 		return true
+	}
+	for (const bounty of bounties.bounties) {
+		check(
+			zombies.find(zombie => zombie.id === bounty.zombie)?.elite === true,
+			`bounties/${bounty.id}: ${bounty.zombie} is not an elite`
+		)
+		for (const id of bounty.missions)
+			check(
+				campaign.zones.some(zone => zone.missions.includes(id)),
+				`bounties/${bounty.id}: ${id} is not a campaign mission`
+			)
 	}
 	uniqueById('challenges', challenges.templates)
 	for (const template of challenges.templates)

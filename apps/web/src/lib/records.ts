@@ -5,6 +5,7 @@ import type { api } from './api.ts'
 export type Challenge = InferResponseType<(typeof api.api.records.challenges)['$get'], 200>[number]
 export type AchievementsView = InferResponseType<(typeof api.api.records.achievements)['$get'], 200>
 export type BestiaryEntry = InferResponseType<(typeof api.api.records.bestiary)['$get'], 200>[number]
+export type BountyView = InferResponseType<(typeof api.api.records.bounty)['$get'], 200>
 /** One place on a leaderboard: Survival rows carry rounds, mission rows a best time. */
 export type BoardRow = {
 	rank: number
@@ -34,6 +35,10 @@ export const challengesQuery = queryOptions({
 export const achievementsQuery = queryOptions({
 	queryKey: [RECORDS, 'achievements'],
 	queryFn: () => read<AchievementsView>('/api/records/achievements')
+})
+export const bountyQuery = queryOptions({
+	queryKey: [RECORDS, 'bounty'],
+	queryFn: () => read<BountyView>('/api/records/bounty')
 })
 export const bestiaryQuery = queryOptions({
 	queryKey: [RECORDS, 'bestiary'],

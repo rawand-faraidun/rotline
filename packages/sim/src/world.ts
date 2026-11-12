@@ -141,6 +141,9 @@ export type SimEvent =
 	| { type: 'strain'; damage: number }
 	/** the horde mutated a stage further (Survival, as the rounds go by) */
 	| { type: 'mutation'; stage: number }
+	/** this week's bounty turned up (its kind), and was brought down */
+	| { type: 'bounty'; zombieType: number }
+	| { type: 'bounty-down'; zombieType: number }
 	/** a map prop changed state (index into the map's props) */
 	| { type: 'prop'; index: number; state: number }
 	/** the current objective failed (a survivor or defend target lost, time ran out): back to the checkpoint */
@@ -1584,6 +1587,10 @@ export class World {
 		}
 		if (this.scoring) maybeDropBuff(this, x, y, def.elite ? buffDefs.drop.eliteChance : buffDefs.drop.chancePerKill)
 		if (this.mission) {
+			if (this.type[index] === this.mission.bountyType && !this.mission.bountyDown) {
+				this.mission.bountyDown = true
+				this.events.push({ type: 'bounty-down', zombieType: this.type[index] as number })
+			}
 			countKill(this, this.type[index] as number, this.hunted[index] === 1)
 			// elites may drop an item, rolled for each player taking part, on their own
 			if (def.elite) {

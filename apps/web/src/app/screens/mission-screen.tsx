@@ -529,6 +529,14 @@ function Toasts({ hud }: { hud: HudState }) {
 					{toast.kind === 'threshold' && (
 						<span className="font-bold text-warning">{format(t.threshold, { salvage: toast.text })}</span>
 					)}
+					{(toast.kind === 'bounty' || toast.kind === 'bounty-down') && (
+						<>
+							<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.bountyLabel}</span>
+							<span className="font-bold uppercase tracking-wide">
+								{format(toast.kind === 'bounty' ? t.bountyHere : t.bountyDown, { name: toast.text })}
+							</span>
+						</>
+					)}
 					{toast.kind === 'mutation' && (
 						<>
 							<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.mutationLabel}</span>

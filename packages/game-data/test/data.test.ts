@@ -29,7 +29,10 @@ describe('game data', () => {
 			'delver',
 			'cinder',
 			'warden',
-			'gardener'
+			'gardener',
+			'old-ironjaw',
+			'mother-rot',
+			'the-whisper'
 		])
 		expect(maps.range?.playerSpawns.length).toBe(4)
 		expect(maps.yard?.playerSpawns.length).toBe(4)

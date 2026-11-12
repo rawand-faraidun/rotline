@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import {
 	type Build,
 	buffs,
+	currentBounty,
 	type DifficultyId,
 	difficultyDef,
 	economy,
@@ -179,6 +180,8 @@ export class Room {
 	/** the difficulty's reward multiplier */
 	private readonly rewardScale: number
 	private readonly startTick: number
+	/** this week's bounty, when the room plays its mission at its difficulty */
+	private readonly bounty: ReturnType<typeof currentBounty>['bounty'] | null
 	/** someone bled out this mission (a clean mission is one where nobody did) */
 	private bledOut = false
 
@@ -203,6 +206,12 @@ export class Room {
 		this.missionRoom = this.missionDef && mission ? mission : null
 		this.arena = !range && !this.missionRoom ? (arena ?? SURVIVAL) : null
 		// the difficulty's rewards, and the modifiers' bonus on top
+		// this week's bounty haunts its mission at its difficulty
+		const bounty = currentBounty(new Date())
+		this.bounty =
+			this.missionRoom && bounty.mission === this.missionRoom.id && bounty.difficulty === this.missionRoom.difficulty
+				? bounty.bounty
+				: null
 		this.rewardScale = this.missionRoom
 			? difficultyDef(this.missionRoom.difficulty).rewards * (1 + modifierBonus(this.missionRoom.modifiers ?? []))
 			: 1
@@ -222,7 +231,8 @@ export class Room {
 						mission: {
 							mission: this.missionDef,
 							difficulty: this.missionRoom.difficulty,
-							modifiers: this.missionRoom.modifiers ?? []
+							modifiers: this.missionRoom.modifiers ?? [],
+							bounty: this.bounty?.zombie ?? null
 						}
 					}
 				: {})
@@ -515,6 +525,8 @@ export class Room {
 			if (event.type === 'kill') this.credit(event.by, event.zombieType, event.weapon)
 			else if (event.type === 'player-revived') this.tallySlot(event.by, 'revives')
 			else if (event.type === 'player-out') this.bledOut = true
+			// a bounty brought down counts for everyone who played toward it
+			else if (event.type === 'bounty-down' && this.bounty) this.tallyPlaying(`bounty:${this.bounty.id}`, true)
 			else if (event.type === 'shot' && event.player > 0) this.count(event.player, 'shots')
 			else if (event.type === 'hit' && event.by > 0) this.count(event.by, 'hits')
 			// a cleared wave pays everyone connected who played it (not on a restart after a wipe,
@@ -645,9 +657,18 @@ export class Room {
 		for (const member of this.members.values()) if (member.slot === slot) this.tally(member, key)
 	}
 
-	/** Counts for everyone connected who played since the last payment (as a cleared wave or objective pays). */
-	private tallyPlaying(key: string): void {
-		for (const member of this.members.values()) if (member.connection && member.earnings.active) this.tally(member, key)
+	/**
+	 * Counts for everyone connected who played since the last payment (as a cleared wave or objective
+	 * pays), or with `recent` for everyone who played in the last minute.
+	 */
+	private tallyPlaying(key: string, recent = false): void {
+		for (const member of this.members.values()) {
+			const state = this.world.players.get(member.slot)
+			const played = recent
+				? state !== undefined && this.world.tick - state.lastActiveTick <= ACTIVE_TICKS
+				: member.earnings.active
+			if (member.connection && played) this.tally(member, key)
+		}
 	}
 
 	private credit(slot: number, zombieType: number, weapon?: number): void {

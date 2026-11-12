@@ -1,5 +1,6 @@
 import {
 	achievements,
+	currentBounty,
 	currentChallenges,
 	difficultyId,
 	isSurvival,
@@ -56,6 +57,28 @@ export function recordRoutes({ db }: Services) {
 					progress: byKey.get(entry.key)?.progress ?? 0,
 					done: byKey.get(entry.key)?.completedAt != null
 				})),
+				200
+			)
+		})
+		.get('/records/bounty', async c => {
+			const user = c.get('user')
+			if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+			const bounty = currentBounty(new Date())
+			const paid = await db.ledgerEntry.findUnique({
+				where: { grantKey: `bounty:${user.id}:${bounty.key}` },
+				select: { id: true }
+			})
+			return c.json(
+				{
+					key: bounty.key,
+					zombie: bounty.bounty.zombie,
+					title: bounty.bounty.title,
+					mission: bounty.mission,
+					difficulty: bounty.difficulty,
+					reward: bounty.reward,
+					endsAt: bounty.endsAt.toISOString(),
+					done: paid !== null
+				},
 				200
 			)
 		})

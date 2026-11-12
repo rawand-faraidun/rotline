@@ -271,7 +271,9 @@ describe('server messages', () => {
 			{ type: 'strike', kind: 3, x: 3, y: 4, radius: 4 },
 			{ type: 'phase', zombie: 40, zombieType: 11, phase: 2 },
 			{ type: 'strain', damage: 2 },
-			{ type: 'mutation', stage: 3 }
+			{ type: 'mutation', stage: 3 },
+			{ type: 'bounty', zombieType: 13 },
+			{ type: 'bounty-down', zombieType: 13 }
 		]
 		const decoded = readServerHeader(new Reader(writeEvents(new Writer(), events)))
 		expect(decoded.type).toBe('events')

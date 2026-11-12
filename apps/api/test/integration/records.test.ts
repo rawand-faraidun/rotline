@@ -1,6 +1,6 @@
-import { challenges, currentChallenges } from '@rotline/game-data'
+import { challenges, currentBounty, currentChallenges } from '@rotline/game-data'
 import { describe, expect, it } from 'vitest'
-import { plausibleSurvival, plausibleTally } from '../../src/lib/records.ts'
+import { fitBounty, plausibleSurvival, plausibleTally } from '../../src/lib/records.ts'
 import { grantReward } from '../../src/rewards.ts'
 import { harness } from './helpers.ts'
 
@@ -145,5 +145,31 @@ describe('plausibility', () => {
 	it('refuses Survival runs faster than the rounds allow', () => {
 		expect(plausibleSurvival({ arena: 'survival', rounds: 10, score: 1000, timeMs: 600_000, squad: 1 })).toBe(true)
 		expect(plausibleSurvival({ arena: 'survival', rounds: 100, score: 1000, timeMs: 60_000, squad: 1 })).toBe(false)
+	})
+})
+
+describe('bounties', () => {
+	it("pay this week's bounty once, and only from a room playing its mission", async () => {
+		const player = await enlist('Jem')
+		const now = new Date()
+		const bounty = currentBounty(now)
+		const key = `bounty:${bounty.bounty.id}`
+		await grantReward(db, valkey, report(player.id, { tally: { [key]: 1 } }), now)
+		await grantReward(db, valkey, report(player.id, { tally: { [key]: 1 } }), now)
+		const paid = await db.ledgerEntry.findMany({ where: { playerId: player.id, refType: 'bounty' } })
+		expect(paid).toHaveLength(1)
+		expect(Number(paid[0]?.amount)).toBe(bounty.reward)
+		const view = (await (await call(player.jar, '/api/records/bounty')).json()) as { done: boolean; mission: string }
+		expect(view.done).toBe(true)
+		expect(view.mission).toBe(bounty.mission)
+		// the worker keeps a bounty only from a room recorded on the bounty's mission and difficulty
+		expect(fitBounty({ [key]: 1, kills: 3 }, { id: bounty.mission, difficulty: bounty.difficulty }, now)).toEqual({
+			[key]: 1,
+			kills: 3
+		})
+		expect(fitBounty({ [key]: 1, kills: 3 }, { id: 'nowhere', difficulty: bounty.difficulty }, now)).toEqual({
+			kills: 3
+		})
+		expect(fitBounty({ [key]: 1 }, 'survival', now)).toEqual({})
 	})
 })

@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { changeSalvage, lockPlayer, PlayerMissing, type Tx } from './lib/ledger.ts'
 import {
 	applyRecords,
+	fitBounty,
 	plausibleSurvival,
 	plausibleTally,
 	type SurvivalRecord,
@@ -337,6 +338,9 @@ export class RewardWorker {
 				const { tally: _tally, ...rest } = grant
 				grant = rest
 			}
+			// a bounty counts only from a room playing this week's bounty mission
+			if (grant.tally && Object.keys(grant.tally).some(key => key.startsWith('bounty:')))
+				grant = { ...grant, tally: fitBounty(grant.tally, await roomMission(this.valkey, room), new Date()) }
 			if (
 				grant.survival &&
 				(!plausibleSurvival(grant.survival) || (await roomMission(this.valkey, room)) !== 'survival')
