@@ -325,3 +325,40 @@ describe('the Warden mission', () => {
 		expect(pad?.state).not.toBe(PropState.locked)
 	})
 })
+
+describe('The Gardener', () => {
+	it('burns half again as fast, shrugs off gas, and goes under to reach a far player', () => {
+		const world = quietWorld()
+		standing(world, 20, 14)
+		const gardener = world.spawnZombie(zombieIndex('gardener'), { x: 40, y: 14 })
+		const max = world.maxHealth[gardener] as number
+		world.damageZombie(gardener, 100, 1, 'fire')
+		expect(max - (world.health[gardener] as number)).toBeCloseTo(150, 5)
+		const before = world.health[gardener] as number
+		world.damageZombie(gardener, 100, 1, 'chemical')
+		expect(before - (world.health[gardener] as number)).toBeCloseTo(20, 5)
+		world.specialAt[gardener] = 0
+		world.step(new Map())
+		expect(world.under[gardener]).toBe(1)
+	})
+
+	it('his mission: across the lake, the Gardener in the dome, then out through the main gate', () => {
+		const def = missionById('gardener') as MissionDef
+		const world = new World({ seed: 9, map: missionMap(def), mission: { mission: def, difficulty: 'veteran' } })
+		const player = world.addPlayer(1)
+		player.safeUntilTick = 1e9
+		player.x = 54.5
+		player.y = 44.5
+		steps(world, 3)
+		expect(world.mission?.index).toBe(1)
+		let gardener = -1
+		for (let i = 0; i < world.alive.length; i++)
+			if (world.alive[i] === 1 && world.type[i] === zombieIndex('gardener')) gardener = i
+		expect(gardener).toBeGreaterThanOrEqual(0)
+		world.damageZombie(gardener, (world.maxHealth[gardener] as number) * 0.5, 1, 'explosive')
+		expect(world.phase[gardener]).toBe(1)
+		world.damageZombie(gardener, 1e9, 1, 'explosive')
+		steps(world, 3)
+		expect(world.mission?.index).toBe(2)
+	})
+})

@@ -28,7 +28,8 @@ describe('game data', () => {
 			'bulwark',
 			'delver',
 			'cinder',
-			'warden'
+			'warden',
+			'gardener'
 		])
 		expect(maps.range?.playerSpawns.length).toBe(4)
 		expect(maps.yard?.playerSpawns.length).toBe(4)

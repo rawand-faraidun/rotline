@@ -171,8 +171,8 @@ export const zombieSchema = z.object({
 	/** the bestiary: what it is, and what to do about it */
 	about: z.string().min(1).max(260).optional(),
 	answer: z.string().min(1).max(260).optional(),
-	/** share of each damage type it shrugs off (1: immune) */
-	resist: z.partialRecord(damageType, z.number().min(0).max(1)).optional(),
+	/** share of each damage type it shrugs off (1: immune; below 0: a weakness, it takes more) */
+	resist: z.partialRecord(damageType, z.number().min(-1).max(1)).optional(),
 	/** what its blows deal (default: plain melee, which only armour answers) */
 	meleeType: damageType.optional(),
 	/** always burning (drawn alight; fire does it no harm when it resists fire) */

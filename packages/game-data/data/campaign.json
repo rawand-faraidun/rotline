@@ -11,7 +11,8 @@
 			"id": "harrow",
 			"name": "Harrow",
 			"description": "The city past the Rotline: its harbour, its gardens, its hospital, the minister on the hill and the sealed lab under it all, where the cure is made.",
-			"missions": ["airlift", "hive", "lifeline", "minister", "cure"]
+			"missions": ["airlift", "hive", "lifeline", "minister", "cure"],
+			"boss": "gardener"
 		}
 	],
 	"contracts": ["hotspot", "supply-run", "data-grab", "shipment"]
