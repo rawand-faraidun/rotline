@@ -16,7 +16,7 @@ import {
 
 describe('game data', () => {
 	it('loads and validates every file', () => {
-		expect(weapons.length).toBe(12)
+		expect(weapons.length).toBe(17)
 		expect(zombies.filter(zombie => !zombie.dummy).map(zombie => zombie.id)).toEqual([
 			'drudge',
 			'bolter',

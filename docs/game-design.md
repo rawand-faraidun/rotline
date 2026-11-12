@@ -126,6 +126,13 @@ Pistols have **unlimited reserve ammunition**; their only limits are magazine si
 | **GL-06** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 25,200 |
 | **AUG** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 12,600 |
 | **Viper** | Chemical sprayer | Chemical, slows | 90 per second | continuous | 80 | 240 | 3.0 | 12,600 |
+| **MP5** | SMG | Ballistic | 19 | 780 | 30 | 240 | 2.0 | 5,400 |
+| **AK-47** | Assault rifle | Ballistic, pierces 1 | 34 | 600 | 30 | 180 | 2.6 | 5,400 |
+| **Remington 870** | Shotgun | Ballistic | 15 × 8 pellets | 58 | 7 | 42 | 0.55 per shell | 5,400 |
+| **PKM** | LMG | Ballistic, pierces 1 | 32 | 650 | 100 | 300 | 5.0 | 12,600 |
+| **Barrett M82** | Sniper rifle | Ballistic, pierces 6 | 420 | 40 | 10 | 30 | 3.8 | 25,200 |
+
+Every family but the specials now has two guns that handle differently: the MP5 is steadier and hits harder than the Vector but fires slower; the AK-47 trades the HK416's accuracy for heavier rounds that go through one zombie; the Remington 870 pumps slower than the M4 Super 90 with harder pellets; the PKM hits harder than the M249 and goes through one; the Barrett is the heavy rifle, ten rounds that go through six.
 
 Weapon tiers for pricing: tier 1 = 5,400, tier 2 = 12,600, tier 3 = 25,200.
 

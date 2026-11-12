@@ -872,6 +872,401 @@
 		}
 	},
 	{
+		"id": "hornet-5",
+		"name": "MP5",
+		"kind": "smg",
+		"tier": 1,
+		"damageType": "ballistic",
+		"damage": 19,
+		"pellets": 1,
+		"fireRate": 780,
+		"automatic": true,
+		"magazine": 30,
+		"maxReserve": 240,
+		"reloadSeconds": 2.0,
+		"reloadPerRound": false,
+		"spreadDegrees": 3,
+		"range": 25,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"sound": {
+			"shot": "smg",
+			"reload": "reload-pistol",
+			"rate": 0.92,
+			"recoil": 0.09
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "hornet-drum",
+						"name": "Drum Magazine",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.5
+							}
+						]
+					},
+					{
+						"id": "hornet-roller",
+						"name": "Roller Delay",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": -0.3
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "hornet-hot-load",
+						"name": "Hot Load",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.18
+							}
+						]
+					},
+					{
+						"id": "hornet-fast-hands",
+						"name": "Fast Hands",
+						"effects": [
+							{
+								"stat": "reloadSpeed",
+								"value": 0.3
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "kalash-47",
+		"name": "AK-47",
+		"kind": "rifle",
+		"tier": 1,
+		"damageType": "ballistic",
+		"damage": 34,
+		"pellets": 1,
+		"fireRate": 600,
+		"automatic": true,
+		"magazine": 30,
+		"maxReserve": 180,
+		"reloadSeconds": 2.6,
+		"reloadPerRound": false,
+		"spreadDegrees": 4,
+		"range": 30,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 1
+		},
+		"sound": {
+			"shot": "rifle",
+			"reload": "reload-rifle",
+			"rate": 0.84,
+			"recoil": 0.2
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "kalash-muzzle-brake",
+						"name": "Muzzle Brake",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": -0.35
+							}
+						]
+					},
+					{
+						"id": "kalash-forty",
+						"name": "40-Round Mag",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.33
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "kalash-steel-core",
+						"name": "Steel Core",
+						"effects": [
+							{
+								"stat": "pierce",
+								"value": 1
+							}
+						]
+					},
+					{
+						"id": "kalash-hot-rounds",
+						"name": "Hot Rounds",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.15
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "pump-870",
+		"name": "Remington 870",
+		"kind": "shotgun",
+		"tier": 1,
+		"damageType": "ballistic",
+		"damage": 15,
+		"pellets": 8,
+		"fireRate": 58,
+		"automatic": false,
+		"magazine": 7,
+		"maxReserve": 42,
+		"reloadSeconds": 0.55,
+		"reloadPerRound": true,
+		"spreadDegrees": 11,
+		"range": 16,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 0
+		},
+		"sound": {
+			"shot": "shotgun",
+			"reload": "reload-shotgun",
+			"rate": 0.88,
+			"recoil": 0.55
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "pump-full-choke",
+						"name": "Full Choke",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": -0.4
+							}
+						]
+					},
+					{
+						"id": "pump-magnum",
+						"name": "Magnum Shells",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.2
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "pump-slick-action",
+						"name": "Slick Action",
+						"effects": [
+							{
+								"stat": "fireRate",
+								"value": 0.3
+							}
+						]
+					},
+					{
+						"id": "pump-extended-tube",
+						"name": "Extended Tube",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 0.3
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "gunner-pk",
+		"name": "PKM",
+		"kind": "lmg",
+		"tier": 2,
+		"damageType": "ballistic",
+		"damage": 32,
+		"pellets": 1,
+		"fireRate": 650,
+		"automatic": true,
+		"magazine": 100,
+		"maxReserve": 300,
+		"reloadSeconds": 5.0,
+		"reloadPerRound": false,
+		"spreadDegrees": 4.5,
+		"range": 34,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 1
+		},
+		"sound": {
+			"shot": "mg",
+			"reload": "reload-rifle",
+			"rate": 0.8,
+			"recoil": 0.16
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "gunner-bipod",
+						"name": "Bipod",
+						"effects": [
+							{
+								"stat": "spread",
+								"value": -0.35
+							}
+						]
+					},
+					{
+						"id": "gunner-feed-tray",
+						"name": "Feed Tray",
+						"effects": [
+							{
+								"stat": "reloadSpeed",
+								"value": 0.3
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "gunner-long-belt",
+						"name": "200-Round Belt",
+						"effects": [
+							{
+								"stat": "magazine",
+								"value": 1
+							}
+						]
+					},
+					{
+						"id": "gunner-ap",
+						"name": "AP Belt",
+						"effects": [
+							{
+								"stat": "pierce",
+								"value": 1
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "anvil-50",
+		"name": "Barrett M82",
+		"kind": "sniper",
+		"tier": 3,
+		"damageType": "ballistic",
+		"damage": 420,
+		"pellets": 1,
+		"fireRate": 40,
+		"automatic": false,
+		"magazine": 10,
+		"maxReserve": 30,
+		"reloadSeconds": 3.8,
+		"reloadPerRound": false,
+		"spreadDegrees": 0.3,
+		"range": 70,
+		"behaviour": {
+			"type": "hitscan",
+			"pierce": 6
+		},
+		"sound": {
+			"shot": "sniper",
+			"reload": "reload-rifle",
+			"rate": 0.78,
+			"recoil": 0.9
+		},
+		"perks": [
+			{
+				"level": 5,
+				"options": [
+					{
+						"id": "anvil-recoil-pad",
+						"name": "Recoil Pad",
+						"effects": [
+							{
+								"stat": "fireRate",
+								"value": 0.25
+							}
+						]
+					},
+					{
+						"id": "anvil-quick-mag",
+						"name": "Quick Mag",
+						"effects": [
+							{
+								"stat": "reloadSpeed",
+								"value": 0.3
+							}
+						]
+					}
+				]
+			},
+			{
+				"level": 10,
+				"options": [
+					{
+						"id": "anvil-raufoss",
+						"name": "Raufoss Rounds",
+						"effects": [
+							{
+								"stat": "damage",
+								"value": 0.25
+							}
+						]
+					},
+					{
+						"id": "anvil-penetrator",
+						"name": "Penetrator",
+						"effects": [
+							{
+								"stat": "pierce",
+								"value": 4
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
 		"id": "minigun",
 		"name": "M134",
 		"kind": "minigun",

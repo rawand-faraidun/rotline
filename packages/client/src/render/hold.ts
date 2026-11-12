@@ -215,6 +215,11 @@ const HOLD_POINTS: Record<string, { grip: [number, number]; fore: [number, numbe
 	thumper: { grip: [4.9, -2], fore: [8.3, -1.5] },
 	arclight: { grip: [5, -1.5], fore: [7.6, -1.8] },
 	viper: { grip: [3, -1.6], fore: [6, 0] },
+	'hornet-5': { grip: [5, -2], fore: [7.6, -0.6] },
+	'kalash-47': { grip: [2.5, -1.6], fore: [6.2, -0.2] },
+	'pump-870': { grip: [3, -1], fore: [6.8, -0.4] },
+	'gunner-pk': { grip: [2.8, -1.4], fore: [5.4, -0.2] },
+	'anvil-50': { grip: [2.4, -1.2], fore: [4.9, -0.2] },
 	// too heavy to shoulder: carried at the hip
 	minigun: { grip: [0.7, 0.2], fore: [3.4, 2.5], hip: true }
 }
