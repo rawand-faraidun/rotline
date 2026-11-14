@@ -126,6 +126,15 @@ export function partyRoutes(services: Services) {
 	// a direct address for the game connection, tried before the one through the site's proxy
 	const direct = env.GAME_DIRECT_URL ?? null
 
+	/** Everyone the player blocks or is blocked by. */
+	async function blockedAmong(userId: string): Promise<Set<string>> {
+		const rows = await db.block.findMany({
+			where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+			select: { blockerId: true, blockedId: true }
+		})
+		return new Set(rows.map(row => (row.blockerId === userId ? row.blockedId : row.blockerId)))
+	}
+
 	/**
 	 * The game server holding a player's firing range: the same one each time while it is alive, so
 	 * one player cannot open a range room on every instance.
@@ -228,7 +237,15 @@ export function partyRoutes(services: Services) {
 			.post('/party/join', zValidator('json', z.object({ code: z.string().trim().length(6) })), async c => {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-				const { party, left } = await parties.join(user.id, c.req.valid('json').code)
+				const code = c.req.valid('json').code
+				// a squad with someone the player blocks (or who blocks them) is not there for them
+				const target = await parties.byCode(code)
+				if (target) {
+					const blocked = await blockedAmong(user.id)
+					if (target.members.some(member => blocked.has(member)))
+						return c.json({ error: 'not-found' as const }, errorStatus['not-found'])
+				}
+				const { party, left } = await parties.join(user.id, code)
 				await changed(party.id, left)
 				return c.json(await view(party, user.id), 200)
 			})
@@ -248,17 +265,10 @@ export function partyRoutes(services: Services) {
 				const own = await parties.current(user.id)
 				if (own.members.length > 1) return c.json({ error: 'in-squad' as const }, 409)
 				if (own.state !== 'lobby') return c.json({ error: 'in-mission' as const }, 409)
-				const found = await parties.quickJoin(
-					user.id,
-					async party =>
-						(await db.block.count({
-							where: {
-								OR: [
-									{ blockerId: user.id, blockedId: { in: party.members } },
-									{ blockerId: { in: party.members }, blockedId: user.id }
-								]
-							}
-						})) === 0
+				// the player's blocks (both ways), read once for every squad quick play looks at
+				const blocked = await blockedAmong(user.id)
+				const found = await parties.quickJoin(user.id, async party =>
+					party.members.every(member => !blocked.has(member))
 				)
 				if (found) {
 					await changed(found.id)

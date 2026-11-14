@@ -49,4 +49,23 @@ describe('quick play', () => {
 		await post(blocked.jar, 'open', { open: false })
 		await post(shut.jar, 'open', { open: false })
 	})
+
+	it('refuses a code to someone blocked or kicked, and closes the squad when its leader leaves', async () => {
+		const host = await enlist('Bea')
+		const blocker = await enlist('Cal')
+		const kicked = await enlist('Dov')
+		const stays = await enlist('Eve')
+		const code = ((await (await call(host.jar, '/api/party')).json()) as { code: string }).code
+		await db.block.create({ data: { blockerId: blocker.id, blockedId: host.id } })
+		expect((await post(blocker.jar, 'join', { code })).status).toBe(404)
+		expect((await post(kicked.jar, 'join', { code })).status).toBe(200)
+		expect((await post(host.jar, 'kick', { userId: kicked.id })).status).toBe(200)
+		expect((await post(kicked.jar, 'join', { code })).status).toBe(404)
+		expect((await post(stays.jar, 'join', { code })).status).toBe(200)
+		await post(host.jar, 'open', { open: true })
+		await post(host.jar, 'leave')
+		const after = (await (await call(stays.jar, '/api/party')).json()) as View
+		expect(after.open).toBe(false)
+		await post(stays.jar, 'leave')
+	})
 })

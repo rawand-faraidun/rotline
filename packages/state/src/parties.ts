@@ -49,6 +49,9 @@ const memberKey = (userId: string) => `party-member:${userId}`
 /** when each player last had the game open (any page that keeps the event stream) */
 const SEEN_KEY = 'party-seen'
 const SWEEP_LOCK = 'party-sweep-lock'
+/** players the leader kicked, refused for this long */
+const KICKED_SECONDS = 30 * 60
+const kickedKey = (id: string) => `party:${id}:kicked`
 /** open squads, by when they opened (newest last) */
 const OPEN_KEY = 'party-open'
 /** quick play looks at this many of the newest open squads */
@@ -121,7 +124,8 @@ export class PartyStore {
 			if (party.state !== 'lobby' || party.members.length >= PARTY_SIZE || party.members.includes(userId)) continue
 			if (!(await accept(party))) continue
 			try {
-				return (await this.join(userId, party.code)).party
+				// only while it is still open: the leader may have closed it (or left it) a moment ago
+				return (await this.join(userId, party.code, { open: true })).party
 			} catch (error) {
 				// filled up or deployed a moment ago: try the next
 				if (error instanceof PartyError) continue
@@ -169,15 +173,31 @@ export class PartyStore {
 		return id || null
 	}
 
-	/** Joins the party with this code. Returns the new party and the id of the party the player left. */
-	async join(userId: string, code: string): Promise<{ party: Party; left: string | null }> {
+	/**
+	 * Joins the party with this code (`open`: only if it is open to anyone). Returns the new party and
+	 * the id of the party the player left. A player the leader kicked cannot come back for a while.
+	 */
+	async join(
+		userId: string,
+		code: string,
+		options: { open?: boolean } = {}
+	): Promise<{ party: Party; left: string | null }> {
 		const target = await this.byCode(code)
 		if (!target) throw new PartyError('not-found')
 		if (target.members.includes(userId)) return { party: target, left: null }
 		if (target.state !== 'lobby') throw new PartyError('in-mission')
 		if (target.members.length >= PARTY_SIZE) throw new PartyError('full')
 		const left = await this.detach(userId)
-		const result = (await this.valkey.eval(ATTACH, 0, userId, target.id, PARTY_SIZE, Date.now())) as string
+		if (await this.valkey.sismember(kickedKey(target.id), userId)) throw new PartyError('not-found')
+		const result = (await this.valkey.eval(
+			ATTACH,
+			0,
+			userId,
+			target.id,
+			PARTY_SIZE,
+			Date.now(),
+			options.open ? '1' : '0'
+		)) as string
 		if (result !== 'ok') {
 			// the party filled up, left or deployed in the meantime: the player gets a party of their own
 			await this.create(userId)
@@ -196,6 +216,8 @@ export class PartyStore {
 		const party = await this.current(leaderId)
 		if (party.leader !== leaderId) throw new PartyError('not-leader')
 		if (!party.members.includes(targetId) || targetId === leaderId) throw new PartyError('not-member')
+		// kicked: they cannot rejoin with the code (or by quick play) for a while
+		await this.valkey.multi().sadd(kickedKey(party.id), targetId).expire(kickedKey(party.id), KICKED_SECONDS).exec()
 		await this.detach(targetId)
 		return (await this.get(party.id)) as Party
 	}
@@ -375,21 +397,24 @@ redis.call('DEL', 'party-member:' .. user)
 local rest = redis.call('ZRANGE', members, 0, 0)
 if #rest == 0 then
   local code = redis.call('HGET', party, 'code')
-  redis.call('DEL', party, members, party .. ':ready')
+  redis.call('DEL', party, members, party .. ':ready', party .. ':kicked')
   redis.call('ZREM', 'party-open', id)
   if code then redis.call('DEL', 'party-code:' .. code) end
 elseif redis.call('HGET', party, 'leader') == user then
-  redis.call('HSET', party, 'leader', rest[1])
+  -- a new leader decides for themselves whether strangers may join: the squad closes
+  redis.call('HSET', party, 'leader', rest[1], 'open', '0')
+  redis.call('ZREM', 'party-open', id)
 end
 return id
 `
 
 const ATTACH = `
-local user, id, limit, now = ARGV[1], ARGV[2], tonumber(ARGV[3]), ARGV[4]
+local user, id, limit, now, open = ARGV[1], ARGV[2], tonumber(ARGV[3]), ARGV[4], ARGV[5]
 local party = 'party:' .. id
 local members = party .. ':members'
 local size = redis.call('ZCARD', members)
 if size == 0 then return 'gone' end
+if open == '1' and redis.call('HGET', party, 'open') ~= '1' then return 'gone' end
 if size >= limit then return 'full' end
 if redis.call('HGET', party, 'state') ~= 'lobby' then return 'in-mission' end
 redis.call('ZADD', members, now, user)

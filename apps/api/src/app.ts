@@ -18,6 +18,8 @@ function writeLimit(path: string): { name: string; count: number; windowMs: numb
 	if (path.startsWith('/api/progress/')) return { name: 'progress', count: 20, windowMs: 1000 }
 	if (path.startsWith('/api/records/')) return { name: 'records', count: 10, windowMs: 10_000 }
 	if (path.startsWith('/api/game/')) return { name: 'game', count: 6, windowMs: 10_000 }
+	// quick play reads the open squads and the player's blocks each time
+	if (path === '/api/party/quick') return { name: 'quick', count: 3, windowMs: 10_000 }
 	if (path.startsWith('/api/party') || path.startsWith('/api/friends'))
 		return { name: 'social', count: 20, windowMs: 10_000 }
 	return null
