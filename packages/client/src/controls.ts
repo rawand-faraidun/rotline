@@ -46,6 +46,8 @@ export class Controls {
 	constructor(target: HTMLElement) {
 		this.target = target
 		this.on(window, 'keydown', event => {
+			// a key the page sent itself (the gamepad's Start as Esc) is no key held down
+			if (!event.isTrusted) return
 			const key = (event as KeyboardEvent).code
 			if (GAME_KEYS.has(key)) event.preventDefault()
 			this.keys.add(key)

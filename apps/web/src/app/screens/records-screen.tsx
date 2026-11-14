@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import type { AvatarStyle } from '@rotline/constants'
 import {
 	campaign,
@@ -42,7 +42,10 @@ function until(at: string, now: number): string {
 	const minutes = Math.max(0, Math.round((Date.parse(at) - now) / 60_000))
 	const days = Math.floor(minutes / 1440)
 	const hours = Math.floor((minutes % 1440) / 60)
-	return days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`
+	const units = en.app.units
+	if (days > 0) return format(units.daysHours, { days: String(days), hours: String(hours) })
+	if (hours > 0) return format(units.hoursMinutes, { hours: String(hours), minutes: String(minutes % 60) })
+	return format(units.minutes, { minutes: String(minutes) })
 }
 
 /** The clock, a tick a minute, for countdowns. */
@@ -375,19 +378,31 @@ function Achievements() {
 	const view = useQuery(achievementsQuery)
 	const queryClient = useQueryClient()
 	const wearing = view.data?.achievements.find(entry => entry.id === view.data?.title)
+	const [failed, setFailed] = useState(false)
+	// the button pressed goes away once the title changes: focus moves to the title worn
+	const worn = useRef<HTMLSpanElement>(null)
 	const wear = async (id: string | null) => {
-		if (await wearTitle(id)) await queryClient.invalidateQueries({ queryKey: [RECORDS] })
+		const ok = await wearTitle(id)
+		setFailed(!ok)
+		if (!ok) return
+		await queryClient.invalidateQueries({ queryKey: [RECORDS] })
+		worn.current?.focus()
 	}
 	return (
 		<div className={cn(scroller, 'flex flex-col gap-3')}>
 			<div className="flex flex-wrap items-center gap-3">
 				<span className="text-muted text-xs uppercase tracking-[0.2em]">{t.wearing}</span>
-				<span className="font-display text-2xl text-rot-lime uppercase">{wearing?.title ?? t.noTitle}</span>
+				<span ref={worn} tabIndex={-1} className="font-display text-2xl text-rot-lime uppercase outline-none">
+					{wearing?.title ?? t.noTitle}
+				</span>
 				{wearing && (
 					<Button size="sm" variant="ghost" onClick={() => void wear(null)}>
 						{t.remove}
 					</Button>
 				)}
+				<span role="alert" className="text-alert text-sm">
+					{failed ? t.wearFailed : ''}
+				</span>
 			</div>
 			<ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
 				{(view.data?.achievements ?? []).map(entry => {
@@ -397,10 +412,14 @@ function Achievements() {
 							key={entry.id}
 							className={cn(
 								'frame cut flex flex-col gap-2 p-4 [--frame-fill:var(--color-rot-black)]',
-								earned ? '[--frame-color:var(--color-rot-lime)]' : 'opacity-75'
+								earned && '[--frame-color:var(--color-rot-lime)]'
 							)}
 						>
-							<span className="font-display text-xl uppercase">{entry.name}</span>
+							{/* earned or locked in words too, not by colour alone; only the name is dimmed */}
+							<span className="flex items-start justify-between gap-2">
+								<span className={cn('font-display text-xl uppercase', !earned && 'opacity-70')}>{entry.name}</span>
+								<Badge tone={earned ? 'lime' : 'muted'}>{earned ? t.done : t.locked}</Badge>
+							</span>
 							<span className="text-bone/85 text-sm">{entry.description}</span>
 							<Meter value={entry.progress} max={entry.target} done={earned} />
 							<span className="flex items-center justify-between gap-2 text-xs">
@@ -427,15 +446,38 @@ function Achievements() {
 /** Challenges, leaderboards, the bestiary and achievements, a tab each. */
 export function RecordsScreen() {
 	const [tab, setTab] = useState<Tab>('challenges')
+	const tabs = useRef<HTMLDivElement>(null)
+	// the arrow keys, Home and End move between the tabs (one tab stop for the row)
+	const onKey = (event: KeyboardEvent) => {
+		const at = TABS.indexOf(tab)
+		const next =
+			event.key === 'ArrowRight'
+				? (at + 1) % TABS.length
+				: event.key === 'ArrowLeft'
+					? (at - 1 + TABS.length) % TABS.length
+					: event.key === 'Home'
+						? 0
+						: event.key === 'End'
+							? TABS.length - 1
+							: -1
+		const id = TABS[next]
+		if (!id) return
+		event.preventDefault()
+		setTab(id)
+		tabs.current?.querySelector<HTMLElement>(`#records-tab-${id}`)?.focus()
+	}
 	return (
 		<GameShell>
 			<PageHeader title={t.title}>
-				<div className="flex flex-wrap gap-1" role="tablist">
+				<div ref={tabs} className="flex flex-wrap gap-1" role="tablist" aria-label={t.tabsLabel} onKeyDown={onKey}>
 					{TABS.map(id => (
 						<Button
 							key={id}
+							id={`records-tab-${id}`}
 							role="tab"
 							aria-selected={tab === id}
+							aria-controls="records-panel"
+							tabIndex={tab === id ? 0 : -1}
 							size="sm"
 							variant={tab === id ? 'primary' : 'ghost'}
 							onClick={() => setTab(id)}
@@ -445,10 +487,12 @@ export function RecordsScreen() {
 					))}
 				</div>
 			</PageHeader>
-			{tab === 'challenges' && <Challenges />}
-			{tab === 'boards' && <Boards />}
-			{tab === 'bestiary' && <Bestiary />}
-			{tab === 'achievements' && <Achievements />}
+			<div id="records-panel" role="tabpanel" aria-labelledby={`records-tab-${tab}`} className="contents">
+				{tab === 'challenges' && <Challenges />}
+				{tab === 'boards' && <Boards />}
+				{tab === 'bestiary' && <Bestiary />}
+				{tab === 'achievements' && <Achievements />}
+			</div>
 		</GameShell>
 	)
 }

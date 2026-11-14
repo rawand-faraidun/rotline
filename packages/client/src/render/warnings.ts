@@ -7,17 +7,24 @@ const MAX = 32
 const ALERT = 0xff5630
 const ACID = 0xc9e04a
 
+/** One pooled warning: built once, shaped and coloured again each time it is used. */
 type Warning = {
 	root: THREE.Group
+	/** the ring's outline or the lane's edge */
+	edge: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>
 	/** grows from nothing to the full ring or lane as the attack comes */
-	fill: THREE.Mesh
+	fill: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>
 	/** a spit or canister in the air, drawn on its arc */
-	blob: THREE.Mesh | null
+	blob: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>
+	/** in use */
+	live: boolean
 	kind: number
 	x: number
 	y: number
 	tx: number
 	ty: number
+	/** the lane's length or the ring's radius */
+	size: number
 	born: number
 	until: number
 }
@@ -25,11 +32,12 @@ type Warning = {
 /**
  * The tells before an attack lands: a ring round a Warden's slam or a Delver about to burst out, a
  * lane where a charge will run, and a mark where spit will land with the spit itself on its arc.
- * Each fills as the moment comes, so a player can read how long they have to get out.
+ * Each fills as the moment comes, so a player can read how long they have to get out. The meshes
+ * are kept in a pool: a fight full of warnings makes nothing new.
  */
 export class Warnings {
 	private readonly scene: THREE.Scene
-	private readonly live: Warning[] = []
+	private readonly slots: Warning[] = []
 	private readonly disc = new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2)
 	private readonly ring = new THREE.RingGeometry(0.92, 1, 48).rotateX(-Math.PI / 2)
 	private readonly plane = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
@@ -39,74 +47,105 @@ export class Warnings {
 		this.scene = scene
 	}
 
-	private material(colour: number, opacity: number): THREE.MeshBasicMaterial {
+	private static material(): THREE.MeshBasicMaterial {
 		return new THREE.MeshBasicMaterial({
-			color: colour,
 			transparent: true,
-			opacity,
 			depthWrite: false,
 			blending: THREE.AdditiveBlending
 		})
 	}
 
+	/** A free slot, a new one while the pool is below its size, else the oldest. */
+	private slot(): Warning {
+		const free = this.slots.find(slot => !slot.live)
+		if (free) return free
+		if (this.slots.length >= MAX) {
+			let oldest = this.slots[0] as Warning
+			for (const slot of this.slots) if (slot.born < oldest.born) oldest = slot
+			return oldest
+		}
+		const root = new THREE.Group()
+		const edge = new THREE.Mesh(this.ring as THREE.BufferGeometry, Warnings.material())
+		const fill = new THREE.Mesh(this.disc as THREE.BufferGeometry, Warnings.material())
+		const blob = new THREE.Mesh(this.sphere as THREE.BufferGeometry, Warnings.material())
+		root.add(edge, fill)
+		for (const node of [edge, fill, blob]) node.layers.set(EFFECTS_LAYER)
+		root.visible = false
+		blob.visible = false
+		this.scene.add(root, blob)
+		const slot: Warning = {
+			root,
+			edge,
+			fill,
+			blob,
+			live: false,
+			kind: 0,
+			x: 0,
+			y: 0,
+			tx: 0,
+			ty: 0,
+			size: 0,
+			born: 0,
+			until: 0
+		}
+		this.slots.push(slot)
+		return slot
+	}
+
 	/** A warning from the server: `seconds` until it lands. */
 	add(kind: number, x: number, y: number, tx: number, ty: number, radius: number, seconds: number, now: number): void {
-		if (this.live.length >= MAX) this.remove(0)
-		const root = new THREE.Group()
+		const w = this.slot()
 		const colour = kind === WarnKind.spit ? ACID : ALERT
-		let fill: THREE.Mesh
-		let blob: THREE.Mesh | null = null
+		const { root, edge, fill, blob } = w
+		for (const mesh of [edge, fill, blob]) mesh.material.color.setHex(colour)
+		root.rotation.set(0, 0, 0)
+		fill.position.set(0, 0, 0)
+		edge.position.set(0, 0, 0)
 		if (kind === WarnKind.charge) {
 			// the lane: its edge, and a fill that runs along it toward the far end
 			const length = Math.max(0.5, Math.hypot(tx - x, ty - y))
-			const angle = Math.atan2(ty - y, tx - x)
 			root.position.set(x, 0.07, y)
-			root.rotation.y = -angle
-			const edge = new THREE.Mesh(this.plane, this.material(colour, 0.16))
+			root.rotation.y = -Math.atan2(ty - y, tx - x)
+			edge.geometry = this.plane
+			edge.material.opacity = 0.16
 			edge.scale.set(length, 1, radius * 2)
 			edge.position.x = length / 2
-			fill = new THREE.Mesh(this.plane, this.material(colour, 0.3))
+			fill.geometry = this.plane
 			fill.scale.set(0.001, 1, radius * 2)
-			fill.userData.length = length
-			root.add(edge, fill)
+			w.size = length
 		} else {
 			root.position.set(tx, 0.07, ty)
-			const outline = new THREE.Mesh(this.ring, this.material(colour, 0.7))
-			outline.scale.setScalar(radius)
-			fill = new THREE.Mesh(this.disc, this.material(colour, 0.22))
+			edge.geometry = this.ring
+			edge.material.opacity = 0.7
+			edge.scale.setScalar(radius)
+			fill.geometry = this.disc
 			fill.scale.setScalar(0.001)
-			fill.userData.radius = radius
-			root.add(outline, fill)
-			if (kind === WarnKind.spit || kind === WarnKind.lob) {
-				blob = new THREE.Mesh(this.sphere, this.material(colour, 0.95))
-				this.scene.add(blob)
-			}
+			w.size = radius
 		}
-		for (const node of root.children) node.layers.set(EFFECTS_LAYER)
-		blob?.layers.set(EFFECTS_LAYER)
-		this.scene.add(root)
-		this.live.push({ root, fill, blob, kind, x, y, tx, ty, born: now, until: now + Math.max(0.05, seconds) })
+		fill.material.opacity = 0.22
+		blob.material.opacity = 0.95
+		blob.visible = kind === WarnKind.spit || kind === WarnKind.lob
+		root.visible = true
+		Object.assign(w, { live: true, kind, x, y, tx, ty, born: now, until: now + Math.max(0.05, seconds) })
 	}
 
 	update(now: number): void {
-		for (let w = this.live.length - 1; w >= 0; w--) {
-			const warning = this.live[w] as Warning
+		for (const warning of this.slots) {
+			if (!warning.live) continue
 			const t = (now - warning.born) / (warning.until - warning.born)
 			// a moment past the end, then gone (the strike draws itself)
 			if (t >= 1.05 || t < -0.1) {
-				this.remove(w)
+				this.free(warning)
 				continue
 			}
 			const share = Math.max(0.001, Math.min(1, t))
 			if (warning.kind === WarnKind.charge) {
-				const length = warning.fill.userData.length as number
-				warning.fill.scale.x = length * share
-				warning.fill.position.x = (length * share) / 2
-			} else warning.fill.scale.setScalar((warning.fill.userData.radius as number) * share)
+				warning.fill.scale.x = warning.size * share
+				warning.fill.position.x = (warning.size * share) / 2
+			} else warning.fill.scale.setScalar(warning.size * share)
 			// the last quarter flickers: now, move
-			const material = warning.fill.material as THREE.MeshBasicMaterial
-			material.opacity = t > 0.75 && Math.floor(now * 16) % 2 === 0 ? 0.45 : 0.22
-			if (warning.blob) {
+			warning.fill.material.opacity = t > 0.75 && Math.floor(now * 16) % 2 === 0 ? 0.45 : 0.22
+			if (warning.blob.visible) {
 				const height = 0.4 + Math.sin(share * Math.PI) * 3
 				warning.blob.position.set(
 					warning.x + (warning.tx - warning.x) * share,
@@ -117,22 +156,18 @@ export class Warnings {
 		}
 	}
 
-	private remove(index: number): void {
-		const [warning] = this.live.splice(index, 1)
-		if (!warning) return
-		this.scene.remove(warning.root)
-		if (warning.blob) {
-			this.scene.remove(warning.blob)
-			;(warning.blob.material as THREE.Material).dispose()
-		}
-		warning.root.traverse(node => {
-			const mesh = node as THREE.Mesh
-			if (mesh.material) (mesh.material as THREE.Material).dispose()
-		})
+	private free(warning: Warning): void {
+		warning.live = false
+		warning.root.visible = false
+		warning.blob.visible = false
 	}
 
 	dispose(): void {
-		while (this.live.length > 0) this.remove(0)
+		for (const slot of this.slots) {
+			this.scene.remove(slot.root, slot.blob)
+			for (const mesh of [slot.edge, slot.fill, slot.blob]) mesh.material.dispose()
+		}
+		this.slots.length = 0
 		this.disc.dispose()
 		this.ring.dispose()
 		this.plane.dispose()

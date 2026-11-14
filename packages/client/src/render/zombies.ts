@@ -163,6 +163,24 @@ vec3 batP = (batM * vec4(position, 1.0)).xyz;
 ${withNormal ? 'vec3 objectNormal = normalize(mat3(batM) * normal);' : ''}
 `
 
+/**
+ * Shows the first `count` instances of a part mesh, sending only those to the GPU; with none it is
+ * not drawn at all (most kinds have no plates or sacs).
+ */
+function upload(mesh: THREE.InstancedMesh, count: number): void {
+	mesh.count = count
+	mesh.visible = count > 0
+	if (count === 0) return
+	mesh.instanceMatrix.clearUpdateRanges()
+	mesh.instanceMatrix.addUpdateRange(0, count * 16)
+	mesh.instanceMatrix.needsUpdate = true
+	if (mesh.instanceColor) {
+		mesh.instanceColor.clearUpdateRanges()
+		mesh.instanceColor.addUpdateRange(0, count * 3)
+		mesh.instanceColor.needsUpdate = true
+	}
+}
+
 /** Draws every visible zombie as one instanced, GPU-skinned mesh. */
 const MARKED = new THREE.Color(0xff3a2a)
 const STUNNED = new THREE.Color(0x6fb8ff)
@@ -550,14 +568,11 @@ export class ZombieRenderer {
 			if (status & ZombieStatus.strain) this.color.lerp(CRUST, 0.45)
 			this.mesh.setColorAt(n, this.color)
 		}
-		this.mounds.count = mounds
-		this.shields.count = shields
-		this.glows.count = glows
-		this.sacs.count = sacs
-		this.plates.count = plates
-		for (const mesh of [this.mounds, this.shields, this.glows, this.sacs, this.plates])
-			mesh.instanceMatrix.needsUpdate = true
-		for (const mesh of [this.glows, this.sacs]) if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+		upload(this.mounds, mounds)
+		upload(this.shields, shields)
+		upload(this.glows, glows)
+		upload(this.sacs, sacs)
+		upload(this.plates, plates)
 		this.seen.set(this.seenNow)
 		this.mesh.count = drawn
 		this.mesh.instanceMatrix.needsUpdate = true

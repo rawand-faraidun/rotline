@@ -209,6 +209,15 @@ export const en = {
 	},
 	app: {
 		loading: 'Loading',
+		/** numbers with their marks, kept here so another language can place them its own way */
+		units: {
+			times: '×{count}',
+			plus: '+{amount}',
+			percent: '{share} %',
+			daysHours: '{days}d {hours}h',
+			hoursMinutes: '{hours}h {minutes}m',
+			minutes: '{minutes}m'
+		},
 		error: 'Something went wrong. Try again in a moment.',
 		retry: 'Try again',
 		signIn: {
@@ -595,6 +604,9 @@ export const en = {
 			noTitle: 'No title',
 			wear: 'Wear title',
 			remove: 'Take off',
+			wearFailed: 'The title could not be changed. Try again.',
+			tabsLabel: 'Records',
+			locked: 'Locked',
 			earned: 'Earned {date}',
 			titleReward: 'Title: {title}',
 			damageTypes: {

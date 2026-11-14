@@ -10,7 +10,7 @@ import {
 	saveGraphicsSetting,
 	setTips,
 	tipsOn
-} from '@rotline/client'
+} from '@rotline/client/settings'
 import { missionById, missionFor, missionMap, player as playerDef, survivalMap, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -21,6 +21,7 @@ import { clock, masteryTone } from './mission-panel.tsx'
 import { SeatKeeper } from './seat-keeper.tsx'
 
 const t = en.app.mission
+const units = en.app.units
 /** how long the loading screen waits before offering to try again */
 const SLOW_LOADING_MS = 20_000
 
@@ -168,7 +169,7 @@ function Abilities({ hud }: { hud: HudState }) {
 					<span className="flex items-center justify-between">
 						<span className="cut-sm bg-bone px-1.5 font-bold text-rot-black text-xs">{utility.key}</span>
 						<span className="font-display text-lg tabular-nums">
-							{utility.charges === null ? t.unlimited : `×${utility.charges}`}
+							{utility.charges === null ? t.unlimited : format(units.times, { count: String(utility.charges) })}
 						</span>
 					</span>
 					<span className="truncate font-bold text-[11px] uppercase tracking-wide">{utility.name}</span>
@@ -223,11 +224,7 @@ function Radio({ hud }: { hud: HudState }) {
 	}, [radio])
 	if (!radio || now - radio.at > RADIO_MS) return null
 	return (
-		<section
-			role="status"
-			aria-live="polite"
-			className="frame cut pointer-events-none absolute bottom-36 left-4 flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-1 px-4 py-3 [--frame-color:var(--color-rot-lime)] [--frame-fill:rgb(13_16_14/0.88)]"
-		>
+		<section className="frame cut pointer-events-none absolute bottom-36 left-4 flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-1 px-4 py-3 [--frame-color:var(--color-rot-lime)] [--frame-fill:rgb(13_16_14/0.88)]">
 			<span className="flex items-center gap-2 font-bold text-[11px] text-rot-lime uppercase tracking-[0.25em]">
 				<span className="inline-block size-2 animate-pulse bg-rot-lime" aria-hidden="true" />
 				{radio.speaker}
@@ -277,6 +274,20 @@ function BossBar({ hud }: { hud: HudState }) {
  */
 /** Space kept between a marker and a HUD panel, in pixels. */
 const PANEL_GAP = 30
+/** HUD panels are measured again this often (measuring every marker on every frame forces layout) */
+const PANEL_MEASURE_MS = 250
+let panelCache: { at: number; boxes: DOMRect[] } = { at: -Infinity, boxes: [] }
+
+/** Where the HUD panels are, measured at most every quarter second. */
+function panelBoxes(): DOMRect[] {
+	const now = performance.now()
+	if (now - panelCache.at > PANEL_MEASURE_MS)
+		panelCache = {
+			at: now,
+			boxes: [...document.querySelectorAll('[data-hud-panel]')].map(panel => panel.getBoundingClientRect())
+		}
+	return panelCache.boxes
+}
 
 /**
  * A marker at (x, y) (shares of the screen) moved out of any HUD panel it would sit on: to the
@@ -286,8 +297,7 @@ const PANEL_GAP = 30
 function clearOfPanels(x: number, y: number): { left: string; top: string } {
 	let px = x * window.innerWidth
 	let py = y * window.innerHeight
-	for (const panel of document.querySelectorAll('[data-hud-panel]')) {
-		const box = panel.getBoundingClientRect()
+	for (const box of panelBoxes()) {
 		if (box.width === 0) continue
 		if (
 			px < box.left - PANEL_GAP ||
@@ -468,7 +478,7 @@ function Multiplier({ hud, round }: { hud: HudState; round: number | null }) {
 							hud.multiplier > 1 ? 'text-warning' : 'text-bone/70'
 						)}
 					>
-						×{hud.multiplier}
+						{format(units.times, { count: String(hud.multiplier) })}
 					</span>
 				</span>
 				<span className="flex flex-col items-center">
@@ -503,7 +513,7 @@ function Toasts({ hud }: { hud: HudState }) {
 	const live = hud.toasts.filter(toast => now - toast.at < 4000)
 	if (live.length === 0) return null
 	return (
-		<ul className="pointer-events-none absolute right-4 bottom-52 flex w-72 flex-col-reverse gap-2" aria-live="polite">
+		<ul className="pointer-events-none absolute right-4 bottom-52 flex w-72 flex-col-reverse gap-2">
 			{live.map(toast => (
 				<li
 					key={toast.id}
@@ -668,7 +678,7 @@ function DamageNumberSetting({ handle }: { handle: GameHandle }) {
 }
 
 /** Tips on how to play, once each; switching them back on shows them all again. */
-function TipsSetting() {
+function TipsSetting({ handle }: { handle: GameHandle }) {
 	const [on, setOn] = useState(() => tipsOn())
 	return (
 		<label className="flex items-center gap-2 text-sm">
@@ -678,6 +688,7 @@ function TipsSetting() {
 				onChange={event => {
 					setOn(event.target.checked)
 					setTips(event.target.checked)
+					handle.tips(event.target.checked)
 				}}
 			/>
 			{t.tipsSetting}
@@ -685,16 +696,13 @@ function TipsSetting() {
 	)
 }
 
-/** How to play, when it first matters: what to press, for the keyboard or the gamepad in use. */
+/** How to play, when it first matters: what to press, for the keyboard or the gamepad in use (in the top centre, under the boss bar and banners, clear of the squad list). */
 function Tip({ hud }: { hud: HudState }) {
 	const tip = hud.tip
 	if (!tip || performance.now() - tip.at > 7000) return null
 	const text = (tip.pad ? t.tipsPad[tip.id] : undefined) ?? t.tips[tip.id]
 	return (
-		<section
-			role="status"
-			className="frame cut-sm pointer-events-none absolute top-16 left-4 flex max-w-sm flex-col gap-1 px-4 py-3 [--frame-color:var(--color-warning)] [--frame-fill:rgb(13_16_14/0.88)]"
-		>
+		<section className="frame cut-sm pointer-events-none absolute top-52 left-1/2 flex max-w-sm -translate-x-1/2 flex-col gap-1 px-4 py-3 text-center [--frame-color:var(--color-warning)] [--frame-fill:rgb(13_16_14/0.88)]">
 			<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.tipLabel}</span>
 			<span className="font-bold text-bone">{text}</span>
 		</section>
@@ -744,7 +752,7 @@ function PauseMenu({
 				<SoundSettings handle={handle} />
 				<GraphicsSettings />
 				<DamageNumberSetting handle={handle} />
-				<TipsSetting />
+				<TipsSetting handle={handle} />
 				<p className="text-muted text-xs">{t.controls}</p>
 			</Panel>
 		</div>
@@ -768,8 +776,8 @@ function ResultsPanel({
 		[r.time, clock(results.timeMs / 1000)],
 		[r.score, results.score.toLocaleString('en')],
 		[r.kills, String(results.kills)],
-		[r.xp, `+${Math.floor(results.xp).toLocaleString('en')}`],
-		[r.salvage, `+${Math.floor(results.salvage).toLocaleString('en')}`],
+		[r.xp, format(units.plus, { amount: Math.floor(results.xp).toLocaleString('en') })],
+		[r.salvage, format(units.plus, { amount: Math.floor(results.salvage).toLocaleString('en') })],
 		[r.downs, String(results.downs)]
 	]
 	return (
@@ -834,7 +842,7 @@ function RangePanel({ handle, hud }: { handle: GameHandle; hud: HudState }) {
 							onClick={() => handle.range('spawn', index, zombie.elite ? 1 : 5)}
 						>
 							<span className="truncate">
-								{zombie.name} ×{zombie.elite ? 1 : 5}
+								{zombie.name} {format(units.times, { count: zombie.elite ? '1' : '5' })}
 							</span>
 						</Button>
 					)
@@ -996,9 +1004,16 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					<Waypoint hud={hud} />
 					<AllyArrows hud={hud} />
 					<BossBar hud={hud} />
-					<Radio hud={hud} />
-					<Toasts hud={hud} />
-					<Tip hud={hud} />
+					{/* live regions stay in the page (a region added with its message is often not read out) */}
+					<div aria-live="polite" className="contents">
+						<Radio hud={hud} />
+					</div>
+					<div aria-live="polite" className="contents">
+						<Toasts hud={hud} />
+					</div>
+					<div aria-live="polite" className="contents">
+						<Tip hud={hud} />
+					</div>
 					{hud.teammates.length > 0 && (
 						<ul className="pointer-events-none absolute top-16 left-4 flex flex-col gap-2">
 							{hud.teammates.map(mate => (
@@ -1056,48 +1071,49 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						</p>
 					)}
 
-					{hud.banner && performance.now() - hud.banner.at < 2500 && (
-						<p
-							className={cn(
-								'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
-								hud.banner.text === 'wipe' ||
-									hud.banner.text === 'timeout' ||
-									hud.banner.text === 'lives' ||
-									hud.banner.text === 'wiped'
-									? 'text-alert'
-									: hud.banner.text === 'wave'
-										? 'text-warning'
-										: 'text-rot-lime'
-							)}
-							aria-live="polite"
-						>
-							{hud.banner.text === 'wave'
-								? format(t.waveBanner, { wave: String(hud.banner.wave) })
-								: hud.banner.text === 'wipe'
-									? hud.livesLeft !== null
-										? format(hud.livesLeft === 1 ? t.lastLifeBanner : t.livesBanner, {
-												lives: String(hud.livesLeft)
-											})
-										: inMission
-											? t.missionWipeBanner
-											: format(t.wipeBanner, { wave: String(hud.banner.wave) })
-									: hud.banner.text === 'lives'
-										? t.outOfLivesBanner
-										: hud.banner.text === 'wiped'
-											? t.contractFailedBanner
-											: hud.banner.text === 'objective'
-												? t.objectiveBanner
-												: hud.banner.text === 'checkpoint'
-													? t.checkpointBanner
-													: hud.banner.text === 'failed'
-														? t.failedBanner
-														: hud.banner.text === 'timeout'
-															? t.timeoutBanner
-															: hud.banner.text === 'run-over'
-																? format(t.runOverBanner, { wave: String(hud.banner.wave) })
-																: t.completeBanner}
-						</p>
-					)}
+					<div aria-live="polite" className="contents">
+						{hud.banner && performance.now() - hud.banner.at < 2500 && (
+							<p
+								className={cn(
+									'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
+									hud.banner.text === 'wipe' ||
+										hud.banner.text === 'timeout' ||
+										hud.banner.text === 'lives' ||
+										hud.banner.text === 'wiped'
+										? 'text-alert'
+										: hud.banner.text === 'wave'
+											? 'text-warning'
+											: 'text-rot-lime'
+								)}
+							>
+								{hud.banner.text === 'wave'
+									? format(t.waveBanner, { wave: String(hud.banner.wave) })
+									: hud.banner.text === 'wipe'
+										? hud.livesLeft !== null
+											? format(hud.livesLeft === 1 ? t.lastLifeBanner : t.livesBanner, {
+													lives: String(hud.livesLeft)
+												})
+											: inMission
+												? t.missionWipeBanner
+												: format(t.wipeBanner, { wave: String(hud.banner.wave) })
+										: hud.banner.text === 'lives'
+											? t.outOfLivesBanner
+											: hud.banner.text === 'wiped'
+												? t.contractFailedBanner
+												: hud.banner.text === 'objective'
+													? t.objectiveBanner
+													: hud.banner.text === 'checkpoint'
+														? t.checkpointBanner
+														: hud.banner.text === 'failed'
+															? t.failedBanner
+															: hud.banner.text === 'timeout'
+																? t.timeoutBanner
+																: hud.banner.text === 'run-over'
+																	? format(t.runOverBanner, { wave: String(hud.banner.wave) })
+																	: t.completeBanner}
+							</p>
+						)}
+					</div>
 
 					{hud.silence && (
 						// the game is silent: say why, so a held or muted sound is never a mystery
@@ -1167,7 +1183,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 									<p className="font-display text-5xl text-alert uppercase">{t.down}</p>
 									<p className="text-bone/80 tabular-nums" aria-live="polite">
 										{hud.beingRevived > 0
-											? `${t.beingRevived} ${Math.round(hud.beingRevived * 100)} %`
+											? `${t.beingRevived} ${format(units.percent, { share: String(Math.round(hud.beingRevived * 100)) })}`
 											: format(t.bleedout, { seconds: String(hud.bleedoutSeconds) })}
 									</p>
 									<p className="text-muted text-sm">{t.waitForRevive}</p>

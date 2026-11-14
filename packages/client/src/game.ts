@@ -125,6 +125,8 @@ export type GameHandle = {
 	minimap(canvas: HTMLCanvasElement, mode: MinimapMode): () => void
 	/** Floating damage numbers on or off (the firing range always shows them). */
 	damageNumbers(on: boolean): void
+	/** Tips on (each shown once more from the start) or off, at once in this game. */
+	tips(on: boolean): void
 	stop(): void
 }
 
@@ -194,7 +196,7 @@ export function startGame(options: GameOptions): GameHandle {
 	const ownHits: { at: number; amount: number }[] = []
 	const readNotes = loadReadNotes()
 	/** tips already shown in this browser (null: switched off); the firing range shows none */
-	const tipsSeen = range ? null : loadTipsSeen()
+	let tipsSeen = range ? null : loadTipsSeen()
 	let tipUntil = 0
 	/** Shows a tip the first time it matters (one at a time, each for a while). */
 	const tip = (id: TipId, now = performance.now()) => {
@@ -1115,6 +1117,8 @@ export function startGame(options: GameOptions): GameHandle {
 	function loop(wallNow: number): void {
 		if (stopped) return
 		frame = requestAnimationFrame(loop)
+		// the gamepad's Start button works every frame, also while the game is paused and sends no input
+		controls.poll()
 		// while paused the world's clock stands still: zombies, figures, effects and props freeze
 		const frameDt = Math.min(0.1, (wallNow - last) / 1000)
 		last = wallNow
@@ -1476,6 +1480,9 @@ export function startGame(options: GameOptions): GameHandle {
 		},
 		damageNumbers(on) {
 			showNumbers = range || on
+		},
+		tips(on) {
+			tipsSeen = range || !on ? null : new Set()
 		},
 		minimap(canvas, mode) {
 			minimapCanvases.set(canvas, mode)
