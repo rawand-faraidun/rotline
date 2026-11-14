@@ -53,6 +53,8 @@ export type Hazard = {
 }
 
 const ticks = (seconds: number) => Math.max(1, Math.round(seconds * TICK_RATE))
+/** a burrower held up this long under the ground surfaces where it is */
+const STUCK_UNDER_TICKS = Math.round(1.5 * TICK_RATE)
 
 /** Types that need `stepSpecial` at all (most of the horde does not). */
 export const HAS_SPECIAL = zombies.map(
@@ -313,7 +315,11 @@ export function stepSpecial(
 		case ZombieAction.under: {
 			const burrow = def.burrow
 			if (!burrow) return cancel(world, i, def)
-			if (target && distance <= burrow.surfaceRange + playerDef.radius) {
+			// it comes up under its target, or where it can get no further (a door, a barricade: it
+			// claws nothing while it is under the ground)
+			const stuck = (world.stuckTicks[i] as number) > STUCK_UNDER_TICKS
+			if ((target && distance <= burrow.surfaceRange + playerDef.radius) || stuck) {
+				world.stuckTicks[i] = 0
 				world.action[i] = ZombieAction.erupt
 				world.actionUntil[i] = tick + ticks(burrow.eruptSeconds)
 				world.events.push({

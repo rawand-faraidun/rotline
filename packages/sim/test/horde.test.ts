@@ -471,3 +471,20 @@ describe('bounties', () => {
 		expect(world.mission?.bountyDown).toBe(true)
 	})
 })
+
+describe('burrowers held up under the ground', () => {
+	it('come up where they are instead of staying under for good', () => {
+		const world = quietWorld()
+		standing(world, 20, 14)
+		const delver = world.spawnZombie(zombieIndex('delver'), { x: 40, y: 14 })
+		world.specialAt[delver] = 0
+		world.step(new Map())
+		expect(world.under[delver]).toBe(1)
+		// walled in on every side, as behind a door it cannot claw from under the ground
+		const { width, walls } = world.grid
+		for (let y = 12; y <= 16; y++)
+			for (let x = 38; x <= 42; x++) if (x === 38 || x === 42 || y === 12 || y === 16) walls[y * width + x] = 1
+		for (let n = 0; n < 4 * TICK_RATE && world.under[delver] === 1; n++) world.step(new Map())
+		expect(world.under[delver]).toBe(0)
+	})
+})
