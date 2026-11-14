@@ -69,6 +69,9 @@ const MAX_PAUSE_MS = 10 * 60 * 1000
 const ACTIVE_TICKS = Math.round(economy.rewards.activeSeconds * TICK_RATE)
 /** a revive of the same player counts toward records at most once in this long */
 const REVIVE_COUNT_TICKS = 3 * 60 * TICK_RATE
+/** the stats a kill counts toward, by zombie kind and by weapon (built once, not per kill) */
+const KILL_KEYS = zombies.map(zombie => `kill:${zombie.id}`)
+const WEAPON_KEYS = weapons.map(weapon => `weapon:${weapon.kind}`)
 const DOUBLE_XP = buffs.buffs.find(buff => buff.id === 'double-xp')?.params.xp ?? 1
 
 /**
@@ -695,10 +698,10 @@ export class Room {
 			for (const member of this.members.values()) {
 				if (member.slot !== slot) continue
 				this.tally(member, 'kills')
-				this.tally(member, `kill:${zombie.id}`)
+				this.tally(member, KILL_KEYS[zombieType] as string)
 				if (zombie.elite) this.tally(member, 'elites')
-				const kind = weapon === undefined ? undefined : weapons[weapon]?.kind
-				if (kind) this.tally(member, `weapon:${kind}`)
+				const key = weapon === undefined ? undefined : WEAPON_KEYS[weapon]
+				if (key) this.tally(member, key)
 			}
 		// Double XP multiplies the class XP earned (kills here; objectives and score likewise)
 		const xp = zombie.xp * (this.world.tick < this.world.doubleXpUntil ? DOUBLE_XP : 1)

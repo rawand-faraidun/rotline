@@ -221,32 +221,41 @@ function inTrouble(world: World): boolean {
  */
 export function pacing(world: World, mission: MissionState): { rate: number; alive: number } {
 	const director = difficulties.director
-	const between = ([low, high]: readonly [number, number]) =>
-		Math.round((low + world.rng.next() * (high - low)) * TICK_RATE)
-	const begin = (pace: number) => {
-		mission.pace = pace
-		mission.paceStart = world.tick
-		mission.paceUntil =
-			world.tick +
-			between(
-				pace === Pace.build ? director.buildSeconds : pace === Pace.peak ? director.peakSeconds : director.reliefSeconds
-			)
-	}
-	if (mission.paceUntil === 0) begin(Pace.build)
-	else if (world.tick >= mission.paceUntil) begin((mission.pace + 1) % 3)
-	else if (mission.pace === Pace.peak && inTrouble(world)) begin(Pace.relief)
+	if (mission.paceUntil === 0) beginPace(world, mission, Pace.build)
+	else if (world.tick >= mission.paceUntil) beginPace(world, mission, (mission.pace + 1) % 3)
+	else if (mission.pace === Pace.peak && inTrouble(world)) beginPace(world, mission, Pace.relief)
+	// one object, filled each tick (the caller reads it at once)
+	const out = PACE
 	switch (mission.pace) {
 		case Pace.peak:
-			return { rate: director.peakRate, alive: director.peakAlive }
+			out.rate = director.peakRate
+			out.alive = director.peakAlive
+			break
 		case Pace.relief:
-			return { rate: director.reliefRate, alive: 1 }
+			out.rate = director.reliefRate
+			out.alive = 1
+			break
 		default: {
 			const span = Math.max(1, mission.paceUntil - mission.paceStart)
 			const t = Math.min(1, (world.tick - mission.paceStart) / span)
 			const [from, to] = director.buildRate
-			return { rate: from + (to - from) * t, alive: 1 }
+			out.rate = from + (to - from) * t
+			out.alive = 1
 		}
 	}
+	return out
+}
+
+const PACE = { rate: 1, alive: 1 }
+
+/** The director moves to `pace`, for a stretch drawn from its range. */
+function beginPace(world: World, mission: MissionState, pace: number): void {
+	const director = difficulties.director
+	const [low, high] =
+		pace === Pace.build ? director.buildSeconds : pace === Pace.peak ? director.peakSeconds : director.reliefSeconds
+	mission.pace = pace
+	mission.paceStart = world.tick
+	mission.paceUntil = world.tick + Math.round((low + world.rng.next() * (high - low)) * TICK_RATE)
 }
 
 /** A kind already at its cap (Retchers, Bulwarks, ...) comes in as the mission's commonest kind instead. */
@@ -254,10 +263,26 @@ export function capped(world: World, mission: MissionState, type: number, squadS
 	const cap = difficulties.director.caps[zombies[type]?.id ?? '']
 	if (cap === undefined) return type
 	const limit = Math.max(1, Math.round(cap * squadScale))
-	let alive = 0
-	for (let i = 0; i < MAX_ZOMBIES; i++) if (world.alive[i] === 1 && world.type[i] === type) alive++
-	return alive >= limit ? mission.common : type
+	// kinds alive, counted once a tick (and kept up as this tick's spawns come in)
+	let counted = ALIVE_BY_TYPE.get(world)
+	if (!counted || counted.tick !== world.tick) {
+		const counts = counted?.counts ?? new Uint16Array(zombies.length)
+		counts.fill(0)
+		for (let i = 0; i < MAX_ZOMBIES; i++)
+			if (world.alive[i] === 1) {
+				const kind = world.type[i] as number
+				counts[kind] = (counts[kind] as number) + 1
+			}
+		counted = { tick: world.tick, counts }
+		ALIVE_BY_TYPE.set(world, counted)
+	}
+	const alive = counted.counts[type] as number
+	if (alive >= limit) return mission.common
+	counted.counts[type] = alive + 1
+	return type
 }
+
+const ALIVE_BY_TYPE = new WeakMap<World, { tick: number; counts: Uint16Array }>()
 
 /** The first objective from `from` on that is a step (not optional); past the end when none is left. */
 export function nextStep(def: MissionDef, from: number): number {

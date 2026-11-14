@@ -120,13 +120,18 @@ export function checkPhase(world: World, i: number, def: ZombieDef): void {
 	}
 }
 
+/** where a moved circle ends up (one reused object: the horde moves hundreds a tick) */
+const MOVED = { x: 0, y: 0 }
+/** a blast's damage at its edge, as a share of the middle's */
+const EDGE_SHARE = 0.5
+
 /** Players knocked back from (x, y) by `distance` metres, or sideways off a lane when `side` is set. */
 function shove(world: World, state: PlayerState, fromX: number, fromY: number, distance: number): void {
 	if (distance <= 0) return
 	const dx = state.x - fromX
 	const dy = state.y - fromY
 	const d = Math.hypot(dx, dy) || 1
-	const out = { x: 0, y: 0 }
+	const out = MOVED
 	world.grid.moveCircle(state.x, state.y, (dx / d) * distance, (dy / d) * distance, playerDef.radius, out)
 	state.x = out.x
 	state.y = out.y
@@ -146,7 +151,7 @@ function strikePlayers(
 		if (!state.alive || state.downed) continue
 		const d = Math.hypot(state.x - x, state.y - y)
 		if (d > radius + playerDef.radius) continue
-		world.hurt(state, damage * world.damageScale * (1 - 0.5 * Math.min(1, d / radius)), type)
+		world.hurt(state, damage * world.damageScale * (1 - (1 - EDGE_SHARE) * Math.min(1, d / radius)), type)
 		shove(world, state, x, y, push)
 	}
 }
@@ -209,22 +214,33 @@ export function landHazards(world: World): void {
 			if (!state.alive || state.downed) continue
 			const d = Math.hypot(state.x - hazard.x, state.y - hazard.y)
 			if (d <= hazard.radius + playerDef.radius)
-				world.hurt(state, hazard.damage * (1 - 0.5 * Math.min(1, d / hazard.radius)), hazard.type)
+				world.hurt(state, hazard.damage * (1 - (1 - EDGE_SHARE) * Math.min(1, d / hazard.radius)), hazard.type)
 		}
 	}
 }
 
 /** Picks a type from weighted composition with the room's rng. */
 function pick(world: World, composition: Record<string, number>): number {
-	let total = 0
-	for (const weight of Object.values(composition)) total += weight
-	let roll = world.rng.next() * total
-	for (const [id, weight] of Object.entries(composition)) {
-		roll -= weight
-		if (roll < 0) return zombieIndex(id)
+	let table = PICKS.get(composition)
+	if (!table) {
+		const entries = Object.entries(composition)
+		table = {
+			types: entries.map(([id]) => zombieIndex(id)),
+			weights: entries.map(([, weight]) => weight),
+			total: entries.reduce((sum, [, weight]) => sum + weight, 0)
+		}
+		PICKS.set(composition, table)
 	}
-	return zombieIndex(Object.keys(composition)[0] as string)
+	let roll = world.rng.next() * table.total
+	for (let n = 0; n < table.types.length; n++) {
+		roll -= table.weights[n] as number
+		if (roll < 0) return table.types[n] as number
+	}
+	return table.types[0] as number
 }
+
+/** each composition's kinds and weights, worked out the first time it is used */
+const PICKS = new WeakMap<Record<string, number>, { types: number[]; weights: number[]; total: number }>()
 
 /** A boss's phase tricks: calling others in, and lobbing at every player. */
 function bossTricks(world: World, i: number, def: ZombieDef): void {
@@ -441,7 +457,7 @@ function runCharge(world: World, i: number, def: ZombieDef): number {
 	const step = Math.min(left, speed * DT)
 	const dirX = left > 1e-6 ? (ex - x) / left : Math.cos(world.heading[i] as number)
 	const dirY = left > 1e-6 ? (ey - y) / left : Math.sin(world.heading[i] as number)
-	const out = { x: 0, y: 0 }
+	const out = MOVED
 	world.grid.moveCircle(x, y, dirX * step, dirY * step, def.radius * 0.8, out)
 	world.x[i] = out.x
 	world.y[i] = out.y

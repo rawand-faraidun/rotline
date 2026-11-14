@@ -1,13 +1,20 @@
 // Tick cost of full rooms: 4 players firing and moving, the horde at its cap.
-// `pnpm bench [rooms] [ticks] [map] [horde]`; horde `all` mixes in every kind (spitters, shields,
-// burrowers, chargers) instead of the three plain ones.
-import { maps, zombieIndex, zombies } from '@rotline/game-data'
+// `pnpm bench [rooms] [ticks] [map] [horde] [mode]`; horde `all` mixes in every kind (spitters,
+// shields, burrowers, chargers) instead of the three plain ones. Mode `waves` (the default) runs the
+// wave director, `survival` a Survival run (rounds, mutation), `mission:<id>` that mission on its own
+// map at Nightmare with every modifier that applies (objectives, spawn director, pools, Blackout).
+import { applicableModifiers, maps, missionById, missionMap, modifiers, zombieIndex, zombies } from '@rotline/game-data'
 import { SnapshotEncoder, Writer } from '@rotline/protocol'
 import { angleToAim, Button, MAX_ZOMBIES, type PlayerInput, World } from '@rotline/sim'
 
 const rooms = Number(process.argv[2] ?? 8)
 const ticks = Number(process.argv[3] ?? 900)
-const yard = (maps[process.argv[4] ?? 'yard'] ?? maps.yard) as NonNullable<typeof maps.yard>
+const mode = process.argv[6] ?? 'waves'
+const missionDef = mode.startsWith('mission:') ? missionById(mode.slice('mission:'.length)) : undefined
+if (mode.startsWith('mission:') && !missionDef) throw new Error(`no mission ${mode.slice('mission:'.length)}`)
+const yard = (missionDef ? missionMap(missionDef) : (maps[process.argv[4] ?? 'yard'] ?? maps.yard)) as NonNullable<
+	typeof maps.yard
+>
 const types = (
 	process.argv[5] === 'all'
 		? zombies.filter(zombie => !zombie.dummy && !zombie.boss).map(zombie => zombie.id)
@@ -15,8 +22,26 @@ const types = (
 ).map(zombieIndex)
 
 const worlds = Array.from({ length: rooms }, (_, r) => {
-	const world = new World({ seed: r + 1, map: yard, flowPhase: r })
-	for (let p = 1; p <= 4; p++) world.addPlayer(p)
+	const world = new World({
+		seed: r + 1,
+		map: yard,
+		flowPhase: r,
+		...(mode === 'survival' ? { survival: true } : {}),
+		...(missionDef
+			? {
+					mission: {
+						mission: missionDef,
+						difficulty: 'nightmare' as const,
+						modifiers: applicableModifiers(
+							modifiers.modifiers.map(entry => entry.id),
+							missionDef
+						)
+					}
+				}
+			: {})
+	})
+	// nobody dies: the bench measures a full fight, not a wipe
+	for (let p = 1; p <= 4; p++) world.addPlayer(p).safeUntilTick = Number.MAX_SAFE_INTEGER
 	return world
 })
 const encoders = worlds.map(() => [1, 2, 3, 4].map(id => new SnapshotEncoder(id)))

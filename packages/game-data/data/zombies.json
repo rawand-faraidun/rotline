@@ -486,8 +486,8 @@
 			{
 				"below": 0.33,
 				"name": "The Gardener goes to seed",
-				"speed": 1.3,
-				"cooldowns": 0.6,
+				"speed": 1.2,
+				"cooldowns": 0.8,
 				"summon": {
 					"everySeconds": 20,
 					"count": 4,
@@ -497,13 +497,13 @@
 					}
 				},
 				"lob": {
-					"everySeconds": 6,
+					"everySeconds": 9,
 					"flightSeconds": 1.2,
 					"damage": 20,
 					"radius": 2.6,
 					"type": "chemical",
 					"pool": {
-						"damagePerSecond": 12,
+						"damagePerSecond": 8,
 						"radius": 2.4,
 						"seconds": 7
 					}

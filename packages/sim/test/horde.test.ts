@@ -453,6 +453,16 @@ describe('mutations', () => {
 		expect(full - (world.health[index] as number)).toBeCloseTo(100 * (1 - share), 5)
 	})
 
+	it('a zombie standing still faces the nearest player, not one fixed way', () => {
+		const world = quietWorld()
+		const player = world.addPlayer(1)
+		const index = world.spawnZombie(zombieIndex('gardener'), { x: player.x, y: player.y - 6 })
+		world.vx[index] = 0
+		world.vy[index] = 0
+		// the player is straight "down" the map from it: +y
+		expect(world.facing(index)).toBeCloseTo(Math.PI / 2, 5)
+	})
+
 	it('a zombie keeps the stage it came in at when the horde mutates further', () => {
 		const world = quietWorld()
 		world.addPlayer(1)

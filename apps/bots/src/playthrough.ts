@@ -1,6 +1,6 @@
 // Plays a mission through on a running game server, as one headless player with a scripted mind:
 // it walks to the objective, fights from range, refills at an ammo station, sidesteps every attack
-// the server warns about, and logs each step, boss phase, down and the result.
+// the server warns about, steps out of pools, and logs each step, boss phase, down and the result.
 // node src/playthrough.ts --mission warden --difficulty recruit [--url ws://localhost:3200/game]
 import { randomUUID } from 'node:crypto'
 import { parseArgs } from 'node:util'
@@ -14,6 +14,8 @@ import {
 	zombies
 } from '@rotline/game-data'
 import {
+	PoolList,
+	type PoolState,
 	Reader,
 	readServerHeader,
 	readSnapshot,
@@ -92,6 +94,8 @@ function play(name: string, lead: boolean): void {
 	socket.binaryType = 'arraybuffer'
 	const writer = new Writer(256)
 	const table = new ZombieTable()
+	const poolList = new PoolList()
+	let pools: PoolState[] = []
 	let frame: SnapshotFrame | null = null
 	let seq = 0
 	const recent: PlayerInput[] = []
@@ -117,6 +121,7 @@ function play(name: string, lead: boolean): void {
 		else if (message.type === 'kick') log(`kicked: ${message.reason}`)
 		else if (message.type === 'snapshot') {
 			frame = readSnapshot(reader, table)
+			pools = poolList.apply(frame.pools, frame.tick)
 			const index = frame.mission.objective
 			if (index !== objective) {
 				objective = index
@@ -202,10 +207,16 @@ function play(name: string, lead: boolean): void {
 		const held = me.weapons[me.slot as 0 | 1 | 2]
 		const dry =
 			me.weapons[0].reserve === 0 && me.weapons[0].mag === 0 && me.weapons[1].reserve === 0 && me.weapons[1].mag === 0
+		// standing in a pool: straight out of it, the way it is shallowest
+		const pool = pools.find(entry => Math.hypot(me.x - entry.x, me.y - entry.y) < entry.radius + 0.6)
 		if (Date.now() < dodge.until) {
 			mx = dodge.x
 			my = dodge.y
 			buttons |= Button.sprint
+		} else if (pool) {
+			const d = Math.hypot(me.x - pool.x, me.y - pool.y) || 1
+			mx = (me.x - pool.x) / d + (centre.x - me.x) * 0.03
+			my = (me.y - pool.y) / d + (centre.y - me.y) * 0.03
 		} else if (dry && ammo && frame.mission.spendable >= 500) {
 			// out of everything but the pistol: to the ammo station, and hold E there
 			go(ammo.x + 1, ammo.y + 1.5)

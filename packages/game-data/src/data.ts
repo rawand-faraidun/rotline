@@ -427,6 +427,8 @@ function checkReachable(mission: MissionDef, map: MapDef): void {
 		}
 		const where = `missions/${mission.id}: objective ${index}`
 		if ('area' in objective) check(at(objective.area), `${where}'s area cannot be reached`)
+		// a boss must come in on open ground the squad can reach (not in water, not walled off)
+		if (objective.boss?.at) check(at(objective.boss.at), `${where}: the boss comes in where it cannot be reached`)
 		if (objective.type === 'interact' || objective.type === 'destroy')
 			for (const id of objective.props) check(near(id), `${where}: ${id} cannot be reached`)
 		if (objective.type === 'defend') check(near(objective.prop), `${where}: ${objective.prop} cannot be reached`)

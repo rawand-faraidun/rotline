@@ -162,6 +162,9 @@ export type Pool = {
 	type: DamageType
 }
 
+/** below this speed (squared, m²/s²) a zombie counts as standing and faces the nearest player */
+const STANDING_SPEED2 = 0.15 * 0.15
+
 /** Pools on the ground at once; the oldest dries up first. */
 const MAX_POOLS = 96
 
@@ -2312,10 +2315,28 @@ export class World {
 		for (let i = 0; i < MAX_ZOMBIES; i++) this.solid[i] = this.alive[i] === 1 && this.under[i] === 0 ? 1 : 0
 	}
 
-	/** Facing angle of a zombie: its guard's for shields and charges, else the way it walks. */
+	/**
+	 * Facing angle of a zombie: its guard's for shields and charges, else the way it walks; standing
+	 * (winding up, slamming, held up) it turns to the nearest player rather than staring one way.
+	 */
 	facing(index: number): number {
 		if (KEEPS_HEADING[this.type[index] as number]) return this.heading[index] as number
-		return Math.atan2(this.vy[index] as number, this.vx[index] as number)
+		const vx = this.vx[index] as number
+		const vy = this.vy[index] as number
+		if (vx * vx + vy * vy > STANDING_SPEED2) return Math.atan2(vy, vx)
+		const x = this.x[index] as number
+		const y = this.y[index] as number
+		let best = Number.POSITIVE_INFINITY
+		let angle = Math.atan2(vy, vx)
+		for (const state of this.players.values()) {
+			if (!state.alive) continue
+			const d = (state.x - x) * (state.x - x) + (state.y - y) * (state.y - y)
+			if (d < best) {
+				best = d
+				angle = Math.atan2(state.y - y, state.x - x)
+			}
+		}
+		return angle
 	}
 
 	/** A number that changes if anything in the simulation differs; for determinism tests. */
