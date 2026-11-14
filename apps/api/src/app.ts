@@ -13,6 +13,8 @@ import { recordRoutes } from './routes/records.ts'
 /** Limits by path: player search, progress changes, game tickets, and everything else social. */
 function writeLimit(path: string): { name: string; count: number; windowMs: number } | null {
 	if (path === '/api/friends/search') return { name: 'search', count: 30, windowMs: 10_000 }
+	if (path.startsWith('/api/records/') && path !== '/api/records/title')
+		return { name: 'records-read', count: 60, windowMs: 10_000 }
 	if (path.startsWith('/api/progress/')) return { name: 'progress', count: 20, windowMs: 1000 }
 	if (path.startsWith('/api/records/')) return { name: 'records', count: 10, windowMs: 10_000 }
 	if (path.startsWith('/api/game/')) return { name: 'game', count: 6, windowMs: 10_000 }
@@ -45,8 +47,10 @@ export function createApp(services: Services) {
 		.use(async (c, next) => {
 			const user = c.get('user')
 			const write = c.req.method === 'POST' || c.req.method === 'PUT'
-			// searching for players reads, but each search is a database query: it is limited too
-			const limit = user && (write || c.req.path === '/api/friends/search') ? writeLimit(c.req.path) : null
+			// searching for players and the records (leaderboards rank every player) read, but each is a
+			// heavier database query: they are limited too
+			const heavyRead = c.req.path === '/api/friends/search' || c.req.path.startsWith('/api/records/')
+			const limit = user && (write || heavyRead) ? writeLimit(c.req.path) : null
 			if (limit && !(await allow(services.valkey, `rl:${limit.name}:${user?.id}`, limit.count, limit.windowMs))) {
 				return c.json({ error: 'slow-down' as const }, 429)
 			}

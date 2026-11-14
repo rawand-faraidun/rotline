@@ -16,14 +16,19 @@ import { z } from 'zod'
 import { changeSalvage, type Tx } from './ledger.ts'
 
 /** Keys the API works out itself: no report may set them. */
-const DERIVED = new Set(['bestiary', 'challenges'])
+const DERIVED = new Set(['bestiary', 'challenges', 'gold'])
 const KINDS = new Set<string>(weapons.map(weapon => weapon.kind))
 /** The most of each a single report can plausibly carry (reports go out at every wave and checkpoint). */
-const PER_REPORT: Record<string, number> = { rounds: 5, revives: 60, objectives: 20, elites: 60 }
+const PER_REPORT: Record<string, number> = { kills: 10_000, rounds: 5, revives: 60, objectives: 20, elites: 60 }
 /** a bounty is brought down once a mission */
 const BOUNTY_KEY = /^bounty:/
 /** Stats only a finished mission's report may carry, and only for that mission. */
-const RESULT_KEYS = /^(missions|missions:.+|mission:.+|clean-missions|gold)$/
+const RESULT_KEYS = /^(missions|missions:.+|mission:.+|clean-missions)$/
+
+/** The tally without the stats of a finished mission (its result was already counted from this room). */
+export function withoutResult(tally: Tally): Tally {
+	return Object.fromEntries(Object.entries(tally).filter(([key]) => !RESULT_KEYS.test(key)))
+}
 
 /** A known stat: its zombie, weapon kind or mission exists. */
 function known(key: string): boolean {
@@ -128,23 +133,18 @@ export async function settleAchievements(tx: Tx, playerId: string, now = new Dat
 }
 
 /**
- * What a report's tally and Survival run change, in the grant's transaction (the caller has locked
- * the player): lifetime stats, the bestiary count, progress on this rotation's challenges (paying
- * the ones finished, once each, through the ledger), achievements reached, and the run itself.
- * Returns the achievements and challenges newly done, for the player to be told.
- */
-/**
- * A bounty counts only from a room the API recorded playing this week's bounty mission at its
- * difficulty; anything else is dropped from the tally.
+ * A bounty counts only from a room the API recorded playing the bounty's mission at its difficulty;
+ * anything else is dropped from the tally. The bounty is the one of the week the mission started in
+ * (a mission running past Monday midnight still hunts the bounty it started with).
  */
 export function fitBounty(
 	tally: Tally,
-	recorded: { id: string; difficulty: string } | 'survival' | null,
+	recorded: { id: string; difficulty: string; startedAt?: Date | null } | 'survival' | null,
 	now: Date
 ): Tally {
 	const keys = Object.keys(tally).filter(key => BOUNTY_KEY.test(key))
 	if (keys.length === 0) return tally
-	const bounty = currentBounty(now)
+	const bounty = currentBounty(recorded && recorded !== 'survival' ? (recorded.startedAt ?? now) : now)
 	const fits =
 		recorded !== null &&
 		recorded !== 'survival' &&
@@ -155,13 +155,19 @@ export function fitBounty(
 	return kept
 }
 
+/**
+ * What a report's tally and Survival run change, in the grant's transaction (the caller has locked
+ * the player): lifetime stats, the bestiary count, progress on this rotation's challenges (paying
+ * the ones finished, once each, through the ledger), the bounty, achievements reached, and the run
+ * itself (one per room). Returns the achievements and challenges newly done, for the player to be told.
+ */
 export async function applyRecords(
 	tx: Tx,
 	playerId: string,
-	tally: Tally,
-	survival: SurvivalRecord | undefined,
+	records: { tally: Tally; survival?: SurvivalRecord | undefined; room: string; bountyAt?: Date | undefined },
 	now: Date
 ): Promise<{ achievements: string[]; challenges: string[] }> {
+	const { tally, survival, room } = records
 	const entries = Object.entries(tally).filter(([, value]) => value > 0)
 	for (const [key, value] of entries) await addStat(tx, playerId, key, value)
 
@@ -187,20 +193,22 @@ export async function applyRecords(
 		})
 		if (!finished) continue
 		// paid once: the grant key is the player's and the rotation's
+		const grantKey = `challenge:${playerId}:${challenge.key}`
+		if (await tx.ledgerEntry.findUnique({ where: { grantKey }, select: { id: true } })) continue
 		await changeSalvage(
 			tx,
 			playerId,
 			challenge.reward,
 			LedgerReason.contract,
 			{ type: 'challenge', id: challenge.key },
-			`challenge:${playerId}:${challenge.key}`
+			grantKey
 		)
 		done.push(challenge.key)
 	}
 	if (done.length > 0) await addStat(tx, playerId, 'challenges', done.length)
 
-	// this week's bounty: paid once a week to each player who helped bring it down
-	const bounty = currentBounty(now)
+	// the week's bounty: paid once a week to each player who helped bring it down
+	const bounty = currentBounty(records.bountyAt ?? now)
 	if ((tally[`bounty:${bounty.bounty.id}`] ?? 0) > 0) {
 		const grantKey = `bounty:${playerId}:${bounty.key}`
 		if (!(await tx.ledgerEntry.findUnique({ where: { grantKey }, select: { id: true } })))
@@ -214,34 +222,25 @@ export async function applyRecords(
 			)
 	}
 
-	const earned: string[] = []
 	const touched = new Set([...entries.map(([key]) => key), 'bestiary', 'challenges'])
-	const candidates = achievements.filter(achievement => touched.has(achievement.stat))
-	if (candidates.length > 0) {
-		const [stats, unlocked] = await Promise.all([
-			tx.playerStat.findMany({ where: { playerId, key: { in: candidates.map(entry => entry.stat) } } }),
-			tx.achievementUnlock.findMany({ where: { playerId }, select: { achievementId: true } })
-		])
-		const value = new Map(stats.map(stat => [stat.key, stat.value]))
-		const have = new Set(unlocked.map(entry => entry.achievementId))
-		for (const achievement of candidates) {
-			if (have.has(achievement.id) || (value.get(achievement.stat) ?? 0n) < BigInt(achievement.target)) continue
-			await tx.achievementUnlock.create({ data: { playerId, achievementId: achievement.id, unlockedAt: now } })
-			earned.push(achievement.id)
-		}
-	}
+	const earned = achievements.some(achievement => touched.has(achievement.stat))
+		? await settleAchievements(tx, playerId, now)
+		: []
 
+	// one run per player and room: a report sent again cannot enter the same run twice
 	if (survival)
-		await tx.survivalRun.create({
+		await tx.survivalRun.createMany({
 			data: {
 				playerId,
+				room,
 				arena: survival.arena,
 				rounds: survival.rounds,
 				score: BigInt(survival.score),
 				timeMs: survival.timeMs,
 				squad: survival.squad,
 				createdAt: now
-			}
+			},
+			skipDuplicates: true
 		})
 	return { achievements: earned, challenges: done }
 }

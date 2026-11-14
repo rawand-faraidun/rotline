@@ -169,11 +169,16 @@ export function recordRoutes({ db }: Services) {
 					), ranked AS (
 						SELECT best.*, rank() OVER (ORDER BY rounds DESC, score DESC) AS place FROM best
 					)
-					SELECT ranked.*, p.name, p.avatar_style, p.avatar_seed, p.title_id
+					-- the first places (ties cut at the board's size), and the player's own line wherever it is
+					(SELECT ranked.*, p.name, p.avatar_style, p.avatar_seed, p.title_id
 					FROM ranked JOIN player p ON p.user_id = ranked.player_id
-					WHERE ranked.place <= ${BOARD_SIZE} OR ranked.player_id = ${user.id}::uuid
 					ORDER BY ranked.place, p.name
-					LIMIT ${BOARD_SIZE + 1}`
+					LIMIT ${BOARD_SIZE})
+					UNION
+					(SELECT ranked.*, p.name, p.avatar_style, p.avatar_seed, p.title_id
+					FROM ranked JOIN player p ON p.user_id = ranked.player_id
+					WHERE ranked.player_id = ${user.id}::uuid)
+					ORDER BY place, name`
 				return c.json(
 					rows.map(
 						(row): BoardRow => ({
@@ -217,11 +222,16 @@ export function recordRoutes({ db }: Services) {
 					FROM mission_progress
 					WHERE mission_id = ${mission.id} AND difficulty = ${difficulty.data}::difficulty AND completions > 0
 				)
-				SELECT ranked.*, p.name, p.avatar_style, p.avatar_seed, p.title_id
+				-- the first places (ties cut at the board's size), and the player's own line wherever it is
+				(SELECT ranked.*, p.name, p.avatar_style, p.avatar_seed, p.title_id
 				FROM ranked JOIN player p ON p.user_id = ranked.player_id
-				WHERE ranked.place <= ${BOARD_SIZE} OR ranked.player_id = ${user.id}::uuid
 				ORDER BY ranked.place, p.name
-				LIMIT ${BOARD_SIZE + 1}`
+				LIMIT ${BOARD_SIZE})
+				UNION
+				(SELECT ranked.*, p.name, p.avatar_style, p.avatar_seed, p.title_id
+				FROM ranked JOIN player p ON p.user_id = ranked.player_id
+				WHERE ranked.player_id = ${user.id}::uuid)
+				ORDER BY place, name`
 			return c.json(
 				rows.map(
 					(row): BoardRow => ({

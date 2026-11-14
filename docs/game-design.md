@@ -185,7 +185,7 @@ Earning (Veteran difficulty, 4-player squad, per player):
 | Objectives | 100 per primary, 150 per optional | 300 |
 | Mission completion | 250 × difficulty multiplier | 350 |
 | Score bonus | 1 per 1,000 score | 80 |
-| Contracts | daily 1,500, weekly 8,000 | (outside the mission) |
+| Contracts | daily 500, weekly 2,700 (bounty 5,000 a week) | (outside the mission) |
 | Discarded duplicates | 600–2,400 | (variable) |
 
 That is about **830 Salvage per mission, roughly 4,200 per hour** before contracts. Difficulty multipliers on rewards: Recruit ×0.7, Veteran ×1.0, Nightmare ×1.35, Apocalypse ×1.8; they apply to everything a mission pays (kills, objectives, completion, score and score thresholds).
@@ -466,9 +466,9 @@ In a squad there are no lives: a player at zero health goes down and waits to be
 
 The daily and weekly jobs the brief calls contracts are called **challenges** in the game, because Contracts is already the name of the short game mode (section 2).
 
-- **3 daily challenges** change at 00:00 UTC (1,500 Salvage each); **3 weekly challenges** change on Monday at 00:00 UTC (8,000 each). They are picked from the templates in `packages/game-data/data/challenges.json` by the date alone, so every server agrees without storing them, and the Records screen counts down to the next ones.
+- **3 daily challenges** change at 00:00 UTC (500 Salvage each); **3 weekly challenges** change on Monday at 00:00 UTC (2,700 each). They are picked from the templates in `packages/game-data/data/challenges.json` by the date alone, so every server agrees without storing them, and the Records screen counts down to the next ones.
 - Examples: "Kill 120 zombies with a shotgun", "Kill 12 Retchers", "Clear 10 Survival rounds", "Finish 3 missions with nobody bleeding out", "Complete 3 missions on Nightmare".
-- Progress is counted by the server from match events: every report a game server signs carries a tally (kills, by kind and by the weapon that made them, burns and poison included; revives; objectives; Survival rounds; elites; missions and contracts completed, by difficulty, and the ones nobody bled out in; golds). A finished challenge pays at once, through the ledger, once per player and rotation. Missing a day costs nothing: no streaks, no penalties.
+- Progress is counted by the server from match events: every report a game server signs carries a tally (kills, by kind and by the weapon that made them, burns and poison included; revives; objectives; Survival rounds; elites; missions and contracts completed, by difficulty, and the ones nobody bled out in). A mission's completions count only with its successful result, once per room; a revive of the same player counts once every three minutes; golds are counted by the API itself, the first time a mission and difficulty reaches gold mastery; a Survival run is entered once per room. A finished challenge pays at once, through the ledger, once per player and rotation. Missing a day costs nothing: no streaks, no penalties.
 - The API refuses a tally the play could not have produced (more kills than the report pays, more rounds or revives than a stretch between two reports allows, a mission completion without that mission's own successful result) and drops it, keeping the rest of the report.
 - **Bounties**: each week (Monday to Monday, UTC) one named elite haunts one campaign mission at one difficulty, picked from `bounties.json` by the date: **Old Ironjaw** (a Brute that charges harder and sooner, 25 % off bullets), **Mother Rot** (a Swell that spills Crawlers, spits, and bursts hard when it dies) or **The Whisper** (a Screamer that runs and calls eight more every 5 s). It comes in from out of sight 20 s into the mission's middle step, carries its name over its bar and is announced; brought down, it pays 5,000 Salvage once that week to everyone in the squad who played in the last minute, and counts for its achievement and title (Ironjaw's End, Rot Mother's Bane, Silencer). The API counts it only from a room it recorded on that mission at that difficulty. The Records screen shows the week's bounty, and the mission picker marks its mission.
 

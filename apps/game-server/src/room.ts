@@ -66,6 +66,8 @@ export const RESULTS_SECONDS = 20
 /** A room of one may stay paused this long; then the game simply goes on. */
 const MAX_PAUSE_MS = 10 * 60 * 1000
 const ACTIVE_TICKS = Math.round(economy.rewards.activeSeconds * TICK_RATE)
+/** a revive of the same player counts toward records at most once in this long */
+const REVIVE_COUNT_TICKS = 3 * 60 * TICK_RATE
 const DOUBLE_XP = buffs.buffs.find(buff => buff.id === 'double-xp')?.params.xp ?? 1
 
 /**
@@ -523,7 +525,8 @@ export class Room {
 			}
 			this.pendingEvents.push(event)
 			if (event.type === 'kill') this.credit(event.by, event.zombieType, event.weapon)
-			else if (event.type === 'player-revived') this.tallySlot(event.by, 'revives')
+			// a revive counts once per downed player every few minutes (two friends cannot farm them)
+			else if (event.type === 'player-revived' && this.reviveCounts(event.player)) this.tallySlot(event.by, 'revives')
 			else if (event.type === 'player-out') this.bledOut = true
 			// a bounty brought down counts for everyone who played toward it
 			else if (event.type === 'bounty-down' && this.bounty) this.tallyPlaying(`bounty:${this.bounty.id}`, true)
@@ -648,6 +651,17 @@ export class Room {
 		member.earnings.salvage += salvage
 	}
 
+	/** when each player's last revive was counted (room ticks) */
+	private readonly revivedAt = new Map<number, number>()
+
+	/** A revive of this player counts if their last one counted was long enough ago. */
+	private reviveCounts(slot: number): boolean {
+		const last = this.revivedAt.get(slot)
+		if (last !== undefined && this.world.tick - last < REVIVE_COUNT_TICKS) return false
+		this.revivedAt.set(slot, this.world.tick)
+		return true
+	}
+
 	/** Adds to a member's tally. */
 	private tally(member: Member, key: string, amount = 1): void {
 		member.earnings.tally[key] = (member.earnings.tally[key] ?? 0) + amount
@@ -739,7 +753,6 @@ export class Room {
 				this.tally(member, `missions:${room.difficulty}`)
 				this.tally(member, `mission:${room.id}`)
 				if (!this.bledOut) this.tally(member, 'clean-missions')
-				if (mastery === 3) this.tally(member, 'gold')
 				const reward = economy.rewards.completion
 				const doubled = this.world.tick < this.world.doubleXpUntil ? DOUBLE_XP : 1
 				this.add(member, reward.xp * doubled * this.rewardScale, reward.salvage * this.rewardScale)

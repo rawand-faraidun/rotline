@@ -101,6 +101,44 @@ describe('records', () => {
 		expect(achievements.find(entry => entry.id === 'harrow')?.unlockedAt).toBeNull()
 	})
 
+	it('counts a mission once per room, gold once per mission, and a Survival run once per room', async () => {
+		const player = await enlist('Wyn')
+		// fast, every optional objective, a big score, nobody down: gold
+		const won = {
+			missionId: 'landfall',
+			difficulty: 'veteran',
+			success: true,
+			timeMs: 60_000,
+			score: 10_000_000,
+			downs: 0,
+			squad: 1,
+			optionalDone: 5
+		}
+		const tally = { missions: 1, 'missions:veteran': 1, 'mission:landfall': 1 }
+		const stat = async (key: string) =>
+			(await db.playerStat.findUnique({ where: { playerId_key: { playerId: player.id, key } } }))?.value ?? 0n
+		// two reports from one room: the second carries no result, so its mission stats are dropped
+		const room = 'squad-00000000-0000-4000-8000-00000000aaaa'
+		const inRoom = (n: number, extra: Record<string, unknown>) => ({
+			...report(player.id, extra),
+			grantKey: `${room}:${player.id}:abcdef01:${n}`
+		})
+		await grantReward(db, valkey, inRoom(1, { tally, result: won }))
+		await grantReward(db, valkey, inRoom(2, { tally, result: won }))
+		expect(await stat('missions')).toBe(1n)
+		expect(await stat('mission:landfall')).toBe(1n)
+		expect(await stat('gold')).toBe(1n)
+		// another room, the same mission: completions count again, gold does not
+		await grantReward(db, valkey, report(player.id, { tally, result: won }))
+		expect(await stat('missions')).toBe(2n)
+		expect(await stat('gold')).toBe(1n)
+		// the same Survival run sent twice from one room is entered once
+		const run = { arena: 'survival-docks', rounds: 4, score: 1000, timeMs: 600_000, squad: 1 }
+		await grantReward(db, valkey, inRoom(3, { survival: run }))
+		await grantReward(db, valkey, inRoom(4, { survival: run }))
+		expect(await db.survivalRun.count({ where: { playerId: player.id } })).toBe(1)
+	})
+
 	it('ranks Survival runs by rounds, then score, one line per player', async () => {
 		const first = await enlist('Uli')
 		const second = await enlist('Vic')
@@ -171,5 +209,12 @@ describe('bounties', () => {
 			kills: 3
 		})
 		expect(fitBounty({ [key]: 1 }, 'survival', now)).toEqual({})
+		// a mission that started last week still hunts last week's bounty
+		const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+		const earlier = currentBounty(lastWeek)
+		const recorded = { id: earlier.mission, difficulty: earlier.difficulty, startedAt: lastWeek }
+		expect(fitBounty({ [`bounty:${earlier.bounty.id}`]: 1 }, recorded, now)).toEqual({
+			[`bounty:${earlier.bounty.id}`]: 1
+		})
 	})
 })

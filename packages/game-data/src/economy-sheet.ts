@@ -1,4 +1,4 @@
-import { abilities, economy, zombies } from './data.ts'
+import { abilities, bounties, challenges, economy, zombies } from './data.ts'
 import { items, upgradeTotal } from './items.ts'
 
 /**
@@ -30,6 +30,20 @@ export function economySheet(): string {
 	for (const zombie of zombies.filter(entry => !entry.dummy))
 		rows.push(['earn per kill', zombie.id, zombie.name, '', zombie.salvage, ''])
 	rows.push(['earn per wave', 'wave-clear', 'Wave cleared', '', economy.rewards.waveClear.salvage, ''])
+	// income outside missions: every daily and weekly challenge done, and the week's bounty
+	const daily = challenges.daily.count * challenges.daily.reward
+	const weekly = challenges.weekly.count * challenges.weekly.reward
+	rows.push(['earn per day', 'challenges-daily', `All ${challenges.daily.count} daily challenges`, '', daily, ''])
+	rows.push(['earn per week', 'challenges-weekly', `All ${challenges.weekly.count} weekly challenges`, '', weekly, ''])
+	rows.push(['earn per week', 'bounty', "The week's bounty", '', bounties.reward, ''])
+	rows.push([
+		'earn per day',
+		'outside-missions',
+		'Challenges and bounty, spread over the week',
+		'',
+		Math.round(daily + (weekly + bounties.reward) / 7),
+		''
+	])
 	rows.push(['abilities', 'count', `${abilities.length} active abilities`, '', '', ''])
 	return `${rows.map(row => row.map(cell => (String(cell).includes(',') ? `"${cell}"` : cell)).join(',')).join('\n')}\n`
 }

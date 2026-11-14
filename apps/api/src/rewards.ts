@@ -14,7 +14,8 @@ import {
 	type SurvivalRecord,
 	survivalSchema,
 	type Tally,
-	tallySchema
+	tallySchema,
+	withoutResult
 } from './lib/records.ts'
 
 const GROUP = 'api'
@@ -97,10 +98,13 @@ async function grantItems(tx: Tx, playerId: string, items: string[], room: strin
 	}
 }
 
-/** Completions, best time, best score and the best mastery, per mission and difficulty. */
-async function recordResult(tx: Tx, playerId: string, result: NonNullable<Report['result']>): Promise<void> {
+/**
+ * Completions, best time, best score and the best mastery, per mission and difficulty. Returns
+ * whether this result reached gold mastery there for the first time.
+ */
+async function recordResult(tx: Tx, playerId: string, result: NonNullable<Report['result']>): Promise<boolean> {
 	const mission = missionById(result.missionId)
-	if (!mission || !result.success) return
+	if (!mission || !result.success) return false
 	const mastery = masteryFor(mission, result)
 	const key = { playerId_missionId_difficulty: { playerId, missionId: mission.id, difficulty: result.difficulty } }
 	const current = await tx.missionProgress.findUnique({ where: key })
@@ -115,6 +119,7 @@ async function recordResult(tx: Tx, playerId: string, result: NonNullable<Report
 		create: { playerId, missionId: mission.id, difficulty: result.difficulty, ...data },
 		update: data
 	})
+	return data.mastery === 'gold' && current?.mastery !== 'gold'
 }
 
 /**
@@ -125,7 +130,9 @@ export async function grantReward(
 	db: Database,
 	valkey: Valkey | null,
 	input: RewardReport,
-	now = new Date()
+	now = new Date(),
+	/** when the room's mission started: its week's bounty is the one it hunts */
+	bountyAt?: Date
 ): Promise<boolean> {
 	// a deleted player cannot be paid; nothing is recorded for them
 	if (!(await db.player.findUnique({ where: { userId: input.userId }, select: { userId: true } }))) return false
@@ -160,7 +167,12 @@ export async function grantReward(
 					}
 				})
 				await grantItems(tx, input.userId, items, room)
-				if (result) await recordResult(tx, input.userId, result)
+				// gold counts once per mission and difficulty, the first time it is reached
+				const gold = result ? await recordResult(tx, input.userId, result) : false
+				// a finished mission's stats (and its bounty) count with its result only, once per room
+				let tally = (input.tally ?? {}) as Tally
+				if (!result) tally = withoutResult(tally)
+				if (gold) tally = { ...tally, gold: 1 }
 				if (input.xp > 0) {
 					await tx.classProgress.upsert({
 						where: { playerId_class: { playerId: input.userId, class: input.class } },
@@ -168,8 +180,13 @@ export async function grantReward(
 						update: { xp: { increment: BigInt(input.xp) } }
 					})
 				}
-				if (input.tally || input.survival)
-					await applyRecords(tx, input.userId, (input.tally ?? {}) as Tally, input.survival as SurvivalRecord, now)
+				if (Object.keys(tally).length > 0 || input.survival)
+					await applyRecords(
+						tx,
+						input.userId,
+						{ tally, survival: input.survival as SurvivalRecord | undefined, room, bountyAt },
+						now
+					)
 				if (input.salvage > 0) {
 					await changeSalvage(
 						tx,
@@ -327,6 +344,9 @@ export class RewardWorker {
 			// items and a result must fit the room's recorded mission; if not they are dropped (and logged)
 			let grant: Report = parsed.data
 			const room = GRANT_KEY.exec(grant.grantKey)?.[1] ?? ''
+			// one clock and one read of the room's record for every check on this report
+			const now = new Date()
+			const recorded = await roomMission(this.valkey, room)
 			if (!(await matchesRoom(this.valkey, room, grant))) {
 				this.log.error({ id, grantKey: grant.grantKey }, 'reward report items or result do not fit the room')
 				const { items: _items, result: _result, ...rest } = grant
@@ -340,17 +360,15 @@ export class RewardWorker {
 			}
 			// a bounty counts only from a room playing this week's bounty mission
 			if (grant.tally && Object.keys(grant.tally).some(key => key.startsWith('bounty:')))
-				grant = { ...grant, tally: fitBounty(grant.tally, await roomMission(this.valkey, room), new Date()) }
-			if (
-				grant.survival &&
-				(!plausibleSurvival(grant.survival) || (await roomMission(this.valkey, room)) !== 'survival')
-			) {
+				grant = { ...grant, tally: fitBounty(grant.tally, recorded, now) }
+			if (grant.survival && (!plausibleSurvival(grant.survival) || recorded !== 'survival')) {
 				this.log.error({ id, grantKey: grant.grantKey }, 'reward report Survival run does not fit')
 				const { survival: _survival, ...rest } = grant
 				grant = rest
 			}
 			try {
-				await grantReward(this.db, this.valkey, grant)
+				const bountyAt = recorded && recorded !== 'survival' ? (recorded.startedAt ?? undefined) : undefined
+				await grantReward(this.db, this.valkey, grant, now, bountyAt)
 				await this.valkey.xack(this.stream, GROUP, id)
 			} catch (error) {
 				// a player who no longer exists cannot be paid; anything else is retried later

@@ -420,7 +420,6 @@ model PlayerStat {
   player   Player @relation(fields: [playerId], references: [userId], onDelete: Cascade)
 
   @@id([playerId, key])
-  @@index([key])
   @@map("player_stat")
 }
 
@@ -455,11 +454,14 @@ model SurvivalRun {
   score     BigInt
   timeMs    Int      @map("time_ms")
   squad     Int
+  /// the room the run was played in (a report sent again cannot enter it twice); older runs have none
+  room      String?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   player    Player   @relation(fields: [playerId], references: [userId], onDelete: Cascade)
 
+  @@unique([playerId, room])
   @@index([arena, rounds(sort: Desc), score(sort: Desc)])
+  @@index([arena, playerId, rounds(sort: Desc), score(sort: Desc), timeMs])
   @@index([arena, createdAt])
-  @@index([playerId])
   @@map("survival_run")
 }

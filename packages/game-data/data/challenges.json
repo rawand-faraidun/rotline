@@ -1,11 +1,11 @@
 {
 	"daily": {
 		"count": 3,
-		"reward": 1500
+		"reward": 500
 	},
 	"weekly": {
 		"count": 3,
-		"reward": 8000
+		"reward": 2700
 	},
 	"templates": [
 		{
