@@ -1,5 +1,13 @@
 # @rotline/auth
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [6d8343e]
+- Updated dependencies [b673312]
+  - @rotline/db@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

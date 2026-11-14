@@ -1,5 +1,17 @@
 # @rotline/queue
 
+## 0.8.0
+
+### Patch Changes
+
+- 6d8343e: - **Server images on Node 26.13.0 with Debian's latest security fixes** (apt and zlib), so the image scan passes.
+- Updated dependencies [6d8343e]
+- Updated dependencies [b673312]
+- Updated dependencies [012bfc4]
+  - @rotline/db@0.8.0
+  - @rotline/state@0.8.0
+  - @rotline/auth@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

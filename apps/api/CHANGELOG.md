@@ -1,5 +1,50 @@
 # @rotline/api
 
+## 0.8.0
+
+### Minor Changes
+
+- dc8a54d: - **Weekly bounties:** each week one named elite haunts one campaign mission at one difficulty: Old Ironjaw, Mother Rot or The Whisper. Bring it down for 5,000 Salvage, once a week for everyone in the squad who helped, plus its title. The Records screen shows this week's bounty, and the mission picker marks its mission.
+- 4849b0f: - **Mission modifiers:** the leader can switch on harder rules beside the difficulty, for up to 60 % more rewards. The rules are Swarm (more zombies), Hardened (tougher zombies), Fragile (less health), Scarce ammunition, Blackout (the lights go out) and One life. The lobby shows what is on and the bonus.
+  - **Fixed:** the health bar measured against 100 instead of your real maximum, so it looked full until you were badly hurt.
+- 28153c5: - **Quick play:** on your own in the lobby, press Quick play to join an open squad that has room. If none is waiting, your squad opens so the next player to press it joins you.
+  - **Open squads:** a leader can open the squad to anyone, or keep it invite only (the default).
+- cd0ec23: - **Records:** a new screen with four tabs.
+    - **Challenges:** three daily and three weekly, new ones every day and every Monday. They pay Salvage the moment they are done.
+    - **Leaderboards:** for each Survival arena, this week and all time, and for each campaign mission at each difficulty.
+    - **Bestiary:** every kind of zombie you have killed, what it does and what works against it.
+    - **Achievements:** 28 of them, each earning a title you can wear beside your name in the lobby, on squad cards and on the leaderboards.
+  - Your kills are now counted by kind and by the weapon that made them, along with revives, objectives, rounds and missions.
+
+### Patch Changes
+
+- f9919fa: - **Achievements for what you already did:** missions, difficulties and golds from before Records existed now count, so finishing Iron Maw or Terminus earlier earns those achievements. Kills, revives and rounds count from when Records arrived.
+  - **The objective marker and teammate arrows never hide behind the HUD** (the objective panel, the minimap, the weapons): they step out to the side.
+- e275c7c: - **Blackout really hides what is in the dark**: the server sends no zombie farther than a weapon light reaches.
+  - **Modifiers that change nothing are not offered and pay nothing**: Blackout on missions that are dark already, One life on contracts.
+  - **A strain stops at 60 % resistance** with what the kind already shrugs off, and a zombie keeps the mutation stage it came in at.
+  - **The Gardener stays above ground longer and is a little less tough**, so he can be fought rather than chased.
+  - **Pools on the ground cost far less to send**: each goes once, with how long it lasts; a player joining late sees the horde's mutation stage at once.
+  - **A gas canister that downs the last player no longer leaves its pool behind after the wipe.**
+- 6d8343e: - **Server images on Node 26.13.0 with Debian's latest security fixes** (apt and zlib), so the image scan passes.
+- b673312: - **Challenges pay what the economy plans for**: 500 Salvage for each daily, 2,700 for each weekly (the bounty stays 5,000 a week).
+  - **Records count fairly**: a mission counts once per room, gold counts the first time a mission and difficulty reaches it, a revive of the same teammate counts once every three minutes, and a Survival run is entered once.
+  - **A bounty mission that runs past Monday midnight still pays the bounty it started with.**
+  - **Leaderboards always show the first 20 places and your own line**, and load faster.
+- 012bfc4: - **A squad code no longer works for someone the squad blocks (or who blocks it)**, and a player the leader kicks cannot rejoin for half an hour.
+  - **When the leader leaves, the squad closes to strangers** until the new leader opens it again; quick play only ever joins squads that are still open.
+- Updated dependencies [df1abfd]
+- Updated dependencies [e275c7c]
+- Updated dependencies [6d8343e]
+- Updated dependencies [b673312]
+- Updated dependencies [012bfc4]
+  - @rotline/game-data@0.8.0
+  - @rotline/db@0.8.0
+  - @rotline/state@0.8.0
+  - @rotline/ticket@0.8.0
+  - @rotline/auth@0.8.0
+  - @rotline/constants@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes

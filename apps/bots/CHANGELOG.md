@@ -1,5 +1,19 @@
 # @rotline/bots
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [df1abfd]
+- Updated dependencies [48265b4]
+- Updated dependencies [e275c7c]
+- Updated dependencies [d685e00]
+  - @rotline/sim@0.8.0
+  - @rotline/game-data@0.8.0
+  - @rotline/protocol@0.8.0
+  - @rotline/client@0.8.0
+  - @rotline/ticket@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

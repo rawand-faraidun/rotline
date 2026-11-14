@@ -1,5 +1,29 @@
 # @rotline/client
 
+## 0.8.0
+
+### Patch Changes
+
+- e275c7c: - **Blackout really hides what is in the dark**: the server sends no zombie farther than a weapon light reaches.
+  - **Modifiers that change nothing are not offered and pay nothing**: Blackout on missions that are dark already, One life on contracts.
+  - **A strain stops at 60 % resistance** with what the kind already shrugs off, and a zombie keeps the mutation stage it came in at.
+  - **The Gardener stays above ground longer and is a little less tough**, so he can be fought rather than chased.
+  - **Pools on the ground cost far less to send**: each goes once, with how long it lasts; a player joining late sees the horde's mutation stage at once.
+  - **A gas canister that downs the last player no longer leaves its pool behind after the wipe.**
+- d685e00: - **The gamepad's Start button works while the game is paused**, so it can close the menu it opened.
+  - **Switching tips on or off in the pause menu works at once**, in the game you are playing.
+  - **Tips appear in the top centre**, under the boss bar, clear of the squad list.
+  - **Records tabs work with the arrow keys, Home and End**; achievements say Done or Locked in words, and a title that cannot be changed says so.
+  - **The focus ring shows on cut-corner buttons and panels.**
+  - **Screen readers hear radio messages, tips, toasts and banners reliably.**
+  - **Smoother busy fights**: attack warnings reuse their meshes, zombie parts send only what is drawn, and the HUD measures its panels four times a second instead of every frame.
+- Updated dependencies [df1abfd]
+- Updated dependencies [48265b4]
+- Updated dependencies [e275c7c]
+  - @rotline/sim@0.8.0
+  - @rotline/game-data@0.8.0
+  - @rotline/protocol@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

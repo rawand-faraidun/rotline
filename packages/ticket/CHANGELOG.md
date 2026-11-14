@@ -1,5 +1,13 @@
 # @rotline/ticket
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [df1abfd]
+- Updated dependencies [e275c7c]
+  - @rotline/game-data@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

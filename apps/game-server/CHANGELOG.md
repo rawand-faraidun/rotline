@@ -1,5 +1,57 @@
 # @rotline/game-server
 
+## 0.8.0
+
+### Minor Changes
+
+- dc8a54d: - **Weekly bounties:** each week one named elite haunts one campaign mission at one difficulty: Old Ironjaw, Mother Rot or The Whisper. Bring it down for 5,000 Salvage, once a week for everyone in the squad who helped, plus its title. The Records screen shows this week's bounty, and the mission picker marks its mission.
+- 4849b0f: - **Mission modifiers:** the leader can switch on harder rules beside the difficulty, for up to 60 % more rewards. The rules are Swarm (more zombies), Hardened (tougher zombies), Fragile (less health), Scarce ammunition, Blackout (the lights go out) and One life. The lobby shows what is on and the bonus.
+  - **Fixed:** the health bar measured against 100 instead of your real maximum, so it looked full until you were badly hurt.
+- b6a4e35: - **The horde mutates:** in Harrow, on Nightmare and Apocalypse, and every 8 rounds of Survival, zombies get tougher and gain traits. Each kind has its own order of traits: armoured, swift, toxic, regenerating, volatile, fireproof and insulated. The bestiary lists them, and the horde darkens with each stage.
+  - **Adaptive strains:** lean on one damage type and the horde answers. A strain hardened against it appears, drawn with a pale crust and announced on screen. Switch weapons.
+  - **Hardened** now pushes mutations one stage further.
+- cd0ec23: - **Records:** a new screen with four tabs.
+    - **Challenges:** three daily and three weekly, new ones every day and every Monday. They pay Salvage the moment they are done.
+    - **Leaderboards:** for each Survival arena, this week and all time, and for each campaign mission at each difficulty.
+    - **Bestiary:** every kind of zombie you have killed, what it does and what works against it.
+    - **Achievements:** 28 of them, each earning a title you can wear beside your name in the lobby, on squad cards and on the leaderboards.
+  - Your kills are now counted by kind and by the weapon that made them, along with revives, objectives, rounds and missions.
+- e2951ef: - **The Gardener, Harrow's boss:** patient zero has grown into the botanical gardens. A new mission in the Glasshouse, open once Terminus is done. He lobs spore pods, brings the ground down round him and, when you keep your distance, sinks into the earth to burst out under you. He burns half again as fast, so bring fire. A new achievement and title come with him.
+- 0cdc42c: - **Four new zombies with attacks of their own:** the **Retcher** stands off and spits acid where you stand (step out of the ring), the **Bulwark** carries a riot shield that turns bullets from the front (flank it; blasts and fire go round), the **Delver** burrows under the ground and bursts out beneath you (keep moving when the ground cracks), and the **Cinder** burns, leaves fire where it walks and does not mind your flamethrower. They join the campaign missions, the contracts and Survival from round 4.
+  - **The Brute charges:** its lane is marked on the ground before it runs. Step aside, and if it runs into a wall it stands there dazed.
+  - **The Warden, Ashgate's boss:** a new mission in Landfall's town square, open once Iron Maw is done (Harrow does not wait for it). He charges, slams the ground round him, calls the riot line in and throws gas when he is losing, and announces each phase.
+  - **Every attack is shown before it lands**, with a ring or a lane that fills as the moment comes.
+  - **Sprint:** hold Shift to run while your stamina lasts (no firing at a run). The bar sits under your health.
+  - **The horde comes in waves within a mission:** pressure builds, peaks and eases off instead of staying flat, and eases off early when someone is down.
+  - **Fixed:** refilling at an ammo station could be read by other players' games as the mission being lost; a pool of acid that downed the last player standing could crash the room.
+
+### Patch Changes
+
+- df1abfd: - **The Gardener comes up on the palm house floor, not in its pool**, so he can walk to you; the Rail Yard's Brute no longer comes in inside a wall.
+  - **Zombies standing still turn to face you** (winding up, slamming, held up) instead of staring one way.
+  - **The Gardener's second phase is fairer**: a little slower, his canisters every 9 seconds with a weaker pool.
+  - Smoother servers in busy fights: fewer objects made each tick, each kind counted once a tick.
+- e275c7c: - **Blackout really hides what is in the dark**: the server sends no zombie farther than a weapon light reaches.
+  - **Modifiers that change nothing are not offered and pay nothing**: Blackout on missions that are dark already, One life on contracts.
+  - **A strain stops at 60 % resistance** with what the kind already shrugs off, and a zombie keeps the mutation stage it came in at.
+  - **The Gardener stays above ground longer and is a little less tough**, so he can be fought rather than chased.
+  - **Pools on the ground cost far less to send**: each goes once, with how long it lasts; a player joining late sees the horde's mutation stage at once.
+  - **A gas canister that downs the last player no longer leaves its pool behind after the wipe.**
+- 6d8343e: - **Server images on Node 26.13.0 with Debian's latest security fixes** (apt and zlib), so the image scan passes.
+- b673312: - **Challenges pay what the economy plans for**: 500 Salvage for each daily, 2,700 for each weekly (the bounty stays 5,000 a week).
+  - **Records count fairly**: a mission counts once per room, gold counts the first time a mission and difficulty reaches it, a revive of the same teammate counts once every three minutes, and a Survival run is entered once.
+  - **A bounty mission that runs past Monday midnight still pays the bounty it started with.**
+  - **Leaderboards always show the first 20 places and your own line**, and load faster.
+- Updated dependencies [df1abfd]
+- Updated dependencies [48265b4]
+- Updated dependencies [e275c7c]
+- Updated dependencies [012bfc4]
+  - @rotline/sim@0.8.0
+  - @rotline/game-data@0.8.0
+  - @rotline/protocol@0.8.0
+  - @rotline/state@0.8.0
+  - @rotline/ticket@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes
