@@ -89,6 +89,44 @@
 			"name": "M134 handheld (Minigun)",
 			"author": "boriseviav",
 			"length": 1.0
+		},
+		{
+			"id": "hornet-5",
+			"uid": "fad0226e1dcf4af180f707a5509d3a4e",
+			"name": "HK MP5 SMG",
+			"author": "dani-zzz",
+			"length": 0.68,
+			"flip": true
+		},
+		{
+			"id": "kalash-47",
+			"uid": "5d08c2e227d04a0f87cd5a005e6b56d1",
+			"name": "AK-47 Kalashnikov",
+			"author": "Jeyhun1985",
+			"length": 0.88,
+			"flip": true
+		},
+		{
+			"id": "pump-870",
+			"uid": "6db0ad4764d14eee8f063eea3600071b",
+			"name": "Remington 870 Shotgun",
+			"author": "milinam2002",
+			"length": 1.0
+		},
+		{
+			"id": "gunner-pk",
+			"uid": "79bc67a78b434e65950f0257fe5f09a5",
+			"name": "PKM Machine Gun",
+			"author": "futureoverhope",
+			"length": 1.17
+		},
+		{
+			"id": "anvil-50",
+			"uid": "bb0831f237494699b6651da9177d36e4",
+			"name": "low-poly Barrett M82 A1",
+			"author": "DU1701",
+			"length": 1.45,
+			"drop": "^(\\.50 bmg_0|50bmg_1|50bmg m82 10rnd mag_3)$"
 		}
 	]
 }

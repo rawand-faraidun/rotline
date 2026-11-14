@@ -41,6 +41,16 @@ test('classes, skills, armory and shop', async ({ page }) => {
 	await expect(page.getByTestId('points-left')).toHaveText('0 points to spend')
 	await page.getByRole('button', { name: /equip in slot 1/i }).click()
 	await expect(page.getByTestId('ability-slot-1')).toContainText('Medkit Drop')
+	// choosing a class on the skills screen plays it, and it stays chosen after a reload
+	const switched = (name: RegExp) =>
+		Promise.all([
+			page.waitForResponse(response => response.url().endsWith('/api/progress/class')),
+			page.getByRole('tab', { name }).click()
+		])
+	await switched(/^heavy/i)
+	await page.reload()
+	await expect(page.getByRole('tab', { name: /^heavy/i })).toHaveAttribute('aria-selected', 'true')
+	await switched(/^medic/i)
 
 	// armory: the starter kit, and swapping the two main weapons
 	await page.getByRole('link', { name: /^armory$/i }).click()

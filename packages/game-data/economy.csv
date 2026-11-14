@@ -11,6 +11,11 @@ buy,kiln,Kiln,2,12600,3.0
 buy,thumper,GL-06,3,25200,6.0
 buy,arclight,AUG,2,12600,3.0
 buy,viper,Viper,2,12600,3.0
+buy,hornet-5,MP5,1,5400,1.3
+buy,kalash-47,AK-47,1,5400,1.3
+buy,pump-870,Remington 870,1,5400,1.3
+buy,gunner-pk,PKM,2,12600,3.0
+buy,anvil-50,Barrett M82,3,25200,6.0
 buy,field-helmet,Field Helmet,0,1350,0.3
 buy,ridge-helmet,Ridge Helmet,2,12600,3.0
 buy,bastion-helmet,Bastion Helmet,3,25200,6.0
@@ -45,6 +50,11 @@ upgrade 1-10,kiln,Kiln,2,87960,20.9
 upgrade 1-10,thumper,GL-06,3,138230,32.9
 upgrade 1-10,arclight,AUG,2,87960,20.9
 upgrade 1-10,viper,Viper,2,87960,20.9
+upgrade 1-10,hornet-5,MP5,1,50280,12.0
+upgrade 1-10,kalash-47,AK-47,1,50280,12.0
+upgrade 1-10,pump-870,Remington 870,1,50280,12.0
+upgrade 1-10,gunner-pk,PKM,2,87960,20.9
+upgrade 1-10,anvil-50,Barrett M82,3,138230,32.9
 upgrade 1-10,field-helmet,Field Helmet,0,37700,9.0
 upgrade 1-10,ridge-helmet,Ridge Helmet,2,87960,20.9
 upgrade 1-10,bastion-helmet,Bastion Helmet,3,138230,32.9
@@ -76,5 +86,18 @@ earn per kill,swell,Swell,,3,
 earn per kill,crawler,Crawler,,0.5,
 earn per kill,brute,Brute,,12,
 earn per kill,screamer,Screamer,,3,
+earn per kill,retcher,Retcher,,2,
+earn per kill,bulwark,Bulwark,,4,
+earn per kill,delver,Delver,,4,
+earn per kill,cinder,Cinder,,3,
+earn per kill,warden,The Warden,,150,
+earn per kill,gardener,The Gardener,,180,
+earn per kill,old-ironjaw,Old Ironjaw,,40,
+earn per kill,mother-rot,Mother Rot,,40,
+earn per kill,the-whisper,The Whisper,,40,
 earn per wave,wave-clear,Wave cleared,,25,
+earn per day,challenges-daily,All 3 daily challenges,,1500,
+earn per week,challenges-weekly,All 3 weekly challenges,,8100,
+earn per week,bounty,The week's bounty,,5000,
+earn per day,outside-missions,"Challenges and bounty, spread over the week",,3371,
 abilities,count,18 active abilities,,,

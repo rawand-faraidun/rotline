@@ -13,7 +13,10 @@
 		"scale": 1,
 		"deathBurst": null,
 		"xp": 4,
-		"salvage": 0.5
+		"salvage": 0.5,
+		"about": "The baseline dead: slow, hunched and everywhere. One is nothing; forty in a doorway is the mission.",
+		"answer": "Any gun. Do not let them close the ring round you.",
+		"mutations": ["armoured", "toxic", "swift"]
 	},
 	{
 		"id": "bolter",
@@ -29,7 +32,10 @@
 		"scale": 0.9,
 		"deathBurst": null,
 		"xp": 6,
-		"salvage": 1
+		"salvage": 1,
+		"about": "A runner, thin and fast, that comes straight in ahead of the crowd.",
+		"answer": "Keep moving and keep a shotgun or an SMG ready; it dies to a few rounds.",
+		"mutations": ["swift", "toxic", "armoured"]
 	},
 	{
 		"id": "swell",
@@ -51,7 +57,14 @@
 			"poolSeconds": 8
 		},
 		"xp": 15,
-		"salvage": 3
+		"salvage": 3,
+		"about": "Bloated with gas. It bursts when it dies and leaves a pool that eats at whoever stands in it.",
+		"answer": "Kill it at range, or among the others: its burst hurts them too.",
+		"mutations": ["regenerating", "armoured", "swift"],
+		"look": {
+			"width": 1.15,
+			"sacs": "#7f9a3a"
+		}
 	},
 	{
 		"id": "target-dummy",
@@ -68,7 +81,9 @@
 		"tint": "#c9b48a",
 		"scale": 1.1,
 		"deathBurst": null,
-		"dummy": true
+		"dummy": true,
+		"about": "A dummy on the firing range.",
+		"answer": "Shoot it."
 	},
 	{
 		"id": "crawler",
@@ -84,7 +99,10 @@
 		"scale": 0.85,
 		"deathBurst": null,
 		"xp": 5,
-		"salvage": 0.5
+		"salvage": 0.5,
+		"about": "Low, quick and easy to miss under the horde's feet.",
+		"answer": "Watch the floor. Blasts and flame clear them.",
+		"mutations": ["swift", "volatile", "toxic"]
 	},
 	{
 		"id": "brute",
@@ -101,7 +119,24 @@
 		"elite": true,
 		"deathBurst": null,
 		"xp": 80,
-		"salvage": 12
+		"salvage": 12,
+		"about": "Twice a man's size. It walks you down, and from a distance it lowers its head and charges in a straight line.",
+		"answer": "Step out of the marked lane. A charge that ends in a wall leaves it dazed: unload then.",
+		"charge": {
+			"minRange": 5,
+			"maxRange": 13,
+			"windupSeconds": 1.0,
+			"speed": 9,
+			"overshoot": 4,
+			"damage": 30,
+			"knockback": 1.6,
+			"stunSeconds": 1.8,
+			"cooldownSeconds": 8
+		},
+		"mutations": ["armoured", "regenerating", "swift"],
+		"look": {
+			"width": 1.12
+		}
 	},
 	{
 		"id": "screamer",
@@ -126,6 +161,509 @@
 				"drudge": 60,
 				"bolter": 25,
 				"crawler": 15
+			}
+		},
+		"about": "It calls. Every few seconds it is alive near you, more of them climb out.",
+		"answer": "Kill it first, before anything else.",
+		"mutations": ["regenerating", "armoured", "swift"],
+		"look": {
+			"glow": {
+				"colour": "#f2efe6",
+				"up": 1.5,
+				"ahead": 0.16,
+				"size": 0.7
+			}
+		}
+	},
+	{
+		"id": "retcher",
+		"name": "Retcher",
+		"health": 80,
+		"speed": 1.6,
+		"radius": 0.36,
+		"meleeDamage": 6,
+		"meleeRange": 0.5,
+		"meleeCooldownSeconds": 1.4,
+		"score": 40,
+		"tint": "#c9c45a",
+		"scale": 1.0,
+		"deathBurst": null,
+		"xp": 12,
+		"salvage": 2,
+		"about": "A spitter. It stops where it can see you and lobs acid that lands where you were standing, leaving a puddle.",
+		"answer": "Move when the ring appears, then break its line of sight or shoot it: it is slow and soft.",
+		"resist": {
+			"chemical": 0.6
+		},
+		"ranged": {
+			"range": 12,
+			"holdRange": 8,
+			"cooldownSeconds": 4.5,
+			"windupSeconds": 0.7,
+			"flightSeconds": 0.9,
+			"damage": 22,
+			"radius": 1.8,
+			"type": "chemical",
+			"pool": {
+				"damagePerSecond": 8,
+				"radius": 1.6,
+				"seconds": 4
+			}
+		},
+		"mutations": ["insulated", "swift", "regenerating"],
+		"look": {
+			"width": 1.05,
+			"height": 0.92,
+			"glow": {
+				"colour": "#e8f040",
+				"up": 1.45,
+				"ahead": 0.18,
+				"size": 1
+			}
+		}
+	},
+	{
+		"id": "bulwark",
+		"name": "Bulwark",
+		"health": 300,
+		"speed": 1.4,
+		"radius": 0.5,
+		"meleeDamage": 16,
+		"meleeRange": 0.6,
+		"meleeCooldownSeconds": 1.4,
+		"score": 80,
+		"tint": "#6f7f8f",
+		"scale": 1.25,
+		"deathBurst": null,
+		"xp": 25,
+		"salvage": 4,
+		"about": "It carries a riot shield in front of it. Bullets from ahead mostly glance off, and it turns slowly to keep the shield on you.",
+		"answer": "Get round it, or have someone else hold its eye. Blasts, fire and gas go round the shield.",
+		"shield": {
+			"arcDegrees": 130,
+			"reduction": 0.9,
+			"types": ["ballistic", "shock"],
+			"turnDegreesPerSecond": 80
+		},
+		"mutations": ["regenerating", "toxic", "swift"],
+		"look": {
+			"width": 1.25,
+			"plates": true
+		}
+	},
+	{
+		"id": "delver",
+		"name": "Delver",
+		"health": 200,
+		"speed": 2.2,
+		"radius": 0.42,
+		"meleeDamage": 14,
+		"meleeRange": 0.55,
+		"meleeCooldownSeconds": 1.1,
+		"score": 70,
+		"tint": "#8a6a4a",
+		"scale": 1.1,
+		"deathBurst": null,
+		"xp": 22,
+		"salvage": 4,
+		"about": "A burrower. It goes under, where nothing can touch it, follows you by the dust it throws up and bursts out beneath your feet.",
+		"answer": "Keep moving when the ground cracks under you. It can only be hurt while it is up.",
+		"burrow": {
+			"speed": 4,
+			"fromRange": 7,
+			"surfaceRange": 1.2,
+			"eruptSeconds": 0.9,
+			"damage": 35,
+			"radius": 1.8,
+			"aboveSeconds": 6
+		},
+		"mutations": ["armoured", "swift", "regenerating"],
+		"look": {
+			"width": 1.15,
+			"height": 0.9
+		}
+	},
+	{
+		"id": "cinder",
+		"name": "Cinder",
+		"health": 160,
+		"speed": 2.2,
+		"radius": 0.38,
+		"meleeDamage": 12,
+		"meleeRange": 0.55,
+		"meleeCooldownSeconds": 1.1,
+		"score": 50,
+		"tint": "#d9743a",
+		"scale": 1.05,
+		"deathBurst": null,
+		"xp": 16,
+		"salvage": 3,
+		"about": "It burns and does not mind. It leaves fire where it walks and its hands burn what they touch.",
+		"answer": "Fire does nothing to it: use bullets, shock or blasts, and do not follow it through its own trail.",
+		"resist": {
+			"fire": 1
+		},
+		"meleeType": "fire",
+		"alight": true,
+		"trail": {
+			"everySeconds": 0.9,
+			"damagePerSecond": 15,
+			"radius": 0.8,
+			"seconds": 2.5,
+			"type": "fire"
+		},
+		"mutations": ["swift", "armoured", "volatile"],
+		"look": {
+			"glow": {
+				"colour": "#ff7a2a",
+				"up": 1.1,
+				"ahead": 0.15,
+				"size": 1.1
+			}
+		}
+	},
+	{
+		"id": "warden",
+		"name": "The Warden",
+		"health": 22000,
+		"speed": 1.7,
+		"radius": 0.95,
+		"meleeDamage": 45,
+		"meleeRange": 1.0,
+		"meleeCooldownSeconds": 1.6,
+		"score": 5000,
+		"tint": "#4a5560",
+		"scale": 2.4,
+		"elite": true,
+		"deathBurst": null,
+		"xp": 600,
+		"salvage": 150,
+		"about": "The riot sergeant who held Ashgate's checkpoint, grown into his armour. He keeps a shield wall's worth of plate between you and him, charges whoever stands in the open and brings the ground down round himself.",
+		"answer": "Out of the lane when he charges: into a wall he is dazed and his guard is down. Out of the ring when he raises his arm. Shoot his back while he looks at someone else.",
+		"boss": true,
+		"unstoppable": true,
+		"squadHealth": [0.55, 0.75, 0.9, 1],
+		"shield": {
+			"arcDegrees": 140,
+			"reduction": 0.85,
+			"types": ["ballistic", "shock"],
+			"turnDegreesPerSecond": 70
+		},
+		"charge": {
+			"minRange": 4,
+			"maxRange": 16,
+			"windupSeconds": 1.2,
+			"speed": 11,
+			"overshoot": 5,
+			"damage": 45,
+			"knockback": 2.2,
+			"stunSeconds": 3,
+			"cooldownSeconds": 9
+		},
+		"slam": {
+			"range": 3.2,
+			"radius": 4,
+			"windupSeconds": 0.9,
+			"damage": 50,
+			"cooldownSeconds": 5
+		},
+		"phases": [
+			{
+				"below": 0.66,
+				"name": "The Warden calls the line",
+				"summon": {
+					"everySeconds": 18,
+					"count": 5,
+					"composition": {
+						"bulwark": 2,
+						"drudge": 6,
+						"bolter": 2
+					}
+				}
+			},
+			{
+				"below": 0.33,
+				"name": "The Warden is enraged",
+				"speed": 1.25,
+				"cooldowns": 0.65,
+				"summon": {
+					"everySeconds": 22,
+					"count": 4,
+					"composition": {
+						"bolter": 3,
+						"crawler": 2
+					}
+				},
+				"lob": {
+					"everySeconds": 7,
+					"flightSeconds": 1.1,
+					"damage": 20,
+					"radius": 2.4,
+					"type": "chemical",
+					"pool": {
+						"damagePerSecond": 14,
+						"radius": 2.2,
+						"seconds": 6
+					}
+				}
+			}
+		],
+		"look": {
+			"width": 1.2,
+			"plates": true
+		}
+	},
+	{
+		"id": "gardener",
+		"name": "The Gardener",
+		"health": 22000,
+		"speed": 0.95,
+		"radius": 1.0,
+		"meleeDamage": 40,
+		"meleeRange": 1.1,
+		"meleeCooldownSeconds": 1.8,
+		"score": 6000,
+		"tint": "#5f7a3a",
+		"scale": 2.6,
+		"elite": true,
+		"deathBurst": null,
+		"xp": 700,
+		"salvage": 180,
+		"about": "Arthur Penn, the head gardener, patient zero. The blight took him first and kept him: he has grown into the botanical gardens' soil, and the roots go wherever he wants them.",
+		"answer": "Fire: he burns half again as fast. Keep moving when the ground swells under you, step out of the spore rings, and do not stand close when he raises his arms.",
+		"boss": true,
+		"unstoppable": true,
+		"squadHealth": [0.55, 0.75, 0.9, 1],
+		"resist": {
+			"chemical": 0.8,
+			"fire": -0.5
+		},
+		"ranged": {
+			"range": 18,
+			"holdRange": 0.1,
+			"cooldownSeconds": 3.5,
+			"windupSeconds": 0.8,
+			"flightSeconds": 1.2,
+			"damage": 24,
+			"radius": 2.2,
+			"type": "chemical",
+			"pool": {
+				"damagePerSecond": 10,
+				"radius": 2.2,
+				"seconds": 6
+			}
+		},
+		"slam": {
+			"range": 3.5,
+			"radius": 5,
+			"windupSeconds": 1.0,
+			"damage": 45,
+			"cooldownSeconds": 6
+		},
+		"burrow": {
+			"speed": 5,
+			"fromRange": 14,
+			"surfaceRange": 1.5,
+			"eruptSeconds": 1.3,
+			"damage": 55,
+			"radius": 3.2,
+			"aboveSeconds": 14
+		},
+		"phases": [
+			{
+				"below": 0.66,
+				"name": "The Gardener blooms",
+				"summon": {
+					"everySeconds": 16,
+					"count": 6,
+					"composition": {
+						"crawler": 4,
+						"swell": 1,
+						"drudge": 3
+					}
+				}
+			},
+			{
+				"below": 0.33,
+				"name": "The Gardener goes to seed",
+				"speed": 1.2,
+				"cooldowns": 0.8,
+				"summon": {
+					"everySeconds": 20,
+					"count": 4,
+					"composition": {
+						"delver": 1,
+						"crawler": 3
+					}
+				},
+				"lob": {
+					"everySeconds": 9,
+					"flightSeconds": 1.2,
+					"damage": 20,
+					"radius": 2.6,
+					"type": "chemical",
+					"pool": {
+						"damagePerSecond": 8,
+						"radius": 2.4,
+						"seconds": 7
+					}
+				}
+			}
+		],
+		"look": {
+			"width": 1.3,
+			"glow": {
+				"colour": "#9fe04a",
+				"up": 1.25,
+				"ahead": 0.1,
+				"size": 1.1
+			},
+			"sacs": "#a8b850"
+		}
+	},
+	{
+		"id": "old-ironjaw",
+		"name": "Old Ironjaw",
+		"health": 4200,
+		"speed": 1.7,
+		"radius": 0.75,
+		"meleeDamage": 44,
+		"meleeRange": 0.95,
+		"meleeCooldownSeconds": 1.6,
+		"score": 1500,
+		"tint": "#6e3b2a",
+		"scale": 1.95,
+		"elite": true,
+		"deathBurst": null,
+		"xp": 250,
+		"salvage": 40,
+		"about": "A Brute that has been shot so often its jaw is more scrap than bone. It charges harder and comes again sooner than any other.",
+		"answer": "Sidestep the lane, and put it into a wall: a dazed Ironjaw stands still long enough to finish.",
+		"unstoppable": true,
+		"resist": {
+			"ballistic": 0.25
+		},
+		"charge": {
+			"minRange": 4,
+			"maxRange": 15,
+			"windupSeconds": 0.85,
+			"speed": 11,
+			"overshoot": 5,
+			"damage": 40,
+			"knockback": 2,
+			"stunSeconds": 2.2,
+			"cooldownSeconds": 6
+		},
+		"slam": {
+			"range": 2.6,
+			"radius": 3.2,
+			"windupSeconds": 0.8,
+			"damage": 35,
+			"cooldownSeconds": 7
+		},
+		"look": {
+			"width": 1.18,
+			"plates": true,
+			"glow": {
+				"colour": "#ff5630",
+				"up": 1.55,
+				"ahead": 0.2,
+				"size": 0.8
+			}
+		}
+	},
+	{
+		"id": "mother-rot",
+		"name": "Mother Rot",
+		"health": 3400,
+		"speed": 1.0,
+		"radius": 0.8,
+		"meleeDamage": 28,
+		"meleeRange": 0.9,
+		"meleeCooldownSeconds": 1.8,
+		"score": 1500,
+		"tint": "#7f8a3a",
+		"scale": 2.1,
+		"elite": true,
+		"xp": 250,
+		"salvage": 40,
+		"about": "A Swell that never burst. It carries a brood: Crawlers spill out of it as it walks, and it spits what it cannot carry.",
+		"answer": "Kill it at range and burn what crawls out. Do not be near when it finally bursts.",
+		"resist": {
+			"chemical": 0.6
+		},
+		"deathBurst": {
+			"damage": 90,
+			"radius": 5,
+			"poolDamagePerSecond": 14,
+			"poolRadius": 3.5,
+			"poolSeconds": 10
+		},
+		"call": {
+			"everySeconds": 7,
+			"count": 5,
+			"range": 24,
+			"composition": {
+				"crawler": 100
+			}
+		},
+		"ranged": {
+			"range": 14,
+			"holdRange": 6,
+			"cooldownSeconds": 4,
+			"windupSeconds": 0.8,
+			"flightSeconds": 1.0,
+			"damage": 24,
+			"radius": 2.2,
+			"type": "chemical",
+			"pool": {
+				"damagePerSecond": 10,
+				"radius": 2,
+				"seconds": 6
+			}
+		},
+		"look": {
+			"width": 1.4,
+			"height": 0.95,
+			"sacs": "#8fae3a"
+		}
+	},
+	{
+		"id": "the-whisper",
+		"name": "The Whisper",
+		"health": 1800,
+		"speed": 3.2,
+		"radius": 0.4,
+		"meleeDamage": 14,
+		"meleeRange": 0.55,
+		"meleeCooldownSeconds": 1.0,
+		"score": 1500,
+		"tint": "#e2d9c4",
+		"scale": 1.15,
+		"elite": true,
+		"deathBurst": null,
+		"xp": 250,
+		"salvage": 40,
+		"about": "A Screamer that learned to run. It never stops calling, and it never stands still long enough to be shot.",
+		"answer": "Everyone on it at once. A stun or a slow pins it; the Marksman's tools finish it.",
+		"call": {
+			"everySeconds": 5,
+			"count": 8,
+			"range": 30,
+			"composition": {
+				"bolter": 50,
+				"drudge": 30,
+				"crawler": 20
+			}
+		},
+		"look": {
+			"width": 0.85,
+			"height": 1.1,
+			"glow": {
+				"colour": "#ffffff",
+				"up": 1.5,
+				"ahead": 0.16,
+				"size": 1.3
 			}
 		}
 	}

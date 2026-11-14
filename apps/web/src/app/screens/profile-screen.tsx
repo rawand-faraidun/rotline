@@ -45,6 +45,7 @@ export function ProfileScreen() {
 					<Panel className="items-center gap-4 text-center">
 						<AvatarFrame src={avatar} alt="" size={120} />
 						<span className="font-display text-4xl uppercase">{player.name}</span>
+						{player.title && <span className="text-rot-lime text-sm uppercase tracking-[0.2em]">{player.title}</span>}
 						<Badge tone="lime">
 							{p.classes[view.activeClass].name} ·{' '}
 							{format(p.level, { level: String(view.classes[view.activeClass].level) })}
@@ -106,7 +107,7 @@ export function ProfileScreen() {
 							</thead>
 							<tbody>
 								{campaign.zones.flatMap(zone =>
-									zone.missions.map(id => {
+									[...zone.missions, ...(zone.boss ? [zone.boss] : [])].map(id => {
 										const mission = missionById(id)
 										const entry = records.data?.find(record => record.id === id)
 										const best = bestOf(entry)

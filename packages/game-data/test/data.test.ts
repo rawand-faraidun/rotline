@@ -16,14 +16,23 @@ import {
 
 describe('game data', () => {
 	it('loads and validates every file', () => {
-		expect(weapons.length).toBe(12)
+		expect(weapons.length).toBe(17)
 		expect(zombies.filter(zombie => !zombie.dummy).map(zombie => zombie.id)).toEqual([
 			'drudge',
 			'bolter',
 			'swell',
 			'crawler',
 			'brute',
-			'screamer'
+			'screamer',
+			'retcher',
+			'bulwark',
+			'delver',
+			'cinder',
+			'warden',
+			'gardener',
+			'old-ironjaw',
+			'mother-rot',
+			'the-whisper'
 		])
 		expect(maps.range?.playerSpawns.length).toBe(4)
 		expect(maps.yard?.playerSpawns.length).toBe(4)

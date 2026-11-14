@@ -1,4 +1,13 @@
-import { ARMOUR_PIECES, type Build, buildSchema, classes, dataVersion, gear, weapons } from '@rotline/game-data'
+import {
+	ARMOUR_PIECES,
+	type Build,
+	buildSchema,
+	classes,
+	dataVersion,
+	gear,
+	weapons,
+	zombies as zombieDefs
+} from '@rotline/game-data'
 import {
 	CHAIN_TICKS,
 	currentObjective,
@@ -8,7 +17,6 @@ import {
 	objectiveGoal,
 	type PlayerInput,
 	type PlayerState,
-	type Pool,
 	REVIVE_COMPLETE,
 	type SimEvent,
 	TICK_RATE,
@@ -22,7 +30,7 @@ import { ProtocolError, type Reader, type Writer } from './buffer.ts'
 const NO_LIMIT = 0xffff
 const nullableSeconds = (value: number) => (value === NO_LIMIT ? null : value)
 
-export const PROTOCOL_VERSION = 13
+export const PROTOCOL_VERSION = 17
 
 const FAIL_REASONS = ['time', 'lives', 'wiped'] as const
 
@@ -59,6 +67,11 @@ const POSITION_SCALE = 64
 export const INPUT_REDUNDANCY = 3
 /** Players beyond this distance are still sent; zombies beyond it are not. */
 export const INTEREST_RADIUS = 40
+/**
+ * In a Blackout nobody sees far: zombies are sent only this close (a weapon light reaches 24 m),
+ * so a client cannot show what the dark hides. Bosses are always sent, for their health bar.
+ */
+export const DARK_INTEREST_RADIUS = 26
 
 const q = (metres: number) => Math.max(0, Math.min(0xffff, Math.round(metres * POSITION_SCALE)))
 const dq = (value: number) => value / POSITION_SCALE
@@ -159,6 +172,8 @@ export type WelcomeMessage = {
 	difficulty: string
 	/** a fingerprint of the game data: a client built from other data must reload */
 	dataVersion: number
+	/** the mission's modifiers (ids) */
+	modifiers: string[]
 }
 
 export function writeWelcome(
@@ -168,7 +183,8 @@ export function writeWelcome(
 	tick: number,
 	build: Build,
 	missionId = '',
-	difficulty = ''
+	difficulty = '',
+	modifiers: readonly string[] = []
 ): Uint8Array<ArrayBuffer> {
 	return w
 		.reset()
@@ -181,6 +197,7 @@ export function writeWelcome(
 		.string(missionId)
 		.string(difficulty)
 		.u32(dataVersion)
+		.string(modifiers.join(','))
 		.finish()
 }
 
@@ -357,7 +374,38 @@ export type OtherPlayer = {
 	revive: number
 }
 
-export type PoolState = { x: number; y: number; radius: number }
+/** `fire`: a burning trail; otherwise acid */
+export type PoolState = { x: number; y: number; radius: number; fire: boolean }
+
+/**
+ * The pools a client knows of, kept from snapshot to snapshot: each delta applied in order, and a
+ * pool dropped when its time is up even if word of it going is late.
+ */
+export class PoolList {
+	private readonly pools = new Map<number, PoolState & { untilTick: number }>()
+	/** the pools now on the ground, in the order they appeared */
+	list: PoolState[] = []
+
+	apply(delta: PoolDelta, tick: number): PoolState[] {
+		if (delta.reset) this.pools.clear()
+		for (const id of delta.removed) this.pools.delete(id)
+		for (const { id, ticksLeft, ...pool } of delta.added) this.pools.set(id, { ...pool, untilTick: tick + ticksLeft })
+		for (const [id, pool] of this.pools) if (pool.untilTick <= tick) this.pools.delete(id)
+		this.list = [...this.pools.values()]
+		return this.list
+	}
+}
+
+/**
+ * Pools change rarely, so each is sent once: the ones new since the last snapshot (with how long
+ * they last) and the ids of those gone. `reset`: forget every pool first (a new connection, or more
+ * changed at once than one message carries).
+ */
+export type PoolDelta = {
+	reset: boolean
+	added: (PoolState & { id: number; ticksLeft: number })[]
+	removed: number[]
+}
 
 /** A zone, barricade, mine, decoy, sentry or mortar marker, as clients see it. */
 export type ObjectState = {
@@ -385,7 +433,9 @@ export const ZombieStatus = {
 	taunted: 16,
 	burning: 32,
 	/** a target a hunt objective wants dead */
-	hunted: 64
+	hunted: 64,
+	/** an adaptive strain, hardened against what the squad leans on */
+	strain: 128
 } as const
 
 /** The decoded non-zombie part of a snapshot; zombies are applied straight into a ZombieTable. */
@@ -400,10 +450,12 @@ export type SnapshotFrame = {
 	rttMs: number
 	/** lives left playing alone, or null in a squad */
 	livesLeft: number | null
+	/** how far the horde has mutated (a client that joins late learns it here) */
+	mutation: number
 	self: SelfState
 	mission: MissionFrame
 	others: OtherPlayer[]
-	pools: PoolState[]
+	pools: PoolDelta
 	objects: ObjectState[]
 	/** map props that changed since the last snapshot (all of them in the first) */
 	props: PropUpdate[]
@@ -473,6 +525,10 @@ export class SnapshotEncoder {
 	private sentPropProgress = new Uint8Array(0)
 	private sentPropX = new Uint16Array(0)
 	private sentPropY = new Uint16Array(0)
+	/** the pools this client has been sent (none: the next snapshot resets its list) */
+	private readonly sentPools = new Set<number>()
+	private poolsReset = true
+	private readonly poolsNow = new Set<number>()
 	private nextId = 1
 
 	readonly playerId: number
@@ -495,6 +551,7 @@ export class SnapshotEncoder {
 			.u16(Math.min(0xffff, Math.round(rttMs)))
 			// lives left playing alone (255: in a squad, where deaths are not counted)
 			.u8(world.livesLeft ?? 255)
+			.u8(world.mutation)
 
 		// own player, at full precision for reconciliation
 		{
@@ -517,6 +574,9 @@ export class SnapshotEncoder {
 			w.u16(s.hasteSteps).f64(s.hasteSpeed).f64(s.hasteFire)
 			w.u16(s.dashSteps).f64(s.dashX).f64(s.dashY)
 			w.u16(s.overwatchShots).u16(s.minigunSteps)
+			w.u32(s.stamina)
+				.u16(s.staminaWait)
+				.u8(s.sprinting ? 1 : 0)
 		}
 
 		// the mission, and this player's score and chain
@@ -558,15 +618,7 @@ export class SnapshotEncoder {
 			w.u8(Math.min(255, Math.round((other.reviveProgress / REVIVE_COMPLETE) * 255)))
 		}
 
-		// pools
-		const poolCount = Math.min(255, world.pools.length)
-		w.u8(poolCount)
-		for (let n = 0; n < poolCount; n++) {
-			const pool = world.pools[n] as Pool
-			w.u16(q(pool.x))
-				.u16(q(pool.y))
-				.u8(Math.round(pool.radius * 10))
-		}
+		this.writePools(w, world)
 
 		// map props: only what changed since the last snapshot
 		this.writeProps(w, world)
@@ -590,19 +642,24 @@ export class SnapshotEncoder {
 			for (let c = 0; c < cells; c++) w.u16(object.cells[c] as number)
 		}
 
-		// zombies: deltas within the interest radius
+		// zombies: deltas within the interest radius (closer in a Blackout; bosses always)
 		const cx = self?.x ?? 0
 		const cy = self?.y ?? 0
 		const countAt = w.offset
 		w.u16(0)
 		let count = 0
 		let lastId = 0
-		const radius2 = INTEREST_RADIUS * INTEREST_RADIUS
+		const dark = world.mission?.effects.dark === true
+		const radius = dark ? DARK_INTEREST_RADIUS : INTEREST_RADIUS
+		const radius2 = radius * radius
 		for (let i = 0; i < MAX_ZOMBIES; i++) {
 			const alive = world.alive[i] === 1
 			const zx = world.x[i] as number
 			const zy = world.y[i] as number
-			const visible = alive && (zx - cx) * (zx - cx) + (zy - cy) * (zy - cy) < radius2
+			const visible =
+				alive &&
+				((zx - cx) * (zx - cx) + (zy - cy) * (zy - cy) < radius2 ||
+					(dark && zombieDefs[world.type[i] as number]?.boss === true))
 			// a slot reused by a new zombie of another type counts as removed then fresh
 			const replaced = visible && this.sentKnown[i] === 1 && this.sentType[i] !== world.type[i]
 			if (!visible || replaced) {
@@ -667,6 +724,47 @@ export class SnapshotEncoder {
 	}
 
 	/** Map props whose state, health, progress or position changed since the last snapshot. */
+	/** Pools new since the last snapshot, and the ids of those gone (see PoolDelta). */
+	private writePools(w: Writer, world: World): void {
+		const now = this.poolsNow
+		now.clear()
+		for (const pool of world.pools) now.add(pool.id)
+		let removed = 0
+		for (const id of this.sentPools) if (!now.has(id)) removed++
+		let added = 0
+		for (const pool of world.pools) if (!this.sentPools.has(pool.id)) added++
+		// too much at once for one message: start over with every pool
+		if (removed > 255 || added > 255) this.poolsReset = true
+		const reset = this.poolsReset
+		if (reset) {
+			this.sentPools.clear()
+			removed = 0
+			added = Math.min(255, world.pools.length)
+		}
+		this.poolsReset = false
+		w.u8(reset ? 1 : 0).u8(removed)
+		if (removed > 0)
+			for (const id of [...this.sentPools])
+				if (!now.has(id)) {
+					w.varint(id)
+					this.sentPools.delete(id)
+				}
+		w.u8(added)
+		let written = 0
+		for (const pool of world.pools) {
+			if (written >= added) break
+			if (this.sentPools.has(pool.id)) continue
+			w.varint(pool.id)
+				.u16(q(pool.x))
+				.u16(q(pool.y))
+				.u8(Math.min(255, Math.round(pool.radius * 10)))
+				.u8(pool.type === 'fire' ? 1 : 0)
+				.u16(Math.max(0, Math.min(0xffff, pool.untilTick - world.tick)))
+			this.sentPools.add(pool.id)
+			written++
+		}
+	}
+
 	private writeProps(w: Writer, world: World): void {
 		const props = world.props
 		if (this.sentPropState.length !== props.length) {
@@ -724,6 +822,7 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 	const rttMs = r.u16()
 	const lives = r.u8()
 	const livesLeft = lives === 255 ? null : lives
+	const mutation = r.u8()
 	let self: SelfState
 	{
 		const x = r.f64()
@@ -753,6 +852,9 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		const dashY = r.f64()
 		const overwatchShots = r.u16()
 		const minigunSteps = r.u16()
+		const stamina = r.u32()
+		const staminaWait = r.u16()
+		const sprinting = r.u8() === 1
 		self = {
 			x,
 			y,
@@ -782,6 +884,9 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			dashY,
 			overwatchShots,
 			minigunSteps,
+			stamina,
+			staminaWait,
+			sprinting,
 			free: (flags & 8) !== 0,
 			carrying: (flags & 16) !== 0,
 			jammed: (flags & 32) !== 0
@@ -828,9 +933,19 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 			revive
 		})
 	}
-	const pools: PoolState[] = []
-	const poolCount = r.u8()
-	for (let i = 0; i < poolCount; i++) pools.push({ x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })
+	const pools: PoolDelta = { reset: r.u8() === 1, added: [], removed: [] }
+	const removedCount = r.u8()
+	for (let i = 0; i < removedCount; i++) pools.removed.push(r.varint())
+	const addedCount = r.u8()
+	for (let i = 0; i < addedCount; i++)
+		pools.added.push({
+			id: r.varint(),
+			x: dq(r.u16()),
+			y: dq(r.u16()),
+			radius: r.u8() / 10,
+			fire: r.u8() === 1,
+			ticksLeft: r.u16()
+		})
 	const props: PropUpdate[] = []
 	const propCount = r.u16()
 	if (propCount > 4096) throw new ProtocolError('too many props')
@@ -897,7 +1012,23 @@ export function readSnapshot(r: Reader, table: ZombieTable): SnapshotFrame {
 		if (flags & Flag.status) table.status[index] = r.u8()
 		else if (flags & Flag.fresh) table.status[index] = 0
 	}
-	return { id, tick, lastSeq, wave, kills, score, rttMs, livesLeft, self, mission, others, pools, objects, props }
+	return {
+		id,
+		tick,
+		lastSeq,
+		wave,
+		kills,
+		score,
+		rttMs,
+		livesLeft,
+		mutation,
+		self,
+		mission,
+		others,
+		pools,
+		objects,
+		props
+	}
 }
 
 const EMPTY_SELF: SelfState = {
@@ -933,6 +1064,9 @@ const EMPTY_SELF: SelfState = {
 	dashY: 0,
 	overwatchShots: 0,
 	minigunSteps: 0,
+	stamina: 0,
+	staminaWait: 0,
+	sprinting: false,
 	free: false,
 	carrying: false,
 	jammed: false
@@ -941,16 +1075,21 @@ const EMPTY_SELF: SelfState = {
 const secondsUntil = (world: World, until: number) =>
 	Math.max(0, Math.min(255, Math.ceil((until - world.tick) / TICK_RATE)))
 
+/** Types that are always alight. */
+const ALIGHT = zombieDefs.map(def => def.alight === true)
+
 function zombieStatus(world: World, i: number): number {
 	const tick = world.tick
 	return (
+		(ALIGHT[world.type[i] as number] ? ZombieStatus.burning : 0) |
 		((world.stunUntil[i] as number) > tick ? ZombieStatus.stunned : 0) |
 		((world.slowUntil[i] as number) > tick ? ZombieStatus.slowed : 0) |
 		((world.markUntil[i] as number) > tick ? ZombieStatus.marked : 0) |
 		((world.poisonUntil[i] as number) > tick ? ZombieStatus.poisoned : 0) |
 		((world.tauntUntil[i] as number) > tick ? ZombieStatus.taunted : 0) |
 		((world.burnUntil[i] as number) > tick ? ZombieStatus.burning : 0) |
-		(world.hunted[i] === 1 ? ZombieStatus.hunted : 0)
+		(world.hunted[i] === 1 ? ZombieStatus.hunted : 0) |
+		(world.strain[i] !== 0 ? ZombieStatus.strain : 0)
 	)
 }
 
@@ -984,7 +1123,14 @@ const EventType = {
 	prop: 24,
 	failed: 25,
 	scream: 26,
-	resupply: 27
+	resupply: 28,
+	warn: 29,
+	strike: 30,
+	phase: 31,
+	strain: 32,
+	mutation: 33,
+	bounty: 34,
+	'bounty-down': 35
 } as const
 
 export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<ArrayBuffer> {
@@ -1071,6 +1217,29 @@ export function writeEvents(w: Writer, events: readonly SimEvent[]): Uint8Array<
 				break
 			case 'resupply':
 				w.u8(event.player).u16(q(event.x)).u16(q(event.y))
+				break
+			case 'warn':
+				w.u8(event.kind).u16(q(event.x)).u16(q(event.y)).u16(q(event.tx)).u16(q(event.ty))
+				w.u8(Math.min(255, Math.round(event.radius * 10))).u8(Math.min(255, Math.round(event.seconds * 20)))
+				break
+			case 'strike':
+				w.u8(event.kind)
+					.u16(q(event.x))
+					.u16(q(event.y))
+					.u8(Math.min(255, Math.round(event.radius * 10)))
+				break
+			case 'phase':
+				w.u16(event.zombie).u8(event.zombieType).u8(event.phase)
+				break
+			case 'strain':
+				w.u8(event.damage)
+				break
+			case 'mutation':
+				w.u8(event.stage)
+				break
+			case 'bounty':
+			case 'bounty-down':
+				w.u8(event.zombieType)
 				break
 			case 'cache':
 			case 'threshold':
@@ -1198,6 +1367,36 @@ export function readEvents(r: Reader): SimEvent[] {
 			case EventType.threshold:
 				events.push({ type: 'threshold', player: r.u8(), index: r.u8() })
 				break
+			case EventType.warn:
+				events.push({
+					type: 'warn',
+					kind: r.u8(),
+					x: dq(r.u16()),
+					y: dq(r.u16()),
+					tx: dq(r.u16()),
+					ty: dq(r.u16()),
+					radius: r.u8() / 10,
+					seconds: r.u8() / 20
+				})
+				break
+			case EventType.strike:
+				events.push({ type: 'strike', kind: r.u8(), x: dq(r.u16()), y: dq(r.u16()), radius: r.u8() / 10 })
+				break
+			case EventType.phase:
+				events.push({ type: 'phase', zombie: r.u16(), zombieType: r.u8(), phase: r.u8() })
+				break
+			case EventType.strain:
+				events.push({ type: 'strain', damage: r.u8() })
+				break
+			case EventType.mutation:
+				events.push({ type: 'mutation', stage: r.u8() })
+				break
+			case EventType.bounty:
+				events.push({ type: 'bounty', zombieType: r.u8() })
+				break
+			case EventType['bounty-down']:
+				events.push({ type: 'bounty-down', zombieType: r.u8() })
+				break
 			default:
 				throw new ProtocolError(`unknown event ${type}`)
 		}
@@ -1228,7 +1427,8 @@ export function readServerHeader(r: Reader): ServerToClient {
 				build: readBuild(r.string(4096)),
 				missionId: r.string(64),
 				difficulty: r.string(32),
-				dataVersion: r.u32()
+				dataVersion: r.u32(),
+				modifiers: ((text: string) => (text ? text.split(',') : []))(r.string(256))
 			}
 		case ServerMessage.snapshot:
 			return { type: 'snapshot' }

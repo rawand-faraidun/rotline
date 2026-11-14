@@ -17,7 +17,14 @@ export const ticketPayload = z.object({
 	/** a squad mission (a player alone is a squad of one), or the firing range (alone, no rewards) */
 	mode: z.enum(['squad', 'range']),
 	/** squads: the mission and difficulty the leader chose; every ticket to a room carries the same */
-	mission: z.object({ id: z.string().min(1).max(64), difficulty: difficultyId }).optional(),
+	mission: z
+		.object({
+			id: z.string().min(1).max(64),
+			difficulty: difficultyId,
+			/** the harder rules the leader switched on */
+			modifiers: z.array(z.string().min(1).max(32)).max(8).optional()
+		})
+		.optional(),
 	/** squads without a mission play Survival: the arena (map) the leader chose, the first if none */
 	arena: z.string().min(1).max(64).optional(),
 	/** class, level, skills and loadout: the game server needs no database */

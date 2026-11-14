@@ -9,7 +9,7 @@ The server runs the real game; clients send inputs and draw what the server says
 | Server simulation tick | 30 Hz (33.3 ms), fixed step | Enough precision for top-down movement at half the CPU of 60 Hz |
 | Snapshot rate, near (within 25 m) | 15 Hz | Smooth with a ~100 ms interpolation buffer |
 | Snapshot rate, far (25–40 m) | 5 Hz | Distant zombies move slowly on screen |
-| Interest radius | 40 m | Nothing farther is sent |
+| Interest radius | 40 m (26 m in a Blackout) | Nothing farther is sent; in a Blackout nobody sees farther than a weapon light reaches, so the client is never told what the dark hides (bosses are always sent, for their health bar) |
 | Client input rate | 30 Hz, each packet repeats the last 3 inputs | A lost packet loses no input |
 | Client render rate | the display's refresh rate, independent of the tick | |
 | Interpolation delay | adaptive, 67–300 ms | Covers the 95th percentile of snapshot lateness; about 75 ms on a clean link, about 180 ms at 2 % loss |
@@ -21,12 +21,12 @@ If a tick runs late, the server runs the missed ticks back to back (up to 3) ins
 
 - **WebSocket** works everywhere and is always available.
 - **A direct address.** The site sits behind a CDN, and for some regions the route through it is far slower than the route to the game server itself (about 230 ms a round trip against 80 ms from Iraq). The API can name a direct address for the game connection with every ticket; the client tries it first and falls back to the game path on the site if it has not opened within 5 seconds. Only the game connection uses it; pages, sign-in and the API stay behind the CDN. The address serves nothing but the game connection and limits new connections per client address; the signed ticket is what actually lets a player in.
-- **WebTransport** is used when the browser supports it: snapshots and inputs travel as unreliable datagrams, everything else on a reliable stream. A lost datagram never delays the ones behind it, which keeps remote entities smooth on lossy connections; on WebSocket (TCP), one lost packet holds up everything behind it.
+- **WebTransport** (not built yet): snapshots and inputs would travel as unreliable datagrams, everything else on a reliable stream, so a lost datagram never delays the ones behind it; on WebSocket (TCP), one lost packet holds up everything behind it. Browsers support it, but Node.js has no built-in QUIC or HTTP/3 server, and the one server library is a native binding that calls itself a stopgap until Node has its own. The game connection stays on WebSocket until there is a dependable server (in Node, or a separate datagram relay in front of the game servers).
 - Inputs are sent redundantly and one-off events are reliable. On WebSocket each snapshot is a delta against the previous one sent on that connection; with datagrams, snapshots become deltas against the last snapshot the client acknowledged (every input already carries that acknowledgement).
 
 ## Messages
 
-All messages are binary; the first byte is the message type. Encoding lives in `packages/protocol`, shared by server and client, with round-trip tests for every type. The protocol is versioned (currently version 6); the `hello` carries the client's version.
+All messages are binary; the first byte is the message type. Encoding lives in `packages/protocol`, shared by server and client, with round-trip tests for every type. The protocol is versioned (currently version 14); the `hello` carries the client's version.
 
 ### Client to server
 
@@ -47,7 +47,7 @@ Reload, weapon swap, interact, the three abilities and the two utilities are bit
 | Type | Contents | Delivery |
 |---|---|---|
 | `welcome` | your entity id, map, server tick, your build (class, level, skills, loadout with upgrades), so prediction uses the server's numbers; the mission id and difficulty (empty outside missions); a fingerprint of the game data (maps, props, missions, zombies, weapons, the campaign) | reliable |
-| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, your full state (including cooldowns, charges, haste, dash and minigun timers, whether you are carrying something and whether a mission step has your kit jammed), the mission frame (below), other players, acid pools, map prop changes (below), objects (zones, barricades, mines, decoys, sentries, mortar markers, buff pickups with a variant byte naming the buff), changed zombies with their status bits (stunned, slowed, marked, poisoned, taunted, burning, hunted by the objective), removals | unreliable |
+| `snapshot` | snapshot id, tick, last processed input, wave, kills, score, round-trip time measured by the server, lives left alone, the horde's mutation stage (so a player joining late sees it), your full state (including cooldowns, charges, haste, dash and minigun timers, whether you are carrying something and whether a mission step has your kit jammed), the mission frame (below), other players, pools (each sent once with how long it lasts, then only the ids of those gone; a new connection gets all of them), map prop changes (below), objects (zones, barricades, mines, decoys, sentries, mortar markers, buff pickups with a variant byte naming the buff), changed zombies with their status bits (stunned, slowed, marked, poisoned, taunted, burning, hunted by the objective), removals | unreliable |
 | `event` | batched one-off events: shots, hits, kills, grenades launched and exploding, bursts, abilities, player hurt, downed, back up, out and revived, waves started and cleared, squad wipes, objective done (with a flag for the first time; optional objectives too), objective failed (a survivor or defend target lost, or the extraction timer run out), checkpoint, map prop changed state, mission complete, buff picked up, score threshold, Survival run over; item found and cache opened are sent only to the player concerned | reliable |
 | `roster` | names, connection state, class and loadout weapons of everyone in the room (so teammates are drawn as their class, holding their gun) | reliable |
 | `results` | your results: success, rounds survived (Survival), time, score, kills, XP, Salvage, downs, items found, mastery | reliable |
@@ -106,7 +106,11 @@ Bots behind `tc netem` (75 ms each way, loss applied in both directions), 8 play
 | 150 ms, 2 % | 6.2 % | 0.7 % | 182 ms | 0 |
 | 150 ms, 5 % | 16.9 % | 0.9 % | 269 ms | 0 |
 
-Your own movement and shooting stay exact at every loss rate. What TCP costs is how far in the past other players and zombies are drawn; datagrams (WebTransport) would bring that back to about 75 ms.
+Your own movement and shooting stay exact at every loss rate (that run predates solid zombies; see below).
+
+A full local load, 24 bots in 6 Survival rooms of 4 for 90 s on one game server (M5 Mac, no added latency): snapshots every 67 ms at the median and 70 ms at the 99th percentile, none later than 100 ms, an interpolation delay of 70 ms, a round trip of 3 to 5 ms, nobody dropped. The same load on the build before the new zombie types gave the same figures.
+
+**Corrections from solid zombies.** Your own player is pushed out of zombies on both sides, but the client pushes against zombies where it draws them, about 70 ms in the past, while the server uses where they are now. Pressed against the horde, the two disagree a little: in the 24-bot run (bots that stand in the horde and fire) about three snapshots in five correct the position, by 0.54 m at most, eased in when under 0.5 m. Away from the horde prediction is exact (a headless check of the server and the predictor through the real snapshot encoding, with and without zombies near, shows none). What TCP costs is how far in the past other players and zombies are drawn; datagrams (WebTransport) would bring that back to about 75 ms.
 
 ## Lag compensation
 

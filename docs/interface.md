@@ -48,7 +48,7 @@ Buttons (primary lime, secondary outlined bone, destructive alert with stripes),
 
 ## Screens
 
-Landing, queue, lobby hub, class and skill tree, armory (inventory, upgrades, discard), shop, contracts, friends, mission select with the campaign map, firing range, bestiary, achievements and cosmetics, results, profile and statistics, leaderboards, settings, privacy and terms, admin.
+Landing, queue, lobby hub, class and skill tree, armory (inventory, upgrades, discard), shop, friends, mission select with the campaign map, firing range, records (challenges, leaderboards, bestiary, achievements and titles, a tab each), results, profile and statistics, settings, privacy and terms, admin.
 
 ## The queue page
 
@@ -59,5 +59,7 @@ A full-screen, on-brand waiting room: the logo with the slogan; slow animated fo
 Health and armour, ammunition (magazine and reserve; the pistol shows ∞), ability cooldowns, the score multiplier and chain timer (top centre, large), objective tracker, an interact prompt (what pressing or holding E would do, with a progress bar for holds), teammate status with downed timers, active buff timers, mutation alerts, an objective arrow, an arrow at the screen's edge toward each teammate out of view (in their slot colour, with name and distance, red while downed), a minimap in the top-right corner (walls, doors still shut, every zombie, the squad, the objective) that opens over the game to show the whole map with a click or M, and the ping wheel. The mouse wheel zooms the camera a little in or out (kept per browser). HUD panels use the same cut-corner frames at low opacity so the battlefield stays visible.
 
 ## Settings
+
+**Tips**: the first time something matters (the first moments of the first game, an objective marker, an empty magazine, something to work, an attack marked on the ground, a teammate down), a short tip says what to press, for the keyboard or the gamepad in use; each is shown once per browser, and a pause-menu switch turns them off (or back on, from the start). **Gamepad** (standard layout): left stick moves, right stick aims (a thrown grenade lands up to 12 m along it), RT fires, LT or a left-stick click sprints, LB, RB and Y are the abilities, d-pad up and down the utilities and left and right the main weapons, A works things and revives, X reloads, B swaps, Start opens the menu. The mouse takes aiming back as soon as it moves.
 
 Graphics quality presets (low, medium, high; automatic picks high for a graphics card, medium for graphics built into the processor, low for a software renderer, and a frame-rate guard lowers the resolution, and drops ambient occlusion first, when frames run under 50 a second), key rebinding, gamepad support, audio sliders, interface scale, screen-shake toggle, gore toggle, reduced flashing for effects like the nuke, and colour-vision-safe palettes. All interface text lives in translation files.

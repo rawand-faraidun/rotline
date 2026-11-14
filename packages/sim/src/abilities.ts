@@ -137,7 +137,7 @@ export function useAbility(world: World, state: PlayerState, id: string, input: 
 				if (off > Math.PI) off = Math.PI * 2 - off
 				if (off > half) continue
 				world.damageZombie(i, n('damage') * scale('explosive'), state.id, 'explosive')
-				if (world.alive[i] === 0) continue
+				if (world.alive[i] === 0 || world.under[i] === 1 || zombieDefs[world.type[i] as number]?.unstoppable) continue
 				const push = n('knockback') * (1 - d / length)
 				const moved = { x: 0, y: 0 }
 				world.grid.moveCircle(world.x[i] as number, world.y[i] as number, (dx / d) * push, (dy / d) * push, 0.3, moved)
@@ -434,7 +434,7 @@ export function stepObjects(world: World): void {
 				let best = -1
 				let bestDistance = object.radius
 				for (let i = 0; i < MAX_ZOMBIES; i++) {
-					if (world.alive[i] === 0) continue
+					if (world.alive[i] === 0 || world.under[i] === 1) continue
 					const d = Math.hypot((world.x[i] as number) - object.x, (world.y[i] as number) - object.y)
 					if (d >= bestDistance) continue
 					const a = Math.atan2((world.y[i] as number) - object.y, (world.x[i] as number) - object.x)
@@ -456,7 +456,7 @@ export function stepObjects(world: World): void {
 					length: bestDistance,
 					weapon: 0
 				})
-				world.damageZombie(best, object.amount, object.owner, object.damageType)
+				world.damageZombie(best, object.amount, object.owner, object.damageType, true, object.x, object.y)
 				break
 			}
 		}

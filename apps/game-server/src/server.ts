@@ -375,6 +375,7 @@ export class GameServer {
 			room.mode !== payload.mode ||
 			room.missionRoom?.id !== mission?.id ||
 			room.missionRoom?.difficulty !== mission?.difficulty ||
+			(room.missionRoom?.modifiers ?? []).join(',') !== (mission?.modifiers ?? []).join(',') ||
 			room.arena !== arena ||
 			(room.completedAt > 0 && !room.has(payload.sub))
 		) {

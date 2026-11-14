@@ -96,18 +96,19 @@ export async function dropRoom(valkey: Valkey, roomId: string): Promise<void> {
 	await valkey.del(roomKey(roomId))
 }
 
-/** The mission and difficulty a squad room was started with, as the API recorded it. */
+/** The mission and difficulty a squad room was started with (and when), as the API recorded it. */
 const roomMissionKey = (roomId: string) => `game:room-mission:${roomId}`
 const ROOM_MISSION_SECONDS = 8 * 60 * 60
 
 export async function recordRoomMission(
 	valkey: Valkey,
 	roomId: string,
-	mission: { id: string; difficulty: string } | null
+	mission: { id: string; difficulty: string; modifiers?: readonly string[] } | null,
+	startedAt = Date.now()
 ): Promise<void> {
 	await valkey.set(
 		roomMissionKey(roomId),
-		mission ? `${mission.id}:${mission.difficulty}` : 'survival',
+		mission ? `${mission.id}:${mission.difficulty}:${(mission.modifiers ?? []).join(',')}:${startedAt}` : 'survival',
 		'EX',
 		ROOM_MISSION_SECONDS
 	)
@@ -116,12 +117,18 @@ export async function recordRoomMission(
 export async function roomMission(
 	valkey: Valkey,
 	roomId: string
-): Promise<{ id: string; difficulty: string } | 'survival' | null> {
+): Promise<{ id: string; difficulty: string; modifiers: string[]; startedAt: Date | null } | 'survival' | null> {
 	const value = await valkey.get(roomMissionKey(roomId))
 	if (!value) return null
 	if (value === 'survival') return 'survival'
-	const [id = '', difficulty = ''] = value.split(':')
-	return { id, difficulty }
+	const [id = '', difficulty = '', modifiers = '', started = ''] = value.split(':')
+	const at = Number(started)
+	return {
+		id,
+		difficulty,
+		modifiers: modifiers ? modifiers.split(',') : [],
+		startedAt: started && Number.isFinite(at) ? new Date(at) : null
+	}
 }
 
 const CLAIM = `

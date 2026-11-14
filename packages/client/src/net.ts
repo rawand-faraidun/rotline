@@ -16,7 +16,15 @@ import {
 import type { PlayerInput, SimEvent } from '@rotline/sim'
 
 export type ConnectionHandlers = {
-	welcome(you: number, tick: number, mapId: string, build: Build, missionId: string, difficulty: string): void
+	welcome(
+		you: number,
+		tick: number,
+		mapId: string,
+		build: Build,
+		missionId: string,
+		difficulty: string,
+		modifiers: string[]
+	): void
 	snapshot(frame: SnapshotFrame, table: ZombieTable, receivedAt: number): void
 	events(events: SimEvent[]): void
 	roster(entries: RosterEntry[]): void
@@ -79,7 +87,8 @@ export class GameConnection {
 							message.mapId,
 							message.build,
 							message.missionId,
-							message.difficulty
+							message.difficulty,
+							message.modifiers
 						)
 						break
 					case 'snapshot': {

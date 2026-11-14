@@ -53,6 +53,11 @@
 		0 100%,
 		0 var(--cut, 8px)
 	);
+
+	/* the clip would hide an outline drawn outside: the focus ring goes inside the edge instead */
+	&:focus-visible {
+		outline-offset: -4px;
+	}
 }
 
 @utility cut-sm {
@@ -75,6 +80,11 @@
 		0 var(--cut, 8px)
 	);
 	background: var(--frame-color, var(--color-line));
+
+	/* the clip would hide an outline drawn outside: the focus ring goes inside the edge instead */
+	&:focus-visible {
+		outline-offset: -4px;
+	}
 
 	&::before {
 		content: "";

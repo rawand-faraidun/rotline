@@ -40,7 +40,7 @@ describe('missions', () => {
 			mission: { id: string; difficulty: string }
 		}
 		// the campaign starts with its first mission
-		expect(mission).toEqual({ id: 'landfall', difficulty: 'veteran' })
+		expect(mission).toEqual({ id: 'landfall', difficulty: 'veteran', modifiers: [] })
 		await party(guest.jar, 'join', { code })
 		expect((await party(guest.jar, 'mission', { mission: 'landfall', difficulty: 'nightmare' })).status).toBe(403)
 		expect((await party(host.jar, 'mission', { mission: 'nowhere', difficulty: 'nightmare' })).status).toBe(400)
@@ -49,7 +49,7 @@ describe('missions', () => {
 		expect((await party(host.jar, 'mission', { mission: 'yard-stand', difficulty: 'nightmare' })).status).toBe(409)
 		expect((await party(host.jar, 'mission', { mission: 'survival', difficulty: 'veteran' })).status).toBe(200)
 		const chosen = await party(host.jar, 'mission', { mission: 'landfall', difficulty: 'nightmare' })
-		expect(chosen.body.mission).toEqual({ id: 'landfall', difficulty: 'nightmare' })
+		expect(chosen.body.mission).toEqual({ id: 'landfall', difficulty: 'nightmare', modifiers: [] })
 
 		await party(guest.jar, 'ready', { ready: true })
 		await seats.enter(host.id)

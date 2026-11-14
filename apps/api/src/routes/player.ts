@@ -1,5 +1,6 @@
 import { AVATAR_SEED_MAX, AVATAR_STYLES } from '@rotline/constants'
 import { Prisma } from '@rotline/db'
+import { achievements } from '@rotline/game-data'
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -23,13 +24,16 @@ export function playerRoutes({ db }: Services) {
 		activeClass: string
 		salvage: bigint
 		isAdmin: boolean
+		titleId?: string | null
 	}) => ({
 		name: player.name,
 		avatarStyle: player.avatarStyle,
 		avatarSeed: player.avatarSeed,
 		activeClass: player.activeClass,
 		salvage: Number(player.salvage),
-		isAdmin: player.isAdmin
+		isAdmin: player.isAdmin,
+		/** the title worn, from an achievement earned */
+		title: achievements.find(entry => entry.id === player.titleId)?.title ?? null
 	})
 
 	return new Hono<AppEnv>()

@@ -6,7 +6,11 @@ import {
 	isSurvival,
 	type MissionDef,
 	missionById,
-	SURVIVAL_ARENAS
+	modifierApplies,
+	modifierBonus,
+	modifiers,
+	SURVIVAL_ARENAS,
+	zombies
 } from '@rotline/game-data'
 import { Badge, cn, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -20,6 +24,7 @@ import {
 	partyActions,
 	partyQuery
 } from '../../lib/party.ts'
+import { bountyQuery } from '../../lib/records.ts'
 
 const t = en.app.missions
 
@@ -45,11 +50,17 @@ function MissionCard({
 	chosen,
 	editable,
 	entry,
+	boss = false,
+	bounty = null,
 	onChoose
 }: {
+	/** this week's bounty haunts this mission: its name and the difficulty */
+	bounty?: string | null
 	mission: MissionDef
 	number?: number | undefined
 	open: boolean
+	/** the zone's boss: marked as such, and locked behind the zone's last mission */
+	boss?: boolean
 	chosen: boolean
 	editable: boolean
 	entry: MissionRecord | undefined
@@ -67,10 +78,13 @@ function MissionCard({
 					'frame cut flex h-full w-full flex-col gap-2 p-4 text-left',
 					chosen
 						? '[--frame-color:var(--color-rot-lime)]'
-						: editable && open && 'hover:[--frame-color:var(--color-bone)]',
+						: boss
+							? '[--frame-color:var(--color-alert)]'
+							: editable && open && 'hover:[--frame-color:var(--color-bone)]',
 					(!open || (!editable && !chosen)) && 'opacity-50'
 				)}
 			>
+				{boss && <span className="font-bold text-[10px] text-alert uppercase tracking-[0.25em]">{t.zoneBoss}</span>}
 				<span className="flex items-start justify-between gap-3">
 					<span className="font-display text-2xl uppercase">
 						{number !== undefined && <span className="text-muted">{number}.</span>} {mission.name}
@@ -93,7 +107,8 @@ function MissionCard({
 					<span>{format(t.objectives, { count: String(mission.objectives.length) })}</span>
 					{record.bestTimeMs ? <span>{format(t.best, { time: clock(record.bestTimeMs / 1000) })}</span> : null}
 				</span>
-				{!open && <span className="text-muted text-xs">{t.lockedHint}</span>}
+				{bounty && <span className="font-bold text-warning text-xs uppercase tracking-[0.15em]">{bounty}</span>}
+				{!open && <span className="text-muted text-xs">{boss ? t.bossLockedHint : t.lockedHint}</span>}
 			</button>
 		</li>
 	)
@@ -102,6 +117,14 @@ function MissionCard({
 /** The leader picks the next mission or game mode and its difficulty; everyone else sees the choice. */
 export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?: MissionTab }) {
 	const records = useQuery(missionsQuery)
+	const bounty = useQuery(bountyQuery).data
+	const bountyLabel = (id: string) =>
+		bounty && bounty.mission === id
+			? format(t.bountyHere, {
+					name: zombies.find(entry => entry.id === bounty.zombie)?.name ?? bounty.zombie,
+					difficulty: difficulties.tiers.find(tier => tier.id === bounty.difficulty)?.name ?? bounty.difficulty
+				})
+			: null
 	const queryClient = useQueryClient()
 	const [problem, setProblem] = useState<PartyProblem | null>(null)
 	const [tab, setTab] = useState<MissionTab>(initialTab ?? (isMode(view.mission.id) ? 'modes' : 'campaign'))
@@ -109,14 +132,15 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 	const editable = leader && view.state === 'lobby'
 	const survival = isSurvival(view.mission.id)
 
-	async function choose(mission: string, difficulty: DifficultyId) {
+	// a new mission keeps the modifiers chosen (Survival takes none)
+	async function choose(mission: string, difficulty: DifficultyId, chosen = view.mission.modifiers) {
 		setProblem(null)
-		const result = await partyActions.mission(mission, difficulty)
+		const result = await partyActions.mission(mission, difficulty, chosen)
 		if ('error' in result) setProblem(result.error)
 		else queryClient.setQueryData(partyQuery.queryKey, result)
 	}
 
-	const card = (id: string, number?: number, firstOpen = false) => {
+	const card = (id: string, number?: number, firstOpen = false, boss = false) => {
 		const mission = missionById(id)
 		if (!mission) return []
 		const entry = records.data?.find(record => record.id === mission.id)
@@ -130,6 +154,8 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 				chosen={view.mission.id === mission.id}
 				editable={editable}
 				entry={entry}
+				boss={boss}
+				bounty={bountyLabel(mission.id)}
 				onChoose={() => void choose(mission.id, view.mission.difficulty)}
 			/>
 		]
@@ -175,6 +201,7 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 								order++
 								return card(id, order, order === 1)
 							})}
+							{zone.boss ? card(zone.boss, undefined, false, true) : null}
 						</ul>
 					</section>
 				))}
@@ -246,6 +273,56 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 							>
 								<span className="font-bold uppercase tracking-wide">{tier.name}</span>
 								<span className="text-muted text-xs">{format(t.rewards, { times: String(tier.rewards) })}</span>
+							</button>
+						)
+					})}
+				</div>
+			</fieldset>
+			<fieldset className={cn('flex flex-col gap-2', survival && 'hidden')}>
+				<legend className="mb-2 flex w-full items-baseline justify-between gap-3 font-bold text-muted text-xs uppercase tracking-[0.2em]">
+					<span>{t.modifiers}</span>
+					{view.mission.modifiers.length > 0 && (
+						<span className="text-warning">
+							{format(t.modifierBonus, { percent: String(Math.round(modifierBonus(view.mission.modifiers) * 100)) })}
+						</span>
+					)}
+				</legend>
+				<div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+					{modifiers.modifiers.map(modifier => {
+						const on = view.mission.modifiers.includes(modifier.id)
+						// one that changes nothing on this mission (Blackout where it is dark already) is not offered
+						const chosenDef = missionById(view.mission.id)
+						const applies = !chosenDef || modifierApplies(modifier, chosenDef)
+						const next = on
+							? view.mission.modifiers.filter(id => id !== modifier.id)
+							: [...view.mission.modifiers, modifier.id]
+						return (
+							<button
+								key={modifier.id}
+								type="button"
+								aria-pressed={on}
+								disabled={!editable || !applies}
+								onClick={() => void choose(view.mission.id, view.mission.difficulty, next)}
+								className={cn(
+									'frame cut-sm flex flex-col items-start gap-0.5 px-3 py-2 text-left',
+									on
+										? '[--frame-color:var(--color-warning)]'
+										: editable && applies && 'hover:[--frame-color:var(--color-bone)]',
+									(!editable || !applies) && !on && 'opacity-60'
+								)}
+							>
+								<span className="flex w-full items-baseline justify-between gap-2">
+									<span className="font-bold uppercase tracking-wide">{modifier.name}</span>
+									{/* chosen in words as well as colour */}
+									{on ? (
+										<Badge tone="warning">{t.modifierOn}</Badge>
+									) : (
+										<span className="text-warning text-xs">
+											{format(en.app.units.plus, { amount: `${Math.round(modifier.bonus * 100)} %` })}
+										</span>
+									)}
+								</span>
+								<span className="text-muted text-xs">{applies ? modifier.description : t.modifierNotHere}</span>
 							</button>
 						)
 					})}

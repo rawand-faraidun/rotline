@@ -1,0 +1,24 @@
+{
+	"reward": 5000,
+	"difficulties": ["veteran", "nightmare"],
+	"bounties": [
+		{
+			"id": "old-ironjaw",
+			"zombie": "old-ironjaw",
+			"title": "Ironjaw's End",
+			"missions": ["yard-sweep", "survivors", "yard-stand", "airlift", "minister"]
+		},
+		{
+			"id": "mother-rot",
+			"zombie": "mother-rot",
+			"title": "Rot Mother's Bane",
+			"missions": ["landfall", "power-out", "hive", "lifeline", "cure"]
+		},
+		{
+			"id": "the-whisper",
+			"zombie": "the-whisper",
+			"title": "Silencer",
+			"missions": ["yard-sweep", "power-out", "survivors", "hive", "lifeline"]
+		}
+	]
+}

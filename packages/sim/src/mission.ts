@@ -1,4 +1,5 @@
 import {
+	applicableModifiers,
 	buffs,
 	type DifficultyDef,
 	type DifficultyId,
@@ -7,6 +8,8 @@ import {
 	economy,
 	items,
 	type MissionDef,
+	type ModifierEffects,
+	modifierEffects,
 	type ObjectiveDef,
 	pathLength,
 	propsDef,
@@ -19,7 +22,14 @@ import { letGo, resetProp } from './prop-step.ts'
 import { type Prop, PropState, setPropState } from './props.ts'
 import { ObjectKind, type World } from './world.ts'
 
-export type MissionSetup = { mission: MissionDef; difficulty: DifficultyId }
+/** `modifiers`: the harder rules the leader switched on (ids from game data) */
+/** `bounty`: this week's named elite (a zombie id), when the room plays its mission at its difficulty */
+export type MissionSetup = {
+	mission: MissionDef
+	difficulty: DifficultyId
+	modifiers?: readonly string[]
+	bounty?: string | null
+}
 
 /** `failed`: the mission's clock ran out before the last step was done */
 export const MissionStatus = { none: 0, active: 1, complete: 2, failed: 3 } as const
@@ -28,6 +38,9 @@ export const MissionStatus = { none: 0, active: 1, complete: 2, failed: 3 } as c
 export type MissionState = {
 	def: MissionDef
 	difficulty: DifficultyDef
+	/** the modifiers switched on, and what they do */
+	modifiers: readonly string[]
+	effects: ModifierEffects
 	/** current objective */
 	index: number
 	/** kills, or ticks spent in the area / survived */
@@ -76,7 +89,24 @@ export type MissionState = {
 	spilled: Set<number>
 	/** the tick a step's boss is due (0 when it has come or there is none) */
 	bossTick: number
+	/** the director's pacing (Pace): building up, at a peak, or easing off, from when until when */
+	pace: number
+	paceStart: number
+	paceUntil: number
+	/** the commonest kind in the mission's mix: what comes instead of a kind already at its cap */
+	common: number
+	/** this week's bounty: its kind (-1 for none), the step it turns up in, when, and whether it is down */
+	bountyType: number
+	bountyStep: number
+	bountyTick: number
+	bountyDown: boolean
 }
+
+/** A bounty turns up this long into its step. */
+const BOUNTY_DELAY_SECONDS = 20
+
+/** The director's three paces. */
+export const Pace = { build: 0, peak: 1, relief: 2 } as const
 
 /** A player counts as playing (for objective score and drops) if they acted this recently. */
 const ACTIVE_TICKS = Math.round(economy.rewards.activeSeconds * TICK_RATE)
@@ -109,6 +139,9 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 	return {
 		def: setup.mission,
 		difficulty: difficultyDef(setup.difficulty),
+		// what plays is only what changes something here (the API stores no more, this makes sure)
+		modifiers: applicableModifiers(setup.modifiers ?? [], setup.mission),
+		effects: modifierEffects(applicableModifiers(setup.modifiers ?? [], setup.mission)),
 		index: nextStep(setup.mission, 0),
 		progress: 0,
 		status: MissionStatus.active,
@@ -137,9 +170,119 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 		huntKilled: 0,
 		repaired: 0,
 		spilled: new Set(),
-		bossTick: 0
+		bossTick: 0,
+		pace: Pace.build,
+		paceStart: startTick,
+		paceUntil: 0,
+		common: commonest(setup.mission.spawn.composition),
+		bountyType: setup.bounty ? zombieIndex(setup.bounty) : -1,
+		// the middle one of the mission's steps
+		bountyStep: bountyStepOf(setup.mission),
+		bountyTick: 0,
+		bountyDown: false
 	}
 }
+
+/** The step a bounty turns up in: the middle one of the mission's steps (not counting optional ones). */
+function bountyStepOf(def: MissionDef): number {
+	const steps = def.objectives.flatMap((objective, index) => (objective.optional ? [] : [index]))
+	return steps[Math.floor((steps.length - 1) / 2)] ?? 0
+}
+
+/** The kind with the largest weight in a mix. */
+function commonest(composition: Record<string, number>): number {
+	let best = ''
+	let weight = -1
+	for (const [id, share] of Object.entries(composition))
+		if (share > weight) {
+			best = id
+			weight = share
+		}
+	return zombieIndex(best)
+}
+
+/** Someone is down, or those standing are low on health on average: the squad needs a breather. */
+function inTrouble(world: World): boolean {
+	let standing = 0
+	let share = 0
+	for (const state of world.players.values()) {
+		if (!state.alive) continue
+		if (state.downed) return true
+		standing++
+		share += state.health / state.stats.maxHealth
+	}
+	return standing > 0 && share / standing < difficulties.director.easeHealth
+}
+
+/**
+ * The spawn director: the stream builds up, peaks and eases off, over and over, so the pressure
+ * rises and falls instead of staying flat. A squad in trouble at a peak gets its relief early.
+ * Returns the spawn rate and the cap on zombies alive, as multipliers.
+ */
+export function pacing(world: World, mission: MissionState): { rate: number; alive: number } {
+	const director = difficulties.director
+	if (mission.paceUntil === 0) beginPace(world, mission, Pace.build)
+	else if (world.tick >= mission.paceUntil) beginPace(world, mission, (mission.pace + 1) % 3)
+	else if (mission.pace === Pace.peak && inTrouble(world)) beginPace(world, mission, Pace.relief)
+	// one object, filled each tick (the caller reads it at once)
+	const out = PACE
+	switch (mission.pace) {
+		case Pace.peak:
+			out.rate = director.peakRate
+			out.alive = director.peakAlive
+			break
+		case Pace.relief:
+			out.rate = director.reliefRate
+			out.alive = 1
+			break
+		default: {
+			const span = Math.max(1, mission.paceUntil - mission.paceStart)
+			const t = Math.min(1, (world.tick - mission.paceStart) / span)
+			const [from, to] = director.buildRate
+			out.rate = from + (to - from) * t
+			out.alive = 1
+		}
+	}
+	return out
+}
+
+const PACE = { rate: 1, alive: 1 }
+
+/** The director moves to `pace`, for a stretch drawn from its range. */
+function beginPace(world: World, mission: MissionState, pace: number): void {
+	const director = difficulties.director
+	const [low, high] =
+		pace === Pace.build ? director.buildSeconds : pace === Pace.peak ? director.peakSeconds : director.reliefSeconds
+	mission.pace = pace
+	mission.paceStart = world.tick
+	mission.paceUntil = world.tick + Math.round((low + world.rng.next() * (high - low)) * TICK_RATE)
+}
+
+/** A kind already at its cap (Retchers, Bulwarks, ...) comes in as the mission's commonest kind instead. */
+export function capped(world: World, mission: MissionState, type: number, squadScale: number): number {
+	const cap = difficulties.director.caps[zombies[type]?.id ?? '']
+	if (cap === undefined) return type
+	const limit = Math.max(1, Math.round(cap * squadScale))
+	// kinds alive, counted once a tick (and kept up as this tick's spawns come in)
+	let counted = ALIVE_BY_TYPE.get(world)
+	if (!counted || counted.tick !== world.tick) {
+		const counts = counted?.counts ?? new Uint16Array(zombies.length)
+		counts.fill(0)
+		for (let i = 0; i < MAX_ZOMBIES; i++)
+			if (world.alive[i] === 1) {
+				const kind = world.type[i] as number
+				counts[kind] = (counts[kind] as number) + 1
+			}
+		counted = { tick: world.tick, counts }
+		ALIVE_BY_TYPE.set(world, counted)
+	}
+	const alive = counted.counts[type] as number
+	if (alive >= limit) return mission.common
+	counted.counts[type] = alive + 1
+	return type
+}
+
+const ALIVE_BY_TYPE = new WeakMap<World, { tick: number; counts: Uint16Array }>()
 
 /** The first objective from `from` on that is a step (not optional); past the end when none is left. */
 export function nextStep(def: MissionDef, from: number): number {
@@ -238,7 +381,8 @@ export function hideUnusedProps(props: readonly Prop[], def: MissionDef): void {
 export function enemyScale(mission: MissionState): { health: number; damage: number } {
 	const levels = mission.def.enemyLevel - 1
 	return {
-		health: mission.difficulty.enemyHealth * (1 + difficulties.enemyLevel.health * levels),
+		health:
+			mission.difficulty.enemyHealth * (1 + difficulties.enemyLevel.health * levels) * mission.effects.enemyHealth,
 		damage: mission.difficulty.enemyDamage * (1 + difficulties.enemyLevel.damage * levels)
 	}
 }
@@ -330,11 +474,18 @@ export function stepMission(world: World): void {
 	jam(world, objective.jammed === true)
 	if (objective.boss && mission.startedFor === mission.index && mission.bossTick > 0 && world.tick >= mission.bossTick)
 		spawnBoss(world, mission, objective.boss)
+	// this week's bounty comes in from out of sight, once, until it is brought down
+	if (mission.bountyTick > 0 && world.tick >= mission.bountyTick && !mission.bountyDown) {
+		mission.bountyTick = 0
+		const at = world.pickSpawnPoint()
+		if (at && world.spawnZombie(mission.bountyType, at) >= 0)
+			world.events.push({ type: 'bounty', zombieType: mission.bountyType })
+	}
 
 	// the spawn director: a steady stream, scaled by the objective, difficulty and squad size
 	const squad = Math.max(1, Math.min(4, world.players.size))
 	const squadScale = difficulties.squadEnemyCount[squad - 1] ?? 1
-	const count = mission.difficulty.enemyCount * squadScale
+	const count = mission.difficulty.enemyCount * squadScale * mission.effects.enemyCount
 	world.spawnSections = objective.sections ?? null
 	if (mission.startedFor !== mission.index) startObjective(world, mission, objective, count)
 	// an ambush pours in a few a tick, past the stream's cap (never past the engine's)
@@ -345,15 +496,16 @@ export function stepMission(world: World): void {
 		if (!pick || world.spawnZombie(pick.type) < 0) break
 		mission.burst--
 	}
-	const maxAlive = Math.min(difficulties.maxAlive, Math.round(mission.def.spawn.maxAlive * count))
+	const pace = pacing(world, mission)
+	const maxAlive = Math.min(difficulties.maxAlive, Math.round(mission.def.spawn.maxAlive * count * pace.alive))
 	// nothing spawns while the whole squad is down: they come back to the checkpoint, not into a horde
 	if (standing(world)) {
-		mission.spawnAccumulator += mission.def.spawn.perSecond * (objective.spawnScale ?? 1) * count * DT
+		mission.spawnAccumulator += mission.def.spawn.perSecond * (objective.spawnScale ?? 1) * count * pace.rate * DT
 		while (mission.spawnAccumulator >= 1 && world.aliveCount < maxAlive) {
 			mission.spawnAccumulator -= 1
 			const roll = world.rng.next() * mission.poolTotal
 			const pick = mission.pool.find(entry => roll < entry.upTo) ?? mission.pool[0]
-			if (pick && world.spawnZombie(pick.type) < 0) {
+			if (pick && world.spawnZombie(capped(world, mission, pick.type, squadScale)) < 0) {
 				mission.spawnAccumulator += 1
 				break
 			}
@@ -494,6 +646,9 @@ function startObjective(world: World, mission: MissionState, objective: Objectiv
 		mission.burstTotal = total
 		mission.burst = Math.max(1, Math.round(objective.ambush.count * count))
 	}
+	// this week's bounty, a while into its step (again after a wipe, until it is down)
+	if (mission.bountyType >= 0 && mission.index === mission.bountyStep && !mission.bountyDown)
+		mission.bountyTick = world.tick + Math.round(BOUNTY_DELAY_SECONDS * TICK_RATE)
 	// the boss now, or a while into the step
 	mission.bossTick = objective.boss ? world.tick + Math.round((objective.boss.afterSeconds ?? 0) * TICK_RATE) : 0
 	if (objective.boss && mission.bossTick === world.tick) spawnBoss(world, mission, objective.boss)
@@ -971,9 +1126,12 @@ export function applyBuff(world: World, picker: PlayerState, index: number): voi
 				const def = zombies[world.type[i] as number]
 				if (!def || def.dummy) continue
 				if (Math.hypot((world.x[i] as number) - picker.x, (world.y[i] as number) - picker.y) > param('radius')) continue
-				const amount = def.elite
-					? (world.maxHealth[i] as number) * param('eliteDamage')
-					: (world.health[i] as number) + 1
+				// a boss loses a sliver, an elite a share, the rest die
+				const amount = def.boss
+					? (world.maxHealth[i] as number) * param('bossDamage')
+					: def.elite
+						? (world.maxHealth[i] as number) * param('eliteDamage')
+						: (world.health[i] as number) + 1
 				world.damageZombie(i, amount, picker.id, 'explosive', false)
 			}
 			break
@@ -1054,15 +1212,19 @@ export function openCaches(world: World, state: PlayerState, interacting: boolea
 export function maybeDropBuff(world: World, x: number, y: number, chance: number = buffs.drop.chancePerKill): void {
 	if (world.range || world.tick < world.nextBuffTick) return
 	if (world.lootRng.next() >= chance) return
-	const total = buffs.buffs.reduce((sum, buff) => sum + buff.weight, 0)
+	// Scarce ammunition: no Max Ammo
+	const weight = (buff: (typeof buffs.buffs)[number]) =>
+		buff.id === 'max-ammo' && world.mission?.effects.noMaxAmmo ? 0 : buff.weight
+	const total = buffs.buffs.reduce((sum, buff) => sum + weight(buff), 0)
 	let roll = world.lootRng.next() * total
 	let chosen = 0
 	for (const [index, buff] of buffs.buffs.entries()) {
-		if (roll < buff.weight) {
+		if (weight(buff) === 0) continue
+		if (roll < weight(buff)) {
 			chosen = index
 			break
 		}
-		roll -= buff.weight
+		roll -= weight(buff)
 	}
 	world.nextBuffTick = world.tick + Math.round(buffs.drop.minIntervalSeconds * TICK_RATE)
 	world.addObject({

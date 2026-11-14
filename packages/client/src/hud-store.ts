@@ -83,11 +83,30 @@ export type HudState = {
 	utilities: { name: string; key: string; charges: number | null }[]
 	/** firing range: damage per second over the last three seconds */
 	dps: number
+	/** a tip on how to play, shown once per browser when it first matters (its id; the page has the text) */
+	tip: { id: TipId; at: number; pad: boolean } | null
+	/** sprint stamina left, 0..1, and whether the player is running flat out */
+	stamina: number
+	sprinting: boolean
 	pingMs: number
 	fps: number
 	hitMarker: number
 	kickReason: number | null
 }
+
+/** The tips, in the order a new player usually meets them. */
+export type TipId =
+	| 'move'
+	| 'objective'
+	| 'reload'
+	| 'interact'
+	| 'sprint'
+	| 'ability'
+	| 'warning'
+	| 'revive'
+	| 'downed'
+	| 'map'
+	| 'utility'
 
 export type InteractAction =
 	| 'open'
@@ -130,7 +149,19 @@ export type MissionHud = {
 
 export type Toast = {
 	id: number
-	kind: 'item' | 'buff' | 'threshold' | 'resupply' | 'secret'
+	/** `phase`: a boss stepped into a new phase (its name in `text`) */
+	/** `mutation`: the horde's stage (in `text`); `strain`: a strain hardened against a damage type (in `text`) */
+	kind:
+		| 'item'
+		| 'buff'
+		| 'threshold'
+		| 'resupply'
+		| 'secret'
+		| 'phase'
+		| 'mutation'
+		| 'strain'
+		| 'bounty'
+		| 'bounty-down'
 	/** the item or buff name, or the Salvage paid for a threshold */
 	text: string
 	/** who picked a buff up (teammates' pickups help everyone) */
@@ -186,6 +217,9 @@ export const initialHud: HudState = {
 	abilities: [],
 	utilities: [],
 	dps: 0,
+	tip: null,
+	stamina: 1,
+	sprinting: false,
 	pingMs: 0,
 	fps: 0,
 	hitMarker: 0,

@@ -8,6 +8,7 @@
 		"./headless": "./src/headless.ts",
 		"./viewer": "./src/viewer.ts",
 		"./audio": "./src/audio.ts",
+		"./settings": "./src/settings.ts",
 		"./lobby": "./src/lobby.ts",
 		"./lab": "./src/lab.ts",
 		"./fx-lab": "./src/fx-lab.ts"

@@ -1,5 +1,11 @@
 {
 	"radius": 0.4,
 	"respawnSeconds": 3,
-	"soloLives": 3
+	"soloLives": 3,
+	"sprint": {
+		"seconds": 4,
+		"regenSeconds": 6,
+		"delaySeconds": 1,
+		"restartShare": 0.25
+	}
 }

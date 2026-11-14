@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { AvatarStyle } from '@rotline/constants'
-import { difficulties, isSurvival, missionById, SURVIVAL } from '@rotline/game-data'
+import { difficulties, isSurvival, missionById, modifierBonus, modifierDefs, SURVIVAL } from '@rotline/game-data'
 import { AvatarFrame, Badge, Button, cn, Input, Label, Panel } from '@rotline/ui'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
@@ -102,6 +102,9 @@ function PlayerCard() {
 			<AvatarFrame src={avatar} alt="" size={64} />
 			<span className="flex min-w-0 flex-1 flex-col gap-1">
 				<span className="truncate font-display text-2xl uppercase">{player.name}</span>
+				{player.title && (
+					<span className="truncate text-rot-lime text-xs uppercase tracking-[0.2em]">{player.title}</span>
+				)}
 				<span className="flex items-baseline justify-between gap-2 text-sm">
 					<span className="font-bold text-rot-lime uppercase tracking-[0.12em]">
 						{en.app.progression.classes[view.activeClass].name} ·{' '}
@@ -142,6 +145,9 @@ function MemberRow({
 					{member.name}
 					{you && <span className="text-muted"> {t.you}</span>}
 				</span>
+				{member.title && (
+					<span className="truncate text-rot-lime text-xs uppercase tracking-[0.15em]">{member.title}</span>
+				)}
 				<span className="text-muted text-xs uppercase tracking-wider">
 					{t.classes[member.activeClass]} · {format(en.app.progression.level, { level: String(member.level) })}
 				</span>
@@ -172,6 +178,7 @@ export function LobbyScreen() {
 	const [side, setSide] = useState<'squad' | 'friends'>('squad')
 	const [picking, setPicking] = useState<MissionTab | null>(null)
 	const [friendNote, setFriendNote] = useState<'sent' | 'failed' | null>(null)
+	const [quickNote, setQuickNote] = useState<'joined' | 'waiting' | null>(null)
 	const progress = useQuery(progressQuery)
 	const player = me.status === 'signed-in' ? me.player : null
 
@@ -201,6 +208,18 @@ export function LobbyScreen() {
 		const result = await action()
 		if ('error' in result) setProblem(result.error)
 		else queryClient.setQueryData(partyQuery.queryKey, result)
+	}
+
+	async function quickPlay() {
+		setProblem(null)
+		setQuickNote(null)
+		const result = await partyActions.quick()
+		if ('error' in result) {
+			setProblem(result.error)
+			return
+		}
+		queryClient.setQueryData(partyQuery.queryKey, result.party)
+		setQuickNote(result.joined ? 'joined' : 'waiting')
 	}
 
 	/** Copies the squad code or the invite link, and says so on that button for a moment. */
@@ -329,6 +348,17 @@ export function LobbyScreen() {
 										? `${en.app.missions.endless} · ${en.app.missions.arenas[view.mission.id].description}`
 										: `${difficultyName} · ${missionById(view.mission.id)?.description ?? ''}`}
 								</span>
+								{view.mission.modifiers.length > 0 && (
+									<span className="text-warning text-xs uppercase tracking-[0.15em]">
+										{modifierDefs(view.mission.modifiers)
+											.map(modifier => modifier.name)
+											.join(' · ')}{' '}
+										·{' '}
+										{format(en.app.missions.modifierBonus, {
+											percent: String(Math.round(modifierBonus(view.mission.modifiers) * 100))
+										})}
+									</span>
+								)}
 							</button>
 						)}
 						{/* the game modes, set apart from the campaign above */}
@@ -463,6 +493,40 @@ export function LobbyScreen() {
 									)}
 								</span>
 							</div>
+							{view?.state === 'lobby' && (
+								<div className="flex flex-col gap-2 border-line border-t border-dashed pt-3">
+									<span className="flex flex-wrap items-center justify-between gap-2">
+										{isLeader ? (
+											<Button
+												variant={view.open ? 'primary' : 'secondary'}
+												size="sm"
+												aria-pressed={view.open}
+												title={t.openSquadHint}
+												onClick={() => void act(() => partyActions.open(!view.open))}
+											>
+												<StableLabel
+													labels={[t.openSquad, t.closedSquad]}
+													current={view.open ? t.openSquad : t.closedSquad}
+												/>
+											</Button>
+										) : (
+											<span className="text-muted text-xs uppercase tracking-[0.2em]">
+												{view.open ? t.openSquad : t.closedSquad}
+											</span>
+										)}
+										{solo && (
+											<Button size="sm" title={t.quickPlayHint} onClick={() => void quickPlay()}>
+												{t.quickPlay}
+											</Button>
+										)}
+									</span>
+									{quickNote && (
+										<p role="status" className="text-rot-lime text-sm">
+											{quickNote === 'joined' ? t.quickJoined : t.quickWaiting}
+										</p>
+									)}
+								</div>
+							)}
 							<form
 								className="flex flex-col gap-1.5"
 								onSubmit={event => {

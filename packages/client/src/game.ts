@@ -4,6 +4,7 @@ import {
 	abilities as abilityDefs,
 	buffs as buffDefs,
 	classes as classDefs,
+	DAMAGE_TYPES,
 	type DifficultyId,
 	difficultyDef,
 	economy,
@@ -14,6 +15,8 @@ import {
 	maps,
 	missionById,
 	missionFor,
+	modifierEffects,
+	mutationStage,
 	propsDef,
 	weapons,
 	zombies as zombieDefs
@@ -21,6 +24,7 @@ import {
 import {
 	INPUT_REDUNDANCY,
 	KickReason,
+	PoolList,
 	RangeAction,
 	Writer,
 	writePause,
@@ -45,10 +49,14 @@ import {
 	REACH_STEP,
 	REVIVE_COMPLETE,
 	REVIVE_RANGE,
+	STAMINA_MAX,
 	Step,
+	StrikeKind,
 	separateFromZombies,
 	setPropState,
-	TICK_RATE
+	TICK_RATE,
+	WarnKind,
+	ZombieState
 } from '@rotline/sim'
 import * as THREE from 'three'
 import { type AudioSettings, type LoopHandle, sharedAudio } from './audio.ts'
@@ -59,13 +67,14 @@ import {
 	type InteractAction,
 	type InteractHint,
 	type MissionHud,
+	type TipId,
 	type Toast
 } from './hud-store.ts'
 import { Interpolator } from './interpolate.ts'
 import { Minimap, type MinimapMode } from './minimap.ts'
 import { GameConnection } from './net.ts'
 import { Predictor } from './predict.ts'
-import { loadDamageNumbers, loadReadNotes, saveReadNotes } from './preferences.ts'
+import { loadDamageNumbers, loadReadNotes, loadTipsSeen, saveReadNotes, saveTipsSeen } from './preferences.ts'
 import { Decor } from './render/decor.ts'
 import { autoDecor, groundMarks } from './render/dressing.ts'
 import { Effects, SHOT_LOOKS } from './render/effects.ts'
@@ -76,6 +85,7 @@ import { PlayerFigure } from './render/players.ts'
 import { PropRenderer } from './render/props.ts'
 import { Stage, spawnHoles } from './render/scene.ts'
 import { surroundings } from './render/surroundings.ts'
+import { Warnings } from './render/warnings.ts'
 import { ZombieRenderer } from './render/zombies.ts'
 import { objectiveTarget, screenWaypoint } from './waypoint.ts'
 
@@ -93,6 +103,8 @@ export type GameOptions = {
 	map?: string | MapDef
 	/** the room the ticket is for: a contract's map (and so its objectives) depends on it */
 	room?: string
+	/** the mission's modifiers, from the ticket: Blackout puts the lights out before the map is drawn */
+	modifiers?: readonly string[]
 	/** floating damage numbers over what is hit (the player's choice; always on in the firing range) */
 	damageNumbers?: boolean
 }
@@ -114,6 +126,8 @@ export type GameHandle = {
 	minimap(canvas: HTMLCanvasElement, mode: MinimapMode): () => void
 	/** Floating damage numbers on or off (the firing range always shows them). */
 	damageNumbers(on: boolean): void
+	/** Tips on (each shown once more from the start) or off, at once in this game. */
+	tips(on: boolean): void
 	stop(): void
 }
 
@@ -123,13 +137,27 @@ const UTILITY_KEYS = ['G', 'T']
 const DPS_WINDOW_MS = 3000
 /** Toasts stay on screen this long. */
 const TOAST_MS = 4000
+/** A tip stays on screen this long, and the next waits for it. */
+const TIP_MS = 7000
 
 /** Starts a mission client: connects, predicts, interpolates and draws until stopped. */
 export function startGame(options: GameOptions): GameHandle {
 	const hud = new HudStore()
-	const map = (
+	const chosenMap = (
 		typeof options.map === 'object' ? options.map : (maps[options.map ?? 'yard'] ?? maps.yard)
 	) as NonNullable<typeof maps.yard>
+	// Blackout: the map as it is in the dark
+	const map: typeof chosenMap = modifierEffects(options.modifiers ?? []).dark
+		? {
+				...chosenMap,
+				look: {
+					ground: chosenMap.look?.ground ?? 'concrete',
+					walls: chosenMap.look?.walls ?? 'wall-concrete',
+					...chosenMap.look,
+					light: 'dark'
+				}
+			}
+		: chosenMap
 	const range = map.id === 'range'
 	const grid = new Grid(map)
 	// the map's props, kept in step with the server's (their blocking cells match its grid)
@@ -140,6 +168,9 @@ export function startGame(options: GameOptions): GameHandle {
 	const effects = new Effects(stage.scene, options.gore ?? true)
 	const objectRenderer = new ObjectRenderer(stage.scene, options.assets)
 	const eliteBars = new EliteBars(stage.scene)
+	const warnings = new Warnings(stage.scene)
+	/** per drawn zombie: 1 when it can be bumped into (not under the ground) */
+	const viewSolid = new Uint8Array(300)
 	const propRenderer = new PropRenderer(
 		stage.scene,
 		props,
@@ -165,6 +196,20 @@ export function startGame(options: GameOptions): GameHandle {
 	let propsSynced = false
 	const ownHits: { at: number; amount: number }[] = []
 	const readNotes = loadReadNotes()
+	/** tips already shown in this browser (null: switched off); the firing range shows none */
+	let tipsSeen = range ? null : loadTipsSeen()
+	let tipUntil = 0
+	/** Shows a tip the first time it matters (one at a time, each for a while). */
+	const tip = (id: TipId, now = performance.now()) => {
+		if (!tipsSeen || tipsSeen.has(id) || now < tipUntil || ended) return
+		tipsSeen.add(id)
+		saveTipsSeen(tipsSeen)
+		tipUntil = now + TIP_MS
+		hud.set({ tip: { id, at: now, pad: controls.padInUse } }, now, true)
+	}
+	let playingSince = 0
+	/** how far the horde has mutated (0 to 3) */
+	let mutation = 0
 	/** the mission is won or lost, or the run is over: the player stands still behind the results */
 	let ended = false
 	/** the current objective's own state: items picked up, areas taken, how long it has run */
@@ -172,6 +217,7 @@ export function startGame(options: GameOptions): GameHandle {
 	const barricades = new Map<number, number[]>()
 	const rangeWriter = new Writer(16)
 	const interpolator = new Interpolator()
+	const poolList = new PoolList()
 	const controls = new Controls(options.canvas)
 	// the page's sound engine, shared with the lobby: its sounds are usually decoded already
 	const audio = sharedAudio(`${options.assets}/audio`)
@@ -328,19 +374,28 @@ export function startGame(options: GameOptions): GameHandle {
 		if (stopped) return
 		zombies = renderer
 		renderer.setSpawnHoles(map.zombieSpawns)
-		stage.scene.add(renderer.mesh, renderer.corpses)
+		stage.scene.add(renderer.mesh, renderer.corpses, renderer.extras)
 		modelReady = true
 		checkReady()
 	})
 
 	const connection = new GameConnection(options.url, options.ticket, {
-		welcome: (slot, _tick, map, build, missionId, difficulty) => {
+		welcome: (slot, _tick, map, build, missionId, difficulty, modifiers) => {
 			startLoops(map)
 			you = slot
-			predictor = new Predictor(grid, slot, build)
+			predictor = new Predictor(grid, slot, build, modifiers)
+			ammoPrice = range ? 0 : Math.round(propsDef.ammo.price * modifierEffects(modifiers).ammoPrice)
 			// zombies are solid, as on the server (against where they are drawn)
 			predictor.collide = state =>
-				separateFromZombies(grid, state, interpolator.view.count, interpolator.view.x, interpolator.view.y, viewRadius)
+				separateFromZombies(
+					grid,
+					state,
+					interpolator.view.count,
+					interpolator.view.x,
+					interpolator.view.y,
+					viewRadius,
+					viewSolid
+				)
 			me?.dispose()
 			me = new PlayerFigure(slot, true, options.assets, 'game')
 			me.setClass(
@@ -350,6 +405,15 @@ export function startGame(options: GameOptions): GameHandle {
 			stage.scene.add(me.group)
 			mission = (options.room ? missionFor(missionId, options.room) : missionById(missionId)) ?? null
 			rewardScale = difficultyDef(difficulty as DifficultyId)?.rewards ?? 1
+			// the horde as mutated as the server makes it, worked out from the same rules
+			mutation = mission
+				? mutationStage({
+						zone: mission.zone,
+						difficulty: difficulty as DifficultyId,
+						extra: modifierEffects(modifiers).mutation
+					})
+				: 0
+			if (mutation > 0) toast('mutation', String(mutation))
 			markers?.dispose()
 			markers = mission ? new MissionMarkers(stage.scene, mission) : null
 			if (mission) {
@@ -393,7 +457,10 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		},
 		snapshot: (snapshot, table, receivedAt) => {
-			interpolator.push(snapshot.tick, table, snapshot.others, snapshot.pools, receivedAt, snapshot.objects)
+			// pools come as changes; the list is kept here
+			const pools = poolList.apply(snapshot.pools, snapshot.tick)
+			if (snapshot.mutation !== mutation) mutation = snapshot.mutation
+			interpolator.push(snapshot.tick, table, snapshot.others, pools, receivedAt, snapshot.objects)
 			syncBarricades(snapshot.objects)
 			for (const update of snapshot.props) {
 				const prop = props[update.index]
@@ -517,6 +584,7 @@ export function startGame(options: GameOptions): GameHandle {
 					livesLeft: snapshot.livesLeft,
 					silence: audio.silence,
 					health: Math.ceil(self.health),
+					maxHealth: predictor?.state.stats.maxHealth ?? 100,
 					wave: snapshot.wave + 1,
 					kills: snapshot.kills,
 					score: snapshot.score,
@@ -628,8 +696,73 @@ export function startGame(options: GameOptions): GameHandle {
 						effects.gas(event.x, event.y, event.radius, now)
 						audio.sound('thump', { x: event.x, y: event.y, rate: 0.6 })
 						break
+					case 'warn':
+						warnings.add(event.kind, event.x, event.y, event.tx, event.ty, event.radius, event.seconds, now)
+						if (Math.hypot(event.tx - drawn.x, event.ty - drawn.y) < 12) tip('warning')
+						if (event.kind === WarnKind.spit || event.kind === WarnKind.lob)
+							audio.sound('zombie-pain', { x: event.x, y: event.y, rate: 1.5, volume: 0.6 })
+						else if (event.kind === WarnKind.charge || event.kind === WarnKind.slam)
+							audio.sound('zombie-roar', { x: event.x, y: event.y, rate: 0.8, volume: 0.9 })
+						else if (event.kind === WarnKind.erupt) audio.sound('thud', { x: event.x, y: event.y, rate: 0.6 })
+						break
+					case 'strike': {
+						const d = Math.hypot(event.x - drawn.x, event.y - drawn.y)
+						switch (event.kind) {
+							case StrikeKind.acid:
+								effects.gas(event.x, event.y, event.radius, now)
+								audio.sound('splat', { x: event.x, y: event.y, volume: 0.6 })
+								break
+							case StrikeKind.fire:
+								effects.explode(0, event.x, event.y, event.radius * 0.6, now)
+								break
+							case StrikeKind.slam:
+							case StrikeKind.erupt:
+								effects.burst(event.x, event.y, event.radius, now, 0xc9b48a)
+								effects.splat(event.x, event.y, event.radius * 0.4)
+								audio.sound('explosion', { x: event.x, y: event.y, rate: 0.6, volume: 0.8 })
+								if (d < 14) stage.shake(0.5 * (1 - d / 14))
+								break
+							case StrikeKind.crash:
+								effects.impact(event.x, event.y, now)
+								effects.burst(event.x, event.y, event.radius, now, 0xc9b48a)
+								audio.sound('thud', { x: event.x, y: event.y, rate: 0.7 })
+								if (d < 14) stage.shake(0.4 * (1 - d / 14))
+								break
+							case StrikeKind.dig:
+								effects.burst(event.x, event.y, event.radius, now, 0x8a6a4a)
+								break
+						}
+						break
+					}
+					case 'bounty':
+						toast('bounty', zombieDefs[event.zombieType]?.name ?? '')
+						audio.sound('stinger', { bus: 'interface', volume: 0.9 })
+						break
+					case 'bounty-down':
+						toast('bounty-down', zombieDefs[event.zombieType]?.name ?? '')
+						audio.sound('chime', { bus: 'interface', rate: 0.8 })
+						break
+					case 'strain':
+						toast('strain', DAMAGE_TYPES[event.damage] ?? '')
+						audio.sound('zombie-roar', { bus: 'interface', rate: 0.7, volume: 0.6 })
+						break
+					case 'mutation':
+						mutation = event.stage
+						toast('mutation', String(event.stage))
+						audio.sound('stinger', { bus: 'interface', rate: 0.8, volume: 0.7 })
+						break
+					case 'phase': {
+						const phase = zombieDefs[event.zombieType]?.phases?.[event.phase - 1]
+						if (phase) {
+							toast('phase', phase.name)
+							audio.sound('stinger', { bus: 'interface', volume: 0.9 })
+						}
+						break
+					}
 					case 'player-down':
+						if (event.player !== you) tip('revive')
 						if (event.player === you) {
+							if (names.size > 1) tip('downed')
 							hud.set({ status: 'down' }, performance.now(), true)
 							audio.sound('thud', { volume: 0.9 })
 						}
@@ -770,6 +903,7 @@ export function startGame(options: GameOptions): GameHandle {
 		const view = interpolator.view
 		const hits: number[] = []
 		for (let i = 0; i < view.count; i++) {
+			if (viewSolid[i] === 0) continue
 			const qx = (view.x[i] as number) - x
 			const qy = (view.y[i] as number) - y
 			const along = qx * dx + qy * dy
@@ -815,11 +949,16 @@ export function startGame(options: GameOptions): GameHandle {
 	window.addEventListener('resize', onResize)
 
 	function sampleInput(renderTick: number): PlayerInput {
+		controls.poll()
 		const move = controls.movement()
-		const length = Math.hypot(move.x, move.y) || 1
+		// a stick's half travel is half speed; keys are always full
+		const length = Math.max(1, Math.hypot(move.x, move.y))
 		let aim = predictor?.state.aim ?? 0
 		let reach = 0
-		if (controls.pointer.inside && predictor) {
+		if (controls.stick.active) {
+			aim = angleToAim(controls.stick.angle)
+			reach = Math.min(255, controls.stick.reach / REACH_STEP)
+		} else if (controls.pointer.inside && predictor) {
 			pointer.set(controls.pointer.x, controls.pointer.y)
 			raycaster.setFromCamera(pointer, stage.camera)
 			if (raycaster.ray.intersectPlane(groundPlane, aimPoint)) {
@@ -880,6 +1019,8 @@ export function startGame(options: GameOptions): GameHandle {
 						: []
 				),
 				dps: dps(now),
+				stamina: Math.round((state.stamina / STAMINA_MAX) * 50) / 50,
+				sprinting: state.sprinting,
 				interactHint: interactHint(state)
 			},
 			now
@@ -906,7 +1047,7 @@ export function startGame(options: GameOptions): GameHandle {
 	/** What interact would do where the player stands (the same rules the server applies). */
 	let lastHint: InteractHint | null = null
 	// the firing range charges nothing for ammo (nobody scores there)
-	const ammoPrice = range ? 0 : propsDef.ammo.price
+	let ammoPrice = range ? 0 : propsDef.ammo.price
 	function interactHint(state: PlayerState): InteractHint | null {
 		let best: InteractHint | null = null
 		if (state.alive && !state.downed) {
@@ -948,6 +1089,25 @@ export function startGame(options: GameOptions): GameHandle {
 		return best
 	}
 
+	let nextTipCheck = 0
+	/** The tips that come from how the game stands: the first ones at once, the rest as play goes on. */
+	function checkTips(now: number): void {
+		const state = predictor?.state
+		if (!state?.alive || state.downed || !snapshotReady) return
+		if (playingSince === 0) playingSince = now
+		const played = (now - playingSince) / 1000
+		const snapshot = hud.getSnapshot()
+		tip('move', now)
+		if (snapshot.waypoint && mission) tip('objective', now)
+		const held = state.weapons[state.slot as 0 | 1 | 2]
+		if (held.mag === 0 && held.reserve !== 0 && state.reloadEndTick === 0) tip('reload', now)
+		if (snapshot.interactHint) tip('interact', now)
+		if (played > 25) tip('sprint', now)
+		if (played > 45 && state.stats.abilities.length > 0) tip('ability', now)
+		if (played > 75 && state.stats.utilities.some(Boolean)) tip('utility', now)
+		if (played > 110 && mission) tip('map', now)
+	}
+
 	/** The predicted tick: what cooldowns are measured against. */
 	function tickNow(): number {
 		return predictorTick
@@ -962,6 +1122,8 @@ export function startGame(options: GameOptions): GameHandle {
 	function loop(wallNow: number): void {
 		if (stopped) return
 		frame = requestAnimationFrame(loop)
+		// the gamepad's Start button works every frame, also while the game is paused and sends no input
+		controls.poll()
 		// while paused the world's clock stands still: zombies, figures, effects and props freeze
 		const frameDt = Math.min(0.1, (wallNow - last) / 1000)
 		last = wallNow
@@ -1055,6 +1217,10 @@ export function startGame(options: GameOptions): GameHandle {
 			if (hudDirty) {
 				updateWeaponsHud(now)
 				hudDirty = false
+			}
+			if (tipsSeen && wallNow >= nextTipCheck) {
+				nextTipCheck = wallNow + 500
+				checkTips(wallNow)
 			}
 		}
 
@@ -1182,6 +1348,14 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		}
 		if (interpolator.sample(renderTick)) {
+			{
+				const view = interpolator.view
+				for (let n = 0; n < view.count; n++) {
+					const state = view.state[n] as number
+					viewSolid[n] = state === ZombieState.under || state === ZombieState.erupting ? 0 : 1
+				}
+			}
+			if (zombies) zombies.mutation = mutation
 			zombies?.update(interpolator.view, now / 1000, stage.camera)
 			// zombies on fire burn where they walk
 			{
@@ -1261,6 +1435,7 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		}
 		effects.update(now / 1000)
+		warnings.update(now / 1000)
 		decor.update(now / 1000, drawn.x, drawn.y)
 		numbers.update(now / 1000)
 		stage.render()
@@ -1311,6 +1486,9 @@ export function startGame(options: GameOptions): GameHandle {
 		damageNumbers(on) {
 			showNumbers = range || on
 		},
+		tips(on) {
+			tipsSeen = range || !on ? null : new Set()
+		},
 		minimap(canvas, mode) {
 			minimapCanvases.set(canvas, mode)
 			nextMinimapAt = 0
@@ -1333,7 +1511,12 @@ export function startGame(options: GameOptions): GameHandle {
 			controls.dispose()
 			window.removeEventListener('resize', onResize)
 			// freeing the GPU's copies must never take the page down with it
-			for (const release of [() => markers?.dispose(), () => propRenderer.dispose(), () => stage.dispose()]) {
+			for (const release of [
+				() => markers?.dispose(),
+				() => propRenderer.dispose(),
+				() => warnings.dispose(),
+				() => stage.dispose()
+			]) {
 				try {
 					release()
 				} catch {

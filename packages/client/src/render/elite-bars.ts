@@ -56,7 +56,8 @@ export class EliteBars {
 			const hunted = ((view.status[i] as number) & ZombieStatus.hunted) !== 0
 			if (!def || (!def.elite && !hunted)) continue
 			const health = (view.health[i] as number) / 255
-			const size = def.scale ?? 1
+			// wider for bigger bodies, but a boss's bar is at the top of the screen too: no need to span the square
+			const size = Math.min(1.7, def.scale ?? 1)
 			const x = view.x[i] as number
 			const y = view.y[i] as number
 			this.position.set(x, 2.3 * size + 0.4, y)

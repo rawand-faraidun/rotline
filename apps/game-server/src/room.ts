@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import {
+	applicableModifiers,
 	type Build,
 	buffs,
+	currentBounty,
 	type DifficultyId,
 	difficultyDef,
 	economy,
@@ -11,9 +13,11 @@ import {
 	masteryFor,
 	missionFor,
 	missionMap,
+	modifierBonus,
 	SURVIVAL,
 	type SurvivalId,
 	survivalMap,
+	weapons,
 	zombieIndex,
 	zombies
 } from '@rotline/game-data'
@@ -63,6 +67,11 @@ export const RESULTS_SECONDS = 20
 /** A room of one may stay paused this long; then the game simply goes on. */
 const MAX_PAUSE_MS = 10 * 60 * 1000
 const ACTIVE_TICKS = Math.round(economy.rewards.activeSeconds * TICK_RATE)
+/** a revive of the same player counts toward records at most once in this long */
+const REVIVE_COUNT_TICKS = 3 * 60 * TICK_RATE
+/** the stats a kill counts toward, by zombie kind and by weapon (built once, not per kill) */
+const KILL_KEYS = zombies.map(zombie => `kill:${zombie.id}`)
+const WEAPON_KEYS = weapons.map(weapon => `weapon:${weapon.kind}`)
 const DOUBLE_XP = buffs.buffs.find(buff => buff.id === 'double-xp')?.params.xp ?? 1
 
 /**
@@ -93,9 +102,11 @@ type Earnings = {
 	hits: number
 	/** unique per membership, so a player who leaves and rejoins (or a restarted server) never reuses a grant key */
 	nonce: string
+	/** lifetime counts since the last report (see RewardReport.tally) */
+	tally: Record<string, number>
 }
 
-export type MissionRoom = { id: string; difficulty: DifficultyId }
+export type MissionRoom = { id: string; difficulty: DifficultyId; modifiers?: string[] | undefined }
 
 export type MissionResult = {
 	missionId: string
@@ -120,6 +131,8 @@ export type RewardSink = (report: {
 	items?: string[]
 	/** a finished mission, for best times and mastery */
 	result?: MissionResult
+	tally?: Record<string, number>
+	survival?: { arena: string; rounds: number; score: number; timeMs: number; squad: number }
 }) => void
 
 type Member = {
@@ -173,6 +186,10 @@ export class Room {
 	/** the difficulty's reward multiplier */
 	private readonly rewardScale: number
 	private readonly startTick: number
+	/** this week's bounty, when the room plays its mission at its difficulty */
+	private readonly bounty: ReturnType<typeof currentBounty>['bounty'] | null
+	/** someone bled out this mission (a clean mission is one where nobody did) */
+	private bledOut = false
 
 	constructor(
 		id: string,
@@ -194,7 +211,17 @@ export class Room {
 		this.missionDef = !range && mission ? (missionFor(mission.id, id) ?? null) : null
 		this.missionRoom = this.missionDef && mission ? mission : null
 		this.arena = !range && !this.missionRoom ? (arena ?? SURVIVAL) : null
-		this.rewardScale = this.missionRoom ? difficultyDef(this.missionRoom.difficulty).rewards : 1
+		// the difficulty's rewards, and the modifiers' bonus on top
+		// this week's bounty haunts its mission at its difficulty
+		const bounty = currentBounty(new Date())
+		this.bounty =
+			this.missionRoom && bounty.mission === this.missionRoom.id && bounty.difficulty === this.missionRoom.difficulty
+				? bounty.bounty
+				: null
+		this.rewardScale = this.missionRoom
+			? difficultyDef(this.missionRoom.difficulty).rewards *
+				(1 + modifierBonus(applicableModifiers(this.missionRoom.modifiers ?? [], this.missionDef ?? undefined)))
+			: 1
 		const map = (
 			range ? maps.range : this.missionDef ? missionMap(this.missionDef) : maps[survivalMap(this.arena)]
 		) as NonNullable<typeof maps.yard>
@@ -207,7 +234,14 @@ export class Room {
 			// a squad room without a mission is Survival: endless rounds, the run ends on a wipe
 			survival: !range && !this.missionRoom,
 			...(this.missionDef && this.missionRoom
-				? { mission: { mission: this.missionDef, difficulty: this.missionRoom.difficulty } }
+				? {
+						mission: {
+							mission: this.missionDef,
+							difficulty: this.missionRoom.difficulty,
+							modifiers: this.missionRoom.modifiers ?? [],
+							bounty: this.bounty?.zombie ?? null
+						}
+					}
 				: {})
 		})
 		this.startTick = this.world.tick
@@ -338,7 +372,8 @@ export class Room {
 					totalKills: 0,
 					shots: 0,
 					hits: 0,
-					nonce: randomUUID().slice(0, 8)
+					nonce: randomUUID().slice(0, 8),
+					tally: {}
 				},
 				connection: null,
 				encoder: new SnapshotEncoder(slot),
@@ -385,7 +420,8 @@ export class Room {
 				this.world.tick,
 				member.build,
 				this.missionRoom?.id ?? '',
-				this.missionRoom?.difficulty ?? ''
+				this.missionRoom?.difficulty ?? '',
+				this.missionRoom?.modifiers ?? []
 			)
 		)
 		// back during the results: the results screen again
@@ -493,19 +529,28 @@ export class Room {
 				continue
 			}
 			this.pendingEvents.push(event)
-			if (event.type === 'kill') this.credit(event.by, event.zombieType)
+			if (event.type === 'kill') this.credit(event.by, event.zombieType, event.weapon)
+			// a revive counts once per downed player every few minutes (two friends cannot farm them)
+			else if (event.type === 'player-revived' && this.reviveCounts(event.player)) this.tallySlot(event.by, 'revives')
+			else if (event.type === 'player-out') this.bledOut = true
+			// a bounty brought down counts for everyone who played toward it
+			else if (event.type === 'bounty-down' && this.bounty) this.tallyPlaying(`bounty:${this.bounty.id}`, true)
 			else if (event.type === 'shot' && event.player > 0) this.count(event.player, 'shots')
 			else if (event.type === 'hit' && event.by > 0) this.count(event.by, 'hits')
 			// a cleared wave pays everyone connected who played it (not on a restart after a wipe,
 			// not the absent, not someone standing idle while the others play)
-			else if (event.type === 'cleared') this.payAll(economy.rewards.waveClear, 'now')
+			else if (event.type === 'cleared') {
+				this.tallyPlaying('rounds')
+				this.payAll(economy.rewards.waveClear, 'now')
+			}
 			// objectives pay like waves, the first time only; checkpoints save what was earned and found
-			else if (event.type === 'objective' && event.first)
+			else if (event.type === 'objective' && event.first) {
+				if (!this.missionDef?.objectives[event.index]?.optional) this.tallyPlaying('objectives')
 				this.payAll(
 					this.missionDef?.objectives[event.index]?.optional ? economy.rewards.optional : economy.rewards.objective,
 					'pending'
 				)
-			else if (event.type === 'checkpoint') {
+			} else if (event.type === 'checkpoint') {
 				this.settlePending()
 				for (const member of this.members.values()) this.report(member, true)
 			} else if (event.type === 'threshold') this.paySalvage(event.player, economy.score.thresholdSalvage)
@@ -611,9 +656,53 @@ export class Room {
 		member.earnings.salvage += salvage
 	}
 
-	private credit(slot: number, zombieType: number): void {
+	/** when each player's last revive was counted (room ticks) */
+	private readonly revivedAt = new Map<number, number>()
+
+	/** A revive of this player counts if their last one counted was long enough ago. */
+	private reviveCounts(slot: number): boolean {
+		const last = this.revivedAt.get(slot)
+		if (last !== undefined && this.world.tick - last < REVIVE_COUNT_TICKS) return false
+		this.revivedAt.set(slot, this.world.tick)
+		return true
+	}
+
+	/** Adds to a member's tally. */
+	private tally(member: Member, key: string, amount = 1): void {
+		member.earnings.tally[key] = (member.earnings.tally[key] ?? 0) + amount
+	}
+
+	private tallySlot(slot: number, key: string): void {
+		for (const member of this.members.values()) if (member.slot === slot) this.tally(member, key)
+	}
+
+	/**
+	 * Counts for everyone connected who played since the last payment (as a cleared wave or objective
+	 * pays), or with `recent` for everyone who played in the last minute.
+	 */
+	private tallyPlaying(key: string, recent = false): void {
+		for (const member of this.members.values()) {
+			const state = this.world.players.get(member.slot)
+			const played = recent
+				? state !== undefined && this.world.tick - state.lastActiveTick <= ACTIVE_TICKS
+				: member.earnings.active
+			if (member.connection && played) this.tally(member, key)
+		}
+	}
+
+	private credit(slot: number, zombieType: number, weapon?: number): void {
 		const zombie = zombies[zombieType]
 		if (!zombie || this.world.finished) return
+		// the firing range counts nothing
+		if (this.mode !== 'range')
+			for (const member of this.members.values()) {
+				if (member.slot !== slot) continue
+				this.tally(member, 'kills')
+				this.tally(member, KILL_KEYS[zombieType] as string)
+				if (zombie.elite) this.tally(member, 'elites')
+				const key = weapon === undefined ? undefined : WEAPON_KEYS[weapon]
+				if (key) this.tally(member, key)
+			}
 		// Double XP multiplies the class XP earned (kills here; objectives and score likewise)
 		const xp = zombie.xp * (this.world.tick < this.world.doubleXpUntil ? DOUBLE_XP : 1)
 		for (const member of this.members.values()) {
@@ -665,6 +754,10 @@ export class Room {
 				if (at >= 0) state.foundItems.splice(at, 1)
 			}
 			if (counts) {
+				this.tally(member, 'missions')
+				this.tally(member, `missions:${room.difficulty}`)
+				this.tally(member, `mission:${room.id}`)
+				if (!this.bledOut) this.tally(member, 'clean-missions')
 				const reward = economy.rewards.completion
 				const doubled = this.world.tick < this.world.doubleXpUntil ? DOUBLE_XP : 1
 				this.add(member, reward.xp * doubled * this.rewardScale, reward.salvage * this.rewardScale)
@@ -691,9 +784,15 @@ export class Room {
 		if (this.completedAt > 0) return
 		this.completedAt = now
 		const timeMs = ((this.world.tick - this.startTick) * DT * 1000) | 0
+		const squad = this.members.size
 		for (const member of this.members.values()) {
 			const state = this.world.players.get(member.slot)
-			this.report(member)
+			// the leaderboards count those who took part in the run
+			const survival =
+				this.arena && this.tookPart(member) && timeMs > 0
+					? { arena: this.arena, rounds, score: Math.floor(state?.score ?? 0), timeMs, squad }
+					: undefined
+			this.report(member, false, undefined, survival)
 			member.results = writeResults(this.writer, {
 				success: false,
 				rounds,
@@ -767,7 +866,12 @@ export class Room {
 	 * mission's end), as the rules say. A report larger than one report may carry is split, the items
 	 * and the result going with the last part.
 	 */
-	private report(member: Member, withItems = false, result?: MissionResult): void {
+	private report(
+		member: Member,
+		withItems = false,
+		result?: MissionResult,
+		survival?: { arena: string; rounds: number; score: number; timeMs: number; squad: number }
+	): void {
 		if (this.mode === 'range') return
 		const earnings = member.earnings
 		const state = this.world.players.get(member.slot)
@@ -784,7 +888,11 @@ export class Room {
 		const items = withItems && state ? state.foundItems.splice(0) : []
 		if (state) state.itemsReported += items.length
 		member.reportedItems.push(...items.map(itemIndex))
-		if (xp === 0 && salvage === 0 && earnings.kills === 0 && items.length === 0 && !result) return
+		const tally = earnings.tally
+		const tallied = Object.keys(tally).length > 0
+		if (xp === 0 && salvage === 0 && earnings.kills === 0 && items.length === 0 && !result && !tallied && !survival)
+			return
+		earnings.tally = {}
 		const cap = economy.rewards.maxPerReport
 		do {
 			const partXp = Math.min(xp, cap.xp)
@@ -798,7 +906,9 @@ export class Room {
 				salvage: partSalvage,
 				kills: last ? earnings.kills : 0,
 				...(last && items.length > 0 ? { items } : {}),
-				...(last && result ? { result } : {})
+				...(last && result ? { result } : {}),
+				...(last && tallied ? { tally } : {}),
+				...(last && survival ? { survival } : {})
 			})
 			earnings.reports++
 			earnings.reportedXp += partXp

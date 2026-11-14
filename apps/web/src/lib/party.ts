@@ -4,6 +4,7 @@ import { queryOptions, useQueryClient } from '@tanstack/react-query'
 import { api } from './api.ts'
 import { friendsQuery } from './friends.ts'
 import { progressQuery } from './progress.ts'
+import { RECORDS } from './records.ts'
 
 export type PartyMember = {
 	id: string
@@ -12,6 +13,8 @@ export type PartyMember = {
 	avatarSeed: string
 	activeClass: 'assault' | 'medic' | 'heavy'
 	level: number
+	/** the title they wear, or null */
+	title: string | null
 	ready: boolean
 	leader: boolean
 }
@@ -19,9 +22,12 @@ export type PartyMember = {
 export type PartyView = {
 	id: string
 	code: string
+	/** open to anyone through quick play */
+	open: boolean
 	state: 'lobby' | 'mission'
 	/** what the leader chose for the next mission */
-	mission: { id: string; difficulty: DifficultyId }
+	/** `modifiers`: the harder rules switched on (ids; none for Survival) */
+	mission: { id: string; difficulty: DifficultyId; modifiers: string[] }
 	you: string
 	leader: string
 	members: PartyMember[]
@@ -39,6 +45,7 @@ export type PartyProblem =
 	| 'elsewhere'
 	| 'locked'
 	| 'cooldown'
+	| 'in-squad'
 
 export const partyQuery = queryOptions({
 	queryKey: ['party'],
@@ -107,7 +114,7 @@ export type Ticket = {
 	direct?: string | null
 	/** the room: a contract's map depends on it */
 	room: string
-	mission: { id: string; difficulty: DifficultyId } | null
+	mission: { id: string; difficulty: DifficultyId; modifiers?: string[] } | null
 	/** Survival's arena (none for missions and the range) */
 	arena?: string | null
 }
@@ -139,12 +146,27 @@ export const partyActions = {
 	kick: (userId: string) => send('kick', { userId }),
 	/** `seen`: the mission the player is looking at; the server refuses if it has changed meanwhile */
 	ready: (ready: boolean, seen?: PartyView['mission']) =>
-		send('ready', { ready, ...(seen ? { seen: { mission: seen.id, difficulty: seen.difficulty } } : {}) }),
+		send('ready', {
+			ready,
+			...(seen ? { seen: { mission: seen.id, difficulty: seen.difficulty, modifiers: seen.modifiers } } : {})
+		}),
 	start: (seen?: PartyView['mission']) =>
-		send('start', seen ? { seen: { mission: seen.id, difficulty: seen.difficulty } } : {}),
+		send('start', seen ? { seen: { mission: seen.id, difficulty: seen.difficulty, modifiers: seen.modifiers } } : {}),
 	/** leave the mission for good: a squad of one ends it, otherwise the player leaves the squad */
 	abandon: () => send('abandon'),
-	mission: (mission: string, difficulty: DifficultyId) => send('mission', { mission, difficulty })
+	mission: (mission: string, difficulty: DifficultyId, modifiers: string[] = []) =>
+		send('mission', { mission, difficulty, modifiers }),
+	/** the leader opens the squad to quick play, or closes it */
+	open: (open: boolean) => send('open', { open }),
+	/** joins an open squad with room; with none, opens the player's own */
+	quick: async (): Promise<{ joined: boolean; party: PartyView } | { error: PartyProblem }> => {
+		const response = await fetch('/api/party/quick', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: '{}'
+		})
+		return (await response.json()) as { joined: boolean; party: PartyView } | { error: PartyProblem }
+	}
 }
 
 export type Invite = { from: string; code: string }
@@ -165,6 +187,8 @@ export function usePlayerEvents(onInvite?: (invite: Invite) => void): void {
 		source.addEventListener('progress', () => {
 			void queryClient.invalidateQueries({ queryKey: progressQuery.queryKey })
 			void queryClient.invalidateQueries({ queryKey: missionsQuery.queryKey })
+			// challenges, achievements, the bestiary and the boards move with every report
+			void queryClient.invalidateQueries({ queryKey: [RECORDS] })
 			// squad cards show class levels
 			refreshParty()
 		})

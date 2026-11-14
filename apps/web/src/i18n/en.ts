@@ -209,6 +209,15 @@ export const en = {
 	},
 	app: {
 		loading: 'Loading',
+		/** numbers with their marks, kept here so another language can place them its own way */
+		units: {
+			times: '×{count}',
+			plus: '+{amount}',
+			percent: '{share} %',
+			daysHours: '{days}d {hours}h',
+			hoursMinutes: '{hours}h {minutes}m',
+			minutes: '{minutes}m'
+		},
 		error: 'Something went wrong. Try again in a moment.',
 		retry: 'Try again',
 		signIn: {
@@ -245,7 +254,7 @@ export const en = {
 			status: '{seats} playing · {queue} waiting · effective capacity {effective}'
 		},
 		progression: {
-			nav: { lobby: 'Lobby', skills: 'Skills', armory: 'Armory', shop: 'Shop', friends: 'Friends' },
+			nav: { lobby: 'Lobby', skills: 'Skills', armory: 'Armory', shop: 'Shop', friends: 'Friends', records: 'Records' },
 			salvage: 'Salvage',
 			level: 'Level {level}',
 			xp: '{into} / {next} XP',
@@ -553,6 +562,61 @@ export const en = {
 			fromLinkFailed: 'That player link did not work.',
 			online: '{count} online'
 		},
+		records: {
+			title: 'Records',
+			tabs: { challenges: 'Challenges', boards: 'Leaderboards', bestiary: 'Bestiary', achievements: 'Achievements' },
+			daily: 'Daily',
+			weekly: 'Weekly',
+			endsIn: 'New ones in {time}',
+			reward: '{salvage} Salvage',
+			done: 'Done',
+			bounty: 'Bounty',
+			bountyWhere: 'Haunting {mission} on {difficulty}',
+			bountyReward: '{salvage} Salvage and the title {title}',
+			bountyClaimed: 'Claimed this week',
+			bountyHint: 'It turns up partway through the mission. Everyone in the squad who helps bring it down is paid.',
+			challengesHint:
+				'Challenges count everything you do in missions, contracts and Survival. Missing a day costs nothing.',
+			survival: 'Survival',
+			missions: 'Missions',
+			allTime: 'All time',
+			thisWeek: 'This week',
+			rank: '#',
+			player: 'Player',
+			rounds: 'Rounds',
+			score: 'Score',
+			time: 'Best time',
+			noRuns: 'Nobody has a record here yet.',
+			you: 'You',
+			unknown: 'Unknown',
+			unknownHint: 'Kill one to learn what it is.',
+			kills: '{kills} killed',
+			answer: 'What works',
+			resists: 'Shrugs off',
+			mutations: 'Mutations',
+			stage: 'stage {stage}',
+			immune: 'immune to {type}',
+			resist: '{share} % less {type}',
+			boss: 'Boss',
+			elite: 'Elite',
+			found: '{found} of {total} known',
+			wearing: 'Title',
+			noTitle: 'No title',
+			wear: 'Wear title',
+			remove: 'Take off',
+			wearFailed: 'The title could not be changed. Try again.',
+			tabsLabel: 'Records',
+			locked: 'Locked',
+			earned: 'Earned {date}',
+			titleReward: 'Title: {title}',
+			damageTypes: {
+				ballistic: 'bullets',
+				explosive: 'blasts',
+				fire: 'fire',
+				shock: 'shock',
+				chemical: 'acid and gas'
+			}
+		},
 		profile: {
 			title: 'Profile',
 			open: 'Your profile',
@@ -623,6 +687,13 @@ export const en = {
 			rejoin: 'Rejoin mission',
 			abandon: 'Abandon mission',
 			abandonSquad: 'Leave the mission and the squad',
+			quickPlay: 'Quick play',
+			quickPlayHint: 'Join an open squad that has room.',
+			quickJoined: 'You joined an open squad.',
+			quickWaiting: 'No open squad has room yet. Yours is open now: anyone using quick play can join you.',
+			openSquad: 'Open to anyone',
+			openSquadHint: 'Players using quick play can join your squad.',
+			closedSquad: 'Invite only',
 			problems: {
 				'not-found': 'No squad has that code.',
 				full: 'That squad is full.',
@@ -633,7 +704,8 @@ export const en = {
 				changed: 'The mission changed just now. Check it and try again.',
 				elsewhere: 'You are still in another mission. Leave it first.',
 				locked: 'That mission is not open yet. Finish the one before it first.',
-				cooldown: 'You just left a mission. Wait a few seconds before deploying again.'
+				cooldown: 'You just left a mission. Wait a few seconds before deploying again.',
+				'in-squad': 'You are already in a squad. Leave it to use quick play.'
 			}
 		},
 		missions: {
@@ -641,6 +713,10 @@ export const en = {
 			leaderChooses: 'The squad leader chooses',
 			difficulty: 'Difficulty',
 			rewards: 'Rewards ×{times}',
+			modifiers: 'Modifiers',
+			modifierBonus: '+{percent} % rewards',
+			modifierOn: 'On',
+			modifierNotHere: 'Changes nothing on this mission',
 			recommended: 'Level {level}+',
 			par: 'Par {time}',
 			best: 'Best {time}',
@@ -650,6 +726,9 @@ export const en = {
 			locked: 'Locked',
 			done: 'Done',
 			lockedHint: 'Finish the mission before it to open this one.',
+			zoneBoss: 'Zone boss',
+			bountyHere: 'Bounty: {name} on {difficulty}',
+			bossLockedHint: 'Finish the zone to face its boss. The next zone does not wait for it.',
 			timeLimit: '{time} on the clock',
 			tabs: { campaign: 'Campaign', modes: 'Game modes' },
 			tabHints: {
@@ -756,6 +835,15 @@ export const en = {
 			itemFound: 'Item found',
 			buffPicked: '{name}',
 			buffBy: '{name} — from {by}',
+			bossPhase: 'Boss',
+			bountyLabel: 'Bounty',
+			bountyHere: '{name} is here. Bring it down.',
+			bountyDown: '{name} is down. The bounty is yours.',
+			mutationLabel: 'The horde mutates',
+			mutationStage: 'Stage {stage}: tougher, with new traits',
+			strainLabel: 'Strain adapted',
+			strainHardened: 'Hardened against {type}. Switch it up.',
+			stamina: 'Stamina',
 			threshold: 'Score bonus: +{salvage} Salvage and health',
 			resupply: 'Ammo refilled',
 			secretFound: 'Secret found: a hidden room is open',
@@ -802,6 +890,31 @@ export const en = {
 				mute: 'Mute all sound'
 			},
 			damageNumbers: 'Show damage numbers over what you hit',
+			tipsSetting: 'Show tips on how to play',
+			tipLabel: 'Tip',
+			tips: {
+				move: 'WASD to move, the mouse to aim, click to fire. The wheel zooms.',
+				objective: 'Follow the marker to the objective. Off screen, the arrow at the edge points the way.',
+				reload: 'Out of rounds: R reloads. Your pistol never runs dry: 3 switches to it.',
+				interact: 'Hold E to work what is in front of you. The bar shows how long.',
+				sprint: 'Hold Shift to sprint while your stamina lasts. You cannot fire at a run.',
+				ability: 'F, C and V use your abilities. The bar at the bottom shows when each is ready.',
+				warning: 'A ring or a lane on the ground means an attack is coming. Get out of it before it fills.',
+				revive: 'A teammate is down. Stand next to them and hold E before they bleed out.',
+				downed: 'You are down. Crawl toward your squad: they can revive you. Your pistol still works.',
+				map: 'M opens the map: the squad, the horde and the objective.',
+				utility: 'G and T throw or place your utilities: grenades, mines, a decoy, a sentry.'
+			},
+			tipsPad: {
+				move: 'The left stick moves, the right stick aims, RT fires.',
+				reload: 'Out of rounds: X reloads. The d-pad switches weapons.',
+				interact: 'Hold A to work what is in front of you. The bar shows how long.',
+				sprint: 'Hold LT (or click the left stick) to sprint while your stamina lasts.',
+				ability: 'LB, RB and Y use your abilities. The bar at the bottom shows when each is ready.',
+				revive: 'A teammate is down. Stand next to them and hold A before they bleed out.',
+				map: 'Press M on the keyboard for the map. Start opens the menu.',
+				utility: 'Up and down on the d-pad throw or place your utilities.'
+			} as Partial<Record<string, string>>,
 			graphics: {
 				title: 'Graphics',
 				hint: 'Applies the next time a game loads.',
@@ -822,7 +935,7 @@ export const en = {
 			},
 			backToLobby: 'Back to lobby',
 			controls:
-				'WASD move · mouse aim · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
+				'WASD move · Shift sprint · mouse aim (or a gamepad) · click fire · wheel zoom · R reload · 1 2 3 weapons · Q swap · E revive · F C V abilities · G T utilities · M map · Esc menu',
 			abilities: 'Abilities and utilities',
 			ready: 'Ready',
 			jammed: 'Jammed'

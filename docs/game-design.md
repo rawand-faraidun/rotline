@@ -23,7 +23,7 @@ Target session shapes: one campaign mission takes 10–15 minutes; a zone (5 mis
 ### Choosing what to play
 
 - The squad leader picks, in the lobby, either a mission and its difficulty, a contract and its difficulty, or Survival. The picker has two separate tabs, **Campaign** (the zones and their missions in order) and **Game modes** (Survival and the contracts); the lobby shows the game modes in their own group under the campaign. Changing the choice clears everyone's ready mark; a ready mark or a start counts only for the choice the player saw, so nobody deploys into something they did not agree to.
-- The campaign so far is two zones of five missions each, every one a run against the clock (section 7): zone 1, **Ashgate**: **Ground Zero**, **Dead River**, **Blackout Protocol**, **The Crossroads**, **Iron Maw**; zone 2, **Harrow**: **Ghost Fleet**, **The Glass Labyrinth**, **Contagion Ward**, **The Traitor's Fall**, **Terminus**. The zone bosses are not in the game yet.
+- The campaign so far is two zones of five missions each, every one a run against the clock (section 7): zone 1, **Ashgate**: **Ground Zero**, **Dead River**, **Blackout Protocol**, **The Crossroads**, **Iron Maw**; zone 2, **Harrow**: **Ghost Fleet**, **The Glass Labyrinth**, **Contagion Ward**, **The Traitor's Fall**, **Terminus**. Ashgate ends with its boss, **The Warden**, and Harrow with **The Gardener** (section 8). A zone's boss opens once the zone's last mission is done, and the next zone does not wait for it.
 - Missions open in order: the first is always open, and each one opens when the player has completed the one before it at any difficulty (the next zone's first mission opens when the previous zone's last one is done). Locked missions are shown but cannot be chosen; the server checks when the leader chooses and again at the start, so a new leader who has not opened the squad's mission cannot start it.
 - Survival is a mode of its own, always open, not a mission. The leader picks its map from three: Old Town, the Glasshouse and the Docks (section 15).
 - **Contracts** are short jobs of three or four minutes outside the campaign, all open from the start, paid and ranked like missions (difficulty, par, mastery): **Hotspot** (kill all you can for three minutes with the nests awake), **Supply Run** (carry three supply crates to a drop-off), **Data Grab** (pull the data from four terminals, then get out) and **Shipment** (keep a weapons shipment in one piece for 150 s). Each contract runs on one of several maps, picked at random for every run: Hotspot on the Food Depot, the Crossroads, Old Town, the Glasshouse or the Docks; Supply Run on the Compound, the Docks or Old Town; Data Grab on the Compound, the Glasshouse or the Docks; Shipment on the Compound, Old Town or the Glasshouse. The job, its rules and its records stay the same; the place, the props it needs and where they stand change with the map.
@@ -50,7 +50,7 @@ One profile per player; class is switched in the lobby only. Per class: level, X
 |---|---|---|---|
 | Health | 100 | 100 | 140 |
 | Move speed (m/s) | 5.4 | 5.0 | 4.4 |
-| Sprint multiplier (planned: no sprint yet) | 1.45 | 1.35 | 1.25 |
+| Sprint multiplier | 1.45 | 1.4 | 1.3 |
 | Revive time (s) | 4.0 | 2.5 | 4.0 |
 | Armour effectiveness | 100 % | 100 % | 120 % |
 | Ability slots | 2 (3 at level 20) | 2 (3 at level 20) | 2 (3 at level 20) |
@@ -62,6 +62,10 @@ One profile per player; class is switched in the lobby only. Per class: level, X
 **Tier rule:** a tier opens after 5 points (at their prices) in the branch's earlier tiers (tier 5 needs 20). Each branch has 22 nodes and 24 ranks; most nodes have one rank, a few two. Node ids, effects and ranks are in `packages/game-data/data/skills/`.
 
 **Earning XP:** each kill gives class XP by zombie type (Drudge 4, Crawler 5, Bolter 6, Swell 15, Screamer 20, Brute 80); score converts at 1 XP per 20 score; each objective completed gives 100 XP and 100 Salvage, each optional objective 150 XP and 150 Salvage, and completing a mission 400 XP and 250 Salvage. In Survival every round cleared gives 40 XP and 25 Salvage. In missions all of it is multiplied by the difficulty's reward multiplier (section 13). XP goes to the class the player deployed with.
+
+### Sprinting
+
+Hold Shift to run: ×1.45 (Assault), ×1.4 (Medic) or ×1.3 (Heavy) the class's speed. A full bar lasts 4 s and fills again in 6 s once the player has not sprinted for 1 s; an emptied bar must fill a quarter of the way before the next sprint. Nobody fires while sprinting (pressing fire ends it), and nobody sprints downed, carrying something, dashing or with the minigun. It is predicted like any movement, stamina in whole units so client and server never drift. The HUD shows the bar under the health.
 
 ## 4. Skill trees
 
@@ -122,6 +126,13 @@ Pistols have **unlimited reserve ammunition**; their only limits are magazine si
 | **GL-06** | Grenade launcher | Explosive, 3.5 m | 220 | 60 | 6 | 24 | 3.2 | 25,200 |
 | **AUG** | Shock rifle | Shock, chains to 3 | 40 | 240 | 20 | 120 | 2.6 | 12,600 |
 | **Viper** | Chemical sprayer | Chemical, slows | 90 per second | continuous | 80 | 240 | 3.0 | 12,600 |
+| **MP5** | SMG | Ballistic | 19 | 780 | 30 | 240 | 2.0 | 5,400 |
+| **AK-47** | Assault rifle | Ballistic, pierces 1 | 34 | 600 | 30 | 180 | 2.6 | 5,400 |
+| **Remington 870** | Shotgun | Ballistic | 15 × 8 pellets | 58 | 7 | 42 | 0.55 per shell | 5,400 |
+| **PKM** | LMG | Ballistic, pierces 1 | 32 | 650 | 100 | 300 | 5.0 | 12,600 |
+| **Barrett M82** | Sniper rifle | Ballistic, pierces 6 | 420 | 40 | 10 | 30 | 3.8 | 25,200 |
+
+Every family but the specials now has two guns that handle differently: the MP5 is steadier and hits harder than the Vector but fires slower; the AK-47 trades the HK416's accuracy for heavier rounds that go through one zombie; the Remington 870 pumps slower than the M4 Super 90 with harder pellets; the PKM hits harder than the M249 and goes through one; the Barrett is the heavy rifle, ten rounds that go through six.
 
 Weapon tiers for pricing: tier 1 = 5,400, tier 2 = 12,600, tier 3 = 25,200.
 
@@ -174,7 +185,7 @@ Earning (Veteran difficulty, 4-player squad, per player):
 | Objectives | 100 per primary, 150 per optional | 300 |
 | Mission completion | 250 × difficulty multiplier | 350 |
 | Score bonus | 1 per 1,000 score | 80 |
-| Contracts | daily 1,500, weekly 8,000 | (outside the mission) |
+| Contracts | daily 500, weekly 2,700 (bounty 5,000 a week) | (outside the mission) |
 | Discarded duplicates | 600–2,400 | (variable) |
 
 That is about **830 Salvage per mission, roughly 4,200 per hour** before contracts. Difficulty multipliers on rewards: Recruit ×0.7, Veteran ×1.0, Nightmare ×1.35, Apocalypse ×1.8; they apply to everything a mission pays (kills, objectives, completion, score and score thresholds).
@@ -349,7 +360,7 @@ The data checks refuse a map or mission where:
 
 ## 8. Zombies
 
-Eighteen types. Each is recognisable from above by silhouette, size and an accent colour or glow (readability beats realism).
+Eighteen types. Each is recognisable from above by silhouette, size and an accent colour or glow (readability beats realism). In the game every kind shares one animated body, told apart by its tint and size and by its own look in the data (`look` in `zombies.json`): a build (wider or taller), a glow (the Retcher's throat, the Cinder's chest, the Screamer's and The Whisper's mouths, the Gardener's core, Old Ironjaw's eye), riot plates on the shoulders (the Bulwark, the Warden, Old Ironjaw), swollen sacs on the back (the Swell, Mother Rot, the Gardener), the Bulwark's and the Warden's shields, and the Delver's mound of earth. `/dev/fx?lineup=1` shows them all in a row (`&mutation=2` as mutated).
 
 | # | Name | Role | Health (Veteran) | Speed (m/s) | Behaviour | Player answer | Readability cue |
 |---|---|---|---|---|---|---|---|
@@ -374,20 +385,36 @@ Eighteen types. Each is recognisable from above by silhouette, size and an accen
 
 Plus **Wriggler** (parasite, 10 HP, from Hive and Matron) as a sub-enemy.
 
-In the game now: Drudge, Bolter and Swell, plus three more that stand in for planned types with simpler rules: the **Crawler** (40 HP, 2.6 m/s, low and quick), the **Brute** (elite, 1,400 HP, 1.5 m/s, 38 melee damage; the missions' boss) and the **Screamer** (120 HP; every 9 s, with a player within 20 m, it screams and six zombies arrive: Drudge 60 %, Bolter 25 %, Crawler 15 %). Health and counts scale by difficulty (section 13).
+In the game now: Drudge, Bolter and Swell; three that stand in for planned types with simpler rules: the **Crawler** (40 HP, 2.6 m/s, low and quick), the **Brute** (elite, 1,400 HP, 1.5 m/s, 38 melee damage; the missions' boss) and the **Screamer** (120 HP; every 9 s, with a player within 20 m, it screams and six zombies arrive: Drudge 60 %, Bolter 25 %, Crawler 15 %); and four of the planned eighteen with their own attacks:
+
+| Type | Health | Speed | What it does | Answer |
+|---|---|---|---|---|
+| **Retcher** (spitter) | 80 | 1.6 | Stands within 8 m of a player it can see; every 4.5 s it rears back (0.7 s) and lobs acid that lands where the player stood 0.9 s later (22 damage, 1.8 m), leaving a 4 s puddle. 60 % chemical resistance; its throat glows, brighter as it rears back | Move when the ring appears; break its line of sight |
+| **Bulwark** (shieldbearer) | 300 | 1.4 | A riot shield across the 130° ahead of it stops 90 % of bullets and shock; it turns at 80° a second | Flank it, or let a teammate hold its eye; blasts, fire and gas go round the shield |
+| **Delver** (burrower) | 200 | 2.2 (4 under) | Farther than 7 m from its target it goes under (nothing can hit it, nobody bumps into it; a mound of earth shows where it is), comes up 0.9 s after the ground cracks under the player (35 damage, 1.8 m) and stays up 6 s | Keep moving when the ring opens under you; shoot it while it is up |
+| **Cinder** (igniter) | 160 | 2.2 | Always alight, immune to fire; leaves burning ground behind it (15 a second, 0.8 m, 2.5 s) and its blows burn | Bullets, shock or blasts; do not chase it through its trail |
+
+The **Brute** charges too: from 5 to 13 m it lowers its head for 1 s while its lane is marked on the ground, then runs it at 9 m/s and 4 m past the player (30 damage, thrown aside). A charge that ends in a wall leaves it dazed for 1.8 s.
+
+Every attack of this kind is shown before it lands: a ring that fills for slams, spit and things bursting out of the ground, a lane that fills for charges, with the last quarter flickering. Stuns break a wind-up. Health and counts scale by difficulty (section 13); at most 4 Retchers, 3 Bulwarks, 2 Delvers, 3 Cinders, 3 Screamers, 8 Swells and 2 Brutes are alive at once in a mission for a full squad (fewer for a smaller one), and a pick over its cap comes in as the mission's commonest kind. Survival brings in Retchers from round 4, Cinders from 5, Bulwarks from 6 and Delvers from 7.
 
 ### Mutation system
 
-- **Stages**: each type has three mutation stages unlocked by zone progress and difficulty (stage 1 from zone 2 or Nightmare, stage 2 from zone 4 or Apocalypse, stage 3 Apocalypse zone 4+). A stage adds one ability, a resistance, or an attack pattern, and a visible change (growths, colour, glow). Example, Retcher: stage 1 spits twice; stage 2 acid slows; stage 3 spits a burst of three.
-- **Adaptive mutations**: the server tracks the squad's damage by type and behaviour (turret share, time spent stationary, average distance to zombies) over the last two checkpoints. If one damage type exceeds 55 % of damage, later spawns shift toward a strain with resistance to it; if the squad camps, more Vaulters and Delvers; if it kites, more Bolters and Clutches.
-- **Fairness**: resistances are capped at 35 % (never immunity, except the Cinder's inherent fire immunity); at most two adaptive strains active at once; every strain is announced in the HUD ("Strain adapted: fire-hardened") and shown on the zombie (a coloured crust); there is always a counter (another damage type, an ability, a utility).
-- **Spawn director**: missions currently spawn a steady stream (section 7). The full director tracks an intensity score (damage taken, zombies within 10 m, time since last peak) and cycles build-up (60–90 s) → peak (20–40 s) → relief (20–30 s). Enemy budget per second scales with squad size and difficulty; specials have per-type cooldowns.
+- **Stages** (0 to 3; a zombie keeps the stage it came in at): the furthest of the zone (Harrow is one stage on from Ashgate; a fourth zone would be two), the difficulty (Nightmare one, Apocalypse two) and, in Survival, one stage every 8 rounds; the Hardened modifier adds one. The rules live in game data (`mutations.json`), and server and client work the stage out the same way.
+- Each stage gives every kind 12 % more health and 8 % more damage, and one more of its own three traits, in order (bosses do not mutate): **Armoured** (20 % less from bullets), **Swift** (15 % faster), **Toxic** (blows are acid, 25 % harder), **Regenerating** (2 % of its health back a second), **Volatile** (bursts when it dies), **Fireproof** (30 % less from fire), **Insulated** (30 % less from shock). Drudge: armoured, toxic, swift; Bolter: swift, toxic, armoured; Swell: regenerating, armoured, swift; Crawler: swift, volatile, toxic; Brute: armoured, regenerating, swift; Screamer: regenerating, armoured, swift; Retcher: insulated, swift, regenerating; Bulwark: regenerating, toxic, swift; Delver: armoured, swift, regenerating; Cinder: swift, armoured, volatile. The bestiary lists them.
+- **Adaptive strains**: once a second the server weighs the damage the squad dealt over the last 120 s by type; past 4,000 of it, one type over 55 % brings a strain hardened against it (35 % less from that type), announced on screen ("Strain adapted: hardened against fire"); with what the kind already shrugs off, a strain's resistance stops at 60 %. Half the zombies that come in from then on are the strain, drawn with a pale crust. At most two strains run at once (the older gives way), never two within 45 s; missions, contracts and Survival only.
+- **Fairness**: what a mutation or strain adds stops at 35 % (a kind's own resistance, like the Cinder's to fire, may be higher), every stage and strain is announced and visible (the horde's flesh darkens with each stage), and there is always another damage type to switch to.
+- **Spawn director**: a mission's stream rises and falls: build-up (50–80 s, the rate climbing from ×0.85 to ×1.2), peak (18–30 s, ×1.6, and 15 % more alive at once), relief (14–22 s, ×0.35), over and over, each length picked by the room's dice. A squad in trouble at a peak (someone down, or those standing below 35 % health on average) gets its relief at once. Planned on top: an intensity score from damage taken and zombies close by.
 
 ### Bosses
 
 Three phases each (at 100 %, 66 %, 33 % health), telegraphed attacks (ground markings 0.8–1.5 s before impact), weak points, and one coordination mechanic. Health = `base × (0.55, 0.75, 0.9, 1.0)` for 1–4 players × difficulty multiplier.
 
-Example, **The Warden** (zone 1): base 25,000 health. Phase 1: shield charge (telegraphed line), riot-baton slam (circle). Phase 2: calls Bulwarks; its back armour breaks only when hit from two sides within 3 s (solo: a decoy beacon counts as the second side). Phase 3: enraged, faster charges, tear gas zones. Weak point: the exposed spine after armour breaks.
+**The Warden** (Ashgate's boss, in the game): Sergeant Hale, who held the checkpoint, fought in Landfall's town square in the mission of his name (break the riot line, put him down, make the pad in 60 s). 22,000 health × 0.55, 0.75, 0.9 or 1.0 for 1–4 players (and the mission's enemy level); stuns, slows and knock-back do nothing to him, and a screen nuke takes 5 %. He carries a shield (85 % off bullets and shock across the 140° ahead), charges like a Brute but harder (from 4 to 16 m, 1.2 s wind-up, 45 damage; into a wall he is dazed 3 s with his guard down) and slams the ground round him when someone is within 3.2 m (0.9 s wind-up, 50 damage over 4 m). Below two thirds of his health he calls the line: five Bulwarks, Drudges and Bolters every 18 s. Below a third he is enraged: 25 % faster, his attacks come 35 % sooner, Bolters and Crawlers every 22 s, and every 7 s a gas canister at each player (20 damage, 2.4 m, a 6 s pool). Each phase is announced on screen.
+
+Still planned for him: a back armour that breaks only under fire from two sides, and weak points.
+
+**The Gardener** (Harrow's boss, in the game): Arthur Penn, patient zero, rooted under the Glasshouse's palm house, fought under the dome in the mission of his name (cross the lake, put him down, back out through the main gate in 50 s). 22,000 health × the same squad shares; stuns, slows and knock-back do nothing to him, and a screen nuke takes 5 %. He fights nothing like the Warden: slow (0.95 m/s), he never charges. From 3.5 to 18 m he lobs spore pods (24 damage over 2.2 m, a 6 s poison pool) every 3.5 s; within 3.5 m he raises his arms and brings the ground down over 5 m (45 damage); farther than 14 m he sinks into the earth and bursts out under the player 1.3 s after the ground swells (55 damage over 3.2 m), staying up 14 s; held up underground by a wall or a shut door, he surfaces where he is. He takes 50 % more from fire and 80 % less from gas. Below two thirds he blooms (Crawlers, Drudges and a Swell every 16 s); below a third he goes to seed: 20 % faster, attacks 20 % sooner, a spore canister at every player every 9 s (an 8-a-second pool) and Delvers among the brood.
 
 ## 9. Temporary buffs
 
@@ -435,16 +462,20 @@ In a squad there are no lives: a player at zero health goes down and waits to be
 | Zero health alone, contract or Survival | No lives: the first death ends it (contract failed, or the Survival run over) |
 | Failed objective | A survivor or defend target lost, or an extraction timer run out: the same as a squad wipe (section 7); it does not cost a life |
 
-## 12. Contracts and bounties
+## 12. Challenges and bounties
 
-- **3 daily contracts** rotate at 00:00 UTC (1,500 Salvage each); **3 weekly contracts** rotate Monday 00:00 UTC (8,000 each). A countdown is shown.
-- Examples: "Kill 200 zombies with shotguns", "Finish a mission with nobody bleeding out", "Revive 5 teammates", "Destroy 10 nests on Nightmare".
-- **Bounties**: a named elite (e.g. *Old Ironjaw*, a mutated Ram) that appears in one mission at one difficulty this week; reward 5,000 and a title.
-- Progress is counted by the server from match events. Missing a day costs nothing: no streaks, no penalties.
+The daily and weekly jobs the brief calls contracts are called **challenges** in the game, because Contracts is already the name of the short game mode (section 2).
+
+- **3 daily challenges** change at 00:00 UTC (500 Salvage each); **3 weekly challenges** change on Monday at 00:00 UTC (2,700 each). They are picked from the templates in `packages/game-data/data/challenges.json` by the date alone, so every server agrees without storing them, and the Records screen counts down to the next ones.
+- Examples: "Kill 120 zombies with a shotgun", "Kill 12 Retchers", "Clear 10 Survival rounds", "Finish 3 missions with nobody bleeding out", "Complete 3 missions on Nightmare".
+- Progress is counted by the server from match events: every report a game server signs carries a tally (kills, by kind and by the weapon that made them, burns and poison included; revives; objectives; Survival rounds; elites; missions and contracts completed, by difficulty, and the ones nobody bled out in). A mission's completions count only with its successful result, once per room; a revive of the same player counts once every three minutes; golds are counted by the API itself, the first time a mission and difficulty reaches gold mastery; a Survival run is entered once per room. A finished challenge pays at once, through the ledger, once per player and rotation. Missing a day costs nothing: no streaks, no penalties.
+- The API refuses a tally the play could not have produced (more kills than the report pays, more rounds or revives than a stretch between two reports allows, a mission completion without that mission's own successful result) and drops it, keeping the rest of the report.
+- **Bounties**: each week (Monday to Monday, UTC) one named elite haunts one campaign mission at one difficulty, picked from `bounties.json` by the date: **Old Ironjaw** (a Brute that charges harder and sooner, 25 % off bullets), **Mother Rot** (a Swell that spills Crawlers, spits, and bursts hard when it dies) or **The Whisper** (a Screamer that runs and calls eight more every 5 s). It comes in from out of sight 20 s into the mission's middle step, carries its name over its bar and is announced; brought down, it pays 5,000 Salvage once that week to everyone in the squad who played in the last minute, and counts for its achievement and title (Ironjaw's End, Rot Mother's Bane, Silencer). The API counts it only from a room it recorded on that mission at that difficulty. The Records screen shows the week's bounty, and the mission picker marks its mission.
 
 ## 13. Lobby, difficulty and matchmaking
 
-- Private lobbies by invite link, 6-character code, or the friends list; public quick match by mission and difficulty.
+- Private lobbies by invite link, 6-character code, or the friends list.
+- **Quick play**: the leader can open a squad to anyone. A player on their own who presses Quick play joins the newest open squad in the lobby with room, never one with someone either of them blocks; when there is none, their own squad opens and waits for the next player to press it. They join whatever the leader has chosen, and ready up for it like anyone else. Planned: matching by mission and difficulty.
 - The lobby shows each player's class, class level, loadout and avatar, with a ready check (all ready, or the host starts after a 10 s countdown).
 - Disconnect grace period: 120 s (see `netcode.md`). Meanwhile the player's character is away: it stays where it is, holds no buttons, and an extraction does not wait for it.
 - Idle in lobby: warning at 10 minutes, seat released at 12 minutes (queue rules in `architecture.md`).
@@ -477,11 +508,15 @@ Planned with the bestiary and later content: moving and armoured dummies with we
 
 ## 16. Bestiary
 
-An entry unlocks on a player's first kill of a type: the model (rotatable), behaviour notes, weaknesses and resistances, every mutation stage and adaptive strain the player has seen, and their kill count.
+An entry unlocks on a player's first kill of a type: what it is, what works against it, what it shrugs off, and the player's kill count; until then the card says only that it is unknown (and, for an elite or a boss, that much). On the Records screen. Planned: the model, and the mutation stages and strains seen.
 
 ## 17. Achievements and cosmetics
 
-About 60 achievements at launch (milestones, feats, mastery, bestiary completion). Rewards are cosmetics only: titles, profile banners, weapon skins, armour colours, extra DiceBear avatar styles. Cosmetics never change stats and are never sold.
+28 achievements so far (kills, kinds of zombie, the Warden and the two zones, revives, Survival rounds, clean missions, golds, Nightmare and Apocalypse, weapon kills, challenges done), each a lifetime count reaching a target, kept in `packages/game-data/data/achievements.json`. Each one earns a **title**, worn beside the player's name in the lobby, on squad cards, the profile and the leaderboards; one at a time, only one the player has earned. Planned: profile banners, weapon skins, armour colours, extra DiceBear avatar styles. Cosmetics never change stats and are never sold.
+
+### Leaderboards
+
+On the Records screen: each Survival arena, this week (from Monday 00:00 UTC) and all time, ranked by rounds survived and then score, one line per player (their best run); and each campaign mission at each difficulty, by best time and then best score. The top 20 are shown, and the player's own place when they are lower down. A Survival run counts for everyone who took part in it (section 6) and is checked like a mission result: no more rounds than the time allows, no more score than it can earn.
 
 ## 18. Mission mastery
 
@@ -500,13 +535,17 @@ Shown on the mission select map.
 
 ## 19. Mission modifiers
 
-Switched on before a mission; the reward bonus is shown clearly and capped at **+60 %** total.
+The leader switches them on in the mission picker, beside the difficulty (campaign missions and contracts; Survival takes none). Each adds to every reward the mission pays (kills, objectives, completion, score), on top of the difficulty's multiplier, up to **+60 %** in all; the picker and the lobby show the total. Changing them clears the squad's ready marks, a ready mark or a start counts only for the set the player saw, and the set travels in the signed game ticket, so a game server plays exactly what was agreed.
 
 | Modifier | Effect | Reward bonus |
 |---|---|---|
-| Friendly fire | Your shots hurt teammates (50 %) | +15 % |
-| Hardened strains | Mutation stage +1 | +20 % |
-| Scarce ammunition | Ammo pickups −50 %, no max-ammo buffs | +15 % |
-| Blackout | Darkness; flashlights only | +20 % |
-| Fragile | −30 % max health | +25 % |
 | Swarm | Enemy count ×1.3 | +15 % |
+| Hardened | Mutation stage +1 | +20 % |
+| Fragile | Player maximum health ×0.7 | +25 % |
+| Scarce ammunition | No Max Ammo drops; ammo stations cost twice as much | +15 % |
+| Blackout | The map is dark: lamps, fires, floodlights and weapon lights only; the server sends no zombie farther than 26 m (a weapon light reaches 24), so nothing the dark hides reaches the client | +20 % |
+| One life | Alone, the first death ends the mission; in a squad, bleeding out takes 10 s less | +15 % |
+
+A modifier that would change nothing is not offered and pays nothing: Blackout on a mission whose maps are dark or at night already, One life on a contract (a contract is lost the moment the squad is down anyway). The API stores only the ones that apply, and the game server plays and pays only those.
+
+Planned: friendly fire (+15 %), once players can be hurt by each other's shots.

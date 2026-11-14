@@ -17,6 +17,8 @@ export type Me =
 				activeClass: 'assault' | 'medic' | 'heavy'
 				salvage: number
 				isAdmin: boolean
+				/** the title worn, from an achievement earned */
+				title: string | null
 			} | null
 	  }
 

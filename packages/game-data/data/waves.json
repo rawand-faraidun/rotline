@@ -7,9 +7,20 @@
 		{ "drudge": 16 },
 		{ "drudge": 24, "bolter": 6 },
 		{ "drudge": 30, "bolter": 10, "crawler": 4 },
-		{ "drudge": 36, "bolter": 14, "swell": 3, "crawler": 6 },
-		{ "drudge": 44, "bolter": 18, "swell": 5, "crawler": 8, "screamer": 2 },
-		{ "drudge": 52, "bolter": 22, "swell": 6, "crawler": 10, "screamer": 3 }
+		{ "drudge": 36, "bolter": 14, "swell": 3, "crawler": 6, "retcher": 2 },
+		{ "drudge": 44, "bolter": 18, "swell": 5, "crawler": 8, "screamer": 2, "retcher": 3, "cinder": 2 },
+		{ "drudge": 52, "bolter": 22, "swell": 6, "crawler": 10, "screamer": 3, "retcher": 4, "cinder": 3, "bulwark": 2 },
+		{
+			"drudge": 58,
+			"bolter": 24,
+			"swell": 7,
+			"crawler": 12,
+			"screamer": 3,
+			"retcher": 5,
+			"cinder": 3,
+			"bulwark": 3,
+			"delver": 2
+		}
 	],
 	"growthPerWave": 1.15,
 	"boss": { "every": 5, "type": "brute" }

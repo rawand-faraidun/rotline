@@ -15,6 +15,7 @@ import { Badge, Button, cn, Panel, PanelHeader, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { en, format } from '../../i18n/en.ts'
 import { describeEffect, salvage } from '../../lib/describe.ts'
+import { partyQuery } from '../../lib/party.ts'
 import { type ProgressProblem, progressActions, progressQuery, runAction } from '../../lib/progress.ts'
 import { GameShell } from './game-shell.tsx'
 import { panes } from './layout.ts'
@@ -86,6 +87,11 @@ export function SkillsScreen() {
 								setChosenClass(option)
 								setSelected(null)
 								setConfirmRespec(false)
+								// choosing a class here plays it too (in a mission it cannot change: the tree is only shown)
+								if (option !== view.activeClass)
+									void act(progressActions.setClass(option)).then(() =>
+										queryClient.invalidateQueries({ queryKey: partyQuery.queryKey })
+									)
 							}}
 						>
 							{p.classes[option].name} · {view.classes[option].level}

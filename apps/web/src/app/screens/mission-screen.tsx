@@ -7,8 +7,10 @@ import {
 	loadDamageNumbers,
 	loadGraphicsSetting,
 	saveDamageNumbers,
-	saveGraphicsSetting
-} from '@rotline/client'
+	saveGraphicsSetting,
+	setTips,
+	tipsOn
+} from '@rotline/client/settings'
 import { missionById, missionFor, missionMap, player as playerDef, survivalMap, zombies } from '@rotline/game-data'
 import { Badge, Button, cn, Panel, PanelTitle } from '@rotline/ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -19,6 +21,7 @@ import { clock, masteryTone } from './mission-panel.tsx'
 import { SeatKeeper } from './seat-keeper.tsx'
 
 const t = en.app.mission
+const units = en.app.units
 /** how long the loading screen waits before offering to try again */
 const SLOW_LOADING_MS = 20_000
 
@@ -166,7 +169,7 @@ function Abilities({ hud }: { hud: HudState }) {
 					<span className="flex items-center justify-between">
 						<span className="cut-sm bg-bone px-1.5 font-bold text-rot-black text-xs">{utility.key}</span>
 						<span className="font-display text-lg tabular-nums">
-							{utility.charges === null ? t.unlimited : `×${utility.charges}`}
+							{utility.charges === null ? t.unlimited : format(units.times, { count: String(utility.charges) })}
 						</span>
 					</span>
 					<span className="truncate font-bold text-[11px] uppercase tracking-wide">{utility.name}</span>
@@ -221,17 +224,29 @@ function Radio({ hud }: { hud: HudState }) {
 	}, [radio])
 	if (!radio || now - radio.at > RADIO_MS) return null
 	return (
-		<section
-			role="status"
-			aria-live="polite"
-			className="frame cut pointer-events-none absolute bottom-36 left-4 flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-1 px-4 py-3 [--frame-color:var(--color-rot-lime)] [--frame-fill:rgb(13_16_14/0.88)]"
-		>
+		<section className="frame cut pointer-events-none absolute bottom-36 left-4 flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-1 px-4 py-3 [--frame-color:var(--color-rot-lime)] [--frame-fill:rgb(13_16_14/0.88)]">
 			<span className="flex items-center gap-2 font-bold text-[11px] text-rot-lime uppercase tracking-[0.25em]">
 				<span className="inline-block size-2 animate-pulse bg-rot-lime" aria-hidden="true" />
 				{radio.speaker}
 			</span>
 			<span className="text-sm leading-snug">{radio.text}</span>
 		</section>
+	)
+}
+
+/** Sprint stamina: a thin bar under the health, bright while running, dim while it fills again. */
+function StaminaBar({ stamina, sprinting }: { stamina: number; sprinting: boolean }) {
+	return (
+		<div className="mt-2 flex items-center gap-2" aria-hidden={stamina >= 1}>
+			<span className="w-16 font-bold text-[10px] text-muted uppercase tracking-[0.2em]">{t.stamina}</span>
+			<span className="h-1.5 flex-1 skew-x-[-20deg] bg-surface-raised">
+				<span
+					className={cn('block h-full', sprinting ? 'bg-bone' : stamina < 0.25 ? 'bg-warning' : 'bg-muted')}
+					style={{ width: `${Math.round(stamina * 100)}%` }}
+				/>
+			</span>
+			<meter className="sr-only" min={0} max={1} value={stamina} aria-label={t.stamina} />
+		</div>
 	)
 }
 
@@ -257,6 +272,52 @@ function BossBar({ hud }: { hud: HudState }) {
  * Where the objective is: a pulsing marker over it with the distance, or, when it is off screen, an
  * arrow at the edge pointing the way.
  */
+/** Space kept between a marker and a HUD panel, in pixels. */
+const PANEL_GAP = 30
+/** HUD panels are measured again this often (measuring every marker on every frame forces layout) */
+const PANEL_MEASURE_MS = 250
+let panelCache: { at: number; boxes: DOMRect[] } = { at: -Infinity, boxes: [] }
+
+/** Where the HUD panels are, measured at most every quarter second. */
+function panelBoxes(): DOMRect[] {
+	const now = performance.now()
+	if (now - panelCache.at > PANEL_MEASURE_MS)
+		panelCache = {
+			at: now,
+			boxes: [...document.querySelectorAll('[data-hud-panel]')].map(panel => panel.getBoundingClientRect())
+		}
+	return panelCache.boxes
+}
+
+/**
+ * A marker at (x, y) (shares of the screen) moved out of any HUD panel it would sit on: to the
+ * panel's side nearer the middle of the screen, so it is never hidden behind the objective, the
+ * minimap or the weapons. Panels are the elements marked `data-hud-panel`.
+ */
+function clearOfPanels(x: number, y: number): { left: string; top: string } {
+	let px = x * window.innerWidth
+	let py = y * window.innerHeight
+	for (const box of panelBoxes()) {
+		if (box.width === 0) continue
+		if (
+			px < box.left - PANEL_GAP ||
+			px > box.right + PANEL_GAP ||
+			py < box.top - PANEL_GAP ||
+			py > box.bottom + PANEL_GAP
+		)
+			continue
+		// sideways for panels at the screen's sides, up or down for those along the top and bottom
+		const middle = box.left + box.width / 2
+		if (
+			box.width < window.innerWidth * 0.4 &&
+			(box.left > window.innerWidth * 0.5 || box.right < window.innerWidth * 0.5)
+		)
+			px = middle > window.innerWidth / 2 ? box.left - PANEL_GAP : box.right + PANEL_GAP
+		else py = box.top + box.height / 2 > window.innerHeight / 2 ? box.top - PANEL_GAP : box.bottom + PANEL_GAP
+	}
+	return { left: `${px}px`, top: `${py}px` }
+}
+
 function Waypoint({ hud }: { hud: HudState }) {
 	const point = hud.waypoint
 	if (!point) return null
@@ -264,7 +325,7 @@ function Waypoint({ hud }: { hud: HudState }) {
 	return (
 		<div
 			className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
-			style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
+			style={clearOfPanels(point.x, point.y)}
 			aria-hidden="true"
 		>
 			{point.onScreen ? (
@@ -296,7 +357,7 @@ function AllyArrows({ hud }: { hud: HudState }) {
 					<div
 						key={ally.slot}
 						className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
-						style={{ left: `${ally.x * 100}%`, top: `${ally.y * 100}%`, color: colour }}
+						style={{ ...clearOfPanels(ally.x, ally.y), color: colour }}
 						aria-hidden="true"
 					>
 						<svg viewBox="0 0 24 24" className="size-7" style={{ transform: `rotate(${ally.angle}rad)` }}>
@@ -328,6 +389,7 @@ function MinimapView({ handle, expanded, onToggle }: { handle: GameHandle; expan
 				onClick={onToggle}
 				aria-label={t.openMap}
 				title={t.openMap}
+				data-hud-panel
 				className="frame cut-sm absolute top-4 right-4 flex size-48 flex-col p-1 [--frame-fill:rgb(13_16_14/0.85)] hover:[--frame-color:var(--color-rot-lime)]"
 			>
 				<canvas ref={corner} className="size-full" />
@@ -360,6 +422,7 @@ function ObjectiveTracker({ hud }: { hud: HudState }) {
 	return (
 		<section
 			aria-label={mission.name}
+			data-hud-panel
 			className="frame cut pointer-events-none absolute top-[13.5rem] right-4 flex w-72 flex-col gap-1.5 px-4 py-3 [--frame-fill:rgb(13_16_14/0.85)]"
 		>
 			<span className="flex items-baseline justify-between gap-3">
@@ -415,7 +478,7 @@ function Multiplier({ hud, round }: { hud: HudState; round: number | null }) {
 							hud.multiplier > 1 ? 'text-warning' : 'text-bone/70'
 						)}
 					>
-						×{hud.multiplier}
+						{format(units.times, { count: String(hud.multiplier) })}
 					</span>
 				</span>
 				<span className="flex flex-col items-center">
@@ -450,13 +513,14 @@ function Toasts({ hud }: { hud: HudState }) {
 	const live = hud.toasts.filter(toast => now - toast.at < 4000)
 	if (live.length === 0) return null
 	return (
-		<ul className="pointer-events-none absolute right-4 bottom-52 flex w-72 flex-col-reverse gap-2" aria-live="polite">
+		<ul className="pointer-events-none absolute right-4 bottom-52 flex w-72 flex-col-reverse gap-2">
 			{live.map(toast => (
 				<li
 					key={toast.id}
 					className={cn(
 						'frame cut-sm flex flex-col px-3 py-2 [--frame-fill:rgb(13_16_14/0.9)]',
-						toast.kind === 'item' && '[--frame-color:var(--color-warning)]'
+						toast.kind === 'item' && '[--frame-color:var(--color-warning)]',
+						toast.kind === 'phase' && '[--frame-color:var(--color-alert)]'
 					)}
 				>
 					{toast.kind === 'item' && (
@@ -474,6 +538,38 @@ function Toasts({ hud }: { hud: HudState }) {
 					)}
 					{toast.kind === 'threshold' && (
 						<span className="font-bold text-warning">{format(t.threshold, { salvage: toast.text })}</span>
+					)}
+					{(toast.kind === 'bounty' || toast.kind === 'bounty-down') && (
+						<>
+							<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.bountyLabel}</span>
+							<span className="font-bold uppercase tracking-wide">
+								{format(toast.kind === 'bounty' ? t.bountyHere : t.bountyDown, { name: toast.text })}
+							</span>
+						</>
+					)}
+					{toast.kind === 'mutation' && (
+						<>
+							<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.mutationLabel}</span>
+							<span className="font-bold uppercase tracking-wide">
+								{format(t.mutationStage, { stage: toast.text })}
+							</span>
+						</>
+					)}
+					{toast.kind === 'strain' && (
+						<>
+							<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.strainLabel}</span>
+							<span className="font-bold uppercase tracking-wide">
+								{format(t.strainHardened, {
+									type: en.app.records.damageTypes[toast.text as keyof typeof en.app.records.damageTypes] ?? toast.text
+								})}
+							</span>
+						</>
+					)}
+					{toast.kind === 'phase' && (
+						<>
+							<span className="font-bold text-[10px] text-alert uppercase tracking-[0.25em]">{t.bossPhase}</span>
+							<span className="font-display text-alert text-lg uppercase">{toast.text}</span>
+						</>
 					)}
 					{toast.kind === 'secret' && (
 						<span className="font-bold text-warning uppercase tracking-wide">{t.secretFound}</span>
@@ -581,6 +677,38 @@ function DamageNumberSetting({ handle }: { handle: GameHandle }) {
 	)
 }
 
+/** Tips on how to play, once each; switching them back on shows them all again. */
+function TipsSetting({ handle }: { handle: GameHandle }) {
+	const [on, setOn] = useState(() => tipsOn())
+	return (
+		<label className="flex items-center gap-2 text-sm">
+			<input
+				type="checkbox"
+				checked={on}
+				onChange={event => {
+					setOn(event.target.checked)
+					setTips(event.target.checked)
+					handle.tips(event.target.checked)
+				}}
+			/>
+			{t.tipsSetting}
+		</label>
+	)
+}
+
+/** How to play, when it first matters: what to press, for the keyboard or the gamepad in use (in the top centre, under the boss bar and banners, clear of the squad list). */
+function Tip({ hud }: { hud: HudState }) {
+	const tip = hud.tip
+	if (!tip || performance.now() - tip.at > 7000) return null
+	const text = (tip.pad ? t.tipsPad[tip.id] : undefined) ?? t.tips[tip.id]
+	return (
+		<section className="frame cut-sm pointer-events-none absolute top-52 left-1/2 flex max-w-sm -translate-x-1/2 flex-col gap-1 px-4 py-3 text-center [--frame-color:var(--color-warning)] [--frame-fill:rgb(13_16_14/0.88)]">
+			<span className="font-bold text-[10px] text-warning uppercase tracking-[0.25em]">{t.tipLabel}</span>
+			<span className="font-bold text-bone">{text}</span>
+		</section>
+	)
+}
+
 function PauseMenu({
 	handle,
 	range,
@@ -624,6 +752,7 @@ function PauseMenu({
 				<SoundSettings handle={handle} />
 				<GraphicsSettings />
 				<DamageNumberSetting handle={handle} />
+				<TipsSetting handle={handle} />
 				<p className="text-muted text-xs">{t.controls}</p>
 			</Panel>
 		</div>
@@ -647,8 +776,8 @@ function ResultsPanel({
 		[r.time, clock(results.timeMs / 1000)],
 		[r.score, results.score.toLocaleString('en')],
 		[r.kills, String(results.kills)],
-		[r.xp, `+${Math.floor(results.xp).toLocaleString('en')}`],
-		[r.salvage, `+${Math.floor(results.salvage).toLocaleString('en')}`],
+		[r.xp, format(units.plus, { amount: Math.floor(results.xp).toLocaleString('en') })],
+		[r.salvage, format(units.plus, { amount: Math.floor(results.salvage).toLocaleString('en') })],
 		[r.downs, String(results.downs)]
 	]
 	return (
@@ -693,7 +822,7 @@ function ResultsPanel({
 function RangePanel({ handle, hud }: { handle: GameHandle; hud: HudState }) {
 	const r = en.app.range
 	return (
-		<Panel className="absolute top-16 right-4 w-64 gap-3 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
+		<Panel className="absolute top-16 right-4 w-80 gap-3 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
 			<span className="flex items-baseline justify-between">
 				<span className="font-bold text-muted text-xs uppercase tracking-[0.2em]">{r.dps}</span>
 				<span className="font-display text-3xl text-rot-lime tabular-nums" data-testid="dps">
@@ -704,8 +833,17 @@ function RangePanel({ handle, hud }: { handle: GameHandle; hud: HudState }) {
 			<div className="grid grid-cols-2 gap-1.5">
 				{zombies.map((zombie, index) =>
 					zombie.dummy ? null : (
-						<Button key={zombie.id} size="sm" variant="secondary" onClick={() => handle.range('spawn', index, 5)}>
-							{zombie.name} ×5
+						<Button
+							key={zombie.id}
+							size="sm"
+							variant="secondary"
+							className="min-w-0"
+							title={zombie.name}
+							onClick={() => handle.range('spawn', index, zombie.elite ? 1 : 5)}
+						>
+							<span className="truncate">
+								{zombie.name} {format(units.times, { count: zombie.elite ? '1' : '5' })}
+							</span>
 						</Button>
 					)
 				)}
@@ -773,7 +911,8 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					ticket,
 					assets: '/assets',
 					map,
-					room: issued.room
+					room: issued.room,
+					modifiers: issued.mission?.modifiers ?? []
 				})
 				setHandle(game)
 				await game.ready
@@ -865,8 +1004,16 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 					<Waypoint hud={hud} />
 					<AllyArrows hud={hud} />
 					<BossBar hud={hud} />
-					<Radio hud={hud} />
-					<Toasts hud={hud} />
+					{/* live regions stay in the page (a region added with its message is often not read out) */}
+					<div aria-live="polite" className="contents">
+						<Radio hud={hud} />
+					</div>
+					<div aria-live="polite" className="contents">
+						<Toasts hud={hud} />
+					</div>
+					<div aria-live="polite" className="contents">
+						<Tip hud={hud} />
+					</div>
 					{hud.teammates.length > 0 && (
 						<ul className="pointer-events-none absolute top-16 left-4 flex flex-col gap-2">
 							{hud.teammates.map(mate => (
@@ -924,48 +1071,49 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						</p>
 					)}
 
-					{hud.banner && performance.now() - hud.banner.at < 2500 && (
-						<p
-							className={cn(
-								'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
-								hud.banner.text === 'wipe' ||
-									hud.banner.text === 'timeout' ||
-									hud.banner.text === 'lives' ||
-									hud.banner.text === 'wiped'
-									? 'text-alert'
-									: hud.banner.text === 'wave'
-										? 'text-warning'
-										: 'text-rot-lime'
-							)}
-							aria-live="polite"
-						>
-							{hud.banner.text === 'wave'
-								? format(t.waveBanner, { wave: String(hud.banner.wave) })
-								: hud.banner.text === 'wipe'
-									? hud.livesLeft !== null
-										? format(hud.livesLeft === 1 ? t.lastLifeBanner : t.livesBanner, {
-												lives: String(hud.livesLeft)
-											})
-										: inMission
-											? t.missionWipeBanner
-											: format(t.wipeBanner, { wave: String(hud.banner.wave) })
-									: hud.banner.text === 'lives'
-										? t.outOfLivesBanner
-										: hud.banner.text === 'wiped'
-											? t.contractFailedBanner
-											: hud.banner.text === 'objective'
-												? t.objectiveBanner
-												: hud.banner.text === 'checkpoint'
-													? t.checkpointBanner
-													: hud.banner.text === 'failed'
-														? t.failedBanner
-														: hud.banner.text === 'timeout'
-															? t.timeoutBanner
-															: hud.banner.text === 'run-over'
-																? format(t.runOverBanner, { wave: String(hud.banner.wave) })
-																: t.completeBanner}
-						</p>
-					)}
+					<div aria-live="polite" className="contents">
+						{hud.banner && performance.now() - hud.banner.at < 2500 && (
+							<p
+								className={cn(
+									'pointer-events-none absolute top-36 left-1/2 -translate-x-1/2 font-display text-4xl uppercase',
+									hud.banner.text === 'wipe' ||
+										hud.banner.text === 'timeout' ||
+										hud.banner.text === 'lives' ||
+										hud.banner.text === 'wiped'
+										? 'text-alert'
+										: hud.banner.text === 'wave'
+											? 'text-warning'
+											: 'text-rot-lime'
+								)}
+							>
+								{hud.banner.text === 'wave'
+									? format(t.waveBanner, { wave: String(hud.banner.wave) })
+									: hud.banner.text === 'wipe'
+										? hud.livesLeft !== null
+											? format(hud.livesLeft === 1 ? t.lastLifeBanner : t.livesBanner, {
+													lives: String(hud.livesLeft)
+												})
+											: inMission
+												? t.missionWipeBanner
+												: format(t.wipeBanner, { wave: String(hud.banner.wave) })
+										: hud.banner.text === 'lives'
+											? t.outOfLivesBanner
+											: hud.banner.text === 'wiped'
+												? t.contractFailedBanner
+												: hud.banner.text === 'objective'
+													? t.objectiveBanner
+													: hud.banner.text === 'checkpoint'
+														? t.checkpointBanner
+														: hud.banner.text === 'failed'
+															? t.failedBanner
+															: hud.banner.text === 'timeout'
+																? t.timeoutBanner
+																: hud.banner.text === 'run-over'
+																	? format(t.runOverBanner, { wave: String(hud.banner.wave) })
+																	: t.completeBanner}
+							</p>
+						)}
+					</div>
 
 					{hud.silence && (
 						// the game is silent: say why, so a held or muted sound is never a mystery
@@ -992,16 +1140,20 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 						</section>
 					)}
 
-					<div className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]">
+					<div
+						data-hud-panel
+						className="frame cut pointer-events-none absolute bottom-6 left-6 p-4 [--frame-fill:rgb(13_16_14/0.85)]"
+					>
 						<HealthBar health={hud.health} max={hud.maxHealth} />
+						<StaminaBar stamina={hud.stamina} sprinting={hud.sprinting} />
 						{hud.livesLeft !== null && <Lives left={hud.livesLeft} />}
 					</div>
 
-					<div className="pointer-events-none absolute right-6 bottom-6">
+					<div data-hud-panel className="pointer-events-none absolute right-6 bottom-6">
 						<Weapons hud={hud} />
 					</div>
 
-					<div className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2">
+					<div data-hud-panel className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2">
 						<Abilities hud={hud} />
 					</div>
 
@@ -1031,7 +1183,7 @@ export function MissionScreen({ mode = 'mission' }: { mode?: 'mission' | 'range'
 									<p className="font-display text-5xl text-alert uppercase">{t.down}</p>
 									<p className="text-bone/80 tabular-nums" aria-live="polite">
 										{hud.beingRevived > 0
-											? `${t.beingRevived} ${Math.round(hud.beingRevived * 100)} %`
+											? `${t.beingRevived} ${format(units.percent, { share: String(Math.round(hud.beingRevived * 100)) })}`
 											: format(t.bleedout, { seconds: String(hud.bleedoutSeconds) })}
 									</p>
 									<p className="text-muted text-sm">{t.waitForRevive}</p>

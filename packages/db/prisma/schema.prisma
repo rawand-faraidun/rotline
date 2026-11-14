@@ -95,6 +95,8 @@ model Player {
   activeClass  PlayerClass @default(assault) @map("active_class")
   salvage      BigInt      @default(0)
   isAdmin      Boolean     @default(false) @map("is_admin")
+  /// the title shown with the player's name: an achievement they have earned (null: none)
+  titleId      String?     @map("title_id")
   /// a test account: may hold every skill in a tree, whatever its level
   unrestricted Boolean     @default(false)
   /// the code a player hands out so others can add them (8 hex characters, shown as XXXX-XXXX)
@@ -110,13 +112,17 @@ model Player {
   recentPlayers  RecentPlayer[] @relation("recent_owner")
   recentlySeenBy RecentPlayer[] @relation("recent_other")
 
-  classes    ClassProgress[]
-  skills     SkillAllocation[]
-  abilities  AbilitySlot[]
-  inventory  InventoryItem[]
-  duplicates ItemDuplicate[]
-  loadout    Loadout?
-  missions   MissionProgress[]
+  classes      ClassProgress[]
+  skills       SkillAllocation[]
+  abilities    AbilitySlot[]
+  inventory    InventoryItem[]
+  duplicates   ItemDuplicate[]
+  loadout      Loadout?
+  missions     MissionProgress[]
+  stats        PlayerStat[]
+  achievements AchievementUnlock[]
+  challenges   ChallengeProgress[]
+  survivalRuns SurvivalRun[]
 
   // finding players by a part of their name, or one close to it (pg_trgm)
   @@index([nameKey(ops: raw("gin_trgm_ops"))], type: Gin, map: "player_name_key_trgm")
@@ -401,4 +407,61 @@ model AdminSetting {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("admin_setting")
+}
+
+// Records: lifetime counts from play (kills by type and weapon, revives, rounds, ...), what they have
+// earned, the rotating challenges and Survival runs for the leaderboards. Written from signed reports.
+
+/// A lifetime count, by key: `kills`, `kill:<zombie>`, `weapon:<kind>`, `revives`, `rounds`, ...
+model PlayerStat {
+  playerId String @map("player_id") @db.Uuid
+  key      String
+  value    BigInt @default(0)
+  player   Player @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@id([playerId, key])
+  @@map("player_stat")
+}
+
+model AchievementUnlock {
+  playerId      String   @map("player_id") @db.Uuid
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at") @db.Timestamptz
+  player        Player   @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@id([playerId, achievementId])
+  @@map("achievement_unlock")
+}
+
+/// Progress on one daily or weekly challenge; the key names the rotation it belongs to.
+model ChallengeProgress {
+  playerId     String    @map("player_id") @db.Uuid
+  challengeKey String    @map("challenge_key")
+  progress     Int       @default(0)
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz
+  player       Player    @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@id([playerId, challengeKey])
+  @@map("challenge_progress")
+}
+
+/// One player's part in a Survival run that ended.
+model SurvivalRun {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  playerId  String   @map("player_id") @db.Uuid
+  arena     String
+  rounds    Int
+  score     BigInt
+  timeMs    Int      @map("time_ms")
+  squad     Int
+  /// the room the run was played in (a report sent again cannot enter it twice); older runs have none
+  room      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  player    Player   @relation(fields: [playerId], references: [userId], onDelete: Cascade)
+
+  @@unique([playerId, room])
+  @@index([arena, rounds(sort: Desc), score(sort: Desc)])
+  @@index([arena, playerId, rounds(sort: Desc), score(sort: Desc), timeMs])
+  @@index([arena, createdAt])
+  @@map("survival_run")
 }

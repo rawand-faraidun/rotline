@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { friendIds } from '@rotline/db'
 import {
+	achievements,
+	applicableModifiers,
 	buildProblem,
 	campaign,
 	type DifficultyId,
@@ -20,6 +22,7 @@ import {
 	recordRoomMission,
 	releasePlayerRoom,
 	roomExists,
+	type SeenMission,
 	setPresence
 } from '@rotline/state'
 import { loadPrivateKey, signTicket } from '@rotline/ticket'
@@ -50,19 +53,24 @@ const MASTERY = ['none', 'bronze', 'silver', 'gold'] as const
  * The stored values to compare a client's view against: a party that never chose has empty fields,
  * which the client saw as the defaults.
  */
-function storedView(party: Party, seen: { mission: string; difficulty: string } | undefined) {
+function storedView(
+	party: Party,
+	seen: { mission: string; difficulty: string; modifiers?: string[] | undefined } | undefined
+): SeenMission | undefined {
 	if (!seen) return undefined
+	const modifiers = applicableModifiers(seen.modifiers ?? [], missionById(seen.mission)).join(',')
 	if (party.mission === '' && party.difficulty === '') {
 		const chosen = chosenMission(party)
-		if (seen.mission === chosen.id && seen.difficulty === chosen.difficulty) return { mission: '', difficulty: '' }
+		if (seen.mission === chosen.id && seen.difficulty === chosen.difficulty)
+			return { mission: '', difficulty: '', modifiers }
 	}
-	return seen
+	return { mission: seen.mission, difficulty: seen.difficulty, modifiers }
 }
 
 /**
  * Missions a player may choose: every contract, and the campaign in order — a mission opens once the
  * one before it in its zone is done (any difficulty); a zone opens once the previous zone's last
- * mission is done.
+ * mission is done, and so does that zone's boss.
  */
 export async function openMissions(db: Services['db'], playerId: string): Promise<Set<string>> {
 	const done = new Set(
@@ -78,15 +86,21 @@ export async function openMissions(db: Services['db'], playerId: string): Promis
 			open.add(id)
 			previous = id
 		}
+		// the zone's boss waits behind its last mission (and holds nobody back from the next zone)
+		if (zone.boss && previous !== null && done.has(previous)) open.add(zone.boss)
 	}
 	return open
 }
 
 /** The party's mission and difficulty, or the defaults until the leader chooses. */
-function chosenMission(party: Party): { id: string; difficulty: DifficultyId } {
+function chosenMission(party: Party): { id: string; difficulty: DifficultyId; modifiers: string[] } {
 	const id = isSurvival(party.mission) || missionById(party.mission) ? party.mission : DEFAULT_MISSION
 	const parsed = difficultyId.safeParse(party.difficulty)
-	return { id, difficulty: parsed.success ? parsed.data : DEFAULT_DIFFICULTY }
+	// Survival has no modifiers
+	const modifiers = isSurvival(id)
+		? []
+		: applicableModifiers(party.modifiers ? party.modifiers.split(',') : [], missionById(id))
+	return { id, difficulty: parsed.success ? parsed.data : DEFAULT_DIFFICULTY, modifiers }
 }
 
 const errorStatus = {
@@ -100,13 +114,28 @@ const errorStatus = {
 } as const
 
 /** What the client says it saw: a start or ready mark only counts for that mission and difficulty. */
-const seenMission = z.object({ mission: z.string().max(64), difficulty: difficultyId }).optional()
+const seenMission = z
+	.object({
+		mission: z.string().max(64),
+		difficulty: difficultyId,
+		modifiers: z.array(z.string().max(32)).max(8).optional()
+	})
+	.optional()
 
 export function partyRoutes(services: Services) {
 	const { db, env, log, parties, seats, valkey, events } = services
 	const key = loadPrivateKey(env.GAME_TICKET_PRIVATE_KEY)
 	// a direct address for the game connection, tried before the one through the site's proxy
 	const direct = env.GAME_DIRECT_URL ?? null
+
+	/** Everyone the player blocks or is blocked by. */
+	async function blockedAmong(userId: string): Promise<Set<string>> {
+		const rows = await db.block.findMany({
+			where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+			select: { blockerId: true, blockedId: true }
+		})
+		return new Set(rows.map(row => (row.blockerId === userId ? row.blockedId : row.blockerId)))
+	}
 
 	/**
 	 * The game server holding a player's firing range: the same one each time while it is alive, so
@@ -141,6 +170,7 @@ export function partyRoutes(services: Services) {
 				avatarStyle: true,
 				avatarSeed: true,
 				activeClass: true,
+				titleId: true,
 				classes: { select: { class: true, xp: true } }
 			}
 		})
@@ -155,6 +185,8 @@ export function partyRoutes(services: Services) {
 					avatarStyle: player.avatarStyle,
 					avatarSeed: player.avatarSeed,
 					activeClass: player.activeClass,
+					// the title they wear (an achievement's), or null
+					title: achievements.find(entry => entry.id === player.titleId)?.title ?? null,
 					level: levelFromXp(Number(player.classes.find(entry => entry.class === player.activeClass)?.xp ?? 0)).level,
 					ready: id === party.leader || party.ready.includes(id),
 					leader: id === party.leader
@@ -169,6 +201,8 @@ export function partyRoutes(services: Services) {
 			you,
 			leader: party.leader,
 			members,
+			/** open to anyone through quick play */
+			open: party.open,
 			canStart: party.leader === you && party.state === 'lobby' && members.every(member => member.ready)
 		}
 	}
@@ -205,9 +239,45 @@ export function partyRoutes(services: Services) {
 			.post('/party/join', zValidator('json', z.object({ code: z.string().trim().length(6) })), async c => {
 				const user = c.get('user')
 				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-				const { party, left } = await parties.join(user.id, c.req.valid('json').code)
+				const code = c.req.valid('json').code
+				// a squad with someone the player blocks (or who blocks them) is not there for them
+				const target = await parties.byCode(code)
+				if (target) {
+					const blocked = await blockedAmong(user.id)
+					if (target.members.some(member => blocked.has(member)))
+						return c.json({ error: 'not-found' as const }, errorStatus['not-found'])
+				}
+				const { party, left } = await parties.join(user.id, code)
 				await changed(party.id, left)
 				return c.json(await view(party, user.id), 200)
+			})
+			// the leader opens the squad to anyone looking for one (or closes it)
+			.post('/party/open', zValidator('json', z.object({ open: z.boolean() })), async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const party = await parties.setOpen(user.id, c.req.valid('json').open)
+				await changed(party.id)
+				return c.json(await view(party, user.id), 200)
+			})
+			// quick play: a player on their own joins the newest open squad with room (nobody they
+			// block or who blocks them); with none, their own squad opens and waits for others
+			.post('/party/quick', async c => {
+				const user = c.get('user')
+				if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
+				const own = await parties.current(user.id)
+				if (own.members.length > 1) return c.json({ error: 'in-squad' as const }, 409)
+				if (own.state !== 'lobby') return c.json({ error: 'in-mission' as const }, 409)
+				// the player's blocks (both ways), read once for every squad quick play looks at
+				const blocked = await blockedAmong(user.id)
+				const found = await parties.quickJoin(user.id, async party =>
+					party.members.every(member => !blocked.has(member))
+				)
+				if (found) {
+					await changed(found.id)
+					return c.json({ joined: true, party: await view(found, user.id) }, 200)
+				}
+				const opened = await parties.setOpen(user.id, true)
+				return c.json({ joined: false, party: await view(opened, user.id) }, 200)
 			})
 			// leave a mission for good: a squad of one ends it, a member of a bigger squad leaves the squad
 			.post('/party/abandon', async c => {
@@ -257,17 +327,24 @@ export function partyRoutes(services: Services) {
 					'json',
 					z.object({
 						mission: z.string().refine(id => isSurvival(id) || missionById(id) !== undefined, 'unknown mission'),
-						difficulty: difficultyId
+						difficulty: difficultyId,
+						modifiers: z.array(z.string().max(32)).max(8).optional()
 					})
 				),
 				async c => {
 					const user = c.get('user')
 					if (!user) return c.json({ error: 'unauthenticated' as const }, 401)
-					const { mission, difficulty } = c.req.valid('json')
+					const { mission, difficulty, modifiers } = c.req.valid('json')
 					// only missions the leader has opened in the campaign (Survival is always open)
 					if (!isSurvival(mission) && !(await openMissions(db, user.id)).has(mission))
 						return c.json({ error: 'locked' as const }, 409)
-					const party = await parties.setMission(user.id, mission, difficulty)
+					const party = await parties.setMission(
+						user.id,
+						mission,
+						difficulty,
+						// only the ones that change something on this mission (no Blackout where it is dark already)
+						isSurvival(mission) ? '' : applicableModifiers(modifiers ?? [], missionById(mission)).join(',')
+					)
 					await changed(party.id)
 					return c.json(await view(party, user.id), 200)
 				}
@@ -313,7 +390,9 @@ export function partyRoutes(services: Services) {
 					user.id,
 					room,
 					instance,
-					seen ? storedView(current, seen) : { mission: current.mission, difficulty: current.difficulty }
+					seen
+						? storedView(current, seen)
+						: { mission: current.mission, difficulty: current.difficulty, modifiers: current.modifiers }
 				)
 				// the API's own record of what this room plays, checked against the room's reports
 				const chosen = chosenMission(party)
@@ -352,7 +431,15 @@ export function partyRoutes(services: Services) {
 					room: party.room,
 					inst: party.instance,
 					mode: 'squad',
-					...(isSurvival(chosen.id) ? { arena: chosen.id } : { mission: chosen }),
+					...(isSurvival(chosen.id)
+						? { arena: chosen.id }
+						: {
+								mission: {
+									id: chosen.id,
+									difficulty: chosen.difficulty,
+									...(chosen.modifiers.length > 0 ? { modifiers: chosen.modifiers } : {})
+								}
+							}),
 					build
 				})
 				return c.json(

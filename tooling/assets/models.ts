@@ -183,8 +183,18 @@ const triangles = (document: Document) =>
 		.listMeshes()
 		.flatMap(mesh => mesh.listPrimitives())
 		.reduce((sum, primitive) => sum + (primitive.getIndices()?.getCount() ?? 0) / 3, 0)
-const credits: { id: string; name: string; author: string; page: string; licence: string }[] = []
+type Credit = { id: string; name: string; author: string; page: string; licence: string }
+// `ONLY=id,id pnpm assets:models` builds just those weapons; the others' credits are kept
+const only = process.env.ONLY?.split(',').filter(Boolean) ?? null
+const creditsFile = join(out, 'credits.json')
+const kept: Credit[] = only
+	? (JSON.parse(readFileSync(creditsFile, 'utf8')) as { models: Credit[] }).models.filter(
+			entry => !only.includes(entry.id)
+		)
+	: []
+const credits: Credit[] = []
 for (const weapon of weapons) {
+	if (only && !only.includes(weapon.id)) continue
 	const document = await io.read(await sketchfabModel(weapon.uid))
 	// some models are rigged for first-person animation: their skins would ignore the turn below
 	for (const node of document.getRoot().listNodes()) node.setSkin(null)
@@ -196,7 +206,12 @@ for (const weapon of weapons) {
 	for (const skin of document.getRoot().listSkins()) skin.dispose()
 	if (weapon.drop) {
 		const drop = new RegExp(weapon.drop)
-		for (const node of document.getRoot().listNodes()) if (drop.test(node.getName())) node.setMesh(null)
+		// a matching node goes with everything under it (meshes often hang off a named parent)
+		const clear = (node: ReturnType<Document['createNode']>): void => {
+			node.setMesh(null)
+			for (const child of node.listChildren()) clear(child)
+		}
+		for (const node of document.getRoot().listNodes()) if (drop.test(node.getName())) clear(node)
 	}
 	// older files describe colour as specular-glossiness: turn that into the usual metal-roughness
 	await document.transform(metalRough())
@@ -229,4 +244,8 @@ for (const weapon of weapons) {
 		`${weapon.id}: ${(readFileSync(target).byteLength / 1024).toFixed(0)} KB, ${Math.round(triangles(document))} triangles\n`
 	)
 }
-writeFileSync(join(out, 'credits.json'), `${JSON.stringify({ collection, models: credits }, null, '\t')}\n`)
+// in the order the sources list them
+const all = [...kept, ...credits].sort(
+	(a, b) => weapons.findIndex(weapon => weapon.id === a.id) - weapons.findIndex(weapon => weapon.id === b.id)
+)
+writeFileSync(creditsFile, `${JSON.stringify({ collection, models: all }, null, '\t')}\n`)

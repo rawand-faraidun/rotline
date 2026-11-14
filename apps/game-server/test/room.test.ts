@@ -77,6 +77,33 @@ describe('room rewards', () => {
 	})
 })
 
+describe('room records', () => {
+	it('tallies kills by kind and by the weapon that made them', () => {
+		const reports: { userId: string; tally?: Record<string, number> }[] = []
+		const room = new Room('room-t', 'squad', 1, 0, report => reports.push(report))
+		room.join('user-a', 'A', starterBuild(), connection())
+		shootOne(room, 'user-a', 1, zombieIndex('drudge'))
+		shootOne(room, 'user-a', 1, zombieIndex('retcher'))
+		room.reportAll()
+		// the starter kit's first gun is an SMG
+		expect(reports[0]?.tally).toEqual({ kills: 2, 'kill:drudge': 1, 'kill:retcher': 1, 'weapon:smg': 2 })
+	})
+
+	it('counts a cleared Survival round for those who played it', () => {
+		const reports: { userId: string; tally?: Record<string, number> }[] = []
+		const room = new Room('room-u', 'squad', 1, 0, report => reports.push(report))
+		room.join('user-a', 'A', starterBuild(), connection())
+		let seq = 0
+		for (let i = 0; i < 30 * 120 && !reports.some(report => report.tally?.rounds); i++) {
+			if (i % 30 === 0)
+				room.receiveInputs('user-a', [{ seq: ++seq, moveX: 50, moveY: 0, aim: 0, buttons: 0, viewTick: 0, reach: 0 }])
+			for (let z = 0; z < 300; z++) if (room.world.alive[z]) room.world.damageZombie(z, 1e6, 0)
+			room.tick(Date.now())
+		}
+		expect(reports.find(report => report.tally?.rounds)?.tally?.rounds).toBe(1)
+	})
+})
+
 describe('room input handling', () => {
 	it('lets a reconnecting player move again with inputs numbered from 1', () => {
 		const room = new Room('room-r', 'squad', 1, 0)

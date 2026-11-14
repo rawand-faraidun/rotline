@@ -1,7 +1,10 @@
 import { z } from 'zod'
 import abilitiesData from '../data/abilities.json' with { type: 'json' }
+import achievementsData from '../data/achievements.json' with { type: 'json' }
+import bountiesData from '../data/bounties.json' with { type: 'json' }
 import buffsData from '../data/buffs.json' with { type: 'json' }
 import campaignData from '../data/campaign.json' with { type: 'json' }
+import challengesData from '../data/challenges.json' with { type: 'json' }
 import classesData from '../data/classes.json' with { type: 'json' }
 import difficultiesData from '../data/difficulties.json' with { type: 'json' }
 import economyData from '../data/economy.json' with { type: 'json' }
@@ -25,6 +28,8 @@ import rangeData from '../data/maps/range.json' with { type: 'json' }
 import supermarketData from '../data/maps/supermarket.json' with { type: 'json' }
 import yardData from '../data/maps/yard.json' with { type: 'json' }
 import missionsData from '../data/missions.json' with { type: 'json' }
+import modifiersData from '../data/modifiers.json' with { type: 'json' }
+import mutationsData from '../data/mutations.json' with { type: 'json' }
 import playerData from '../data/player.json' with { type: 'json' }
 import propsData from '../data/props.json' with { type: 'json' }
 import assaultTree from '../data/skills/assault.json' with { type: 'json' }
@@ -37,9 +42,12 @@ import zombiesData from '../data/zombies.json' with { type: 'json' }
 import { fromLayout, type MapSource } from './layout.ts'
 import {
 	abilitySchema,
+	achievementSchema,
+	bountiesSchema,
 	buffsSchema,
 	type ClassId,
 	campaignSchema,
+	challengesSchema,
 	classesSchema,
 	type DifficultyDef,
 	type DifficultyId,
@@ -50,6 +58,8 @@ import {
 	type MissionDef,
 	mapSchema,
 	missionSchema,
+	modifiersSchema,
+	mutationsSchema,
 	playerSchema,
 	propsDataSchema,
 	type SkillNode,
@@ -122,6 +132,23 @@ export const upgrades = parse('upgrades', upgradesSchema, upgradesData)
 export const difficulties = parse('difficulties', difficultiesSchema, difficultiesData)
 export const buffs = parse('buffs', buffsSchema, buffsData)
 export const missions = uniqueById('missions', parse('missions', z.array(missionSchema), missionsData))
+export const challenges = parse('challenges', challengesSchema, challengesData)
+export const modifiers = parse('modifiers', modifiersSchema, modifiersData)
+export const bounties = parse('bounties', bountiesSchema, bountiesData)
+uniqueById('bounties', bounties.bounties)
+export const mutations = parse('mutations', mutationsSchema, mutationsData)
+uniqueById('mutation traits', mutations.traits)
+for (const zombie of zombies)
+	for (const trait of zombie.mutations ?? [])
+		check(
+			mutations.traits.some(entry => entry.id === trait),
+			`zombies/${zombie.id}: unknown mutation ${trait}`
+		)
+uniqueById('modifiers', modifiers.modifiers)
+export const achievements = uniqueById(
+	'achievements',
+	parse('achievements', z.array(achievementSchema), achievementsData)
+)
 /**
  * Each mission on each of its maps: the mission as written first, then its variants (contracts run
  * on several maps). A variant keeps the mission's id, rules and rewards; only the place changes.
@@ -172,6 +199,25 @@ for (const [index, wave] of waves.waves.entries()) {
 			`waves[${index}]: unknown zombie ${key}`
 		)
 	}
+}
+for (const key of Object.keys(difficulties.director.caps))
+	check(
+		zombies.some(zombie => zombie.id === key && !zombie.dummy),
+		`difficulties: the director caps an unknown zombie ${key}`
+	)
+for (const zombie of zombies) {
+	for (const phase of zombie.phases ?? [])
+		for (const key of Object.keys(phase.summon?.composition ?? {}))
+			check(
+				zombies.some(other => other.id === key && !other.dummy && !other.boss),
+				`zombies/${zombie.id}: a phase calls an unknown zombie ${key}`
+			)
+	const below = (zombie.phases ?? []).map(phase => phase.below)
+	check(
+		below.every((share, index) => index === 0 || share < (below[index - 1] as number)),
+		`zombies/${zombie.id}: phases must come in falling order of health`
+	)
+	check(!zombie.boss || zombie.elite === true, `zombies/${zombie.id}: a boss is an elite`)
 }
 if (waves.boss) {
 	const type = waves.boss.type
@@ -381,6 +427,8 @@ function checkReachable(mission: MissionDef, map: MapDef): void {
 		}
 		const where = `missions/${mission.id}: objective ${index}`
 		if ('area' in objective) check(at(objective.area), `${where}'s area cannot be reached`)
+		// a boss must come in on open ground the squad can reach (not in water, not walled off)
+		if (objective.boss?.at) check(at(objective.boss.at), `${where}: the boss comes in where it cannot be reached`)
 		if (objective.type === 'interact' || objective.type === 'destroy')
 			for (const id of objective.props) check(near(id), `${where}: ${id} cannot be reached`)
 		if (objective.type === 'defend') check(near(objective.prop), `${where}: ${objective.prop} cannot be reached`)
@@ -513,7 +561,10 @@ for (const mission of layouts) {
 	}
 }
 {
-	const listed = [...campaign.zones.flatMap(zone => zone.missions), ...(campaign.contracts ?? [])]
+	const listed = [
+		...campaign.zones.flatMap(zone => [...zone.missions, ...(zone.boss ? [zone.boss] : [])]),
+		...(campaign.contracts ?? [])
+	]
 	check(new Set(listed).size === listed.length, 'campaign: a mission is listed twice')
 	for (const id of listed)
 		check(
@@ -522,6 +573,43 @@ for (const mission of layouts) {
 		)
 	for (const mission of missions)
 		check(listed.includes(mission.id), `campaign: mission ${mission.id} is in no zone and is no contract`)
+}
+// every stat a challenge or an achievement counts names something that exists
+{
+	const kinds = new Set<string>(weapons.map(weapon => weapon.kind))
+	const known = (stat: string) => {
+		const [head, tail = ''] = stat.split(':')
+		if (head === 'kill') return zombies.some(zombie => zombie.id === tail && !zombie.dummy)
+		if (head === 'weapon') return kinds.has(tail)
+		if (head === 'mission') return missions.some(mission => mission.id === tail)
+		if (head === 'bounty') return bounties.bounties.some(bounty => bounty.id === tail)
+		return true
+	}
+	for (const bounty of bounties.bounties) {
+		check(
+			zombies.find(zombie => zombie.id === bounty.zombie)?.elite === true,
+			`bounties/${bounty.id}: ${bounty.zombie} is not an elite`
+		)
+		for (const id of bounty.missions)
+			check(
+				campaign.zones.some(zone => zone.missions.includes(id)),
+				`bounties/${bounty.id}: ${id} is not a campaign mission`
+			)
+	}
+	uniqueById('challenges', challenges.templates)
+	for (const template of challenges.templates)
+		check(known(template.stat), `challenges/${template.id}: counts ${template.stat}, which does not exist`)
+	for (const kind of ['daily', 'weekly'] as const)
+		check(
+			challenges.templates.filter(template => template.kind === kind).length >= challenges[kind].count,
+			`challenges: fewer ${kind} templates than are picked`
+		)
+	const types = zombies.filter(zombie => !zombie.dummy).length
+	for (const achievement of achievements) {
+		check(known(achievement.stat), `achievements/${achievement.id}: counts ${achievement.stat}, which does not exist`)
+		if (achievement.stat === 'bestiary')
+			check(achievement.target === types, `achievements/${achievement.id}: the bestiary has ${types} kinds`)
+	}
 }
 for (const tier of difficulties.tiers) {
 	check(economy.drops.tierWeights[tier.id] !== undefined, `economy: drop weights for ${tier.id}`)
