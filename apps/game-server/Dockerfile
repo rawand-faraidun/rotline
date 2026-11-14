@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:26.12.1-trixie-slim AS base
+FROM node:26.13.0-trixie-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
 RUN npm install --global --no-fund --no-audit pnpm@11.22.0
 
@@ -11,7 +11,11 @@ RUN pnpm --filter @rotline/game-server build \
 	&& pnpm --filter @rotline/game-server deploy --legacy --prod /out \
 	&& cp -r apps/game-server/dist /out/dist
 
-FROM node:26.12.1-trixie-slim AS runtime
+FROM node:26.13.0-trixie-slim AS runtime
+# Debian security fixes newer than the base image (the image scan refuses known, fixed ones)
+RUN apt-get update \
+	&& apt-get upgrade --yes --no-install-recommends \
+	&& rm -rf /var/lib/apt/lists/*
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 ENV NODE_ENV=production
 WORKDIR /app
