@@ -195,12 +195,7 @@ export function landHazards(world: World): void {
 			y: hazard.y,
 			radius: hazard.radius
 		})
-		for (const state of world.players.values()) {
-			if (!state.alive || state.downed) continue
-			const d = Math.hypot(state.x - hazard.x, state.y - hazard.y)
-			if (d <= hazard.radius + playerDef.radius)
-				world.hurt(state, hazard.damage * (1 - 0.5 * Math.min(1, d / hazard.radius)), hazard.type)
-		}
+		// the pool first: if the blast downs the last player, the wipe clears it with the rest
 		if (hazard.pool)
 			world.addPool(
 				hazard.x,
@@ -210,6 +205,12 @@ export function landHazards(world: World): void {
 				hazard.pool.seconds,
 				hazard.type
 			)
+		for (const state of world.players.values()) {
+			if (!state.alive || state.downed) continue
+			const d = Math.hypot(state.x - hazard.x, state.y - hazard.y)
+			if (d <= hazard.radius + playerDef.radius)
+				world.hurt(state, hazard.damage * (1 - 0.5 * Math.min(1, d / hazard.radius)), hazard.type)
+		}
 	}
 }
 

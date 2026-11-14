@@ -43,6 +43,9 @@
 			"name": "Blackout",
 			"description": "The lights are out: only lamps, fires and weapon lights.",
 			"bonus": 0.2,
+			"notFor": {
+				"lights": ["night", "dark"]
+			},
 			"effects": {
 				"dark": 1
 			}
@@ -52,6 +55,9 @@
 			"name": "One life",
 			"description": "Alone, the first death ends the mission. In a squad, bleeding out takes 10 seconds less.",
 			"bonus": 0.15,
+			"notFor": {
+				"contracts": true
+			},
 			"effects": {
 				"soloLives": 1,
 				"bleedout": -10

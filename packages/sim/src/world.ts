@@ -7,6 +7,7 @@ import {
 	type DamageType,
 	damageTaken,
 	economy,
+	MAX_MUTATION_STAGE,
 	type MapDef,
 	modifiedStats,
 	mutatedZombies,
@@ -150,6 +151,8 @@ export type SimEvent =
 	| { type: 'failed'; index: number }
 
 export type Pool = {
+	/** unique in the room, for snapshots to send each pool once */
+	id: number
 	x: number
 	y: number
 	radius: number
@@ -444,6 +447,11 @@ export class World {
 	/** adaptive strains running (damage type index + 1 each), and each zombie's (0: none) */
 	readonly strains: number[] = []
 	readonly strain = new Uint8Array(MAX_ZOMBIES)
+	/** the mutation stage each zombie came in at: a horde mutating further changes only what comes next */
+	readonly stage = new Uint8Array(MAX_ZOMBIES)
+	/** every kind at each stage, worked out once */
+	private readonly defsByStage = Array.from({ length: MAX_MUTATION_STAGE + 1 }, (_, stage) => mutatedZombies(stage))
+	private nextPoolId = 1
 	/** players' damage by type, a bucket a second over the adaptive window */
 	private readonly damageWindow = new Float64Array(mutationsDef.adaptive.windowSeconds * DAMAGE_TYPES.length)
 	private nextStrainTick = 0
@@ -1409,7 +1417,7 @@ export class World {
 			}
 			this.firingWeapon = NO_WEAPON
 			if (this.alive[i] === 0) continue
-			const def = this.defs[this.type[i] as number] as ZombieDef
+			const def = this.zombieDef(i)
 			if (def.dummy && this.tick - (this.lastHitTick[i] as number) > this.dummyResetTicks) {
 				this.health[i] = this.maxHealth[i] as number
 			}
@@ -1505,12 +1513,14 @@ export class World {
 	): void {
 		// under the ground nothing touches it
 		if (this.alive[index] === 0 || this.under[index] === 1) return
-		const def = this.defs[this.type[index] as number] as ZombieDef
+		const def = this.zombieDef(index)
 		const attacker = this.players.get(by)
-		let scaled = amount * (1 - (def.resist?.[type] ?? 0))
-		// a strain is hardened against the damage the squad leaned on
+		// a strain is hardened against the damage the squad leaned on, up to a cap with what it had
+		let resist = def.resist?.[type] ?? 0
 		const strain = this.strain[index] as number
-		if (strain > 0 && DAMAGE_TYPES[strain - 1] === type) scaled *= 1 - mutationsDef.adaptive.resist
+		if (strain > 0 && DAMAGE_TYPES[strain - 1] === type)
+			resist = Math.max(resist, Math.min(mutationsDef.adaptive.maxCombined, resist + mutationsDef.adaptive.resist))
+		let scaled = amount * (1 - resist)
 		// what the squad deals, by type, for the strains to answer
 		if (attacker && this.scoring) {
 			const bucket = Math.floor(this.tick / TICK_RATE) % mutationsDef.adaptive.windowSeconds
@@ -1696,6 +1706,7 @@ export class World {
 	addPool(x: number, y: number, radius: number, damagePerSecond: number, seconds: number, type: DamageType): void {
 		if (this.pools.length >= MAX_POOLS) this.pools.shift()
 		this.pools.push({
+			id: this.nextPoolId++,
 			x,
 			y,
 			radius,
@@ -1830,6 +1841,7 @@ export class World {
 		if (!point) return -1
 		const def = this.defs[typeIndex] as ZombieDef
 		this.alive[index] = 1
+		this.stage[index] = this.mutation
 		// some of what comes in now is the strain that answers the squad
 		this.strain[index] =
 			this.strains.length > 0 && !def.dummy && !def.boss && this.rng.next() < mutationsDef.adaptive.chance
@@ -2023,7 +2035,7 @@ export class World {
 		const w = this.hashWidth
 		for (let i = 0; i < MAX_ZOMBIES; i++) {
 			if (this.alive[i] === 0) continue
-			const def = this.defs[this.type[i] as number] as ZombieDef
+			const def = this.zombieDef(i)
 			// firing-range dummies stand still
 			if (def.dummy) continue
 			const x = this.x[i] as number
@@ -2257,7 +2269,12 @@ export class World {
 	/** The horde mutates to `stage`: zombies that come in from now on are as that stage makes them. */
 	setMutation(stage: number): void {
 		this.mutation = stage
-		this.defs = mutatedZombies(stage)
+		this.defs = this.defsByStage[stage] ?? mutatedZombies(stage)
+	}
+
+	/** A zombie's kind as it is at the stage it came in at. */
+	zombieDef(index: number): ZombieDef {
+		return (this.defsByStage[this.stage[index] as number] ?? this.defs)[this.type[index] as number] as ZombieDef
 	}
 
 	/**

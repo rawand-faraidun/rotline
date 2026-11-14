@@ -3,6 +3,13 @@
 		"health": 0.12,
 		"damage": 0.08
 	},
+	"maxStage": 3,
+	"maxSpeed": 12,
+	"byZone": [0, 1, 1, 2],
+	"byDifficulty": {
+		"nightmare": 1,
+		"apocalypse": 2
+	},
 	"maxResist": 0.35,
 	"survivalRoundsPerStage": 8,
 	"traits": [
@@ -69,6 +76,7 @@
 		"resist": 0.35,
 		"maxStrains": 2,
 		"cooldownSeconds": 45,
-		"chance": 0.5
+		"chance": 0.5,
+		"maxCombined": 0.6
 	}
 }

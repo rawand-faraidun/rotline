@@ -3,6 +3,7 @@ import { EXTRAPOLATE_TICKS, Interpolator, Predictor } from '@rotline/client/head
 import { maps, zombies } from '@rotline/game-data'
 import {
 	INPUT_REDUNDANCY,
+	PoolList,
 	Reader,
 	readServerHeader,
 	readSnapshot,
@@ -64,6 +65,7 @@ export class Bot {
 	private readonly socket: WebSocket
 	private readonly writer = new Writer(256)
 	private readonly table = new ZombieTable()
+	private readonly poolList = new PoolList()
 	private readonly interpolator = new Interpolator()
 	private predictor: Predictor | null = null
 	private readonly solid = new Uint8Array(300)
@@ -116,7 +118,7 @@ export class Bot {
 			if (Number.isNaN(this.clockOffset) || sample < this.clockOffset) this.clockOffset = sample
 			if (sample - this.clockOffset > 100) this.stats.late++
 			this.newestTick = frame.tick
-			this.interpolator.push(frame.tick, this.table, frame.others, frame.pools, now)
+			this.interpolator.push(frame.tick, this.table, frame.others, this.poolList.apply(frame.pools, frame.tick), now)
 			if (frame.rttMs > 0) this.stats.rttMs.push(frame.rttMs)
 			if (this.predictor) {
 				const before = this.predictor.corrections

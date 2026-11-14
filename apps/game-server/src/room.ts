@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import {
+	applicableModifiers,
 	type Build,
 	buffs,
 	currentBounty,
@@ -215,7 +216,8 @@ export class Room {
 				? bounty.bounty
 				: null
 		this.rewardScale = this.missionRoom
-			? difficultyDef(this.missionRoom.difficulty).rewards * (1 + modifierBonus(this.missionRoom.modifiers ?? []))
+			? difficultyDef(this.missionRoom.difficulty).rewards *
+				(1 + modifierBonus(applicableModifiers(this.missionRoom.modifiers ?? [], this.missionDef ?? undefined)))
 			: 1
 		const map = (
 			range ? maps.range : this.missionDef ? missionMap(this.missionDef) : maps[survivalMap(this.arena)]

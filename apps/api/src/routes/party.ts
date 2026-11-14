@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { friendIds } from '@rotline/db'
 import {
 	achievements,
+	applicableModifiers,
 	buildProblem,
 	campaign,
 	type DifficultyId,
@@ -9,8 +10,7 @@ import {
 	isSurvival,
 	levelFromXp,
 	missionById,
-	missions,
-	normaliseModifiers
+	missions
 } from '@rotline/game-data'
 import {
 	liveInstances,
@@ -58,7 +58,7 @@ function storedView(
 	seen: { mission: string; difficulty: string; modifiers?: string[] | undefined } | undefined
 ): SeenMission | undefined {
 	if (!seen) return undefined
-	const modifiers = normaliseModifiers(seen.modifiers ?? []).join(',')
+	const modifiers = applicableModifiers(seen.modifiers ?? [], missionById(seen.mission)).join(',')
 	if (party.mission === '' && party.difficulty === '') {
 		const chosen = chosenMission(party)
 		if (seen.mission === chosen.id && seen.difficulty === chosen.difficulty)
@@ -97,7 +97,9 @@ function chosenMission(party: Party): { id: string; difficulty: DifficultyId; mo
 	const id = isSurvival(party.mission) || missionById(party.mission) ? party.mission : DEFAULT_MISSION
 	const parsed = difficultyId.safeParse(party.difficulty)
 	// Survival has no modifiers
-	const modifiers = isSurvival(id) ? [] : normaliseModifiers(party.modifiers ? party.modifiers.split(',') : [])
+	const modifiers = isSurvival(id)
+		? []
+		: applicableModifiers(party.modifiers ? party.modifiers.split(',') : [], missionById(id))
 	return { id, difficulty: parsed.success ? parsed.data : DEFAULT_DIFFICULTY, modifiers }
 }
 
@@ -340,7 +342,8 @@ export function partyRoutes(services: Services) {
 						user.id,
 						mission,
 						difficulty,
-						isSurvival(mission) ? '' : normaliseModifiers(modifiers ?? []).join(',')
+						// only the ones that change something on this mission (no Blackout where it is dark already)
+						isSurvival(mission) ? '' : applicableModifiers(modifiers ?? [], missionById(mission)).join(',')
 					)
 					await changed(party.id)
 					return c.json(await view(party, user.id), 200)

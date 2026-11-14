@@ -5,6 +5,7 @@ import {
 	missionMap,
 	mutate,
 	mutationStage,
+	mutations,
 	zombieIndex,
 	zombies
 } from '@rotline/game-data'
@@ -436,6 +437,30 @@ describe('mutations', () => {
 		const full = world.health[strained] as number
 		world.damageZombie(strained, 10, 1, 'fire')
 		expect(full - (world.health[strained] as number)).toBeCloseTo(6.5, 5)
+	})
+
+	it('a strain on an already resistant kind stops at the combined cap', () => {
+		const world = quietWorld()
+		world.addPlayer(1)
+		world.setMutation(3)
+		// a stage-3 drudge resists bullets (armoured); a bullet strain adds to that only up to the cap
+		const index = world.spawnZombie(zombieIndex('drudge'), { x: 30, y: 30 })
+		world.strain[index] = DAMAGE_TYPES.indexOf('ballistic') + 1
+		const own = world.zombieDef(index).resist?.ballistic ?? 0
+		const full = world.health[index] as number
+		world.damageZombie(index, 100, 1, 'ballistic')
+		const share = Math.max(own, Math.min(mutations.adaptive.maxCombined, own + mutations.adaptive.resist))
+		expect(full - (world.health[index] as number)).toBeCloseTo(100 * (1 - share), 5)
+	})
+
+	it('a zombie keeps the stage it came in at when the horde mutates further', () => {
+		const world = quietWorld()
+		world.addPlayer(1)
+		const early = world.spawnZombie(zombieIndex('drudge'), { x: 30, y: 30 })
+		world.setMutation(2)
+		const late = world.spawnZombie(zombieIndex('drudge'), { x: 32, y: 30 })
+		expect(world.zombieDef(early).resist?.ballistic ?? 0).toBe(zombieDef('drudge').resist?.ballistic ?? 0)
+		expect(world.zombieDef(late).resist?.ballistic).toBeCloseTo(0.2)
 	})
 })
 

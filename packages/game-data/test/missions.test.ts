@@ -92,3 +92,16 @@ describe('maps for each run', () => {
 		expect(survivalMap(undefined)).toBe(SURVIVAL_ARENAS[0].map)
 	})
 })
+
+describe('modifiers that change nothing', () => {
+	it('drops Blackout where it is dark already and One life on contracts, and pays nothing for them', async () => {
+		const { applicableModifiers, modifierBonus } = await import('../src/index.ts')
+		const night = missionById('gardener') as MissionDef
+		const contract = missionById('hotspot') as MissionDef
+		const day = missionById('landfall') as MissionDef
+		expect(applicableModifiers(['blackout', 'swarm'], night)).toEqual(['swarm'])
+		expect(applicableModifiers(['one-life', 'swarm'], contract)).toEqual(['swarm'])
+		expect(applicableModifiers(['one-life', 'blackout'], day)).toEqual(['blackout', 'one-life'])
+		expect(modifierBonus(applicableModifiers(['blackout'], night))).toBe(0)
+	})
+})

@@ -715,6 +715,8 @@ export const en = {
 			rewards: 'Rewards ×{times}',
 			modifiers: 'Modifiers',
 			modifierBonus: '+{percent} % rewards',
+			modifierOn: 'On',
+			modifierNotHere: 'Changes nothing on this mission',
 			recommended: 'Level {level}+',
 			par: 'Par {time}',
 			best: 'Best {time}',

@@ -416,7 +416,7 @@
 	{
 		"id": "gardener",
 		"name": "The Gardener",
-		"health": 26000,
+		"health": 22000,
 		"speed": 0.95,
 		"radius": 1.0,
 		"meleeDamage": 40,
@@ -462,12 +462,12 @@
 		},
 		"burrow": {
 			"speed": 5,
-			"fromRange": 11,
+			"fromRange": 14,
 			"surfaceRange": 1.5,
 			"eruptSeconds": 1.3,
 			"damage": 55,
 			"radius": 3.2,
-			"aboveSeconds": 10
+			"aboveSeconds": 14
 		},
 		"phases": [
 			{

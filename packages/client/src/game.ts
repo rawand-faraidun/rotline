@@ -24,6 +24,7 @@ import {
 import {
 	INPUT_REDUNDANCY,
 	KickReason,
+	PoolList,
 	RangeAction,
 	Writer,
 	writePause,
@@ -216,6 +217,7 @@ export function startGame(options: GameOptions): GameHandle {
 	const barricades = new Map<number, number[]>()
 	const rangeWriter = new Writer(16)
 	const interpolator = new Interpolator()
+	const poolList = new PoolList()
 	const controls = new Controls(options.canvas)
 	// the page's sound engine, shared with the lobby: its sounds are usually decoded already
 	const audio = sharedAudio(`${options.assets}/audio`)
@@ -455,7 +457,10 @@ export function startGame(options: GameOptions): GameHandle {
 			}
 		},
 		snapshot: (snapshot, table, receivedAt) => {
-			interpolator.push(snapshot.tick, table, snapshot.others, snapshot.pools, receivedAt, snapshot.objects)
+			// pools come as changes; the list is kept here
+			const pools = poolList.apply(snapshot.pools, snapshot.tick)
+			if (snapshot.mutation !== mutation) mutation = snapshot.mutation
+			interpolator.push(snapshot.tick, table, snapshot.others, pools, receivedAt, snapshot.objects)
 			syncBarricades(snapshot.objects)
 			for (const update of snapshot.props) {
 				const prop = props[update.index]

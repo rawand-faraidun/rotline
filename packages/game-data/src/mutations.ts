@@ -1,7 +1,7 @@
 import { campaign, mutations, zombies } from './data.ts'
 import type { DamageType, DifficultyId, ZombieDef } from './schema.ts'
 
-export const MAX_MUTATION_STAGE = 3
+export const MAX_MUTATION_STAGE = mutations.maxStage
 
 /** The damage types in a fixed order: a strain is stored as its type's index here, plus one. */
 export const DAMAGE_TYPES = ['ballistic', 'explosive', 'fire', 'shock', 'chemical'] as const satisfies DamageType[]
@@ -9,7 +9,7 @@ export const DAMAGE_TYPES = ['ballistic', 'explosive', 'fire', 'shock', 'chemica
 /**
  * How far the horde has mutated: the zone (Harrow is a stage on from Ashgate; a fourth zone would
  * be two), the difficulty (Nightmare one, Apocalypse two) and, in Survival, the rounds survived,
- * whichever is furthest; Hardened adds a stage. At most three.
+ * whichever is furthest; Hardened adds a stage. At most `maxStage`. The numbers are in mutations.json.
  */
 export function mutationStage(setting: {
 	zone?: string | null
@@ -20,8 +20,9 @@ export function mutationStage(setting: {
 	rounds?: number
 }): number {
 	const zone = campaign.zones.findIndex(entry => entry.id === setting.zone)
-	const byZone = zone >= 3 ? 2 : zone >= 1 ? 1 : 0
-	const byDifficulty = setting.difficulty === 'apocalypse' ? 2 : setting.difficulty === 'nightmare' ? 1 : 0
+	const zones = mutations.byZone
+	const byZone = zone < 0 ? 0 : (zones[Math.min(zone, zones.length - 1)] ?? 0)
+	const byDifficulty = setting.difficulty ? (mutations.byDifficulty[setting.difficulty] ?? 0) : 0
 	const byRounds = setting.rounds === undefined ? 0 : Math.floor(setting.rounds / mutations.survivalRoundsPerStage)
 	return Math.min(MAX_MUTATION_STAGE, Math.max(byZone, byDifficulty, byRounds) + (setting.extra ?? 0))
 }
@@ -53,7 +54,7 @@ export function mutate(def: ZombieDef, stage: number): ZombieDef {
 	return {
 		...def,
 		health: def.health * (1 + mutations.perStage.health * stage),
-		speed: Math.min(12, speed),
+		speed: Math.min(mutations.maxSpeed, speed),
 		meleeDamage,
 		...(meleeType ? { meleeType } : {}),
 		...(regen > 0 ? { regen } : {}),

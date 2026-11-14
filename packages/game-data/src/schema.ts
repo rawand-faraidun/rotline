@@ -1140,6 +1140,15 @@ export const modifiersSchema = z.object({
 				name: z.string().min(1).max(32),
 				description: z.string().min(1).max(160),
 				bonus: z.number().min(0).max(1),
+				/** where it changes nothing, so it is not offered and pays no bonus */
+				notFor: z
+					.object({
+						/** contracts: a contract is lost the moment the squad is down anyway */
+						contracts: z.literal(true).optional(),
+						/** maps lit like this are dark already */
+						lights: z.array(z.enum(['day', 'dawn', 'dusk', 'overcast', 'fog', 'night', 'dark'])).optional()
+					})
+					.optional(),
 				effects: z.object({
 					enemyCount: z.number().positive().max(3).optional(),
 					enemyHealth: z.number().positive().max(3).optional(),
@@ -1164,6 +1173,14 @@ export const modifiersSchema = z.object({
  */
 export const mutationsSchema = z.object({
 	perStage: z.object({ health: z.number().min(0).max(1), damage: z.number().min(0).max(1) }),
+	/** the furthest the horde mutates */
+	maxStage: z.number().int().min(0).max(5),
+	/** no trait makes a kind faster than this (metres a second) */
+	maxSpeed: z.number().positive().max(20),
+	/** the stage each zone of the campaign is at, in order (the last for any zone after it) */
+	byZone: z.array(z.number().int().min(0).max(5)).min(1),
+	/** the stage a difficulty puts the horde at, at least */
+	byDifficulty: z.record(z.string(), z.number().int().min(0).max(5)),
 	/** no resistance a mutation or strain adds goes past this (a kind's own, like a Cinder's fire, may) */
 	maxResist: z.number().min(0).max(0.9),
 	/** Survival: a stage further every this many rounds */
@@ -1199,6 +1216,8 @@ export const mutationsSchema = z.object({
 		/** not before the squad has dealt this much in the window */
 		minDamage: z.number().min(0),
 		resist: z.number().min(0).max(0.9),
+		/** a strain's resistance with the kind's own, at most (a kind's own may be higher) */
+		maxCombined: z.number().min(0).max(0.9),
 		maxStrains: z.number().int().min(1).max(4),
 		/** at least this long between two strains */
 		cooldownSeconds: z.number().min(0),

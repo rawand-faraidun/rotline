@@ -10,13 +10,16 @@ import {
 	quantiseAxis,
 	type SimEvent,
 	setPropState,
+	TICK_RATE,
 	World
 } from '@rotline/sim'
 import { describe, expect, it } from 'vitest'
 import {
+	DARK_INTEREST_RADIUS,
 	INTEREST_RADIUS,
 	KickReason,
 	lookOf,
+	PoolList,
 	PROTOCOL_VERSION,
 	ProtocolError,
 	Reader,
@@ -474,6 +477,57 @@ describe('snapshots', () => {
 		decode(new SnapshotEncoder(1).write(new Writer(), world), table)
 		expect(table.known[near]).toBe(1)
 		expect(table.known[far]).toBe(0)
+	})
+
+	it('sends each pool once, then only the ones gone, and a new connection all of them', () => {
+		const world = new World({ seed: 3, map: yard })
+		world.addPlayer(1)
+		world.addPool(10, 10, 2, 5, 3, 'chemical')
+		world.addPool(12, 10, 1.5, 5, 30, 'fire')
+		const encoder = new SnapshotEncoder(1)
+		const w = new Writer()
+		const list = new PoolList()
+		const first = decode(encoder.write(w, world), new ZombieTable())
+		expect(first.pools.reset).toBe(true)
+		expect(first.pools.added).toHaveLength(2)
+		expect(list.apply(first.pools, first.tick)).toHaveLength(2)
+		// nothing new: nothing sent
+		const again = decode(encoder.write(w, world), new ZombieTable())
+		expect(again.pools.added).toHaveLength(0)
+		expect(again.pools.removed).toHaveLength(0)
+		// the short one dries up: only its id goes
+		for (let t = 0; t < 4 * TICK_RATE; t++) world.step(new Map())
+		const later = decode(encoder.write(w, world), new ZombieTable())
+		expect(later.pools.removed).toHaveLength(1)
+		const left = list.apply(later.pools, later.tick)
+		expect(left).toHaveLength(1)
+		expect(left[0]?.fire).toBe(true)
+		// someone joining now gets the pool still there
+		const fresh = decode(new SnapshotEncoder(1).write(w, world), new ZombieTable())
+		expect(fresh.pools.reset).toBe(true)
+		expect(fresh.pools.added).toHaveLength(1)
+	})
+
+	it("sends zombies only close by in a Blackout, and the horde's mutation stage", () => {
+		const mission = missionById('landfall') as MissionDef
+		const world = new World({
+			seed: 4,
+			map: { ...(maps.landfall as NonNullable<typeof maps.landfall>), walls: [] },
+			mission: {
+				mission: { ...mission, spawn: { ...mission.spawn, perSecond: 0 } },
+				difficulty: 'nightmare',
+				modifiers: ['blackout']
+			}
+		})
+		const me = world.addPlayer(1)
+		const near = world.spawnZombie(0, { x: me.x + 5, y: me.y })
+		const dim = world.spawnZombie(0, { x: me.x + DARK_INTEREST_RADIUS + 4, y: me.y })
+		const table = new ZombieTable()
+		const frame = decode(new SnapshotEncoder(1).write(new Writer(), world), table)
+		expect(table.known[near]).toBe(1)
+		expect(table.known[dim]).toBe(0)
+		expect(frame.mutation).toBe(world.mutation)
+		expect(frame.mutation).toBeGreaterThan(0)
 	})
 })
 

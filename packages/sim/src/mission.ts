@@ -1,4 +1,5 @@
 import {
+	applicableModifiers,
 	buffs,
 	type DifficultyDef,
 	type DifficultyId,
@@ -9,7 +10,6 @@ import {
 	type MissionDef,
 	type ModifierEffects,
 	modifierEffects,
-	normaliseModifiers,
 	type ObjectiveDef,
 	pathLength,
 	propsDef,
@@ -139,8 +139,9 @@ export function createMission(setup: MissionSetup, startTick: number, spawnX: nu
 	return {
 		def: setup.mission,
 		difficulty: difficultyDef(setup.difficulty),
-		modifiers: normaliseModifiers(setup.modifiers ?? []),
-		effects: modifierEffects(setup.modifiers ?? []),
+		// what plays is only what changes something here (the API stores no more, this makes sure)
+		modifiers: applicableModifiers(setup.modifiers ?? [], setup.mission),
+		effects: modifierEffects(applicableModifiers(setup.modifiers ?? [], setup.mission)),
 		index: nextStep(setup.mission, 0),
 		progress: 0,
 		status: MissionStatus.active,

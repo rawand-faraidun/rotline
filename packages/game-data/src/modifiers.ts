@@ -1,6 +1,9 @@
-import { modifiers } from './data.ts'
-import type { ModifierDef } from './schema.ts'
+import { missionLayouts, missionMap, modifiers } from './data.ts'
+import type { MissionDef, ModifierDef } from './schema.ts'
 import type { PlayerStats } from './stats.ts'
+
+/** the zone contracts are in */
+const CONTRACTS = 'contracts'
 
 /** The modifiers by id, in the order the data lists them (unknown ids are dropped). */
 export function modifierDefs(ids: readonly string[]): ModifierDef[] {
@@ -10,6 +13,30 @@ export function modifierDefs(ids: readonly string[]): ModifierDef[] {
 /** The ids, known and in the data's order, without repeats: how a choice of modifiers is stored. */
 export function normaliseModifiers(ids: readonly string[]): string[] {
 	return modifierDefs(ids).map(entry => entry.id)
+}
+
+/** Whether a modifier changes anything on this mission (on every map it can be played on). */
+export function modifierApplies(modifier: ModifierDef, mission: MissionDef): boolean {
+	const not = modifier.notFor
+	if (!not) return true
+	if (not.contracts && mission.zone === CONTRACTS) return false
+	const lights = not.lights
+	if (lights) {
+		const layouts = missionLayouts.get(mission.id) ?? [mission]
+		if (layouts.every(layout => lights.includes(missionMap(layout).look?.light ?? 'day'))) return false
+	}
+	return true
+}
+
+/**
+ * The modifiers as they play on this mission: known, in the data's order, without the ones that
+ * change nothing there (no Blackout on a map that is dark already). The API stores this, and the
+ * server plays and pays only these.
+ */
+export function applicableModifiers(ids: readonly string[], mission: MissionDef | undefined): string[] {
+	return modifierDefs(ids)
+		.filter(entry => !mission || modifierApplies(entry, mission))
+		.map(entry => entry.id)
 }
 
 /** Extra rewards for these modifiers, as a share (0.35 = 35 % more), at most the cap. */

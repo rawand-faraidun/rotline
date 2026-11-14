@@ -6,6 +6,7 @@ import {
 	isSurvival,
 	type MissionDef,
 	missionById,
+	modifierApplies,
 	modifierBonus,
 	modifiers,
 	SURVIVAL_ARENAS,
@@ -289,6 +290,9 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 				<div className="grid grid-cols-1 gap-2 md:grid-cols-3">
 					{modifiers.modifiers.map(modifier => {
 						const on = view.mission.modifiers.includes(modifier.id)
+						// one that changes nothing on this mission (Blackout where it is dark already) is not offered
+						const chosenDef = missionById(view.mission.id)
+						const applies = !chosenDef || modifierApplies(modifier, chosenDef)
 						const next = on
 							? view.mission.modifiers.filter(id => id !== modifier.id)
 							: [...view.mission.modifiers, modifier.id]
@@ -297,19 +301,28 @@ export function MissionPanel({ view, tab: initialTab }: { view: PartyView; tab?:
 								key={modifier.id}
 								type="button"
 								aria-pressed={on}
-								disabled={!editable}
+								disabled={!editable || !applies}
 								onClick={() => void choose(view.mission.id, view.mission.difficulty, next)}
 								className={cn(
 									'frame cut-sm flex flex-col items-start gap-0.5 px-3 py-2 text-left',
-									on ? '[--frame-color:var(--color-warning)]' : editable && 'hover:[--frame-color:var(--color-bone)]',
-									!editable && !on && 'opacity-60'
+									on
+										? '[--frame-color:var(--color-warning)]'
+										: editable && applies && 'hover:[--frame-color:var(--color-bone)]',
+									(!editable || !applies) && !on && 'opacity-60'
 								)}
 							>
 								<span className="flex w-full items-baseline justify-between gap-2">
 									<span className="font-bold uppercase tracking-wide">{modifier.name}</span>
-									<span className="text-warning text-xs">+{Math.round(modifier.bonus * 100)} %</span>
+									{/* chosen in words as well as colour */}
+									{on ? (
+										<Badge tone="warning">{t.modifierOn}</Badge>
+									) : (
+										<span className="text-warning text-xs">
+											{format(en.app.units.plus, { amount: `${Math.round(modifier.bonus * 100)} %` })}
+										</span>
+									)}
 								</span>
-								<span className="text-muted text-xs">{modifier.description}</span>
+								<span className="text-muted text-xs">{applies ? modifier.description : t.modifierNotHere}</span>
 							</button>
 						)
 					})}
