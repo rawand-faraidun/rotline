@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:26.13.0-trixie-slim AS base
+FROM node:26.13.1-trixie-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
 RUN npm install --global --no-fund --no-audit pnpm@11.22.0
 
@@ -12,7 +12,7 @@ RUN pnpm --filter @rotline/db generate \
 	&& pnpm --filter @rotline/api deploy --legacy --prod /out \
 	&& cp -r apps/api/dist /out/dist
 
-FROM node:26.13.0-trixie-slim AS runtime
+FROM node:26.13.1-trixie-slim AS runtime
 # Debian security fixes newer than the base image (the image scan refuses known, fixed ones)
 RUN apt-get update \
 	&& apt-get upgrade --yes --no-install-recommends \
